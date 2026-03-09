@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include=".editorconfig" />
+    <None Include=".define" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Lumina.ixx" />
+    <ClCompile Include="Lumina.Main.ixx" />
+    <ClCompile Include="Game\ResourceManager.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ResourceManager.Audio.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\ResourceManager.Graphics.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Game">
+      <UniqueIdentifier>{07613e66-b595-4fe0-83ef-230435e19df8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

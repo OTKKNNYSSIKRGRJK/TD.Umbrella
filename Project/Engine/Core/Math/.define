@@ -1,0 +1,55 @@
+#pragma once
+
+#if defined(NDEBUG) || defined(_LUMINA_DEBUG_INTRINSICS_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+
+#if defined(__AVX2__) && !defined(_LUMINA_INTRINSICS_AVX2_)
+#define _LUMINA_INTRINSICS_AVX2_
+#endif
+
+//####	######	######	######	######	######	######	######	####//
+
+//--#-	defined(NDEBUG) || defined(_LUMINA_DEBUG_INTRINSICS_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#else
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+
+#define _LUMINA_INTRINSICS_UNUSED_
+
+//--#-	!(defined(NDEBUG) || defined(_LUMINA_DEBUG_INTRINSICS_))
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#endif
+
+//####	######	######	######	######	######	######	######	####//
+
+#if !defined(_LUMINA_INTRINSICS_UNUSED_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+
+#if defined (_LUMINA_INTRINSICS_AVX2_)
+#define _LUMINA_VECTORCALL_ __vectorcall
+
+//--#-	defined (_LUMINA_INTRINSICS_AVX2_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#else
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+
+#define _LUMINA_VECTORCALL_
+
+//--#-	else
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#endif
+
+//--#-	!defined(_LUMINA_INTRINSICS_UNUSED_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#else
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+
+#define _LUMINA_VECTORCALL_
+
+//--#-	defined(_LUMINA_INTRINSICS_UNUSED_)
+//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
+#endif
+
+//####	######	######	######	######	######	######	######	####//
+
+#define _LUMINA_INLINE_ __forceinline

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include=".editorconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Common.ixx" />
+    <ClCompile Include="Common.SIMD.ixx" />
+    <ClCompile Include="Common.TypeAlias.ixx" />
+    <ClCompile Include="Common.Time.ixx" />
+    <ClCompile Include="Common.Mixins.ixx" />
+    <ClCompile Include="DataStructures\DataStructure.Bitset.ixx">
+      <Filter>DataStructures</Filter>
+    </ClCompile>
+    <ClCompile Include="DataStructures\DataStructure.List.ixx">
+      <Filter>DataStructures</Filter>
+    </ClCompile>
+    <ClCompile Include="External\nlohmann.json.ixx">
+      <Filter>External</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="External">
+      <UniqueIdentifier>{7ebe5c59-f333-4253-a149-19747842af95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DataStructures">
+      <UniqueIdentifier>{b568c038-1e83-4b98-bd72-8344429e2a19}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

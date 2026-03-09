@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <None Include=".editorconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="D3D12.Aux.ixx" />
+    <ClCompile Include="D3D12.Aux.View.ixx" />
+    <ClCompile Include="D3D12.Barrier.ixx" />
+    <ClCompile Include="D3D12.Canvas.ixx" />
+    <ClCompile Include="D3D12.Command.ixx" />
+    <ClCompile Include="D3D12.Context.ixx" />
+    <ClCompile Include="D3D12.Debug.ixx" />
+    <ClCompile Include="D3D12.Descriptor.ixx" />
+    <ClCompile Include="D3D12.Fence.ixx" />
+    <ClCompile Include="D3D12.FrameBufferSwapChain.ixx" />
+    <ClCompile Include="D3D12.GraphicsDevice.ixx" />
+    <ClCompile Include="D3D12.ixx" />
+    <ClCompile Include="D3D12.PipelineState.ixx" />
+    <ClCompile Include="D3D12.RenderPass.ixx" />
+    <ClCompile Include="D3D12.Resource.Buffer.ixx" />
+    <ClCompile Include="D3D12.Resource.Common.ixx" />
+    <ClCompile Include="D3D12.Resource.ixx" />
+    <ClCompile Include="D3D12.Resource.Texture2D.ixx" />
+    <ClCompile Include="D3D12.RootSignature.ixx" />
+    <ClCompile Include="D3D12.Shader.ixx" />
+    <ClCompile Include="D3D12.Texture.ixx" />
+    <ClCompile Include="D3D12.Wrapper.ixx" />
+  </ItemGroup>
+</Project>

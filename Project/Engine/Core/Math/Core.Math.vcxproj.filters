@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="LinearAlgebra">
+      <UniqueIdentifier>{0d24c91c-c26a-4830-99bc-3ed5bfd7a31b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Random">
+      <UniqueIdentifier>{8d295ee3-920e-4761-a0c4-0b0d283f1b1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fundamental">
+      <UniqueIdentifier>{712b4ff8-6e60-4b8b-822d-199ea50ca1c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interpolation">
+      <UniqueIdentifier>{d02fbda9-d30b-4360-83a3-a04789189e25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Geometry">
+      <UniqueIdentifier>{712ceb36-3422-44bc-bf37-472f51768c03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fractal">
+      <UniqueIdentifier>{8311991b-2f11-4a0f-affd-ab2a7305f3ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NumberSystem">
+      <UniqueIdentifier>{c7a708c8-d0cf-476c-aabd-4df02b109141}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="LinearAlgebra\LinearAlgebra.Vector.ixx">
+      <Filter>LinearAlgebra</Filter>
+    </ClCompile>
+    <ClCompile Include="LinearAlgebra\LinearAlgebra.Matrix.ixx">
+      <Filter>LinearAlgebra</Filter>
+    </ClCompile>
+    <ClCompile Include="Math.ixx" />
+    <ClCompile Include="Fundamental\Fundamental.Constants.ixx">
+      <Filter>Fundamental</Filter>
+    </ClCompile>
+    <ClCompile Include="Interpolation\Interpolation.Bezier.ixx">
+      <Filter>Interpolation</Filter>
+    </ClCompile>
+    <ClCompile Include="Fundamental\Fundamental.Trigonometry.ixx">
+      <Filter>Fundamental</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry\Geometry.BoundingBox.ixx">
+      <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry\Geometry.Transformation.ixx">
+      <Filter>Geometry</Filter>
+    </ClCompile>
+    <ClCompile Include="Random\Random.ixx">
+      <Filter>Random</Filter>
+    </ClCompile>
+    <ClCompile Include="Fractal\Fractal.PerlinNoise.ixx">
+      <Filter>Fractal</Filter>
+    </ClCompile>
+    <ClCompile Include="Fundamental\Fundamental.Exponentiation.ixx">
+      <Filter>Fundamental</Filter>
+    </ClCompile>
+    <ClCompile Include="NumberSystem\NumberSystem.Quaternion.ixx">
+      <Filter>NumberSystem</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".editorconfig" />
+    <None Include=".define" />
+  </ItemGroup>
+</Project>
