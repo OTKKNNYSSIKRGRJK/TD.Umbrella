@@ -4,9 +4,6 @@
     <Filter Include="External">
       <UniqueIdentifier>{61f49c71-b8d2-4386-b0f9-f2ff17aa1853}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Editor">
-      <UniqueIdentifier>{05e8530d-5248-4c2f-9c2d-5a1c1fe29c01}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />

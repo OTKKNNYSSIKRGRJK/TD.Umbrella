@@ -13,37 +13,39 @@ import Lumina.Core.Common;
 // Custom String class & StringView class from scratch
 // CodePointString class for internal string processing
 
+namespace Lumina::Base {
+	class String;
+	class StringView;
+}
+
+namespace Lumina::Template {
+	template<typename ElemType, typename ElemTraits>
+	class [[nodiscard]] String;
+	template<typename ElemType, typename ElemTraits>
+	class [[nodiscard]] StringView;
+
+	template<typename ElemType>
+	using ElementTraits = std::char_traits<ElemType>;
+}
+
 namespace Lumina {
-	class StringBase;
-	class StringViewBase;
-
-	template<typename ElemType, typename ElemTraits>
-	class [[nodiscard]] StringT;
-	template<typename ElemType, typename ElemTraits>
-	class [[nodiscard]] StringViewT;
-
 	export template<typename ElemType, SIZE N>
 	class [[nodiscard]] StringLiteral;
 }
 
 namespace Lumina {
-	template<typename ElemType>
-	using ElementTraitsT = std::char_traits<ElemType>;
-}
+	export using String = Template::String<C8, Template::ElementTraits<C8>>;
+	export using WString = Template::String<C16, Template::ElementTraits<C16>>;
 
-namespace Lumina {
-	export using String = StringT<C8, ElementTraitsT<C8>>;
-	export using WString = StringT<C16, ElementTraitsT<C16>>;
-
-	export using StringView = StringViewT<C8, ElementTraitsT<C8>>;
-	export using WStringView = StringViewT<C16, ElementTraitsT<C16>>;
+	export using StringView = Template::String<C8, Template::ElementTraits<C8>>;
+	export using WStringView = Template::String<C16, Template::ElementTraits<C16>>;
 }
 
 namespace Lumina::Concept {
 	template<typename T>
-	concept String = std::derived_from<T, StringBase>;
+	concept String = std::derived_from<T, Base::String>;
 	template<typename T>
-	concept StringView = std::derived_from<T, StringViewBase>;
+	concept StringView = std::derived_from<T, Base::StringView>;
 }
 
 namespace Lumina {
@@ -57,14 +59,14 @@ namespace Lumina {
 	) -> void;
 }
 
-namespace Lumina {
-	class StringBase {};
-	class StringViewBase {};
+namespace Lumina::Base {
+	class String {};
+	class StringView {};
 }
 
-namespace Lumina {
+namespace Lumina::Template {
 	template<typename ElemType, typename ElemTraits>
-	class [[nodiscard]] StringT : public StringBase {
+	class [[nodiscard]] String : public Base::String {
 	public:
 		using ElementType = ElemType;
 		using ElementTraits = ElemTraits;
@@ -88,14 +90,18 @@ namespace Lumina {
 			const noexcept -> ElemType const* { return Data_.data(); }
 
 	public:
-		constexpr StringT() noexcept {}
+		constexpr String() noexcept {}
 		template<typename ElemType_SRC>
-		inline StringT(ElemType_SRC const* src_) noexcept {
+		inline String(ElemType_SRC const* src_) noexcept {
 			if constexpr (std::is_same_v<ElemType, ElemType_SRC>) {
 				Data_ = src_;
 			}
 			else {
-				(*this) <<= StringViewT<ElemType_SRC, ElementTraitsT<ElemType_SRC>>{ src_ };
+				(*this) <<=
+					StringView<
+						ElemType_SRC,
+						Template::ElementTraits<ElemType_SRC>
+					>{ src_ };
 			}
 		}
 
@@ -104,9 +110,9 @@ namespace Lumina {
 	};
 }
 
-namespace Lumina {
+namespace Lumina::Template {
 	template<typename ElemType, typename ElemTraits>
-	class [[nodiscard]] StringViewT : public StringViewBase {
+	class [[nodiscard]] StringView : public Base::StringView {
 	public:
 		using ElementType = ElemType;
 		using ElementTraits = ElemTraits;
@@ -120,9 +126,9 @@ namespace Lumina {
 			const noexcept -> ElemType const* { return DataView_.data(); }
 
 	public:
-		StringViewT(ElemType const* str_Literal_)
+		StringView(ElemType const* str_Literal_)
 			noexcept : DataView_{ str_Literal_ } {}
-		StringViewT(StringT<ElemType, ElemTraits> const& str_)
+		StringView(String<ElemType, ElemTraits> const& str_)
 			noexcept : DataView_{ str_.Data() } {}
 
 	private:

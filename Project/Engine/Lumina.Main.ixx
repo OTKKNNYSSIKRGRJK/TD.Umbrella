@@ -15,7 +15,7 @@ import Lumina.D3D12.Aux;
 import Lumina.ResourceManager;
 
 #if defined(_DEBUG)
-import Lumina.External.ImGui;
+import Lumina.Utils.ImGui;
 #endif
 
 #if defined(_DEBUG)
