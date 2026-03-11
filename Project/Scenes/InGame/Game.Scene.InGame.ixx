@@ -1,0 +1,32 @@
+export module Game.Scene.InGame;
+
+import <memory>;
+
+import Lumina;
+
+namespace Game::Scene {
+	namespace Impl { class InGame; }
+
+	export class InGame : public Lumina::Scene {
+	public:
+		virtual void Update() override;
+		virtual void Render() override;
+
+	public:
+		template<typename...ArgTypes>
+		void Initialize(typename ArgTypes const&...args_);
+
+		InGame();
+		virtual ~InGame();
+
+	private:
+		std::unique_ptr<Impl::InGame> Impl_{ nullptr };
+	};
+}
+
+namespace Lumina {
+	template<>
+	void SceneManager::Load<"InGame">() {
+		Load<Game::Scene::InGame>("InGame");
+	}
+}

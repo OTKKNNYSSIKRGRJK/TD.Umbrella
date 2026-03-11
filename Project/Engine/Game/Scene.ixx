@@ -10,6 +10,7 @@ import <string>;
 import <format>;
 
 import Lumina.Core.Common;
+import Lumina.Core.String;
 
 namespace Lumina {
 	class Scene;
@@ -26,8 +27,10 @@ namespace Lumina {
 		virtual ~Scene() = default;
 	};
 
-	template<typename T>
-	concept Concept_Scene = std::is_base_of_v<Scene, T>;
+	namespace Concept {
+		template<typename T>
+		concept Scene = std::is_base_of_v<Lumina::Scene, T>;
+	}
 
 	//////	//////	//////	//////	//////	//////
 
@@ -47,7 +50,7 @@ namespace Lumina {
 		}
 
 	public:
-		template<Concept_Scene SceneType, typename...ParameterTypes>
+		template<Concept::Scene SceneType, typename...ParameterTypes>
 		void Load(std::string_view name_, ParameterTypes&&...params_) {
 			if (LoadedScenes_.find(name_.data()) == LoadedScenes_.cend()) {
 				LoadedScenes_.emplace(
@@ -58,6 +61,9 @@ namespace Lumina {
 				);
 			}
 		}
+
+		template<StringLiteral SceneName>
+		void Load();
 
 		void Unload(std::string_view name_) {
 			auto&& it_SceneNodeKV{ LoadedScenes_.find(name_.data()) };

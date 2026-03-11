@@ -4,12 +4,16 @@
 import Lumina;
 
 Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
-	auto context{ std::make_unique<Lumina::Context>() };
-	context->Initialize();
+	auto& context{ Lumina::Context::Instance() };
+	context.Initialize();
 
-	while (context->Run());
+	auto& sceneMngr{ Lumina::SceneManager::Instance() };
+	sceneMngr.Load<"InGame">();
+	sceneMngr.Activate("InGame");
 
-	context->Finalize();
+	while (context.Run());
+
+	context.Finalize();
 
 	return 0;
 }

@@ -4,9 +4,30 @@
     <Filter Include="External">
       <UniqueIdentifier>{61f49c71-b8d2-4386-b0f9-f2ff17aa1853}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes">
+      <UniqueIdentifier>{3290b5f6-23e2-4231-9278-3c7eaccaa32a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scenes\InGame">
+      <UniqueIdentifier>{0d08858b-d995-4b0f-b07b-e707b5c33e66}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

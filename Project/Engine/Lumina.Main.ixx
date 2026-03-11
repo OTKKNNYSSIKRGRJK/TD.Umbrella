@@ -79,19 +79,25 @@ namespace {
 #endif
 
 namespace Lumina {
-	export class Context {
+	export class Context : public NonCopyable<Context> {
+	public:
+		static inline auto Instance() -> Context& {
+			static std::unique_ptr<Context> inst{ std::make_unique<Context>() };
+			return *inst;
+		}
+		
 	public:
 		auto WinAppContext() const noexcept
 			-> OS::Windows::Context const& { return WinAppContext_; }
 		auto RawInputContext() const noexcept
 			-> OS::Windows::RawInput const& { return *MainWindowRawInput_; }
-		auto D3DContext() const noexcept
-			-> D3D12::Context const& { return D3DContext_; }
+		auto D3D12Context() const noexcept
+			-> D3D12::Context const& { return D3D12Context_; }
 		auto ResourceContext() const noexcept
 			-> ResourceManager const& { return ResourceManager_; }
 
 	public:
-		auto Run() -> B1;
+		auto Run() -> I32;
 
 	public:
 		void Initialize();
@@ -100,28 +106,41 @@ namespace Lumina {
 	private:
 		OS::Windows::Context WinAppContext_{};
 		OS::Windows::RawInput const* MainWindowRawInput_{ nullptr };
-		D3D12::Context D3DContext_{};
+		D3D12::Context D3D12Context_{};
 		ResourceManager ResourceManager_{};
 
 		D3D12::CommandAllocator CmdAllocator_{};
 		D3D12::CommandList CmdList_{};
 	};
 
-	auto Context::Run() -> B1 {
+	auto Context::Run() -> I32 {
 		if (WinAppContext_.ProcessMessage() == 0) {
-			[[maybe_unused]] ID3D12DescriptorHeap* descriptorHeaps[]{ D3DContext_.GlobalDescriptorHeap().Get() };
+			[[maybe_unused]] ID3D12DescriptorHeap* descriptorHeaps[]{ D3D12Context_.GlobalDescriptorHeap().Get() };
 
-			[[maybe_unused]] auto& directQueue{ D3DContext_.DirectQueue() };
+			[[maybe_unused]] auto& directQueue{ D3D12Context_.DirectQueue() };
 
 			[[maybe_unused]] auto const& keyboard = MainWindowRawInput_->Keyboard();
 			[[maybe_unused]] auto const& mouse = MainWindowRawInput_->Mouse();
 
-			D3DContext_.BeginFrame(CmdList_);
+			CmdList_->SetDescriptorHeaps(1U, descriptorHeaps);
+
+			D3D12Context_.BeginFrame(CmdList_);
+			#if defined(_DEBUG)
+			Lumina::Utils::ImGuiManager::BeginFrame();
+			#endif
 
 			SceneManager::Instance().Update();
 			SceneManager::Instance().Render();
 
-			D3DContext_.EndFrame(CmdAllocator_, CmdList_);
+			auto rtv{ D3D12Context_.SwapChain().BackBufferRTVCPUHandle()};
+			CmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
+			F32 const clearColor[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
+			CmdList_->ClearRenderTargetView(rtv, clearColor, 0U, nullptr);
+			
+			#if defined(_DEBUG)
+			Lumina::Utils::ImGuiManager::EndFrame(CmdList_);
+			#endif
+			D3D12Context_.EndFrame(CmdAllocator_, CmdList_);
 
 			//----	------	------	------	------	----//
 
@@ -153,19 +172,19 @@ namespace Lumina {
 
 		//----	------	------	------	------	----//
 
-		D3DContext_.Initialize(WinAppContext_);
-		auto const& device{ D3DContext_.Device() };
+		D3D12Context_.Initialize(WinAppContext_);
+		auto const& device{ D3D12Context_.Device() };
 
 		CmdAllocator_.Initialize(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 		CmdList_.Initialize(device, CmdAllocator_);
 
-		ResourceManager_.Initialize(D3DContext_);
+		ResourceManager_.Initialize(D3D12Context_);
 
 		//----	------	------	------	------	----//
 
 		#if defined(_DEBUG)
-		[[maybe_unused]] auto const& gpuDH{ D3DContext_.GlobalDescriptorHeap() };
-		[[maybe_unused]] auto const& swapChain{ D3DContext_.SwapChain() };
+		[[maybe_unused]] auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
+		[[maybe_unused]] auto const& swapChain{ D3D12Context_.SwapChain() };
 		Lumina::Utils::ImGuiManager::Initialize(mainWindow.Handle(), device, swapChain, gpuDH);
 		WinAppContext_.RegisterCallback(Lumina::Utils::ImGuiManager::WindowProcedure);
 		SetImGuiAppearance();
@@ -177,7 +196,7 @@ namespace Lumina {
 	void Context::Finalize() {
 		SceneManager::Instance().Finalize();
 
-		D3DContext_.DirectQueue().SignalAndCPUWait();
+		D3D12Context_.DirectQueue().SignalAndCPUWait();
 
 		#if defined(_DEBUG)
 		Lumina::Utils::ImGuiManager::Finalize();

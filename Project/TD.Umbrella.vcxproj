@@ -12,6 +12,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
