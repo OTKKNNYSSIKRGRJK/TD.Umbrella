@@ -14,9 +14,6 @@ export module Lumina.D3D12;
 
 //****	******	******	******	******	****//
 
-export import <d3d12.h>;
-export import <dxgi1_6.h>;
-
 export import : GraphicsDevice;
 
 export import : Command;

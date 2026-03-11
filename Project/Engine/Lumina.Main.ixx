@@ -1,18 +1,24 @@
+module;
+
+#include<Windows.h>
+
+#include<d3d12.h>
+
 export module Lumina : Main;
 
 import <memory>;
 
-import <Windows.h>;
-
 import Lumina.Core.Common;
 
 import Lumina.OS.Windows.Context;
+import Lumina.OS.Windows.RawInput;
 
 import Lumina.D3D12;
 import Lumina.D3D12.Context;
 import Lumina.D3D12.Aux;
 
 import Lumina.ResourceManager;
+export import Lumina.Scene;
 
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
@@ -75,7 +81,17 @@ namespace {
 namespace Lumina {
 	export class Context {
 	public:
-		bool Run();
+		auto WinAppContext() const noexcept
+			-> OS::Windows::Context const& { return WinAppContext_; }
+		auto RawInputContext() const noexcept
+			-> OS::Windows::RawInput const& { return *MainWindowRawInput_; }
+		auto D3DContext() const noexcept
+			-> D3D12::Context const& { return D3DContext_; }
+		auto ResourceContext() const noexcept
+			-> ResourceManager const& { return ResourceManager_; }
+
+	public:
+		auto Run() -> B1;
 
 	public:
 		void Initialize();
@@ -84,107 +100,28 @@ namespace Lumina {
 	private:
 		OS::Windows::Context WinAppContext_{};
 		OS::Windows::RawInput const* MainWindowRawInput_{ nullptr };
-		D3D12::Context DXContext_{};
+		D3D12::Context D3DContext_{};
 		ResourceManager ResourceManager_{};
 
 		D3D12::CommandAllocator CmdAllocator_{};
 		D3D12::CommandList CmdList_{};
 	};
 
-	bool Context::Run() {
+	auto Context::Run() -> B1 {
 		if (WinAppContext_.ProcessMessage() == 0) {
-			[[maybe_unused]] ID3D12DescriptorHeap* descriptorHeaps[]{ DXContext_.GlobalDescriptorHeap().Get() };
+			[[maybe_unused]] ID3D12DescriptorHeap* descriptorHeaps[]{ D3DContext_.GlobalDescriptorHeap().Get() };
 
-			[[maybe_unused]] auto& directQueue{ DXContext_.DirectQueue() };
+			[[maybe_unused]] auto& directQueue{ D3DContext_.DirectQueue() };
 
 			[[maybe_unused]] auto const& keyboard = MainWindowRawInput_->Keyboard();
 			[[maybe_unused]] auto const& mouse = MainWindowRawInput_->Mouse();
 
-			DXContext_.BeginFrame(CmdList_);
+			D3DContext_.BeginFrame(CmdList_);
 
-			auto rtv{ DXContext_.SwapChain().BackBufferRTVCPUHandle() };
-			auto dsv{ DXContext_.SwapChain().DSVCPUHandle() };
+			SceneManager::Instance().Update();
+			SceneManager::Instance().Render();
 
-			D3D12_RENDER_PASS_BEGINNING_ACCESS beginning_RTClear{
-				.Type{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR },
-				.Clear{
-					.ClearValue{
-						.Format{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB },
-						.Color{ 0.0f, 0.0f, 0.0f, 0.0f, },
-					},
-				},
-			};
-
-			D3D12_RENDER_PASS_BEGINNING_ACCESS beginning_DSClear{
-				.Type{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR },
-				.Clear{
-					.ClearValue{
-						.Format{ DXGI_FORMAT_D24_UNORM_S8_UINT },
-						.DepthStencil{
-							.Depth{ 1.0f },
-						},
-					},
-				},
-			};
-
-			D3D12_RENDER_PASS_ENDING_ACCESS ending_Preserve{
-				.Type{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE },
-			};
-
-			[[maybe_unused]] D3D12_RENDER_PASS_RENDER_TARGET_DESC renderTargetDesc{
-				.cpuDescriptor{ rtv },
-				.BeginningAccess{ beginning_RTClear },
-				.EndingAccess{ ending_Preserve },
-			};
-
-			[[maybe_unused]] D3D12_RENDER_PASS_DEPTH_STENCIL_DESC depthStencilDesc{
-				.cpuDescriptor{ dsv },
-				.DepthBeginningAccess{ beginning_DSClear },
-				.StencilBeginningAccess{.Type{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS } },
-				.DepthEndingAccess{ ending_Preserve },
-				.StencilEndingAccess{.Type{ D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS } },
-			};
-
-			static_cast<ID3D12GraphicsCommandList4*>(CmdList_.Get())->BeginRenderPass(
-				1U,
-				&renderTargetDesc,
-				&depthStencilDesc,
-				D3D12_RENDER_PASS_FLAG_NONE
-			);
-
-			//----	------	------	------	------	----//
-
-			static_cast<ID3D12GraphicsCommandList4*>(CmdList_.Get())->EndRenderPass();
-
-			//----	------	------	------	------	----//
-
-			D3D12_RENDER_PASS_BEGINNING_ACCESS beginning_Preserve{
-				.Type{ D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE },
-			};
-
-			[[maybe_unused]] D3D12_RENDER_PASS_RENDER_TARGET_DESC renderTargetDesc2{
-				.cpuDescriptor{ rtv },
-				.BeginningAccess{ beginning_Preserve },
-				.EndingAccess{ ending_Preserve },
-			};
-
-			static_cast<ID3D12GraphicsCommandList4*>(CmdList_.Get())->BeginRenderPass(
-				1U,
-				&renderTargetDesc2,
-				nullptr,
-				D3D12_RENDER_PASS_FLAG_NONE
-			);
-
-			#if defined(_DEBUG)
-			Lumina::Utils::ImGuiManager::BeginFrame();
-			Lumina::Utils::ImGuiManager::EndFrame(CmdList_);
-			#endif
-
-			static_cast<ID3D12GraphicsCommandList4*>(CmdList_.Get())->EndRenderPass();
-
-			//----	------	------	------	------	----//
-
-			DXContext_.EndFrame(CmdAllocator_, CmdList_);
+			D3DContext_.EndFrame(CmdAllocator_, CmdList_);
 
 			//----	------	------	------	------	----//
 
@@ -216,54 +153,32 @@ namespace Lumina {
 
 		//----	------	------	------	------	----//
 
-		DXContext_.Initialize(WinAppContext_);
-		auto const& device{ DXContext_.Device() };
+		D3DContext_.Initialize(WinAppContext_);
+		auto const& device{ D3DContext_.Device() };
 
-		auto const& gpuDH{ DXContext_.GlobalDescriptorHeap() };
+		auto const& gpuDH{ D3DContext_.GlobalDescriptorHeap() };
 
 		CmdAllocator_.Initialize(device, D3D12_COMMAND_LIST_TYPE_DIRECT);
 		CmdList_.Initialize(device, CmdAllocator_);
 
-		ResourceManager_.Initialize(DXContext_);
-
-		std::vector<uint32_t> texIDs{};
-		ResourceManager_.Graphics().LoadImageTextures(
-			texIDs,
-			{
-				{ "Star1", "Assets/Star1.png" },
-				{ "UVChecker", "Assets/uvChecker.png" },
-				{ "CLIMATE", "Assets/CLIMATE.png" },
-				{ "OCEAN", "Assets/OCEAN.png" },
-			}
-			);
-
-		auto texSRVTable{ gpuDH.Allocate(32U) };
-		//texIDs[2] = texIDs[1];
-		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
-			device->CopyDescriptorsSimple(
-				1U,
-				texSRVTable.CPUHandle(idx),
-				ResourceManager_.Graphics().CPUHandle(texIDs.at(idx)),
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
-		}
-
-		//auto handle_Stream = ResourceManager_.Audio().LoadFromFile("Assets/test.mp3");
-		//ResourceManager_.Audio().Play(handle_Stream, true, 1.0f);
+		ResourceManager_.Initialize(D3DContext_);
 
 		//----	------	------	------	------	----//
 
-		[[maybe_unused]] auto const& swapChain{ DXContext_.SwapChain() };
-
 		#if defined(_DEBUG)
+		[[maybe_unused]] auto const& swapChain{ D3DContext_.SwapChain() };
 		Lumina::Utils::ImGuiManager::Initialize(mainWindow.Handle(), device, swapChain, gpuDH);
 		WinAppContext_.RegisterCallback(Lumina::Utils::ImGuiManager::WindowProcedure);
 		SetImGuiAppearance();
 		#endif
+
+		SceneManager::Instance().Initialize();
 	}
 
 	void Context::Finalize() {
-		DXContext_.DirectQueue().SignalAndCPUWait();
+		SceneManager::Instance().Finalize();
+
+		D3DContext_.DirectQueue().SignalAndCPUWait();
 
 		#if defined(_DEBUG)
 		Lumina::Utils::ImGuiManager::Finalize();

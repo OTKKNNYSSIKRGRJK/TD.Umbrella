@@ -82,6 +82,7 @@
     <ClCompile Include="Game\ResourceManager.Audio.ixx" />
     <ClCompile Include="Game\ResourceManager.Graphics.ixx" />
     <ClCompile Include="Game\ResourceManager.ixx" />
+    <ClCompile Include="Game\Scene.ixx" />
     <ClCompile Include="Lumina.ixx" />
     <ClCompile Include="Lumina.Main.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />

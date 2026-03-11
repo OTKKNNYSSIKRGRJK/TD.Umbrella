@@ -39,6 +39,9 @@
     <ClCompile Include="Utils\Utils.ImGui.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Scene.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

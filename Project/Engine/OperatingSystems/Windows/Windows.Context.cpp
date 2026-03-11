@@ -6,6 +6,11 @@ module;
 
 module Lumina.OS.Windows.Context;
 
+import <memory>;
+
+import Lumina.OS.Windows;
+import Lumina.OS.Windows.RawInput;
+
 namespace {
 	template<typename T>
 	using UniPtr = std::unique_ptr<T>;
