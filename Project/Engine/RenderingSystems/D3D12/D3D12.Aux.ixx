@@ -28,8 +28,6 @@ import Lumina.Core.Debug;
 namespace {
 	template<typename T>
 	using UniPtr = std::unique_ptr<T>;
-
-	using JSON = nlohmann::json;
 }
 
 //****	******	******	******	******	****//
@@ -44,39 +42,39 @@ namespace {
 //////	//////	//////	//////	//////	//////
 
 export namespace Lumina::D3D12 {
-	void LoadRootSignature(
+	export void LoadRootSignature(
 		RootSignature& rs_,
 		const GraphicsDevice& device_,
-		const JSON& dict_RSSetup_,
+		const nlohmann::json& dict_RSSetup_,
 		std::string_view debugName_
 	);
-	RootSignature::Setup LoadRootSignatureSetup(
-		const JSON& dict_RSSetup_
+	export RootSignature::Setup LoadRootSignatureSetup(
+		const nlohmann::json& dict_RSSetup_
 	);
 
-	void LoadGraphicsPipelineState(
+	export void LoadGraphicsPipelineState(
 		GraphicsPipelineState& graphicsPSO_,
 		const GraphicsDevice& device_,
 		const RootSignature& rootSignature_,
 		const Shader& vertexShader_,
 		const Shader& pixelShader_,
-		const JSON& dict_PSOSetup_,
+		const nlohmann::json& dict_PSOSetup_,
 		std::string_view debugName_
 	);
 	BlendState LoadBlendState0(
-		JSON const& arr_BlendState_
+		nlohmann::json const& arr_BlendState_
 	);
 	BlendState LoadBlendState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	);
 	RasterizerState LoadRasterizerState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	);
 	DepthStencilState LoadDepthStencilState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	);
 	GraphicsPipelineState::InputLayout LoadInputLayout(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	);
 }
 
@@ -96,11 +94,11 @@ namespace Lumina::D3D12 {
 		concept EligibleForJSONKey = (std::is_integral_v<T> || std::is_constructible_v<std::string_view, T>);
 
 		template<Numeral ValueType, EligibleForJSONKey KeyType>
-		ValueType GetNumber(const JSON& jsonObj_, KeyType key_) {
+		ValueType GetNumber(const nlohmann::json& jsonObj_, KeyType key_) {
 			return jsonObj_.at(key_).get<ValueType>();
 		}
 		template<EligibleForJSONKey KeyType>
-		std::string_view GetString(const JSON& jsonObj_, KeyType key_) {
+		std::string_view GetString(const nlohmann::json& jsonObj_, KeyType key_) {
 			return jsonObj_.at(key_).get_ref<const std::string&>();
 		}
 	}
@@ -115,13 +113,13 @@ namespace Lumina::D3D12 {
 
 		public:
 			template<typename T>
-			static T LookUp(const JSON& jsonObj_, std::string_view key_) {
+			static T LookUp(const nlohmann::json& jsonObj_, std::string_view key_) {
 				auto ptr_Table{ Sections_.at(key_.data()) };
 				std::string_view val{ GetString(jsonObj_, key_) };
 				return std::any_cast<const Section<T>*>(ptr_Table)->at(val.data());
 			}
 			template<typename T>
-			static T LookUp(const JSON& jsonObj_, std::string_view key_, uint32_t index_) {
+			static T LookUp(const nlohmann::json& jsonObj_, std::string_view key_, uint32_t index_) {
 				auto ptr_Table{ Sections_.at(key_.data()) };
 				std::string_view val{ GetString(jsonObj_, index_) };
 				return std::any_cast<const Section<T>*>(ptr_Table)->at(val.data());
@@ -266,7 +264,7 @@ namespace Lumina::D3D12 {
 	namespace {
 		D3D12_DESCRIPTOR_RANGE& operator<<(
 			D3D12_DESCRIPTOR_RANGE& descriptorRange_,
-			const JSON& dict_DescriptorRange_
+			const nlohmann::json& dict_DescriptorRange_
 		) {
 			descriptorRange_.RangeType =
 				Lexicon::LookUp<decltype(descriptorRange_.RangeType)>(
@@ -284,10 +282,10 @@ namespace Lumina::D3D12 {
 
 		std::vector<D3D12_DESCRIPTOR_RANGE>& operator<<(
 			std::vector<D3D12_DESCRIPTOR_RANGE>& descriptorTable_,
-			const std::pair<const JSON&, const JSON&>& dictPair_RSSetup_RSParam_
+			const std::pair<const nlohmann::json&, const nlohmann::json&>& dictPair_RSSetup_RSParam_
 		) {
-			const JSON& dict_RSSetup{ dictPair_RSSetup_RSParam_.first };
-			const JSON& dict_RSParam{ dictPair_RSSetup_RSParam_.second };
+			const nlohmann::json& dict_RSSetup{ dictPair_RSSetup_RSParam_.first };
+			const nlohmann::json& dict_RSParam{ dictPair_RSSetup_RSParam_.second };
 
 			std::string_view descriptorTableName{ GetString(dict_RSParam, "TableName") };
 			const auto& arr_DescriptorRanges{ dict_RSSetup.at(descriptorTableName) };
@@ -313,7 +311,7 @@ namespace Lumina::D3D12 {
 	void LoadRootSignature(
 		RootSignature& rs_,
 		const GraphicsDevice& device_,
-		const JSON& dict_RSSetup_,
+		const nlohmann::json& dict_RSSetup_,
 		std::string_view debugName_
 	) {
 		auto&& rsSetup{ LoadRootSignatureSetup(dict_RSSetup_) };
@@ -325,7 +323,7 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	RootSignature::Setup LoadRootSignatureSetup(
-		const JSON& dict_RSSetup_
+		const nlohmann::json& dict_RSSetup_
 	) {
 		RootSignature::Setup rsSetup{};
 		{
@@ -430,7 +428,7 @@ namespace Lumina::D3D12 {
 		const RootSignature& rootSignature_,
 		const Shader& vertexShader_,
 		const Shader& pixelShader_,
-		const JSON& dict_PSOSetup_,
+		const nlohmann::json& dict_PSOSetup_,
 		std::string_view debugName_
 	) {
 		BlendState blendState{};
@@ -486,7 +484,7 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	BlendState LoadBlendState0(
-		JSON const& arr_BlendState_
+		nlohmann::json const& arr_BlendState_
 	) {
 		BlendState blendState{};
 		for (size_t idx_RT{ 0LLU }; idx_RT < arr_BlendState_.size(); ++idx_RT) {
@@ -532,7 +530,7 @@ namespace Lumina::D3D12 {
 	}
 
 	BlendState LoadBlendState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	) {
 		return LoadBlendState0(dict_PSOSetup_.at("BlendState"));
 	}
@@ -542,7 +540,7 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	RasterizerState LoadRasterizerState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	) {
 		RasterizerState rasterizerState{};
 		auto const& dict_RasterizerState{ dict_PSOSetup_.at("RasterizerState") };
@@ -564,7 +562,7 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	DepthStencilState LoadDepthStencilState(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	) {
 		DepthStencilState depthStencilState{};
 		auto const& dict_DepthStencilState{ dict_PSOSetup_.at("DepthStencilState") };
@@ -591,7 +589,7 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	GraphicsPipelineState::InputLayout LoadInputLayout(
-		JSON const& dict_PSOSetup_
+		nlohmann::json const& dict_PSOSetup_
 	) {
 		GraphicsPipelineState::InputLayout inputLayout{};
 		{

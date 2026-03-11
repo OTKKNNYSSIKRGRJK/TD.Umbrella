@@ -5,7 +5,7 @@ import <d3d12.h>;
 import : Resource;
 
 namespace Lumina::D3D12 {
-	export class Barrier {
+	export class Barrier : public D3D12_RESOURCE_BARRIER {
 	public:
 		template<Concept::Resource ResourceType>
 		static auto Transition(
