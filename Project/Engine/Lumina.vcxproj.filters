@@ -42,12 +42,16 @@
     <ClCompile Include="Game\Scene.ixx">
       <Filter>Game</Filter>
     </ClCompile>
-    <ClCompile Include="Game\Sprite.ixx">
-      <Filter>Game</Filter>
-    </ClCompile>
     <ClCompile Include="Utils\Utils.Data.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Sprite.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Sprite.Renderer.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Lumina.Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

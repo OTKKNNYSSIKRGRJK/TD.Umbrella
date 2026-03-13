@@ -13,6 +13,9 @@
     <Filter Include="Scenes\Hermite">
       <UniqueIdentifier>{866c901e-d835-4cca-af88-3e993dd146da}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Test">
+      <UniqueIdentifier>{600c7b09-8013-4042-9255-2b72baa89fe4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -42,6 +45,12 @@
     </ClCompile>
     <ClCompile Include="Scenes\Hermite\MotionManager.ixx">
       <Filter>Scenes\Hermite</Filter>
+    </ClCompile>
+    <ClCompile Include="Test\Game.CharacterTest.ixx">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Test\Game.CharacterTest.cpp">
+      <Filter>Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

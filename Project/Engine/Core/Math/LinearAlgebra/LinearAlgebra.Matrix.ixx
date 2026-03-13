@@ -369,15 +369,13 @@ namespace Lumina::Math {
 		//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
 
 		for (U32 i{ 0U }; i < 4U; ++i) {
-			for (U32 j{ 0U }; j < 4U; ++j) {
-				dst_.Set(
-					j,
-					src_LHS_.Get(0U) * src_RHS_.Rows_[0U].Get(j) +
-					src_LHS_.Get(1U) * src_RHS_.Rows_[1U].Get(j) +
-					src_LHS_.Get(2U) * src_RHS_.Rows_[2U].Get(j) +
-					src_LHS_.Get(3U) * src_RHS_.Rows_[3U].Get(j)
-				);
-			}
+			dst_.Set(
+				i,
+				src_LHS_.Get(0U) * src_RHS_.Rows_[0U].Get(i) +
+				src_LHS_.Get(1U) * src_RHS_.Rows_[1U].Get(i) +
+				src_LHS_.Get(2U) * src_RHS_.Rows_[2U].Get(i) +
+				src_LHS_.Get(3U) * src_RHS_.Rows_[3U].Get(i)
+			);
 		}
 
 		//--#-	defined(_LUMINA_INTRINSICS_UNUSED_)

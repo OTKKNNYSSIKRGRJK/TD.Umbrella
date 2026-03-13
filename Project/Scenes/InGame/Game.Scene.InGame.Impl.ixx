@@ -5,6 +5,7 @@ import <memory>;
 import <vector>;
 
 import Lumina;
+import Game.CharacterTest;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -30,5 +31,6 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
+		Game::CharacterTest Test_;
 	};
 }

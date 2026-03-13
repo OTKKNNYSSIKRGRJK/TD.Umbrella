@@ -21,6 +21,8 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp" />
+    <ClCompile Include="Test\Game.CharacterTest.cpp" />
+    <ClCompile Include="Test\Game.CharacterTest.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

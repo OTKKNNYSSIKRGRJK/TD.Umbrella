@@ -19,6 +19,7 @@ namespace Game::Scene::Impl {
 	template<>
 	void InGame::Initialize() {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+		Test_.Initialize();
 	}
 
 	InGame::InGame() = default;
