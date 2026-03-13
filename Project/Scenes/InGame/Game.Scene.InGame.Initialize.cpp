@@ -10,17 +10,15 @@ import Lumina.Utils.Data;
 
 import : Impl;
 
+import MotionManager;
+
 namespace Game::Scene::Impl {
 	namespace {
 	}
 
 	template<>
-	void InGame::Initialize(
-		Lumina::D3D12::Context const& d3d12Context_,
-		Lumina::ResourceManager const& resMngr_
-	) {
-		[[maybe_unused]] auto const& device{ d3d12Context_.Device() };
-		resMngr_;
+	void InGame::Initialize() {
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 	}
 
 	InGame::InGame() = default;
@@ -29,14 +27,11 @@ namespace Game::Scene::Impl {
 
 namespace Game::Scene {
 	template<>
-	void InGame::Initialize(
-		Lumina::D3D12::Context const& d3d12Context_,
-		Lumina::ResourceManager const& resMngr_
-	) {
+	void InGame::Initialize() {
 		Impl_ = std::make_unique<Impl::InGame>();
-		Impl_->Initialize(d3d12Context_, resMngr_);
+		Impl_->Initialize();
 	}
 
-	InGame::InGame() = default;
+	InGame::InGame() { Initialize(); }
 	InGame::~InGame() = default;
 }

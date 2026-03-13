@@ -28,5 +28,6 @@ namespace Lumina {
 	template<>
 	void SceneManager::Load<"InGame">() {
 		Load<Game::Scene::InGame>("InGame");
+		
 	}
 }
