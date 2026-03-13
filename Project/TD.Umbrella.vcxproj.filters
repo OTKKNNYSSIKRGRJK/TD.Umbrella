@@ -28,6 +28,7 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp">
       <Filter>Scenes\InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Enemy\Game.EnemyBase.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

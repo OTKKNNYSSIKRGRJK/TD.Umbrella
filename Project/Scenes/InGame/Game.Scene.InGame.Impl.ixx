@@ -5,6 +5,7 @@ import <memory>;
 import <vector>;
 
 import Lumina;
+import Game.EnemyBase;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -30,5 +31,7 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
+		// 敵の管理用コンテナ
+		std::vector<std::unique_ptr<Game::EnemyBase>> Enemies_{};
 	};
 }

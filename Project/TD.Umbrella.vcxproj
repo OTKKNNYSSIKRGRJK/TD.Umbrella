@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game\Enemy\Game.EnemyBase.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
