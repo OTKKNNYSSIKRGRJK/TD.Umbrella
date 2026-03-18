@@ -7,7 +7,6 @@ namespace Game {
 		auto& sprite{ Sprites_.emplace_back() };
 		sprite.Scale = { 500.0f, 500.0f };
 		sprite.TextureID = 0;
-		sprite.UVs[1] = { 1.0f, 1.0f };
 
 		auto& sprite2{ Sprites_.emplace_back() };
 		sprite2.Scale = { 250.0f, 250.0f };

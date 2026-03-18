@@ -79,6 +79,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Game\MeshManager.cpp" />
+    <ClCompile Include="Game\MeshManager.ixx" />
     <ClCompile Include="Game\ResourceManager.Audio.ixx" />
     <ClCompile Include="Game\ResourceManager.Graphics.ixx" />
     <ClCompile Include="Game\ResourceManager.ixx" />
@@ -89,6 +91,7 @@
     <ClCompile Include="Lumina.Main.cpp" />
     <ClCompile Include="Lumina.Main.ixx" />
     <ClCompile Include="Utils\Utils.Data.ixx" />
+    <ClCompile Include="Utils\Utils.Data.Mesh.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />
   </ItemGroup>
   <ItemGroup>

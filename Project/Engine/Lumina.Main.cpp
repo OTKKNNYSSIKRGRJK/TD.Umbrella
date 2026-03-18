@@ -257,6 +257,9 @@ namespace Lumina {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+
+		MeshManager_ = std::make_unique<MeshManager>();
+		MeshManager_->Initialize(D3D12Context_, 1 << 12, 1 << 18);
 	}
 
 	void Context::Finalize() {

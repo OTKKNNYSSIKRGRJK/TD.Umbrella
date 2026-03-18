@@ -15,6 +15,7 @@ import Lumina.D3D12.Aux;
 import Lumina.ResourceManager;
 export import Lumina.Scene;
 export import Lumina.Sprite;
+export import Lumina.MeshManager;
 
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
@@ -41,6 +42,8 @@ namespace Lumina {
 			-> ResourceManager const& { return ResourceManager_; }
 		auto SpriteManager() const noexcept
 			-> SpriteRenderer& { return *SpriteRenderer_; }
+		auto MeshContext() const noexcept
+			-> MeshManager& { return *MeshManager_; }
 
 	public:
 		auto Run() -> I32;
@@ -57,6 +60,7 @@ namespace Lumina {
 		D3D12::Context D3D12Context_;
 		ResourceManager ResourceManager_;
 		std::unique_ptr<SpriteRenderer> SpriteRenderer_{ nullptr };
+		std::unique_ptr<MeshManager> MeshManager_{ nullptr };
 
 		D3D12::DescriptorTable GlobalTable_ImageTextures_;
 		D3D12::DescriptorHeap LocalHeap_OrthoProjMat_;

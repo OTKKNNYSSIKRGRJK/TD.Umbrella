@@ -70,7 +70,7 @@ module;
 export module Lumina.Core.Common : SIMD;
 //////	//////	//////	//////	//////	//////	//////	//////	//////
 
-import : TypeAlias;
+import : Type;
 
 //****	******	******	******	******	******	******	******	****//
 

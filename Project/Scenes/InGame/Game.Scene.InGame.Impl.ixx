@@ -5,6 +5,8 @@ import <memory>;
 import <vector>;
 
 import Lumina;
+import Lumina.MeshManager;
+import Lumina.Utils.Data.Mesh;
 import Game.CharacterTest;
 
 namespace Game::Scene::Impl {
@@ -32,5 +34,22 @@ namespace Game::Scene::Impl {
 
 	private:
 		Game::CharacterTest Test_;
+
+	private:
+		struct MeshMaterial {
+			Lumina::F32 RGBA[4]{ 1.0f, 1.0f, 1.0f, 1.0f };
+			Lumina::U32 ID_DiffuseMap;
+			Lumina::U32 ID_SpecularMap;
+			Lumina::U32 ID_NormalMap;
+		};
+
+		MeshMaterial KinokoMaterial_;
+		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
+		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
+		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_MeshDeferredGeometry_;
+
+		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
+		Lumina::D3D12::Canvas Canvas_GeometryPass_;
 	};
 }

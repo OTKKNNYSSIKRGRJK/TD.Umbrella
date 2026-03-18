@@ -8,7 +8,7 @@ import <limits>;
 
 import <utility>;
 
-export import : TypeAlias;
+export import : Type;
 export import : SIMD;
 export import : Time;
 export import : Mixins;
