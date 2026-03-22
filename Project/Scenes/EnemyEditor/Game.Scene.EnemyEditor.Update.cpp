@@ -68,6 +68,30 @@ namespace Game::Editor {
 			}
 		}
 
+		if (ImGui::CollapsingHeader("AI Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextDisabled("Detection & Combat");
+			ImGui::DragFloat("Aggro Radius", &editingEnemy_.aggroRadius, 0.5f, 0.0f, 100.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Enemy detection range");
+			ImGui::DragFloat("Attack Range", &editingEnemy_.attackRange, 0.1f, 0.0f, 50.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Distance at which enemy can attack");
+			ImGui::DragFloat("Attack Cooldown", &editingEnemy_.attackCooldown, 0.05f, 0.0f, 10.0f, "%.2f s");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Time between attacks (seconds)");
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Movement");
+			ImGui::DragFloat("Move Speed", &editingEnemy_.moveSpeed, 0.1f, 0.0f, 30.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Movement speed");
+			ImGui::DragFloat("Patrol Radius", &editingEnemy_.patrolRadius, 0.5f, 0.0f, 100.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Radius of idle patrol area");
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Behavior");
+			ImGui::SliderFloat("Retreat Threshold", &editingEnemy_.retreatThreshold, 0.0f, 1.0f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("HP ratio at which enemy will retreat (0 = never)");
+			ImGui::SliderFloat("Aggressiveness", &editingEnemy_.aggressiveness, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("0 = passive, 1 = always attacks on sight");
+		}
+
 		if (ImGui::CollapsingHeader("Animation Mapping", ImGuiTreeNodeFlags_DefaultOpen)) {
 			std::string keyToDelete;
 			std::string keyToRenameOld, keyToRenameNew;

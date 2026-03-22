@@ -19,12 +19,28 @@ export namespace Game::Editor {
 			{"Idle", ""}, {"Walk", ""}, {"Attack", ""}
 		};
 
+		// --- AI Parameters ---
+		float aggroRadius = 15.0f;       // 索敵範囲
+		float attackRange = 2.0f;        // 攻撃可能距離
+		float moveSpeed = 3.0f;          // 移動速度
+		float attackCooldown = 1.5f;     // 攻撃間隔（秒）
+		float retreatThreshold = 0.2f;   // 撤退するHP割合 (0.0 ~ 1.0)
+		float patrolRadius = 10.0f;      // 巡回範囲
+		float aggressiveness = 0.5f;     // 攻撃的傾向 (0.0 ~ 1.0)
+
 		void Reset() {
 			name = "NewEnemy";
 			hp = 100;
 			power = 1.0f;
 			gltfPath = "Models/Enemy/default.gltf";
 			for (auto& [key, val] : animationMap) val = "";
+			aggroRadius = 15.0f;
+			attackRange = 2.0f;
+			moveSpeed = 3.0f;
+			attackCooldown = 1.5f;
+			retreatThreshold = 0.2f;
+			patrolRadius = 10.0f;
+			aggressiveness = 0.5f;
 		}
 	};
 

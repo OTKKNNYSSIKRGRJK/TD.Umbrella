@@ -16,7 +16,11 @@ namespace Game::Editor {
 	void to_json(json& j, const EnemyData& e) {
 		j = json{
 			{"name", e.name}, {"hp", e.hp}, {"power", e.power},
-			{"gltfPath", e.gltfPath}, {"animationMap", e.animationMap}
+			{"gltfPath", e.gltfPath}, {"animationMap", e.animationMap},
+			{"aggroRadius", e.aggroRadius}, {"attackRange", e.attackRange},
+			{"moveSpeed", e.moveSpeed}, {"attackCooldown", e.attackCooldown},
+			{"retreatThreshold", e.retreatThreshold},
+			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness}
 		};
 	}
 	void from_json(const json& j, EnemyData& e) {
@@ -25,6 +29,13 @@ namespace Game::Editor {
 		if (j.contains("power")) j.at("power").get_to(e.power);
 		if (j.contains("gltfPath")) j.at("gltfPath").get_to(e.gltfPath);
 		if (j.contains("animationMap")) j.at("animationMap").get_to(e.animationMap);
+		if (j.contains("aggroRadius")) j.at("aggroRadius").get_to(e.aggroRadius);
+		if (j.contains("attackRange")) j.at("attackRange").get_to(e.attackRange);
+		if (j.contains("moveSpeed")) j.at("moveSpeed").get_to(e.moveSpeed);
+		if (j.contains("attackCooldown")) j.at("attackCooldown").get_to(e.attackCooldown);
+		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
+		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
+		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
 	}
 
 	void EnemyEditor::Initialize() {
