@@ -3,6 +3,8 @@
 
 import Lumina;
 
+import Game.Scene.InGame;
+
 Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
 	auto& context{ Lumina::Context::Instance() };
 	context.Initialize();

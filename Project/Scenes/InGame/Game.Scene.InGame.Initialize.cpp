@@ -22,6 +22,8 @@ namespace Game::Scene::Impl {
 	void InGame::Initialize() {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 		Test_.Initialize();
+		areaEditor_.Initialize();
+		enemyEditor_.Initialize();
 
 
 		auto&& bossModel{

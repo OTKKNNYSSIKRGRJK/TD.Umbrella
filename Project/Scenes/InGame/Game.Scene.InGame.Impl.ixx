@@ -8,6 +8,8 @@ import Lumina;
 import Lumina.MeshManager;
 import Lumina.Utils.Data.Mesh;
 import Game.CharacterTest;
+import Game.Editor.AreaEditor;
+import Game.Editor.EnemyEditor;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -34,6 +36,12 @@ namespace Game::Scene::Impl {
 
 	private:
 		Game::CharacterTest Test_;
+
+		// エディタ統合
+		enum class EditorTab { None, Motion, Area, Enemy };
+		EditorTab activeEditor_{ EditorTab::Motion };
+		Game::Editor::AreaEditor areaEditor_;
+		Game::Editor::EnemyEditor enemyEditor_;
 
 	private:
 		struct MeshMaterial {

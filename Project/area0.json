@@ -1,0 +1,22 @@
+{
+    "backgroundMusic": "",
+    "connections": [],
+    "editorPos": {
+        "x": -154.0,
+        "y": -22.0
+    },
+    "enemies": [
+        {
+            "enemyName": "NewEnemy",
+            "facingRight": true,
+            "position": {
+                "x": 344.0,
+                "y": 408.0
+            }
+        }
+    ],
+    "height": 720,
+    "index": 0,
+    "name": 0,
+    "width": 1280
+}
