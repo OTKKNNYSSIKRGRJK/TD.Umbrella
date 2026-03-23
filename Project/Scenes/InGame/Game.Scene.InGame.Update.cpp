@@ -85,6 +85,14 @@ namespace Game::Scene::Impl {
 			playState_.Player.Velocity.Y = 0.0f;
 		}
 		
+		// Clamp player inside area bounds
+		if (playState_.Player.Position.X < 20.0f) {
+			playState_.Player.Position.X = 20.0f;
+		}
+		if (playState_.Player.Position.X > playState_.CurrentArea.width - 20.0f) {
+			playState_.Player.Position.X = playState_.CurrentArea.width - 20.0f;
+		}
+		
 		// Attack
 		if (playState_.PlayerAttackTimer > 0.0f) {
 			playState_.PlayerAttackTimer -= dt;
@@ -143,8 +151,9 @@ namespace Game::Scene::Impl {
 			float py = playState_.Player.Position.Y; 
 			
 			for (const auto& conn : playState_.CurrentArea.connections) {
-				if (px >= conn.trigger.position.x && px <= conn.trigger.position.x + conn.trigger.size.x &&
-				    py >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
+				// Player bounding box assumes Width=40 [-20~+20], Height=40 [0~40] from base position
+				if (px + 20.0f >= conn.trigger.position.x && px - 20.0f <= conn.trigger.position.x + conn.trigger.size.x &&
+				    py + 40.0f >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
 					CheckAndLoadArea(conn.targetAreaIndex);
 					break;
 				}

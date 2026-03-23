@@ -18,8 +18,8 @@
             "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 624.0,
-                    "y": 344.0
+                    "x": 0.0,
+                    "y": 0.0
                 },
                 "size": {
                     "x": 32.0,

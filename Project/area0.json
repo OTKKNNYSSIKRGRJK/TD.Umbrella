@@ -5,7 +5,7 @@
             "targetAreaIndex": 2,
             "trigger": {
                 "position": {
-                    "x": 0.0,
+                    "x": 1248.0,
                     "y": 0.0
                 },
                 "size": {
@@ -16,8 +16,8 @@
         }
     ],
     "editorPos": {
-        "x": 22.0,
-        "y": 8.0
+        "x": -34.0,
+        "y": -10.0
     },
     "enemies": [],
     "height": 720,
