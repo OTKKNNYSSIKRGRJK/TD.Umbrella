@@ -5,6 +5,7 @@ import <string>;
 import <fstream>;
 import <filesystem>;
 import <algorithm>;
+import <map>;
 
 import nlohmann.json;
 
@@ -82,6 +83,38 @@ namespace Game::Editor {
 		if (j.contains("editorPos")) j.at("editorPos").get_to(a.editorPos);
 	}
 
+	namespace {
+		void SaveAreaFile(const AreaData& area, std::vector<std::string>& recentFiles, std::vector<AreaData>& allAreas) {
+			std::string filename = "area" + std::to_string(area.name) + ".json";
+			std::ofstream file(filename);
+			if (!file.is_open()) {
+				return;
+			}
+
+			json j = area;
+			file << j.dump(4);
+
+			bool found = false;
+			for (auto& f : recentFiles) {
+				if (f == filename) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) recentFiles.push_back(filename);
+
+			bool foundArea = false;
+			for (auto& a : allAreas) {
+				if (a.name == area.name) {
+					a = area;
+					foundArea = true;
+					break;
+				}
+			}
+			if (!foundArea) allAreas.push_back(area);
+		}
+	}
+
 	void AreaEditor::Initialize() {
 		recentFiles_.clear();
 		allAreas_.clear();
@@ -111,83 +144,85 @@ namespace Game::Editor {
 		if (autoSyncConnections) {
 			for (const auto& a : allAreas_) {
 				if (a.name == area.name) {
-					for (const auto& old_conn : a.connections) {
-						int old_target = old_conn.targetAreaIndex;
-						if (old_target != area.index && std::find(affectedTargets.begin(), affectedTargets.end(), old_target) == affectedTargets.end()) {
-							affectedTargets.push_back(old_target);
+					for (const auto& oldConn : a.connections) {
+						int oldTarget = oldConn.targetAreaIndex;
+						if (oldTarget != area.index && std::find(affectedTargets.begin(), affectedTargets.end(), oldTarget) == affectedTargets.end()) {
+							affectedTargets.push_back(oldTarget);
 						}
 					}
 					break;
 				}
 			}
-			for (const auto& new_conn : area.connections) {
-				int new_target = new_conn.targetAreaIndex;
-				if (new_target != area.index && std::find(affectedTargets.begin(), affectedTargets.end(), new_target) == affectedTargets.end()) {
-					affectedTargets.push_back(new_target);
+			for (const auto& newConn : area.connections) {
+				int newTarget = newConn.targetAreaIndex;
+				if (newTarget != area.index && std::find(affectedTargets.begin(), affectedTargets.end(), newTarget) == affectedTargets.end()) {
+					affectedTargets.push_back(newTarget);
+				}
+			}
+			for (const auto& otherArea : allAreas_) {
+				if (otherArea.name == area.name) {
+					continue;
+				}
+				for (const auto& conn : otherArea.connections) {
+					if (conn.targetAreaIndex == area.index) {
+						if (std::find(affectedTargets.begin(), affectedTargets.end(), otherArea.index) == affectedTargets.end()) {
+							affectedTargets.push_back(otherArea.index);
+						}
+						break;
+					}
 				}
 			}
 		}
 
-		std::string filename = "area" + std::to_string(area.name) + ".json";
-		std::ofstream file(filename);
-		if (file.is_open()) {
-			json j = area;
-			file << j.dump(4);
+		SaveAreaFile(area, recentFiles_, allAreas_);
 
-			bool found = false;
-			for (auto& f : recentFiles_) if (f == filename) { found = true; break; }
-			if (!found) recentFiles_.push_back(filename);
+		if (!autoSyncConnections) {
+			return;
+		}
 
-			bool foundArea = false;
-			for (auto& a : allAreas_) {
-				if (a.name == area.name) {
-					a = area;
-					foundArea = true;
-					break;
+		for (int targetId : affectedTargets) {
+			auto it = std::find_if(allAreas_.begin(), allAreas_.end(),
+				[targetId](const AreaData& a) { return a.name == targetId; });
+
+			if (it == allAreas_.end()) {
+				continue;
+			}
+
+			int expectedCount = 0;
+			for (const auto& c : area.connections) {
+				if (c.targetAreaIndex == targetId) {
+					expectedCount++;
 				}
 			}
-			if (!foundArea) allAreas_.push_back(area);
 
-			if (autoSyncConnections) {
-				for (int targetId : affectedTargets) {
-					auto it = std::find_if(allAreas_.begin(), allAreas_.end(),
-						[targetId](const AreaData& a) { return a.name == targetId; });
-
-					if (it != allAreas_.end()) {
-						int expectedCount = 0;
-						for (const auto& c : area.connections) {
-							if (c.targetAreaIndex == targetId) expectedCount++;
-						}
-
-						int actualCount = 0;
-						for (const auto& c : it->connections) {
-							if (c.targetAreaIndex == area.index) actualCount++;
-						}
-
-						if (expectedCount != actualCount) {
-							AreaData targetArea = *it;
-							if (actualCount < expectedCount) {
-								for (int i = 0; i < expectedCount - actualCount; ++i) {
-									AreaConnection newConn;
-									newConn.targetAreaIndex = area.index;
-									newConn.trigger.position = { targetArea.width / 2.0f - 16.0f + (actualCount + i) * 32.0f, targetArea.height / 2.0f - 16.0f };
-									targetArea.connections.push_back(newConn);
-								}
-							} else if (actualCount > expectedCount) {
-								int toRemove = actualCount - expectedCount;
-								for (int i = static_cast<int>(targetArea.connections.size()) - 1; i >= 0; --i) {
-									if (targetArea.connections[i].targetAreaIndex == area.index) {
-										targetArea.connections.erase(targetArea.connections.begin() + i);
-										toRemove--;
-										if (toRemove <= 0) break;
-									}
-								}
-							}
-							SaveArea(targetArea, false);
-						}
-					}
+			AreaData targetArea = *it;
+			std::vector<AreaConnection> preservedConnections;
+			std::vector<AreaConnection> reciprocalConnections;
+			for (const auto& conn : targetArea.connections) {
+				if (conn.targetAreaIndex == area.index) {
+					reciprocalConnections.push_back(conn);
+				} else {
+					preservedConnections.push_back(conn);
 				}
 			}
+
+			if (static_cast<int>(reciprocalConnections.size()) < expectedCount) {
+				for (int i = static_cast<int>(reciprocalConnections.size()); i < expectedCount; ++i) {
+					AreaConnection newConn;
+					newConn.targetAreaIndex = area.index;
+					newConn.trigger.position = {
+						targetArea.width / 2.0f - 16.0f + static_cast<float>(i) * 32.0f,
+						targetArea.height / 2.0f - 16.0f
+					};
+					reciprocalConnections.push_back(newConn);
+				}
+			} else if (static_cast<int>(reciprocalConnections.size()) > expectedCount) {
+				reciprocalConnections.resize(expectedCount);
+			}
+
+			preservedConnections.insert(preservedConnections.end(), reciprocalConnections.begin(), reciprocalConnections.end());
+			targetArea.connections = std::move(preservedConnections);
+			SaveAreaFile(targetArea, recentFiles_, allAreas_);
 		}
 	}
 
