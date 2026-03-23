@@ -35,6 +35,7 @@ namespace Game::Scene::Impl {
 			pe.Position.X = ep.position.x;
 			pe.Position.Y = 0.0f; // Y=0 is ground
 			pe.Position.Z = 0.0f;
+			pe.BaseData.hp = 50; // Force normal enemies to 50 HP
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
 			playState_.Enemies.push_back(pe);
@@ -127,9 +128,43 @@ namespace Game::Scene::Impl {
 			if (e.HurtTimer > 0.0f) e.HurtTimer -= dt;
 		}
 		
+		// Mana Drain Over Time (lose 1 Mana every 0.5 seconds -> 2 Mana/sec)
+		if (playState_.Player.Mana > 0) {
+			playState_.Player.ManaTimer += dt;
+			if (playState_.Player.ManaTimer >= 0.5f) {
+				playState_.Player.ManaTimer -= 0.5f;
+				playState_.Player.Mana -= 1;
+			}
+		} else {
+			playState_.Player.ManaTimer = 0.0f;
+		}
+		
+		// Buff Timers
+		if (playState_.BuffSpeedTimer > 0.0f) {
+			playState_.BuffSpeedTimer -= dt;
+			if (playState_.BuffSpeedTimer <= 0.0f) {
+				playState_.PlayerSpeedMultiplier = 1.0f;
+			}
+		}
+		if (playState_.BuffAttackTimer > 0.0f) {
+			playState_.BuffAttackTimer -= dt;
+			if (playState_.BuffAttackTimer <= 0.0f) {
+				playState_.PlayerAttackPower = 10.0f;
+			}
+		}
+		
 		// Enemy Logic (simple track player in 2D)
 		for (auto& e : playState_.Enemies) {
 			if (e.IsDead) continue;
+			
+			// Puppet Auto-Regen
+			if (e.BaseData.name == "Puppet") {
+				if (e.HurtTimer <= 0.0f && e.CurrentHP < e.BaseData.hp) {
+					e.CurrentHP += 10; // Extremely high regeneration (600 HP / sec)
+					if (e.CurrentHP > e.BaseData.hp) e.CurrentHP = e.BaseData.hp;
+				}
+				continue; // Puppets don't move or attack
+			}
 			
 			float dx = playState_.Player.Position.X - e.Position.X;
 			float dy = playState_.Player.Position.Y - e.Position.Y;
@@ -172,20 +207,49 @@ namespace Game::Scene::Impl {
 		ImGui::Text("--- Enhancements ---");
 		if (ImGui::Button("Speed UP (10 Mana)") && playState_.Player.Mana >= 10) {
 			playState_.Player.Mana -= 10;
-			playState_.PlayerSpeedMultiplier += 0.5f;
+			playState_.PlayerSpeedMultiplier = 2.0f;
+			playState_.BuffSpeedTimer = 5.0f; // 5 seconds duration
 		}
-		ImGui::Text("Current Speed Mult: %.1f", playState_.PlayerSpeedMultiplier);
+		if (playState_.BuffSpeedTimer > 0.0f) {
+			ImGui::Text("Speed Buff: %.1f sec left", playState_.BuffSpeedTimer);
+		} else {
+			ImGui::Text("Current Speed Mult: %.1f", playState_.PlayerSpeedMultiplier);
+		}
 		
 		if (ImGui::Button("Attack UP (15 Mana)") && playState_.Player.Mana >= 15) {
 			playState_.Player.Mana -= 15;
-			playState_.PlayerAttackPower += 5.0f;
+			playState_.PlayerAttackPower = 50.0f; // Strongly increased buff
+			playState_.BuffAttackTimer = 5.0f; // 5 seconds duration
 		}
-		ImGui::Text("Current Attack Power: %.1f", playState_.PlayerAttackPower);
+		if (playState_.BuffAttackTimer > 0.0f) {
+			ImGui::Text("Attack Buff: %.1f sec left", playState_.BuffAttackTimer);
+		} else {
+			ImGui::Text("Current Attack Power: %.1f", playState_.PlayerAttackPower);
+		}
 		
 		if (ImGui::Button("Heal (5 Mana)") && playState_.Player.Mana >= 5) {
 			playState_.Player.Mana -= 5;
 			playState_.Player.HP = std::min(playState_.Player.MaxHP, playState_.Player.HP + 20);
 		}
+		
+		ImGui::Separator();
+		ImGui::Text("--- Debug ---");
+		if (ImGui::Button("Add 100 Mana")) {
+			playState_.Player.Mana += 100;
+		}
+		if (ImGui::Button("Spawn Puppet (Target Dummy)")) {
+			PlayEnemy puppet;
+			puppet.BaseData.hp = 50; // Set to 50 HP
+			puppet.BaseData.name = "Puppet";
+			puppet.BaseData.moveSpeed = 0.0f; // Doesn't move
+			puppet.BaseData.power = 0.0f; // Doesn't attack
+			puppet.Position = playState_.Player.Position;
+			puppet.Position.X += (playState_.Player.FacingRight ? 150.0f : -150.0f);
+			puppet.CurrentHP = puppet.BaseData.hp;
+			puppet.IsDead = false;
+			playState_.Enemies.push_back(puppet);
+		}
+		
 		ImGui::End();
 
 		// Foreground draw for game world (2D Action Side Scroller)
@@ -228,10 +292,17 @@ namespace Game::Scene::Impl {
 			if (e.IsDead) continue;
 			ImVec2 sp = WorldToScreen(e.Position);
 			
-			ImU32 ec = e.HurtTimer > 0.0f ? MakeCol32(255, 255, 255, 255) : MakeCol32(255, 50, 50, 255);
+			ImU32 ec = MakeCol32(255, 50, 50, 255); // Red for normal enemies
+			if (e.BaseData.name == "Puppet") ec = MakeCol32(100, 100, 200, 255); // Blue-ish for dummy
+			if (e.HurtTimer > 0.0f) ec = MakeCol32(255, 255, 255, 255); // Flash white
+
 			drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 40), ImVec2(sp.x + 20, sp.y), ec);
+			
 			// HP bar
-			drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 50), ImVec2(sp.x - 20 + 40 * ((float)e.CurrentHP / e.BaseData.hp), sp.y - 45), MakeCol32(0, 255, 0, 255));
+			if (e.BaseData.hp > 0) {
+				float hpRat = (float)e.CurrentHP / e.BaseData.hp;
+				drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 50), ImVec2(sp.x - 20 + 40 * hpRat, sp.y - 45), MakeCol32(0, 255, 0, 255));
+			}
 		}
 		
 		// Draw Player
@@ -239,10 +310,29 @@ namespace Game::Scene::Impl {
 		ImU32 pc = playState_.Player.HurtTimer > 0.0f ? MakeCol32(255, 255, 255, 150) : MakeCol32(50, 255, 50, 255);
 		drawList->AddRectFilled(ImVec2(psp.x - 20, psp.y - 40), ImVec2(psp.x + 20, psp.y), pc);
 		
-		// Player direction/attack
+		// Player direction/attack action sequence
 		if (playState_.PlayerAttackTimer > 0.0f) {
-			ImVec2 asp = playState_.Player.FacingRight ? ImVec2(psp.x + 20, psp.y - 20) : ImVec2(psp.x - 20, psp.y - 20);
-			drawList->AddCircleFilled(asp, 30.0f, MakeCol32(255, 255, 0, 150));
+			float animNorm = playState_.PlayerAttackTimer / 0.3f; // 1.0 (start) -> 0.0 (end)
+			
+			// A simple weapon swing arc from top to bottom
+			float angleDeg = (1.0f - animNorm) * 120.0f - 30.0f; // -30 to 90 degrees
+			if (!playState_.Player.FacingRight) {
+				angleDeg = 180.0f - angleDeg; 
+			}
+			
+			float rad = angleDeg * 3.14159265f / 180.0f;
+			float length = 60.0f;
+			float sx = psp.x;
+			float sy = psp.y - 20.0f; // from waist
+			float ex = sx + std::cos(rad) * length;
+			float ey = sy + std::sin(rad) * length;
+			
+			// Draw the "sword"
+			drawList->AddLine(ImVec2(sx, sy), ImVec2(ex, ey), MakeCol32(255, 200, 50, 255), 8.0f);
+			
+			// Draw hit area blast
+			ImVec2 asp = playState_.Player.FacingRight ? ImVec2(psp.x + 40, psp.y - 20) : ImVec2(psp.x - 40, psp.y - 20);
+			drawList->AddCircleFilled(asp, 40.0f, MakeCol32(255, 150, 0, static_cast<int>(100.0f * animNorm)));
 		}
 		
 		if (playState_.IsGoalReached) {

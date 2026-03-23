@@ -1,23 +1,9 @@
 {
     "backgroundMusic": "",
-    "connections": [
-        {
-            "targetAreaIndex": 2,
-            "trigger": {
-                "position": {
-                    "x": 1248.0,
-                    "y": 0.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
-        }
-    ],
+    "connections": [],
     "editorPos": {
-        "x": -34.0,
-        "y": -10.0
+        "x": 0.0,
+        "y": 0.0
     },
     "enemies": [],
     "height": 720,

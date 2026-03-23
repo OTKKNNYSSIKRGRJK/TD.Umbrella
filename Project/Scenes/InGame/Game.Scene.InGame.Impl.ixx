@@ -51,6 +51,7 @@ namespace Game::Scene::Impl {
 			int MaxHP = 100;
 			int Mana = 0;
 			float HurtTimer = 0.0f;
+			float ManaTimer = 0.0f;
 		};
 
 		struct PlayEnemy {
@@ -71,6 +72,9 @@ namespace Game::Scene::Impl {
 			// Debug buffs
 			float PlayerSpeedMultiplier = 1.0f;
 			float PlayerAttackPower = 10.0f;
+			
+			float BuffSpeedTimer = 0.0f;
+			float BuffAttackTimer = 0.0f;
 			
 			float PlayerAttackTimer = 0.0f;
 		} playState_;
