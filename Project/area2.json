@@ -13,6 +13,19 @@
                     "y": 32.0
                 }
             }
+        },
+        {
+            "targetAreaIndex": 0,
+            "trigger": {
+                "position": {
+                    "x": 624.0,
+                    "y": 344.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
         }
     ],
     "editorPos": {
