@@ -24,6 +24,11 @@ namespace Game::Scene::Impl {
 		Test_.Initialize();
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
+		
+#if defined(_DEBUG)
+		playState_.IsPlaying = true;
+		CheckAndLoadArea(0);
+#endif
 
 
 		auto&& bossModel{

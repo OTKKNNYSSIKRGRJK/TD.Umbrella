@@ -33,6 +33,16 @@ namespace Game::Editor {
 			cameraPos_.y += delta.y;
 		}
 
+		// 敵JSONファイルリストを毎フレーム再スキャン（ホットリロード対応）
+		enemyFiles_.clear();
+		for (const auto& entry : std::filesystem::directory_iterator("./")) {
+			std::string fName = entry.path().filename().string();
+			if (entry.path().extension() == ".json" && fName.find("area") != 0) {
+				std::string baseName = fName.substr(0, fName.size() - 5);
+				enemyFiles_.push_back(baseName);
+			}
+		}
+
 		float scale = 0.5f;
 		float cx = cameraPos_.x;
 		float cy = cameraPos_.y;

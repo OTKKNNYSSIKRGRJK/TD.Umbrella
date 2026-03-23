@@ -37,11 +37,49 @@ namespace Game::Scene::Impl {
 	private:
 		Game::CharacterTest Test_;
 
-		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy };
-		EditorTab activeEditor_{ EditorTab::Motion };
+		// エディタ・プレイループ統合
+		enum class EditorTab { None, Motion, Area, Enemy, Play };
+		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
+
+		struct Character {
+			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
+			Lumina::Math::F32x3 Velocity{ 0.0f, 0.0f, 0.0f };
+			bool FacingRight = true;
+			int HP = 100;
+			int MaxHP = 100;
+			int Mana = 0;
+			float HurtTimer = 0.0f;
+		};
+
+		struct PlayEnemy {
+			Game::Editor::EnemyData BaseData;
+			Lumina::Math::F32x3 Position{ 0.0f, 0.0f, 0.0f };
+			int CurrentHP = 100;
+			bool IsDead = false;
+			float HurtTimer = 0.0f;
+		};
+
+		struct PlayState {
+			bool IsPlaying = false;
+			bool IsGoalReached = false;
+			Game::Editor::AreaData CurrentArea;
+			Character Player;
+			std::vector<PlayEnemy> Enemies;
+
+			// Debug buffs
+			float PlayerSpeedMultiplier = 1.0f;
+			float PlayerAttackPower = 10.0f;
+			
+			float PlayerAttackTimer = 0.0f;
+		} playState_;
+
+#if defined(_DEBUG)
+		void CheckAndLoadArea(int areaIndex);
+		void DrawPlayMode();
+		void UpdatePlayLogic();
+#endif
 
 	private:
 		struct MeshMaterial {

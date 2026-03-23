@@ -1,0 +1,18 @@
+{
+    "aggressiveness": 0.5,
+    "aggroRadius": 15.0,
+    "animationMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "attackCooldown": 1.5,
+    "attackRange": 2.0,
+    "gltfPath": "Models/Enemy/default.gltf",
+    "hp": 100,
+    "moveSpeed": 3.0,
+    "name": "b",
+    "patrolRadius": 10.0,
+    "power": 1.0,
+    "retreatThreshold": 0.20000000298023224
+}

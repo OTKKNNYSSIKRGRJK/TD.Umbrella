@@ -93,6 +93,21 @@ namespace Game::Editor {
 		}
 
 		if (ImGui::CollapsingHeader("Animation Mapping", ImGuiTreeNodeFlags_DefaultOpen)) {
+			// gltfPathが変わったらアニメーション名を再抽出
+			if (cachedGltfPath_ != editingEnemy_.gltfPath) {
+				cachedGltfPath_ = editingEnemy_.gltfPath;
+				cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
+			}
+
+			if (!cachedAnimationNames_.empty()) {
+				ImGui::TextDisabled("Animations from: %s (%d found)",
+					editingEnemy_.gltfPath.c_str(),
+					static_cast<int>(cachedAnimationNames_.size()));
+			} else {
+				ImGui::TextDisabled("No animations found (check Model Path)");
+			}
+			ImGui::Spacing();
+
 			std::string keyToDelete;
 			std::string keyToRenameOld, keyToRenameNew;
 
@@ -110,11 +125,40 @@ namespace Game::Editor {
 				}
 
 				ImGui::SameLine();
-				char animBuf[256];
-				strncpy_s(animBuf, anim.c_str(), sizeof(animBuf));
-				ImGui::SetNextItemWidth(150.0f);
-				if (ImGui::InputText("##anim", animBuf, sizeof(animBuf))) {
-					anim = animBuf;
+
+				// アニメーション名をコンボボックスで選択
+				if (!cachedAnimationNames_.empty()) {
+					int currentIdx = -1;
+					for (int k = 0; k < static_cast<int>(cachedAnimationNames_.size()); ++k) {
+						if (cachedAnimationNames_[k] == anim) {
+							currentIdx = k;
+							break;
+						}
+					}
+					std::string preview = anim.empty() ? "(none)" : anim;
+					ImGui::SetNextItemWidth(150.0f);
+					if (ImGui::BeginCombo("##anim", preview.c_str())) {
+						// 「なし」の選択肢
+						if (ImGui::Selectable("(none)", anim.empty())) {
+							anim = "";
+						}
+						for (int k = 0; k < static_cast<int>(cachedAnimationNames_.size()); ++k) {
+							bool isSelected = (currentIdx == k);
+							if (ImGui::Selectable(cachedAnimationNames_[k].c_str(), isSelected)) {
+								anim = cachedAnimationNames_[k];
+							}
+							if (isSelected) ImGui::SetItemDefaultFocus();
+						}
+						ImGui::EndCombo();
+					}
+				} else {
+					// フォールバック: 手入力
+					char animBuf[256];
+					strncpy_s(animBuf, anim.c_str(), sizeof(animBuf));
+					ImGui::SetNextItemWidth(150.0f);
+					if (ImGui::InputText("##anim", animBuf, sizeof(animBuf))) {
+						anim = animBuf;
+					}
 				}
 
 				ImGui::SameLine();
@@ -126,11 +170,17 @@ namespace Game::Editor {
 
 			if (!keyToDelete.empty()) {
 				editingEnemy_.animationMap.erase(keyToDelete);
+				editingEnemy_.motionMap.erase(keyToDelete);
 			}
 			if (!keyToRenameOld.empty() && !keyToRenameNew.empty()) {
 				std::string val = editingEnemy_.animationMap[keyToRenameOld];
 				editingEnemy_.animationMap.erase(keyToRenameOld);
 				editingEnemy_.animationMap[keyToRenameNew] = val;
+
+				// motionMapも同期してリネーム
+				std::string motionVal = editingEnemy_.motionMap[keyToRenameOld];
+				editingEnemy_.motionMap.erase(keyToRenameOld);
+				editingEnemy_.motionMap[keyToRenameNew] = motionVal;
 			}
 
 			if (ImGui::Button("Add Animation Map", ImVec2(-1, 30))) {
@@ -142,6 +192,60 @@ namespace Game::Editor {
 					count++;
 				}
 				editingEnemy_.animationMap[newName] = "";
+				editingEnemy_.motionMap[newName] = "";
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Motion Mapping", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextDisabled("Action -> Motion (coordinate movement)");
+			ImGui::Spacing();
+
+			// Assets/Data/Motion/ 内のモーションファイルをスキャン
+			std::vector<std::string> motionFiles;
+			motionFiles.push_back("");  // 「なし」の選択肢
+			const std::string motionDir = "Assets/Data/Motion/";
+			if (fs::exists(motionDir)) {
+				for (const auto& entry : fs::directory_iterator(motionDir)) {
+					if (entry.is_regular_file() && entry.path().extension() == ".json") {
+						motionFiles.push_back(entry.path().stem().string());
+					}
+				}
+			}
+
+			// animationMapの各アクションに対してモーション選択コンボを表示
+			for (auto& [action, anim] : editingEnemy_.animationMap) {
+				// motionMapにキーがなければ空文字で初期化
+				if (editingEnemy_.motionMap.find(action) == editingEnemy_.motionMap.end()) {
+					editingEnemy_.motionMap[action] = "";
+				}
+				std::string& currentMotion = editingEnemy_.motionMap[action];
+
+				ImGui::PushID(("motion_" + action).c_str());
+
+				// 現在の選択を探す
+				int currentIdx = 0;
+				for (int k = 0; k < static_cast<int>(motionFiles.size()); ++k) {
+					if (motionFiles[k] == currentMotion) {
+						currentIdx = k;
+						break;
+					}
+				}
+
+				std::string label = action;
+				std::string preview = currentMotion.empty() ? "(none)" : currentMotion;
+				if (ImGui::BeginCombo(label.c_str(), preview.c_str())) {
+					for (int k = 0; k < static_cast<int>(motionFiles.size()); ++k) {
+						bool isSelected = (currentIdx == k);
+						std::string itemLabel = motionFiles[k].empty() ? "(none)" : motionFiles[k];
+						if (ImGui::Selectable(itemLabel.c_str(), isSelected)) {
+							currentMotion = motionFiles[k];
+						}
+						if (isSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				ImGui::PopID();
 			}
 		}
 

@@ -56,12 +56,13 @@ export namespace Game::Editor {
 	public:
 		void Initialize();
 		void Update();
+		void LoadArea(AreaData& area, const std::string& filename);
 
 	private:
 		void DrawEditorUI();
 		void SaveArea(const AreaData& area, bool autoSyncConnections = false);
-		void LoadArea(AreaData& area, const std::string& filename);
 		void DeleteArea(int areaIndex);
+
 
 	private:
 		AreaData editingArea_{};

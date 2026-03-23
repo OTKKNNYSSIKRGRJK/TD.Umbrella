@@ -19,6 +19,11 @@ export namespace Game::Editor {
 			{"Idle", ""}, {"Walk", ""}, {"Attack", ""}
 		};
 
+		// 各アクションに対応するモーション（座標移動）名
+		std::map<std::string, std::string> motionMap = {
+			{"Idle", ""}, {"Walk", ""}, {"Attack", ""}
+		};
+
 		// --- AI Parameters ---
 		float aggroRadius = 15.0f;       // 索敵範囲
 		float attackRange = 2.0f;        // 攻撃可能距離
@@ -34,6 +39,7 @@ export namespace Game::Editor {
 			power = 1.0f;
 			gltfPath = "Models/Enemy/default.gltf";
 			for (auto& [key, val] : animationMap) val = "";
+			motionMap = { {"Idle", ""}, {"Walk", ""}, {"Attack", ""} };
 			aggroRadius = 15.0f;
 			attackRange = 2.0f;
 			moveSpeed = 3.0f;
@@ -48,13 +54,18 @@ export namespace Game::Editor {
 	public:
 		void Initialize();
 		void Update();
+		void LoadEnemy(EnemyData& enemy, const std::string& filename);
 
 	private:
 		void DrawEditorUI();
 		void SaveEnemy(const EnemyData& enemy);
-		void LoadEnemy(EnemyData& enemy, const std::string& filename);
+		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
 
 	private:
 		EnemyData editingEnemy_{};
+
+		// アニメーション名キャッシュ（gltfPath変更時のみ再取得）
+		std::string cachedGltfPath_;
+		std::vector<std::string> cachedAnimationNames_;
 	};
 }
