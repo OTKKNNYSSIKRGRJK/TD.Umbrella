@@ -405,11 +405,46 @@ namespace Lumina::Math {
 
 	//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 
-	//_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Determinant() const noexcept -> F32 {
-	//}
+	_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Determinant() const noexcept -> F32 {
+		constexpr auto swap{
+			[] (F32x4& xmm1_, F32x4& xmm2_) {
+				F32x4 tmp{ xmm2_ };
+				xmm2_ = xmm1_;
+				xmm1_ = tmp;
+			}
+		};
 
-	//_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Inverse() const noexcept -> F32x4x4<ROW_MAJOR> {
-	//}
+		F32x4x4<ROW_MAJOR> m{ *this };
+		F32 factor_RowSwapping{ 1.0f };
+
+		// Row reduction
+		for (I32 i_RowReduction{ 0 }; i_RowReduction < 3; ++i_RowReduction) {
+			I32 i_Row{ i_RowReduction };
+
+			// For the n-th iteration, looks for the first row where the n-th entry is nonzero.
+			while (i_Row < 4 && m[i_Row].Get(i_RowReduction) == 0) {
+				factor_RowSwapping *= -1.0f;
+				++i_Row;
+			}
+			// No nonzero entries are found, implying that the determinant is zero.
+			if (i_Row > 3) { return 0.0f; }
+			// Swaps rows if necessary in order to perform further elimination.
+			else if (i_Row > i_RowReduction) { swap(m.Rows_[i_Row], m.Rows_[i_RowReduction]); }
+
+			for (i_Row = i_RowReduction + 1; i_Row < 4; ++i_Row) {
+				m.Rows_[i_Row] =
+					m.Rows_[i_Row] -
+					m.Rows_[i_RowReduction] *
+					(m[i_Row].Get(i_RowReduction) / m[i_RowReduction].Get(i_RowReduction));
+			}
+		}
+
+		return factor_RowSwapping * m[0].Get(0) * m[1].Get(1) * m[2].Get(2) * m[3].Get(3);
+	}
+
+	/*_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Inverse() const noexcept -> F32x4x4<ROW_MAJOR> {
+
+	}*/
 
 	_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Transpose(
 		F32x4x4<ROW_MAJOR>::OUT dst_,

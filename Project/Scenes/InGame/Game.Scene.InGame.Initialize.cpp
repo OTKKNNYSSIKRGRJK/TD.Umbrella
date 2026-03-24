@@ -21,7 +21,8 @@ namespace Game::Scene::Impl {
 	template<>
 	void InGame::Initialize() {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
-		Test_.Initialize();
+		Test_ = std::make_unique<Game::CharacterTest>();
+		Test_->Initialize();
 
 
 		auto&& bossModel{
@@ -93,6 +94,41 @@ namespace Game::Scene::Impl {
 			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM, },
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
+
+		Canvas_.AllocateTextures(2U, true);
+		Canvas_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		Canvas_.RenderTexture(1U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM);
+		Canvas_.DepthTexture().Initialize(d3d12Device, 1280U, 720U);
+		Canvas_.TransitionResourceStates(d3d12Device, d3d12Context.DirectQueue());
+		Canvas_.CreateViews(d3d12Device);
+		Canvas_.Viewport(0U) = D3D12_VIEWPORT{
+			.TopLeftX{ 0.0f },
+			.TopLeftY{ 0.0f },
+			.Width{ 1280.0f },
+			.Height{ 720.0f },
+			.MinDepth{ 0.0f },
+			.MaxDepth{ 1.0f },
+		};
+		Canvas_.ScissorRect(0U) = D3D12_RECT{
+			.left{ 0 },
+			.top{ 0 },
+			.right{ 1280 },
+			.bottom{ 720 },
+		};
+		Canvas_.Viewport(1U) = D3D12_VIEWPORT{
+			.TopLeftX{ 0.0f },
+			.TopLeftY{ 0.0f },
+			.Width{ 0.0f },
+			.Height{ 0.0f },
+			.MinDepth{ 0.0f },
+			.MaxDepth{ 1.0f },
+		};
+		Canvas_.ScissorRect(1U) = D3D12_RECT{
+			.left{ 640 },
+			.top{ 360 },
+			.right{ 1280 },
+			.bottom{ 720 },
+		};
 
 		Canvas_GeometryPass_.AllocateTextures(2U, true);
 		Canvas_GeometryPass_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);

@@ -428,6 +428,15 @@ namespace Lumina::Math {
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 		//==--	Component Accessors										--==//
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		
+	public:
+		#if !defined(_LUMINA_INTRINSICS_UNUSED_)
+		#else
+		constexpr auto [[nodiscard]] operator[](U32 idx_)
+			noexcept -> F32& { return { *((&X_) + idx_) }; }
+		constexpr auto [[nodiscard]] operator[](U32 idx_)
+			const noexcept -> F32 { return { *((&X_) + idx_) }; }
+		#endif
 
 	public:
 		_LUMINA_INLINE_ auto X(F32 x_) & noexcept -> void;

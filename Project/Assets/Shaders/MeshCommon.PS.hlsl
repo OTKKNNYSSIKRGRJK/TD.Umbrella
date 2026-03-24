@@ -22,7 +22,8 @@ PSOutput main(VSOutput input_) {
 	PSOutput output;
 	
 	float4 diffuseColor = Textures[Materials[MeshIndex].ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
-	output.Diffuse = diffuseColor * Materials[MeshIndex].Color;
+	//output.Diffuse = diffuseColor * Materials[MeshIndex].Color;
+	output.Diffuse = float4(1, 1, 1, 1);
 	output.Normal = float4(normalize(input_.Normal.xyz) * 0.5f + 0.5f, 1.0f);
 	
 	return output;

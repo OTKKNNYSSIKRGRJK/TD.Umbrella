@@ -100,19 +100,20 @@ namespace Lumina {
 			Lumina::Utils::ImGuiManager::BeginFrame();
 			#endif
 
-			SceneManager::Instance().Update();
-			SceneManager::Instance().Render();
-
-			auto rtv{ D3D12Context_.SwapChain().BackBufferRTVCPUHandle()};
-			CmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
+			auto rtv{ D3D12Context_.SwapChain().BackBufferRTVCPUHandle() };
 			F32 const clearColor[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
 			CmdList_->ClearRenderTargetView(rtv, clearColor, 0U, nullptr);
 
-			SpriteRenderer_->Render(
+			SceneManager::Instance().Update();
+			SceneManager::Instance().Render();
+
+			CmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
+
+			/*SpriteRenderer_->Render(
 				PSO_Sprite_,
 				GlobalTable_ImageTextures_.GPUHandle(0U),
 				LocalHeap_OrthoProjMat_.CPUHandle(0U)
-			);
+			);*/
 			
 			#if defined(_DEBUG)
 			Lumina::Utils::ImGuiManager::EndFrame(CmdList_);
@@ -239,24 +240,24 @@ namespace Lumina {
 
 		//	テクスチャ読み込みとシェーダー用SRV作成
 
-		GlobalTable_ImageTextures_ = gpuDH.Allocate(32U);
-		std::vector<uint32_t> texIDs{};
-		ResourceManager_.Graphics().LoadImageTextures(
-			texIDs,
-			{
-				{ "uvChecker", "Assets/Img/uvChecker.png" },	//	0
-				{ "CLIMATE", "Assets/Img/CLIMATE.png" },		//	1
-				{ "OCEAN", "Assets/Img/OCEAN.png" },			//	2
-			}
-		);
-		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
-			device->CopyDescriptorsSimple(
-				1U,
-				GlobalTable_ImageTextures_.CPUHandle(idx),
-				ResourceManager_.Graphics().CPUHandle(texIDs.at(idx)),
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
-		}
+		//GlobalTable_ImageTextures_ = gpuDH.Allocate(32U);
+		//std::vector<uint32_t> texIDs{};
+		//ResourceManager_.Graphics().LoadImageTextures(
+		//	texIDs,
+		//	{
+		//		{ "uvChecker", "Assets/Img/uvChecker.png" },	//	0
+		//		{ "CLIMATE", "Assets/Img/CLIMATE.png" },		//	1
+		//		{ "OCEAN", "Assets/Img/OCEAN.png" },			//	2
+		//	}
+		//);
+		//for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
+		//	device->CopyDescriptorsSimple(
+		//		1U,
+		//		GlobalTable_ImageTextures_.CPUHandle(idx),
+		//		ResourceManager_.Graphics().CPUHandle(texIDs.at(idx)),
+		//		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+		//	);
+		//}
 
 		MeshManager_ = std::make_unique<MeshManager>();
 		MeshManager_->Initialize(D3D12Context_, 1 << 12, 1 << 18);

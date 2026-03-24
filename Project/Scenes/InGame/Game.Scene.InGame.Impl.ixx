@@ -33,7 +33,7 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
-		Game::CharacterTest Test_;
+		std::unique_ptr<Game::CharacterTest> Test_;
 
 	private:
 		struct MeshMaterial {
@@ -49,6 +49,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
 		Lumina::D3D12::GraphicsPSO GraphicsPSO_MeshDeferredGeometry_;
 
+		Lumina::D3D12::Canvas Canvas_;
 		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
 		Lumina::D3D12::Canvas Canvas_GeometryPass_;
 	};

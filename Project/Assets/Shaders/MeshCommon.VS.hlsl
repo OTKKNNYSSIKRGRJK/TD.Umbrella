@@ -22,8 +22,8 @@ VSOutput main(VSInput input_) {
 	VSOutput output;
 	
 	float3 position = PositionArrays[MeshIndex][input_.Index_Position];
-	float2 texCoord = TexCoordArrays[MeshIndex][input_.Index_TexCoord];
-	float3 normal = NormalArrays[MeshIndex][input_.Index_Normal];
+	float2 texCoord = float2(0, 0);
+	float3 normal = float3(1, 0, 0);
 	
 	output.Position = mul(mul(float4(position, 1.0f), Worlds[MeshIndex]), VP.Mat);
 	output.TexCoord = texCoord;
