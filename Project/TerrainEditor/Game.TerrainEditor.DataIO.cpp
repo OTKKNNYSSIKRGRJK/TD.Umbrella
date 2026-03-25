@@ -5,6 +5,29 @@ import <string>;
 import nlohmann.json;
 
 namespace Game {
+	namespace {
+		auto operator>>(
+			nlohmann::json const& in_,
+			[[maybe_unused]] Lumina::List<Polygon>& polygons_
+		) -> nlohmann::json const& {
+			auto const& arr_Polygons{ in_.at("Polygons") };
+			for (auto const& dict_PolygonAttrs : arr_Polygons) {
+				auto& polygon{ polygons_.New() };
+				
+				auto const& arr_Vertices{ dict_PolygonAttrs.at("Vertices") };
+				for (auto const& dict_VerticeAttrs : arr_Vertices) {
+					auto& vert{ polygon.Points.emplace_back() };
+
+					auto const& arr_Pos{ dict_VerticeAttrs.at("Pos") };
+					vert.Pos.X = arr_Pos.at(0).get<Lumina::F32>();
+					vert.Pos.Y = arr_Pos.at(1).get<Lumina::F32>();
+				}
+			}
+
+			return in_;
+		}
+	}
+
 	template<>
 	auto TerrainEditor::InputData(nlohmann::json const& input_) -> void {
 		/*Lumina::List<Polygon> Polygons_;
@@ -13,22 +36,19 @@ namespace Game {
 		Lumina::I32 CurrentPolygonID_;
 		Lumina::I32 CurrentPolygonID_LastestUnused_;
 
-		Lumina::I32 PreviousGroundPointID_;
+		Lumina::I32 PreviousGroundPointID_;*/
 
-		Point* SelectedPoint_;
-		GroundPoint* SelectedGroundPoint_;
-		Lumina::I32 IsEditingGround_;
-
-		Lumina::Math::F32x2 CanvasScreenPos_;
-		Lumina::Math::F32x2 CanvasSize_;
-		Lumina::Math::F32x2 CanvasSize_MIN_;
-		Lumina::Math::F32x2 MouseScreenPos_;
-		Lumina::Math::F32x2 MouseLocalPos_;*/
+		Reset();
 
 		auto const& dict_MapInfo{ input_.at("MapInfo") };
 		auto const& arr_MapSize{ dict_MapInfo.at("Size") };
 		CanvasSize_.X = arr_MapSize.at(0).get<Lumina::F32>();
 		CanvasSize_.Y = arr_MapSize.at(1).get<Lumina::F32>();
+
+		SelectedPoint_ = nullptr;
+		SelectedGroundPoint_ = nullptr;
+
+		input_ >> Polygons_;
 	}
 }
 
@@ -44,11 +64,13 @@ namespace Game {
 			for (it.Begin(); !it.End(); it.Next()) {
 				auto const& polygon{ *it };
 				if (!polygon.Points.empty()) {
-					auto& arr_Vertices{ arr_Polygons.emplace_back() };
+					auto& dict_PolygonAttrs{ arr_Polygons.emplace_back(nlohmann::ordered_json::object()) };
+					dict_PolygonAttrs["Vertices"] = nlohmann::ordered_json::array();
+					auto& arr_Vertices{ dict_PolygonAttrs["Vertices"] };
 					for (auto const& p : polygon.Points) {
-						auto& dict_VerticeProp{ arr_Vertices.emplace_back() };
-						dict_VerticeProp["Pos"].emplace_back(p.Pos.X);
-						dict_VerticeProp["Pos"].emplace_back(p.Pos.Y);
+						auto& dict_VerticeAttrs{ arr_Vertices.emplace_back() };
+						dict_VerticeAttrs["Pos"].emplace_back(p.Pos.X);
+						dict_VerticeAttrs["Pos"].emplace_back(p.Pos.Y);
 					}
 				}
 			}

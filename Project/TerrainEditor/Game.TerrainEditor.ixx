@@ -11,6 +11,7 @@ namespace Game {
 
 	struct GroundPoint {
 		Lumina::Math::F32x2 Pos;
+		Lumina::I32 ID;
 		Lumina::I32 Prev;
 		Lumina::I32 Next;
 	};
@@ -35,6 +36,8 @@ namespace Game {
 
 		auto OpenFile() -> void;
 		auto SaveFile() const -> void;
+
+		auto Reset() -> void;
 
 		template<typename T>
 		auto InputData(T const& input_) -> void;

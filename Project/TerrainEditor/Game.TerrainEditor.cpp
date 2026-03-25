@@ -75,6 +75,7 @@ namespace Game {
 					newVertex.Prev = PreviousGroundPointID_;
 					newVertex.Next = -1;
 					Lumina::I32 const newGroundPointID{ static_cast<Lumina::I32>(&newVertex - GroundPolygon_.Data()) };
+					newVertex.ID = newGroundPointID;
 					GroundPolygon_.At(PreviousGroundPointID_).Next = newGroundPointID;
 					PreviousGroundPointID_ = newGroundPointID;
 				}
@@ -83,6 +84,7 @@ namespace Game {
 				auto& newVertex{ GroundPolygon_.New() };
 				newVertex.Pos = MouseLocalPos_;
 				PreviousGroundPointID_ = static_cast<Lumina::I32>(&newVertex - GroundPolygon_.Data());
+				newVertex.ID = PreviousGroundPointID_;
 				newVertex.Prev = -1;
 				newVertex.Next = -1;
 			}
@@ -416,6 +418,16 @@ namespace Game {
 		ImGui::Text("CurrentPolygonID_LastestUnused = %d", CurrentPolygonID_LastestUnused_);
 
 		ImGui::End();
+	}
+
+	auto TerrainEditor::Reset() -> void {
+		decltype(Polygons_)::Iterator it{ Polygons_ };
+		for (it.Begin(); !it.End(); it.Next()) {
+			auto& polygon{ *it };
+			polygon.Points.clear();
+		}
+
+		GroundPolygon_.Clear();
 	}
 
 	auto TerrainEditor::Initialize() -> void {

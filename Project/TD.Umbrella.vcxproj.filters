@@ -16,6 +16,9 @@
     <Filter Include="Test">
       <UniqueIdentifier>{600c7b09-8013-4042-9255-2b72baa89fe4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TerrainEditor">
+      <UniqueIdentifier>{e674a116-9e2f-468b-a2a7-8fa1b208960d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -52,17 +55,17 @@
     <ClCompile Include="Test\Game.CharacterTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
-    <ClCompile Include="Game.TerrainEditor.ixx">
-      <Filter>Test</Filter>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp">
+      <Filter>TerrainEditor</Filter>
     </ClCompile>
-    <ClCompile Include="Game.TerrainEditor.cpp">
-      <Filter>Test</Filter>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx">
+      <Filter>TerrainEditor</Filter>
     </ClCompile>
-    <ClCompile Include="Game.TerrainEditor.FileIO.cpp">
-      <Filter>Test</Filter>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp">
+      <Filter>TerrainEditor</Filter>
     </ClCompile>
-    <ClCompile Include="Game.TerrainEditor.DataIO.cpp">
-      <Filter>Test</Filter>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp">
+      <Filter>TerrainEditor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
