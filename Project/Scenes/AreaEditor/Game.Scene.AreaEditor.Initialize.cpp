@@ -49,11 +49,27 @@ namespace Game::Editor {
 		if (j.contains("facingRight")) j.at("facingRight").get_to(e.facingRight);
 	}
 
+	void to_json(json& j, const CollisionPoint& p) {
+		j = json{ {"position", p.position}, {"radius", p.radius} };
+	}
+	void from_json(const json& j, CollisionPoint& p) {
+		if (j.contains("position")) j.at("position").get_to(p.position);
+		if (j.contains("radius")) j.at("radius").get_to(p.radius);
+	}
+
+	void to_json(json& j, const CollisionGroup& cg) {
+		j = json{ {"name", cg.name}, {"points", cg.points} };
+	}
+	void from_json(const json& j, CollisionGroup& cg) {
+		if (j.contains("name")) j.at("name").get_to(cg.name);
+		if (j.contains("points")) j.at("points").get_to(cg.points);
+	}
+
 	void to_json(json& j, const AreaData& a) {
 		j = json{
 			{"name", a.name}, {"index", a.index}, {"width", a.width}, {"height", a.height},
 			{"backgroundMusic", a.backgroundMusic}, {"connections", a.connections},
-			{"enemies", a.enemies}, {"editorPos", a.editorPos}
+			{"enemies", a.enemies}, {"collisionGroups", a.collisionGroups}, {"editorPos", a.editorPos}
 		};
 	}
 
@@ -80,6 +96,7 @@ namespace Game::Editor {
 		if (j.contains("backgroundMusic")) j.at("backgroundMusic").get_to(a.backgroundMusic);
 		if (j.contains("connections")) j.at("connections").get_to(a.connections);
 		if (j.contains("enemies")) j.at("enemies").get_to(a.enemies);
+		if (j.contains("collisionGroups")) j.at("collisionGroups").get_to(a.collisionGroups);
 		if (j.contains("editorPos")) j.at("editorPos").get_to(a.editorPos);
 	}
 
@@ -119,6 +136,9 @@ namespace Game::Editor {
 		recentFiles_.clear();
 		allAreas_.clear();
 		enemyFiles_.clear();
+		editingArea_.Reset();
+
+		bool firstLoaded = false;
 		if (fs::exists("./")) {
 			for (const auto& entry : fs::directory_iterator("./")) {
 				std::string fName = entry.path().filename().string();
@@ -127,12 +147,21 @@ namespace Game::Editor {
 					AreaData a;
 					LoadArea(a, fName);
 					allAreas_.push_back(a);
+
+					if (!firstLoaded && fName == "area0.json") {
+						editingArea_ = a;
+						firstLoaded = true;
+					}
 				} else if (entry.path().extension() == ".json" && fName.find("area") != 0) {
 					// 敵JSONファイルとしてリストに追加
 					std::string baseName = fName.substr(0, fName.size() - 5); // .jsonを除去
 					enemyFiles_.push_back(baseName);
 				}
 			}
+		}
+
+		if (!firstLoaded && !allAreas_.empty()) {
+			editingArea_ = allAreas_[0];
 		}
 	}
 

@@ -24,7 +24,7 @@ namespace {
 
 namespace Game::Scene::Impl {
 #if defined(_DEBUG)
-	void InGame::CheckAndLoadArea(int areaIndex) {
+	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
 		
@@ -42,10 +42,28 @@ namespace Game::Scene::Impl {
 		}
 		
 		// Reset player position when entering area
-		playState_.Player.Position.Y = 0.0f; 
-		playState_.Player.Position.X = 100.0f; // Start at left side of 2D area
+		playState_.Player.Position.Y = 0.0f;
 		playState_.Player.Position.Z = 0.0f;
 		playState_.Player.Velocity = {0.f, 0.f, 0.f};
+
+		// Spawn location logic
+		bool spawnedAtConnection = false;
+		if (previousAreaIndex != -1) {
+			for (const auto& conn : playState_.CurrentArea.connections) {
+				if (conn.targetAreaIndex == previousAreaIndex) {
+					// Spawn at the center of the connection linking back to where we came from
+					playState_.Player.Position.X = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
+					playState_.Player.Position.Y = conn.trigger.position.y;
+					spawnedAtConnection = true;
+					break;
+				}
+			}
+		}
+		if (!spawnedAtConnection) {
+			playState_.Player.Position.X = 100.0f; // Fallback / Start location
+		}
+		
+		playState_.TransitionCooldownTimer = 0.5f; // Add delay
 		
 		if (areaIndex == 1) {
 			playState_.IsGoalReached = true;
@@ -153,6 +171,10 @@ namespace Game::Scene::Impl {
 			}
 		}
 		
+		if (playState_.TransitionCooldownTimer > 0.0f) {
+			playState_.TransitionCooldownTimer -= dt;
+		}
+		
 		// Enemy Logic (simple track player in 2D)
 		for (auto& e : playState_.Enemies) {
 			if (e.IsDead) continue;
@@ -180,8 +202,8 @@ namespace Game::Scene::Impl {
 			}
 		}
 		
-		// Area Transition (2D Rect check)
-		if (!playState_.IsGoalReached) {
+		// Area Transition (2D Rect check with W key)
+		if (!playState_.IsGoalReached && playState_.TransitionCooldownTimer <= 0.0f && keyboard.IsPressed(Lumina::OS::Windows::KEY::W)) {
 			float px = playState_.Player.Position.X;
 			float py = playState_.Player.Position.Y; 
 			
@@ -189,7 +211,7 @@ namespace Game::Scene::Impl {
 				// Player bounding box assumes Width=40 [-20~+20], Height=40 [0~40] from base position
 				if (px + 20.0f >= conn.trigger.position.x && px - 20.0f <= conn.trigger.position.x + conn.trigger.size.x &&
 				    py + 40.0f >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
-					CheckAndLoadArea(conn.targetAreaIndex);
+					CheckAndLoadArea(conn.targetAreaIndex, playState_.CurrentArea.index);
 					break;
 				}
 			}

@@ -1,5 +1,6 @@
 {
     "backgroundMusic": "",
+    "collisionGroups": [],
     "connections": [
         {
             "targetAreaIndex": 1,

@@ -77,10 +77,12 @@ namespace Game::Scene::Impl {
 			float BuffAttackTimer = 0.0f;
 			
 			float PlayerAttackTimer = 0.0f;
+			
+			float TransitionCooldownTimer = 0.0f;
 		} playState_;
 
 #if defined(_DEBUG)
-		void CheckAndLoadArea(int areaIndex);
+		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
 		void DrawPlayMode();
 		void UpdatePlayLogic();
 #endif

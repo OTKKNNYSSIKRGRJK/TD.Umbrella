@@ -30,6 +30,16 @@ export namespace Game::Editor {
 		bool facingRight = true;
 	};
 
+	struct CollisionPoint {
+		Vector2 position{ 0.0f, 0.0f };
+		float radius = 16.0f;
+	};
+
+	struct CollisionGroup {
+		std::string name = "NewGroup";
+		std::vector<CollisionPoint> points;
+	};
+
 	struct AreaData {
 		int name = 0;
 		int index = 0;
@@ -38,6 +48,7 @@ export namespace Game::Editor {
 		std::string backgroundMusic = "";
 		std::vector<AreaConnection> connections;
 		std::vector<EnemyPlacement> enemies;
+		std::vector<CollisionGroup> collisionGroups;
 		Vector2 editorPos = { 0.0f, 0.0f };
 
 		void Reset() {
@@ -48,6 +59,7 @@ export namespace Game::Editor {
 			backgroundMusic.clear();
 			connections.clear();
 			enemies.clear();
+			collisionGroups.clear();
 			editorPos = { 0.0f, 0.0f };
 		}
 	};
@@ -73,6 +85,8 @@ export namespace Game::Editor {
 		int draggingAreaIndex_ = -1;
 		int draggingConnectionIndex_ = -1;
 		int draggingEnemyIndex_ = -1;
+		int draggingCollisionGroupIndex_ = -1;
+		int draggingCollisionPointIndex_ = -1;
 		Vector2 dragOffset_ = { 0.0f, 0.0f };
 
 		// 敵JSONファイルリスト（ドロップダウン用）

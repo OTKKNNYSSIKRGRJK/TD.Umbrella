@@ -14,6 +14,33 @@ namespace {
 	constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
 		return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
 	}
+
+	bool IsConvex(const std::vector<Game::Editor::CollisionPoint>& points) {
+		if (points.size() < 3) return true;
+
+		bool hasPositive = false;
+		bool hasNegative = false;
+
+		for (size_t i = 0; i < points.size(); ++i) {
+			size_t prev = (i == 0) ? points.size() - 1 : i - 1;
+			size_t next = (i == points.size() - 1) ? 0 : i + 1;
+
+			float dx1 = points[i].position.x - points[prev].position.x;
+			float dy1 = points[i].position.y - points[prev].position.y;
+			
+			float dx2 = points[next].position.x - points[i].position.x;
+			float dy2 = points[next].position.y - points[i].position.y;
+
+			float cross = dx1 * dy2 - dy1 * dx2;
+
+			if (cross > 0.001f) hasPositive = true;
+			if (cross < -0.001f) hasNegative = true;
+
+			if (hasPositive && hasNegative) return false;
+		}
+
+		return true;
+	}
 }
 #endif
 
@@ -26,6 +53,18 @@ namespace Game::Editor {
 
 #if defined(_DEBUG)
 	void AreaEditor::DrawEditorUI() {
+		bool openConvexError = false;
+		auto trySaveArea = [&](const AreaData& areaToSave, bool sync) {
+			for (const auto& cg : areaToSave.collisionGroups) {
+				if (!IsConvex(cg.points)) {
+					openConvexError = true;
+					return false;
+				}
+			}
+			SaveArea(areaToSave, sync);
+			return true;
+		};
+
 		// 右ドラッグでカメラ移動
 		if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
 			ImVec2 delta = ImGui::GetIO().MouseDelta;
@@ -60,6 +99,14 @@ namespace Game::Editor {
 			ep.position.y = (std::max)(0.0f, (std::min)(ep.position.y, static_cast<float>(editingArea_.height)));
 		}
 
+		// 当たり判定もエリア内に制限
+		for (auto& cg : editingArea_.collisionGroups) {
+			for (auto& p : cg.points) {
+				p.position.x = (std::max)(0.0f, (std::min)(p.position.x, static_cast<float>(editingArea_.width)));
+				p.position.y = (std::max)(0.0f, (std::min)(p.position.y, static_cast<float>(editingArea_.height)));
+			}
+		}
+
 		constexpr float enemyMarkerSize = 16.0f;
 
 		// 左クリックによるドラッグ＆ドロップ判定
@@ -67,6 +114,8 @@ namespace Game::Editor {
 			draggingConnectionIndex_ = -1;
 			draggingAreaIndex_ = -1;
 			draggingEnemyIndex_ = -1;
+			draggingCollisionGroupIndex_ = -1;
+			draggingCollisionPointIndex_ = -1;
 
 			for (int i = 0; i < static_cast<int>(editingArea_.connections.size()); ++i) {
 				const auto& conn = editingArea_.connections[i];
@@ -101,7 +150,31 @@ namespace Game::Editor {
 				}
 			}
 
+			// 当たり判定のドラッグ判定
 			if (draggingConnectionIndex_ == -1 && draggingEnemyIndex_ == -1) {
+				for (int g = 0; g < static_cast<int>(editingArea_.collisionGroups.size()); ++g) {
+					auto& cg = editingArea_.collisionGroups[g];
+					for (int p = 0; p < static_cast<int>(cg.points.size()); ++p) {
+						const auto& pt = cg.points[p];
+						float pcx = cx + (editingArea_.editorPos.x + pt.position.x) * scale;
+						float pcy = cy - (editingArea_.editorPos.y + pt.position.y) * scale;
+						float pxmin = pcx - pt.radius * scale;
+						float pxmax = pcx + pt.radius * scale;
+						float pymin = pcy - pt.radius * scale;
+						float pymax = pcy + pt.radius * scale;
+
+						if (mousePos.x >= pxmin && mousePos.x <= pxmax && mousePos.y >= pymin && mousePos.y <= pymax) {
+							draggingCollisionGroupIndex_ = g;
+							draggingCollisionPointIndex_ = p;
+							dragOffset_ = { mousePos.x - pcx, mousePos.y - pcy };
+							break;
+						}
+					}
+					if (draggingCollisionPointIndex_ != -1) break;
+				}
+			}
+
+			if (draggingConnectionIndex_ == -1 && draggingEnemyIndex_ == -1 && draggingCollisionGroupIndex_ == -1) {
 				float axmin = cx + editingArea_.editorPos.x * scale;
 				float aymin = cy - (editingArea_.editorPos.y + editingArea_.height) * scale;
 				float axmax = axmin + editingArea_.width * scale;
@@ -118,8 +191,9 @@ namespace Game::Editor {
 						float paxmax = paxmin + a.width * scale;
 						float paymax = cy - a.editorPos.y * scale;
 						if (mousePos.x >= paxmin && mousePos.x <= paxmax && mousePos.y >= paymin && mousePos.y <= paymax) {
-							SaveArea(editingArea_, true);
-							LoadArea(editingArea_, "area" + std::to_string(a.name) + ".json");
+							if (trySaveArea(editingArea_, true)) {
+								LoadArea(editingArea_, "area" + std::to_string(a.name) + ".json");
+							}
 							break;
 						}
 					}
@@ -147,6 +221,18 @@ namespace Game::Editor {
 
 				ep.position.x = (std::max)(0.0f, (std::min)(ep.position.x, static_cast<float>(editingArea_.width)));
 				ep.position.y = (std::max)(0.0f, (std::min)(ep.position.y, static_cast<float>(editingArea_.height)));
+			} else if (draggingCollisionGroupIndex_ != -1) {
+				auto& cg = editingArea_.collisionGroups[draggingCollisionGroupIndex_];
+				if (draggingCollisionPointIndex_ != -1) {
+					auto& pt = cg.points[draggingCollisionPointIndex_];
+					float new_pcx = mousePos.x - dragOffset_.x;
+					float new_pcy = mousePos.y - dragOffset_.y;
+					pt.position.x = (new_pcx - cx) / scale - editingArea_.editorPos.x;
+					pt.position.y = (cy - new_pcy) / scale - editingArea_.editorPos.y;
+
+					pt.position.x = (std::max)(0.0f, (std::min)(pt.position.x, static_cast<float>(editingArea_.width)));
+					pt.position.y = (std::max)(0.0f, (std::min)(pt.position.y, static_cast<float>(editingArea_.height)));
+				}
 			} else if (draggingAreaIndex_ == 0) {
 				float new_axmin = mousePos.x - dragOffset_.x;
 				float new_aymin = mousePos.y - dragOffset_.y;
@@ -157,12 +243,14 @@ namespace Game::Editor {
 
 		// 左クリック離し
 		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-			if (draggingConnectionIndex_ != -1 || draggingAreaIndex_ != -1 || draggingEnemyIndex_ != -1) {
-				SaveArea(editingArea_, true);
+			if (draggingConnectionIndex_ != -1 || draggingAreaIndex_ != -1 || draggingEnemyIndex_ != -1 || draggingCollisionGroupIndex_ != -1) {
+				trySaveArea(editingArea_, true);
 			}
 			draggingConnectionIndex_ = -1;
 			draggingAreaIndex_ = -1;
 			draggingEnemyIndex_ = -1;
+			draggingCollisionGroupIndex_ = -1;
+			draggingCollisionPointIndex_ = -1;
 		}
 
 		// バックグラウンド描画リストでエリアとコネクションを描画
@@ -266,6 +354,40 @@ namespace Game::Editor {
 					const char* dirText = ep.facingRight ? "R" : "L";
 					drawList->AddText(ImVec2(ecx2 + ms + 2.0f, ecy2 - 6.0f), MakeCol32(255, 255, 100, 255), dirText);
 				}
+
+				// 当たり判定の描画
+				for (int g = 0; g < static_cast<int>(drawData.collisionGroups.size()); ++g) {
+					const auto& cg = drawData.collisionGroups[g];
+					
+					// ポイントを結ぶ線を描画 (ポリゴン)
+					if (cg.points.size() >= 2) {
+						for (size_t i = 0; i < cg.points.size(); ++i) {
+							size_t nextIdx = (i + 1) % cg.points.size();
+							const auto& p1 = cg.points[i];
+							const auto& p2 = cg.points[nextIdx];
+							// ポイントが2つだけの時は戻りの重複線を描画しない
+							if (cg.points.size() == 2 && i == 1) continue;
+
+							float p1cx = cx + (drawData.editorPos.x + p1.position.x) * scale;
+							float p1cy = cy - (drawData.editorPos.y + p1.position.y) * scale;
+							float p2cx = cx + (drawData.editorPos.x + p2.position.x) * scale;
+							float p2cy = cy - (drawData.editorPos.y + p2.position.y) * scale;
+							
+							drawList->AddLine(ImVec2(p1cx, p1cy), ImVec2(p2cx, p2cy), MakeCol32(255, 100, 255, 180), 3.0f);
+						}
+					}
+
+					for (int p = 0; p < static_cast<int>(cg.points.size()); ++p) {
+						const auto& pt = cg.points[p];
+						float pcx = cx + (drawData.editorPos.x + pt.position.x) * scale;
+						float pcy = cy - (drawData.editorPos.y + pt.position.y) * scale;
+						float radius = pt.radius * scale;
+						ImU32 col = (draggingCollisionGroupIndex_ == g && draggingCollisionPointIndex_ == p) ? MakeCol32(255, 100, 255, 150) : MakeCol32(200, 50, 200, 100);
+						drawList->AddCircleFilled(ImVec2(pcx, pcy), radius, col);
+						drawList->AddCircle(ImVec2(pcx, pcy), radius, MakeCol32(255, 100, 255, 255), 0, 1.5f);
+						drawList->AddText(ImVec2(pcx - radius, pcy - radius - 15.0f), MakeCol32(255, 150, 255, 255), ("Point: " + cg.name).c_str());
+					}
+				}
 			}
 		}
 
@@ -286,8 +408,9 @@ namespace Game::Editor {
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					bool isSelected = false;
 					if (ImGui::Selectable(fName.c_str(), isSelected)) {
-						SaveArea(editingArea_, true);
-						LoadArea(editingArea_, fName);
+						if (trySaveArea(editingArea_, true)) {
+							LoadArea(editingArea_, fName);
+						}
 					}
 				}
 			}
@@ -328,7 +451,7 @@ namespace Game::Editor {
 				if (ImGui::TreeNode(label.c_str())) {
 					ImGui::InputInt("Target Area Index", &editingArea_.connections[i].targetAreaIndex);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
-						SaveArea(editingArea_, true);
+						trySaveArea(editingArea_, true);
 					}
 
 					ImGui::Text("Trigger Collision (Rect)");
@@ -412,9 +535,65 @@ namespace Game::Editor {
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Collision Groups", ImGuiTreeNodeFlags_DefaultOpen)) {
+			if (ImGui::Button("Add Collision Group", ImVec2(-1, 0))) {
+				CollisionGroup newGroup;
+				newGroup.name = "Group_" + std::to_string(editingArea_.collisionGroups.size());
+				editingArea_.collisionGroups.push_back(newGroup);
+			}
+			ImGui::Separator();
+
+			for (size_t i = 0; i < editingArea_.collisionGroups.size(); ++i) {
+				ImGui::PushID(static_cast<int>(i) + 20000);
+				std::string label = "Group " + std::to_string(i) + " (" + editingArea_.collisionGroups[i].name + ")###CGNode";
+				if (ImGui::TreeNode(label.c_str())) {
+					char nameBuf[256];
+					strncpy_s(nameBuf, editingArea_.collisionGroups[i].name.c_str(), sizeof(nameBuf));
+					if (ImGui::InputText("Group Name", nameBuf, sizeof(nameBuf))) {
+						editingArea_.collisionGroups[i].name = nameBuf;
+					}
+
+					if (ImGui::Button("Add Point")) {
+						CollisionPoint p;
+						p.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
+						editingArea_.collisionGroups[i].points.push_back(p);
+					}
+					
+					ImGui::Separator();
+
+					for (size_t p = 0; p < editingArea_.collisionGroups[i].points.size(); ++p) {
+						ImGui::PushID(static_cast<int>(p) + 30000);
+						ImGui::Text("Point %llu", p);
+						ImGui::DragFloat2("Position", &editingArea_.collisionGroups[i].points[p].position.x, 1.0f);
+						ImGui::DragFloat("Radius", &editingArea_.collisionGroups[i].points[p].radius, 1.0f, 1.0f, 1000.0f);
+						if (ImGui::Button("Remove Point")) {
+							editingArea_.collisionGroups[i].points.erase(editingArea_.collisionGroups[i].points.begin() + p);
+							ImGui::PopID();
+							break;
+						}
+						ImGui::PopID();
+						ImGui::Separator();
+					}
+
+					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
+					if (ImGui::Button("Remove Group")) {
+						editingArea_.collisionGroups.erase(editingArea_.collisionGroups.begin() + i);
+						ImGui::PopStyleColor();
+						ImGui::TreePop();
+						ImGui::PopID();
+						break;
+					}
+					ImGui::PopStyleColor();
+
+					ImGui::TreePop();
+				}
+				ImGui::PopID();
+			}
+		}
+
 		ImGui::Separator();
 		if (ImGui::Button("SAVE AREA", ImVec2(-1, 40))) {
-			SaveArea(editingArea_, true);
+			trySaveArea(editingArea_, true);
 		}
 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
@@ -435,6 +614,20 @@ namespace Game::Editor {
 			if (ImGui::Button("Cancel", ImVec2(120, 0))) {
 				ImGui::CloseCurrentPopup();
 			}
+			ImGui::EndPopup();
+		}
+
+		if (openConvexError) {
+			ImGui::OpenPopup("Save Error");
+		}
+
+		if (ImGui::BeginPopupModal("Save Error", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::Text("Cannot save!\nThe collision shape must be a convex polygon.\n(Check for self-intersections or concave angles.)");
+			ImGui::Separator();
+			if (ImGui::Button("OK", ImVec2(120, 0))) {
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SetItemDefaultFocus();
 			ImGui::EndPopup();
 		}
 
