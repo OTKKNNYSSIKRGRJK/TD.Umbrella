@@ -426,6 +426,7 @@ namespace Game {
 			auto& polygon{ *it };
 			polygon.Points.clear();
 		}
+		Polygons_.Clear();
 
 		GroundPolygon_.Clear();
 	}

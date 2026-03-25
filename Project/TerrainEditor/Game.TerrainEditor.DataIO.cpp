@@ -26,6 +26,25 @@ namespace Game {
 
 			return in_;
 		}
+
+		auto operator>>(
+			nlohmann::json const& in_,
+			[[maybe_unused]] Lumina::List<GroundPoint>& groundPolygon_
+		) -> nlohmann::json const& {
+			auto const& arr_GroundPoints{ in_.at("GroundPoints") };
+			for (auto const& dict_VertexAttrs : arr_GroundPoints) {
+				auto& vert{ groundPolygon_.New() };
+
+				vert.ID = dict_VertexAttrs.at("ID").get<Lumina::I32>();
+				vert.Prev = dict_VertexAttrs.at("PrevID").get<Lumina::I32>();
+				vert.Next = dict_VertexAttrs.at("NextID").get<Lumina::I32>();
+				auto const& arr_Pos{ dict_VertexAttrs.at("Pos") };
+				vert.Pos.X = arr_Pos.at(0).get<Lumina::F32>();
+				vert.Pos.Y = arr_Pos.at(1).get<Lumina::F32>();
+			}
+
+			return in_;
+		}
 	}
 
 	template<>
@@ -48,7 +67,11 @@ namespace Game {
 		SelectedPoint_ = nullptr;
 		SelectedGroundPoint_ = nullptr;
 
-		input_ >> Polygons_;
+		input_ >> Polygons_ >> GroundPolygon_;
+
+		[[maybe_unused]] auto& newPolygon{ Polygons_.New() };
+		CurrentPolygonID_ = static_cast<Lumina::I32>(&newPolygon - Polygons_.Data());
+		CurrentPolygonID_LastestUnused_ = CurrentPolygonID_;
 	}
 }
 
