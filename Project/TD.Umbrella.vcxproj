@@ -11,6 +11,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game.TerrainEditor.cpp" />
+    <ClCompile Include="Game.TerrainEditor.DataIO.cpp" />
+    <ClCompile Include="Game.TerrainEditor.FileIO.cpp" />
+    <ClCompile Include="Game.TerrainEditor.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />

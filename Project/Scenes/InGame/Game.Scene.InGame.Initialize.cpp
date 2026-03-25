@@ -190,6 +190,9 @@ namespace Game::Scene::Impl {
 			GeometryPass_->RenderTarget(idx).View() = Canvas_GeometryPass_.RTV(idx);
 		}
 		GeometryPass_->DepthStencil().View() = Canvas_GeometryPass_.DSV();
+
+		TerrainEditor_ = std::make_unique<TerrainEditor>();
+		TerrainEditor_->Initialize();
 	}
 
 	InGame::InGame() = default;

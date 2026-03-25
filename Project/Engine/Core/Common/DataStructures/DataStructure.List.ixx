@@ -168,6 +168,9 @@ namespace Lumina {
 
 		constexpr T const* Data() const noexcept { return Elements_; }
 
+		constexpr T& At(uint32_t idx_) noexcept { return Elements_[idx_]; }
+		constexpr T const& At(uint32_t idx_) const noexcept { return Elements_[idx_]; }
+
 		class Iterator {
 			friend List;
 

@@ -52,6 +52,18 @@
     <ClCompile Include="Test\Game.CharacterTest.cpp">
       <Filter>Test</Filter>
     </ClCompile>
+    <ClCompile Include="Game.TerrainEditor.ixx">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.TerrainEditor.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.TerrainEditor.FileIO.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Game.TerrainEditor.DataIO.cpp">
+      <Filter>Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

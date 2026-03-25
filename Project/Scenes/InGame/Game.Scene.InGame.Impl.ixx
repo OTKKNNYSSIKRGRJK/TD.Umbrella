@@ -8,6 +8,7 @@ import Lumina;
 import Lumina.MeshManager;
 import Lumina.Utils.Data.Mesh;
 import Game.CharacterTest;
+import Game.TerrainEditor;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -52,5 +53,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::Canvas Canvas_;
 		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
 		Lumina::D3D12::Canvas Canvas_GeometryPass_;
+
+		std::unique_ptr<TerrainEditor> TerrainEditor_;
 	};
 }

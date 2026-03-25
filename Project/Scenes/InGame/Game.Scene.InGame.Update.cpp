@@ -16,6 +16,8 @@ namespace Game::Scene::Impl {
 		MotionEditor::GetInstance()->NodeImGui();
 
 		Test_->Update();
+
+		TerrainEditor_->Update();
 	}
 }
 

@@ -16,8 +16,6 @@ export import : Mixins;
 export import : DataStructure.List;
 export import : DataStructure.Bitset;
 
-export import nlohmann.json;
-
 //****	******	******	******	******	******	******	******	****//
 
 namespace Lumina {

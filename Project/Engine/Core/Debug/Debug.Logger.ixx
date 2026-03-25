@@ -1,3 +1,7 @@
+module;
+
+#include<Windows.h>
+
 export module Lumina.Core.Debug : Logger;
 
 //****	******	******	******	******	****//
