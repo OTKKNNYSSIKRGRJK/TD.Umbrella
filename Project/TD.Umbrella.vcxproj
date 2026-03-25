@@ -15,12 +15,25 @@
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
     <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
-    <ClCompile Include="Scenes\Hermite\MotionManager.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp" />
+    <ClCompile Include="Scenes\MapInfo\Ground.cpp" />
+    <ClCompile Include="Scenes\Player\Attachment.cpp" />
+    <ClCompile Include="Scenes\Player\Attachment.ixx" />
+    <ClCompile Include="Scenes\Player\InputHandler.cpp" />
+    <ClCompile Include="Scenes\Player\ManaComponent.cpp" />
+    <ClCompile Include="Scenes\Player\ManaComponent.ixx" />
+    <ClCompile Include="Scenes\Player\Player.cpp" />
+    <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
+    <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella.cpp" />
+    <ClCompile Include="Scenes\Player\UmbrellaState.cpp" />
+    <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
+    <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -50,6 +63,18 @@
     <ProjectReference Include="Engine\RenderingSystems\D3D12\RenderingSystem.D3D12.vcxproj">
       <Project>{fcae7dc6-57d3-4d16-b4c2-7bad8f427939}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Scenes\Hermite\MotionManager.h" />
+    <ClInclude Include="Scenes\MapInfo\Ground.h" />
+    <ClInclude Include="Scenes\Player\InputHandler.h" />
+    <ClInclude Include="Scenes\Player\Player.h" />
+    <ClInclude Include="Scenes\Player\PlayerStates.h" />
+    <ClInclude Include="Scenes\Player\Umbrella.h" />
+    <ClInclude Include="Scenes\Player\UmbrellaState.h" />
+    <ClInclude Include="Scenes\TDCollider\Collider.h" />
+    <ClInclude Include="Scenes\TDCollider\CollisionManager.h" />
+    <ClInclude Include="Scenes\TDCollider\GJK.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

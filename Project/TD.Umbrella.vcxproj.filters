@@ -13,6 +13,18 @@
     <Filter Include="Scenes\Hermite">
       <UniqueIdentifier>{866c901e-d835-4cca-af88-3e993dd146da}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\TDCollider">
+      <UniqueIdentifier>{d54951f4-c64a-45c8-ad0e-8ee77b012b54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scenes\Player">
+      <UniqueIdentifier>{8aea488a-f524-4b4b-86fa-8fdeb757c8c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scenes\Player\States">
+      <UniqueIdentifier>{3b096f1e-1342-45b6-a2f7-3f967848c2d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scenes\MapInfo">
+      <UniqueIdentifier>{3a677794-9f4c-41d1-b8e5-32302773ff31}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -37,14 +49,85 @@
     <ClCompile Include="Scenes\Hermite\Hermite.ixx">
       <Filter>Scenes\Hermite</Filter>
     </ClCompile>
-    <ClCompile Include="Scenes\Hermite\MotionManager.cpp">
-      <Filter>Scenes\Hermite</Filter>
+    <ClCompile Include="Scenes\TDCollider\Collider.cpp">
+      <Filter>Scenes\TDCollider</Filter>
     </ClCompile>
-    <ClCompile Include="Scenes\Hermite\MotionManager.ixx">
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\GJK.cpp">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\InputHandler.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\ManaComponent.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\ManaComponent.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp">
+      <Filter>Scenes\Player\States</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp">
+      <Filter>Scenes\Player\States</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\UmbrellaState.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\MapInfo\Ground.cpp">
+      <Filter>Scenes\MapInfo</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Attachment.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Attachment.cpp">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Hermite\MotionManager.cpp">
       <Filter>Scenes\Hermite</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Scenes\TDCollider\Collider.h">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\TDCollider\CollisionManager.h">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\TDCollider\GJK.h">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Player\InputHandler.h">
+      <Filter>Scenes\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Player\Player.h">
+      <Filter>Scenes\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Player\PlayerStates.h">
+      <Filter>Scenes\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Player\Umbrella.h">
+      <Filter>Scenes\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Player\UmbrellaState.h">
+      <Filter>Scenes\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\MapInfo\Ground.h">
+      <Filter>Scenes\MapInfo</Filter>
+    </ClInclude>
+    <ClInclude Include="Scenes\Hermite\MotionManager.h">
+      <Filter>Scenes\Hermite</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
