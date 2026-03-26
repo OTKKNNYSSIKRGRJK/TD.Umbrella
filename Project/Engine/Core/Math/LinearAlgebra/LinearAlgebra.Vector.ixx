@@ -108,6 +108,12 @@ namespace Lumina::Math {
 			return { *this };
 		}
 
+		//''""	''""''	""''""	''""''	""''""	''""''	""''""	''""''	""''//
+
+	public:
+		constexpr auto operator-()
+			const noexcept -> F32x2 { return F32x2{ -X, -Y }; }
+
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 		//==--	Dot Product, Cross Product								--==//
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
@@ -266,6 +272,12 @@ namespace Lumina::Math {
 			Z /= rhs_;
 			return { *this };
 		}
+
+		//''""	''""''	""''""	''""''	""''""	''""''	""''""	''""''	""''//
+
+	public:
+		constexpr auto operator-()
+			const noexcept -> F32x3 { return F32x3{ -X, -Y, -Z }; }
 
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 		//==--	Dot Product, Cross Product								--==//

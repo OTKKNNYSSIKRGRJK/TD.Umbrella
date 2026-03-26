@@ -1,15 +1,20 @@
-#include "MotionManager.h"
-#include <json.hpp>
-#include <fstream>
-#include <iostream>
-#include "Structures.h"
-#include "ImGuiManager.h"
+module Game.MotionManager; 
 
-using json = nlohmann::json;
-using namespace MathUtils;
+import <fstream>;
+import <filesystem>;
 
-std::unique_ptr<MotionManager>MotionManager::instance_ = nullptr;
-std::unique_ptr<MotionEditor>MotionEditor::instance_ = nullptr;
+import nlohmann.json;
+import Lumina.Utils.ImGui;
+
+namespace {
+    using Vector3 = Lumina::Math::F32x3;
+    using MotionData = std::vector<MathUtils::Spline::Node<Vector3>>;
+    using json = nlohmann::json;
+    using namespace MathUtils;
+}
+
+std::unique_ptr<MotionManager> MotionManager::instance_ = nullptr;
+std::unique_ptr<MotionEditor> MotionEditor::instance_ = nullptr;
 
 void MotionManager::LoadActionData(const std::string& fileName, std::vector<MathUtils::Spline::Node<Vector3>>& outNodes) {
 	std::string fullPath = fileName + ".json";
@@ -60,8 +65,8 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 	motionTimer_ += deltaTime;
 	float t = motionTimer_ / motionDuration_;
 	Vector3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
-	localOffset.y *= -1.0f;
-	localOffset.x *= direction.x >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
+	localOffset.Y *= -1.0f;
+	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
 
 	if (motionTimer_ >= motionDuration_) {
 		isPlaying_ = false; // 再生終了

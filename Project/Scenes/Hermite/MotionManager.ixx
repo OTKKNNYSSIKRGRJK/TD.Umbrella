@@ -1,14 +1,19 @@
-#pragma once
+export module Game.MotionManager;
 
-#include <string>
-#include <memory>
-#include <unordered_map>
-#include <vector>
+import <string>;
+import <memory>;
+import <unordered_map>;
+import <vector>;
+
 import Hermite;
+import Lumina.Core.Math;
 
-using MotionData = std::vector<MathUtils::Spline::Node<Vector3>>;
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using MotionData = std::vector<MathUtils::Spline::Node<Vector3>>;
+}
 
-class MotionManager {
+export class MotionManager {
 public:
 	static MotionManager* GetInstance() {
 		if (instance_ == nullptr) {
@@ -25,7 +30,7 @@ private:
 	std::unordered_map<std::string, MotionData> motions_;
 };
 
-class MotionEditor {
+export class MotionEditor {
 public:
 	static MotionEditor* GetInstance() {
 		if (instance_ == nullptr) {
@@ -45,7 +50,7 @@ private:
 	std::string inputNodeName_;
 };
 
-class MotionController {
+export class MotionController {
 public:
 	/// <summary>
 	/// motionを再生する準備

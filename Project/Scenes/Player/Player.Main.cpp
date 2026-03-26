@@ -1,15 +1,26 @@
-#include "CameraSystem.h"
-#include "ImGuiManager.h"
-#include "Player.h"
-#include "Ground.h"
-#include <string>
+module;
 
-using namespace PlayerStates;
+//#include"Ground.h"
+//#include "CameraSystem.h"
+
+module Game.Player : Main;
+
+import Game.MathUtils;
+
+#if defined(_DEBUG)
+import Lumina.Utils.ImGui;
+#endif
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using namespace PlayerStates;
+}
+
 void Player::Initialize() {
-	obj_ = std::make_unique<ModelObject>();
-	obj_->modelName_ = "player";
-	obj_->textureName_ = "ulthimaSky";
-	obj_->Initialize(p_fngine);
+	//obj_ = std::make_unique<ModelObject>();
+	//obj_->modelName_ = "player";
+	//obj_->textureName_ = "ulthimaSky";
+	//obj_->Initialize(p_fngine);
 
 	InitializeStates();
 	InitializeComponents();
@@ -23,10 +34,10 @@ void Player::Initialize() {
 	backJoint_.SetType(AttachmentType::PlayerBack);
 	backJoint_.SetAcceptType(AttachmentType::UmbrellaHandle);
 	backJoint_.SetInfo({ 0.0f,-0.0f,0.0f }, { 0.0f,0.0f,0.0f });
-	backJoint_.SetRot({0.0f,0.0f,Deg2Rad(135)});
+	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(135.0f)});
 
 	umbrella_ = std::make_unique<Umbrella::Main>();
-	umbrella_->Initialize(p_fngine);
+	umbrella_->Initialize();
 
 	umbrella_->handle_->GetBaseJoint()->AttachTo(GetRightHandJoint());
 
@@ -53,46 +64,45 @@ void Player::Initialize() {
 	// ラムダ式を使って、このPlayerのメンバ関数や変数にアクセスできるようにする
 	collider_->onCollisionCallback = [this](Collider* other, const Vector3& pushOut) {
 		if (other->GetMyType() == COL_Ground) {
-
-			ImGuiManager::GetInstance()->Text("Player to Ground Collision!!");
+			#if defined(_DEBUG)
+			ImGui::Text("Player to Ground Collision!!");
+			#endif
 
 			// =========================
 			// 【 めり込み解消処理 】
 			// =========================
-			Vector3 actualPush = { -pushOut.x, -pushOut.y, -pushOut.z };
-			Vector3 pos = obj_->worldTransform_.get_.Translation();
-			pos.x += actualPush.x;
-			pos.y += actualPush.y;
-			pos.z += actualPush.z;
-			obj_->worldTransform_.set_.Translation(pos);
+			Vector3 actualPush = -pushOut;
+			Position_ += actualPush;
+			//obj_->worldTransform_.set_.Translation(Position_);
 
 			Vector3 normal = actualPush;
-			float length = sqrtf(normal.x * normal.x + normal.y * normal.y + normal.z * normal.z);
-			if (length > 0.0f) {
-				normal.x /= length;
-				normal.y /= length;
-				normal.z /= length;
+			float len2{ Vector3::Dot(actualPush, actualPush) };
+			if (len2 > 0.0f) {
+				normal /= Lumina::Math::SQRT(len2);
 			}
 
 			// 足元に地面があるかのチェック
-			if (normal.y > 0.8f) {
+			if (normal.Y > 0.8f) {
 				// 「落下中」または「立ち止まっている」時だけ着地判定
 				// ジャンプ上昇中（> 0.0f）は坂に触れても着地しないようにする
-				if (this->externalVelocity_.y <= 0.0f) {
-					ImGuiManager::GetInstance()->Text("Player to Ground Collision!! -> OKOKOKO");
+				if (this->externalVelocity_.Y <= 0.0f) {
+					#if defined(_DEBUG)
+					ImGui::Text("Player to Ground Collision!! -> OKOKOKO");
+					#endif
+
 					this->onGround_ = true;
 
 					// 地面の上なのでリセット
-					if (this->externalVelocity_.y < 0.0f) {
-						this->externalVelocity_.y = 0.0f;
+					if (this->externalVelocity_.Y < 0.0f) {
+						this->externalVelocity_.Y = 0.0f;
 					}
 				}
 			}
 
-			Ground* ground = static_cast<Ground*>(other->GetUserData());
-			if (ground != nullptr) {
-
-			}
+			//Ground* ground = static_cast<Ground*>(other->GetUserData());
+			//if (ground != nullptr) {
+			//
+			//}
 		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
 
@@ -131,16 +141,15 @@ void Player::Update(float deltaTime) {
 
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
-
-	obj_->worldTransform_.set_.Translation(obj_->worldTransform_.get_.Translation() + moveAmount_);
+	Position_ += moveAmount_;
+	//obj_->worldTransform_.set_.Translation(obj_->worldTransform_.get_.Translation() + moveAmount_);
 
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 
-	Vector3 backPos = obj_->worldTransform_.get_.Translation();
-	backPos.y += 1.5f;
-	backPos.z += 1.0f;
-
+	Vector3 backPos = Position_;
+	backPos.Y += 1.5f;
+	backPos.Z += 1.0f;
 	backJoint_.SetPos(backPos);
 	backJoint_.Update();
 	
@@ -150,18 +159,21 @@ void Player::Update(float deltaTime) {
 	// Colliderに設定
 	collider_->SetWorldPosition(GetPosition());
 
-	collider_->SetWorldMatrix(obj_->worldTransform_.mat_);
+	auto&& worldMat{ Game::MathUtils::SRT(Scale_, EulerAngle_, Position_) };
+	collider_->SetWorldMatrix(worldMat);
 
 	collider_->UpdateAABB();
 
+	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
-	ImGui::DragFloat3("RHandJoint", &test.x);
+	ImGui::DragFloat3("RHandJoint", &test.X);
 
 	Vector3 colliderPos = collider_->GetWorldPosition();
-	ImGui::DragFloat3("colliderPos", &colliderPos.x);
+	ImGui::DragFloat3("colliderPos", &colliderPos.X);
 
-	ImGuiManager::GetInstance()->DrawDrag("Player : External Speed", this->externalVelocity_);
-	ImGuiManager::GetInstance()->DrawDrag("Player : My Speed", this->myVelocity_);
+	// よくわからないのでとりまコメントアウトしちゃう
+	//ImGuiManager::GetInstance()->DrawDrag("Player : External Speed", this->externalVelocity_);
+	//ImGuiManager::GetInstance()->DrawDrag("Player : My Speed", this->myVelocity_);
 
 	if (ImGui::TreeNodeEx("Mana")) {
 		ImGui::Text("Use : Push LSHIFT");
@@ -173,6 +185,7 @@ void Player::Update(float deltaTime) {
 		ImGui::DragFloat("Amount", &mana);
 		ImGui::TreePop();
 	}
+	#endif
 
 	// 地面についているフラグを解除
 	// ※ バグの原因になりそうな箇所
@@ -180,9 +193,10 @@ void Player::Update(float deltaTime) {
 }
 
 void Player::Draw() {
-	obj_->LocalToWorld();
-	obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-	obj_->Draw();
+	// 描画関連は後で
+	//obj_->LocalToWorld();
+	//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
+	//obj_->Draw();
 
 	umbrella_->Draw();
 }
@@ -263,7 +277,7 @@ void Player::Jump() {
 		if (this->onGround_) {
 			// Y軸に上向きの初速（ジャンプ力）を与える！
 			float jumpPower = 7.0f; // 調整
-			externalVelocity_.y = jumpPower;
+			externalVelocity_.Y = jumpPower;
 			this->onGround_ = false;
 
 			// ステートを「空中」に切り替える！

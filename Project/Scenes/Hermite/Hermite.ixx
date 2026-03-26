@@ -4,7 +4,9 @@ import <vector>;
 
 import nlohmann.json;
 
-using json = nlohmann::json;
+namespace {
+    using json = nlohmann::json;
+}
 
 export namespace MathUtils {
     export namespace Spline {

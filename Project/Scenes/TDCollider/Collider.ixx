@@ -1,10 +1,36 @@
-#pragma once
-//#include "Structures.h"
-#include "AABB.h"
-#include <vector>
+module;
+
 #include <functional>
 
-enum COLLISIONATTRIBUTE :int{
+export module Collider;
+
+import <vector>;
+import <memory>;
+
+import Lumina.Core.Math;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+}
+
+export struct AABB {
+	Vector3 Min;
+	Vector3 Max;
+};
+
+export auto IsCollided(AABB const& lhs_, AABB const& rhs_) -> bool {
+	return (
+		(lhs_.Min.X <= rhs_.Max.X) &&
+		(lhs_.Max.X >= rhs_.Min.X) &&
+		(lhs_.Min.Y <= rhs_.Max.Y) &&
+		(lhs_.Max.Y >= rhs_.Min.Y) &&
+		(lhs_.Min.Z <= rhs_.Max.Z) &&
+		(lhs_.Max.Z >= rhs_.Min.Z)
+	);
+}
+
+export enum COLLISIONATTRIBUTE : int{
 	COL_None = 0,
 	COL_Player = 1 << 0,
 	COL_Enemy = 1 << 1,
@@ -13,13 +39,13 @@ enum COLLISIONATTRIBUTE :int{
 	COL_Ground = 1 << 4,
 };
 
-enum class ColliderShape {
+export enum class ColliderShape {
 	Sphere,
 	AABB,
 	Convex // GJK用
 };
 
-class Collider
+export class Collider
 {
 public:
 	virtual ~Collider() = default;
@@ -45,17 +71,17 @@ public:
 	///
 	/////////////////////////////////
 
-	const Vector3 GetWorldPosition(){ return worldPosition_; }
+	Vector3 const& GetWorldPosition() const noexcept { return worldPosition_; }
 	void SetWorldPosition(const Vector3& pos) { worldPosition_ = pos; }
 
-	AABB GetAABB()const { return aabb_; }
+	AABB const& GetAABB() const noexcept { return aabb_; }
 	void SetAABB(const AABB& aabb) { aabb_ = aabb; }
 
-	const uint32_t& GetMyType()const { return collisionAttribute_; }
-	void SetMyType(const uint32_t& type) { collisionAttribute_ = type; }
+	uint32_t GetMyType() const noexcept { return collisionAttribute_; }
+	void SetMyType(uint32_t type) { collisionAttribute_ = type; }
 	
-	const uint32_t& GetYourType()const { return collisionMask_; }
-	void SetYourType(const uint32_t& type) { collisionMask_ = type; }
+	uint32_t GetYourType() const noexcept { return collisionMask_; }
+	void SetYourType(uint32_t type) { collisionMask_ = type; }
 protected:
 	// AABB
 	AABB aabb_;
@@ -73,8 +99,12 @@ private:
 	void* userData_ = nullptr; // 持ち主のポインタを保存
 };
 
-class ConvexCollider : public Collider
+export class ConvexCollider : public Collider
 {
+public:
+	ConvexCollider() { worldMatrix_ = std::make_unique<Matrix4x4>(); }
+	~ConvexCollider() {}
+
 public:
 	ColliderShape GetShapeType() const override { return ColliderShape::Convex; }
 
@@ -86,11 +116,11 @@ public:
 	void UpdateAABB() override;
 public:
 	// PositionではなくMatrixを持たせる
-	void SetWorldMatrix(const Matrix4x4& mat) { worldMatrix_ = mat; }
-	const Matrix4x4& GetWorldMatrix() const { return worldMatrix_; }
+	void SetWorldMatrix(const Matrix4x4& mat) { *worldMatrix_ = mat; }
+	const Matrix4x4& GetWorldMatrix() const { return *worldMatrix_; }
 
 private:
 	std::vector<Vector3> vertices_;
-	Matrix4x4 worldMatrix_;
+	std::unique_ptr<Matrix4x4> worldMatrix_;
 };
 

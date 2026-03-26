@@ -1,13 +1,19 @@
-module;
-#include "Structures.h"
-module Attachment;
+module Game.Attachment;
+
+import Game.MathUtils;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+}
+
 //////////////////////
 ///
 ///   コンストラクタ・デストラクタ
 /// 
 //////////////////////
 Attachment::Attachment() {
-
+	matWorld_ = std::make_unique<Matrix4x4>();
 }
 
 Attachment::~Attachment() {
@@ -20,16 +26,17 @@ Attachment::~Attachment() {
 //////////////////////
 void Attachment::Update() {
 
-	Matrix4x4 scaleMat = Matrix4x4::Make::Scale({1.0f,1.0f,1.0f});
-	Matrix4x4 rotationMat = Matrix4x4::Make::RotateXYZ(rotation_);
-	Matrix4x4 translateMat = Matrix4x4::Make::Translate(position_);
+	//Matrix4x4 scaleMat = Game::MathUtils::Scale({1.0f, 1.0f, 1.0f});
+	Matrix4x4 rotationMat = Game::MathUtils::RotateEulerXYZ(rotation_);
+	Matrix4x4 translateMat = Game::MathUtils::Translate(position_);
 
 	// S * R * T
-	matWorld_ = Matrix4x4::Multiply(scaleMat, rotationMat);
-	matWorld_ = Matrix4x4::Multiply(matWorld_, translateMat);
+	// スケールは使わないからscaleMatは不要
+	//matWorld_ = Matrix4x4::Multiply(scaleMat, rotationMat);
+	Matrix4x4::Multiply(*matWorld_, rotationMat, translateMat);
 	// 親子関係なら
 	if (parent_) {
-		matWorld_ = Matrix4x4::Multiply(matWorld_, parent_->GetMatrix());
+		Matrix4x4::Multiply(*matWorld_, *matWorld_, parent_->GetMatrix());
 	}
 }
 //////////////////////

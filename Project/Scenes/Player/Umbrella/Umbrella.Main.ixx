@@ -1,19 +1,9 @@
-#pragma once
-#include "ModelObject.h"
-#include "UmbrellaState.h"
+export module Game.Umbrella : Main;
 
-import Attachment;
+import : Common;
+import : State;
 
-//////////////////////
-/// 
-///  傘の形状・機能
-/// 
-//////////////////////
-enum class UmbrellaForm {
-    Closed,     // 閉じている（攻撃特化）
-    Opened,     // 開いている（防御・マナ回収特化）
-    Reverse,    // 逆さ（防御・壊れやすい）
-};
+import Game.Attachment;
 
 //////////////////////
 /// 
@@ -22,15 +12,13 @@ enum class UmbrellaForm {
 //////////////////////
 
 namespace Umbrella {
-   
+
     //////////////////////
     /// 
     ///  傘の[持ち手]
     /// 
     //////////////////////
-
-    class Handle {
-
+    export class Handle {
         //////////////////////
         /// 
         ///  コンストラクタ・デストラクタ
@@ -49,7 +37,7 @@ namespace Umbrella {
         //////////////////////
     public:
         // 初期化処理
-        void Initialize(Fngine* f);
+        void Initialize();
         // 更新処理
         void Update(float deltaTime);
         // 描画処理
@@ -71,8 +59,8 @@ namespace Umbrella {
         // 「かさ」をくっつけるための先端のJoint(他にもおｋでいいかも)
         Attachment tipJoint_;
 
-        std::unique_ptr<ModelObject>obj_;
-    public:  Fngine* p_fngine_;
+        //std::unique_ptr<ModelObject>obj_;
+    //public:  Fngine* p_fngine_;
     };
 
     //////////////////////
@@ -80,7 +68,7 @@ namespace Umbrella {
     ///  傘の[かさ]
     /// 
     //////////////////////
-    class Top {
+    export class Top {
         //////////////////////
         /// 
         ///  コンストラクタ・デストラクタ
@@ -99,7 +87,7 @@ namespace Umbrella {
         //////////////////////
     public:
         // 初期化処理
-        void Initialize(Fngine* f);
+        void Initialize();
         // 更新処理
         void Update(float deltaTime);
         // 描画処理
@@ -123,7 +111,7 @@ namespace Umbrella {
         /// 
         //////////////////////
     private:
-         /*Collider*/
+        /*Collider*/
         float durability_;// 耐久度
         float manaAmount_;// 過剰量のマナ管理
 
@@ -139,7 +127,7 @@ namespace Umbrella {
         // 状態のState
         UmbrellaForm form_ = UmbrellaForm::Closed;
         bool isBroken_ = false;
-        
+
         // 現在のステート
         UmbrellaStates::Base* currentState_;
         //// ステート達
@@ -157,9 +145,9 @@ namespace Umbrella {
         /// 
         //////////////////////
     private:
-        std::unique_ptr<ModelObject>obj_;
-        std::unique_ptr<ModelObject>openObj_;
-    public:  Fngine* p_fngine_;
+        //std::unique_ptr<ModelObject>obj_;
+        //std::unique_ptr<ModelObject>openObj_;
+    //public:  Fngine* p_fngine_;
     };
 
     //////////////////////
@@ -167,8 +155,7 @@ namespace Umbrella {
     ///  傘の[全部]
     /// 
     //////////////////////
-    class Main {
-
+    export class Main {
         //////////////////////
         /// 
         ///  コンストラクタ・デストラクタ
@@ -187,7 +174,7 @@ namespace Umbrella {
         //////////////////////
     public:
         // 初期化処理
-        void Initialize(Fngine* f);
+        void Initialize();
         // 更新処理
         void Update(float deltaTime);
         // 描画処理

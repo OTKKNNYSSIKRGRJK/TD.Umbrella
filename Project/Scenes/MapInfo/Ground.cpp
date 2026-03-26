@@ -1,10 +1,15 @@
-#include "Ground.h"
+module Ground;
 
-void Ground::Initialize(Fngine* fngine) {
-	obj_ = std::make_unique<ModelObject>();
-	obj_->modelName_ = "ground";
-	obj_->textureName_ = "Legends_Ground";
-	obj_->Initialize(fngine);
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+}
+
+void Ground::Initialize() {
+	//obj_ = std::make_unique<ModelObject>();
+	//obj_->modelName_ = "ground";
+	//obj_->textureName_ = "Legends_Ground";
+	//obj_->Initialize(fngine);
 
 	// =============================
 	// 【 当たり判定についての処理 】
@@ -32,7 +37,7 @@ void Ground::Initialize(Fngine* fngine) {
 	collider_->SetUserData(this);
 
 	// 当たった時のテスト処理
-	collider_->onCollisionCallback = [this](Collider* other, const Vector3& pushOut) {
+	collider_->onCollisionCallback = [this](Collider* other, [[maybe_unused]] const Vector3& pushOut) {
 		if (other->GetMyType() == COL_Player) {
 			// プレイヤーが地面に触れたらログを出す（確認用）
 			// printf("プレイヤーが地面に着地！\n");
@@ -41,13 +46,13 @@ void Ground::Initialize(Fngine* fngine) {
 }
 
 void Ground::Update() {
-	collider_->SetWorldPosition(obj_->worldTransform_.get_.Translation());
-	obj_->LocalToWorld();
-	collider_->SetWorldMatrix(obj_->worldTransform_.mat_);
+	//collider_->SetWorldPosition(obj_->worldTransform_.get_.Translation());
+	//obj_->LocalToWorld();
+	//collider_->SetWorldMatrix(obj_->worldTransform_.mat_);
 	collider_->UpdateAABB();
 }
 
 void Ground::Draw() {
-	obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-	obj_->Draw();
+	//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
+	//obj_->Draw();
 }

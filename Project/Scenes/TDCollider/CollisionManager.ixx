@@ -1,9 +1,17 @@
-#pragma once
-#include "Collider.h"
-#include <list>
-#include <vector>
+export module CollisionManager;
 
-class CollisionManager
+import <vector>;
+import <list>;
+
+import Collider;
+
+import Lumina.Core.Math;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+}
+
+export class CollisionManager
 {
 public:
 	void Begin();

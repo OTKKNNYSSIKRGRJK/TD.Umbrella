@@ -4,7 +4,7 @@ module;
 
 #include<d3d12.h>
 
-export module Lumina : Main;
+export module Lumina.Main;
 
 import <memory>;
 

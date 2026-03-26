@@ -1,5 +1,19 @@
-#include "../PlayerStates.h"
-#include "../Player.h"
+module Game.Player;
+
+import : States;
+import : Main;
+import Game.Umbrella;
+import Lumina.Core.Math;
+import Game.MathUtils;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+
+	// これがなくてもビルド全然通るけど、ないとIntellisenseくんが発狂しちゃう
+	// "pointer or reference to incomplete type 'Player' is not allowed"っつって
+	Player* Dummy_;
+}
 
 namespace PlayerStates::Action {
 	////////////////////////////
@@ -11,13 +25,13 @@ namespace PlayerStates::Action {
 
 	}
 
-	void Normal::Update(float deltaTime) {
+	void Normal::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		const auto& umbrella = player_->GetUmbrella();
 
 		Vector3 handPos = player_->GetPosition();
-		handPos.x += 1.0f * player_->eyesDirection_.x; // プレイヤーの右方向へオフセット
-		handPos.y += 1.0f; // 少し上へ
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
 
 		player_->GetRightHandJoint()->SetPos(handPos);
 
@@ -126,8 +140,8 @@ namespace PlayerStates::Action {
 		}
 
 		// 踏み込みの初速を与える（これがRestrictedステート内で徐々に減速していく）
-		player_->myVelocity_.x = forward.x * stepPower;
-		player_->myVelocity_.z = forward.z * stepPower;
+		player_->myVelocity_.X = forward.X * stepPower;
+		player_->myVelocity_.Z = forward.Z * stepPower;
 	}
 
 	void Attack::Update(float deltaTime) {
@@ -138,8 +152,8 @@ namespace PlayerStates::Action {
 		// 【 手のJoint位置の設定 】
 		// =================================
 		Vector3 handPos = player_->GetPosition();
-		handPos.x += 1.0f * player_->eyesDirection_.x; // プレイヤーの右方向へオフセット
-		handPos.y += 1.0f; // 少し上へ
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
 		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
 		/*if (!motion_.IsPlaying()) {
@@ -195,15 +209,15 @@ namespace PlayerStates::Action {
 
 	}
 
-	void Guard::Update(float deltaTime) {
+	void Guard::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 
 		Vector3 handPos = player_->GetPosition();
-		handPos.x += 1.0f * player_->eyesDirection_.x; // プレイヤーの右方向へオフセット
-		handPos.y += 1.0f; // 少し上へ
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
 
 		float rotAmount = 50.0f;
-		Vector3 handRot = {0.0f,0.0f, Deg2Rad(-(rotAmount * input.moveDirection.x))};
+		Vector3 handRot = {0.0f,0.0f, Lumina::Math::DegToRad(-(rotAmount * input.moveDirection.X))};
 
 		player_->GetRightHandJoint()->SetPos(handPos);
 		player_->GetRightHandJoint()->SetRot(handRot);
@@ -230,7 +244,7 @@ namespace PlayerStates::Action {
 		player_->ConsumeReservedAction();
 	}
 
-	void SheatheWeapon::Update(float deltaTime) {
+	void SheatheWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		if (input.isAttack) {
 			// 攻撃の予約を行う
@@ -278,7 +292,7 @@ namespace PlayerStates::Action {
 		player_->ConsumeReservedAction();
 	}
 
-	void DrawWeapon::Update(float deltaTime) {
+	void DrawWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		if (input.isAttack) {
 			// 攻撃の予約を行う
@@ -323,12 +337,12 @@ namespace PlayerStates::Action {
 		// 予約の初期化
 		player_->ConsumeReservedAction();
 	}
-	void UmbrellaOpen::Update(float deltaTime) {
+	void UmbrellaOpen::Update([[maybe_unused]] float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
 		const auto& input = player_->GetInput();
 		Vector3 handPos = player_->GetPosition();
-		handPos.x += 1.0f * player_->eyesDirection_.x; // プレイヤーの右方向へオフセット
-		handPos.y += 1.0f; // 少し上へ
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
 
 		player_->GetRightHandJoint()->SetPos(handPos);
 
@@ -371,12 +385,12 @@ namespace PlayerStates::Action {
 		// 予約の初期化
 		player_->ConsumeReservedAction();
 	}
-	void UmbrellaClose::Update(float deltaTime) {
+	void UmbrellaClose::Update([[maybe_unused]] float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
 		const auto& input = player_->GetInput();
 		Vector3 handPos = player_->GetPosition();
-		handPos.x += 1.0f * player_->eyesDirection_.x; // プレイヤーの右方向へオフセット
-		handPos.y += 1.0f; // 少し上へ
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
 
 		player_->GetRightHandJoint()->SetPos(handPos);
 
@@ -413,7 +427,7 @@ namespace PlayerStates::Action {
 	void UmbrellaReverse::Enter() {
 
 	}
-	void UmbrellaReverse::Update(float deltaTime) {
+	void UmbrellaReverse::Update([[maybe_unused]] float deltaTime) {
 
 	}
 	void UmbrellaReverse::Exit() {

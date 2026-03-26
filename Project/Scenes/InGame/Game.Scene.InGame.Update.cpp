@@ -5,7 +5,7 @@ import : Impl;
 import Lumina;
 import Lumina.Utils.ImGui;
 
-import MotionManager;
+import Game.MotionManager;
 
 namespace Game::Scene::Impl {
 	void InGame::Update() {

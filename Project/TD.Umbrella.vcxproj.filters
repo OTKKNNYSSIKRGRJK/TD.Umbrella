@@ -25,6 +25,9 @@
     <Filter Include="Scenes\MapInfo">
       <UniqueIdentifier>{3a677794-9f4c-41d1-b8e5-32302773ff31}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\Player\Umbrella">
+      <UniqueIdentifier>{6b879442-6da7-45f7-bf57-0ba3ec4c30c4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -67,7 +70,7 @@
     <ClCompile Include="Scenes\Player\ManaComponent.ixx">
       <Filter>Scenes\Player</Filter>
     </ClCompile>
-    <ClCompile Include="Scenes\Player\Player.cpp">
+    <ClCompile Include="Scenes\Player\Player.Main.cpp">
       <Filter>Scenes\Player</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp">
@@ -75,12 +78,6 @@
     </ClCompile>
     <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp">
       <Filter>Scenes\Player\States</Filter>
-    </ClCompile>
-    <ClCompile Include="Scenes\Player\Umbrella.cpp">
-      <Filter>Scenes\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="Scenes\Player\UmbrellaState.cpp">
-      <Filter>Scenes\Player</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\MapInfo\Ground.cpp">
       <Filter>Scenes\MapInfo</Filter>
@@ -94,40 +91,59 @@
     <ClCompile Include="Scenes\Hermite\MotionManager.cpp">
       <Filter>Scenes\Hermite</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\Hermite\MotionManager.ixx">
+      <Filter>Scenes\Hermite</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\Collider.ixx">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\InputHandler.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\States\PlayerStates.ixx">
+      <Filter>Scenes\Player\States</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\GJK.ixx">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.ixx">
+      <Filter>Scenes\TDCollider</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.Main.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\MathUtils.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.ixx">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.cpp">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.ixx">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.cpp">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.ixx">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Common.ixx">
+      <Filter>Scenes\Player\Umbrella</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.Common.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.ixx">
+      <Filter>Scenes\Player</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\MapInfo\Ground.ixx">
+      <Filter>Scenes\MapInfo</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="Scenes\TDCollider\Collider.h">
-      <Filter>Scenes\TDCollider</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\TDCollider\CollisionManager.h">
-      <Filter>Scenes\TDCollider</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\TDCollider\GJK.h">
-      <Filter>Scenes\TDCollider</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Player\InputHandler.h">
-      <Filter>Scenes\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Player\Player.h">
-      <Filter>Scenes\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Player\PlayerStates.h">
-      <Filter>Scenes\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Player\Umbrella.h">
-      <Filter>Scenes\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Player\UmbrellaState.h">
-      <Filter>Scenes\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\MapInfo\Ground.h">
-      <Filter>Scenes\MapInfo</Filter>
-    </ClInclude>
-    <ClInclude Include="Scenes\Hermite\MotionManager.h">
-      <Filter>Scenes\Hermite</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

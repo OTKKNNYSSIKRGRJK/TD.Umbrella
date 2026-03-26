@@ -1,20 +1,30 @@
-#pragma once
-#include "PlayerStates.h"
-#include "InputHandler.h"
-#include "Umbrella.h"
-#include "MotionManager.h"
-#include "Collider.h"
+export module Game.Player : Main;
+
+import <memory>;
+
+import : Common;
+import : InputHandler;
+import Game.Umbrella;
+import Game.MotionManager;
+import Game.Attachment;
+import Collider;
+
+import : States;
 
 import ManaComponent;
 
-using namespace PlayerStates;
+import Lumina.Core.Math;
 
-enum class WeaponStance {
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+}
+
+export enum class WeaponStance {
 	Sheathed,// 納刀
 	Drawn,   // 抜刀
 };
 
-struct PlayerInputData {
+export struct PlayerInputData {
 	Vector3 moveDirection;// 左スティックの入力方向
 	bool isAttack;        // 攻撃ボタンが押された瞬間か
 	bool isJump;		  // ジャンプボタンが押された瞬間か
@@ -24,12 +34,16 @@ struct PlayerInputData {
 	bool isGuard;
 };
 
-class Player {
+export class Player {
 public:
-	Player(Fngine* fngine) : p_fngine(fngine) {
+	Player() {
+		Scale_ = { 1.0f, 1.0f, 1.0f };
+		EulerAngle_ = { 0.0f, 0.0f, 0.0f };
+		Position_ = { 0.0f, 0.0f, 0.0f };
+
 		InitializeStates();
 	}
-	~Player() {};
+	~Player() {}
 public:
 	void Initialize();
 	void Update(float deltaTime);
@@ -46,7 +60,6 @@ public:
 	bool onGround_ = false;
 private:
 	WeaponStance currentStance_ = WeaponStance::Drawn;
-	
 
 	// 使用しているステート
 	PlayerStates::Base* currentMovementState_;
@@ -55,26 +68,26 @@ private:
 	PlayerStates::Base* reservedActionState_ = nullptr;
 public:
 	// Movement State
-	std::unique_ptr<Movement::Grounded>groundedState_;
-	std::unique_ptr<Movement::Idle>idleState_;
-	std::unique_ptr<Movement::Walking>walkingState_;
-	std::unique_ptr<Movement::Running>runningState_;
-	std::unique_ptr<Movement::Airborne>airborneState_;
-	std::unique_ptr<Movement::Restricted>restrictedState_;// アクションの際に動きを制限するState
+	std::unique_ptr<PlayerStates::Movement::Grounded>groundedState_;
+	std::unique_ptr<PlayerStates::Movement::Idle>idleState_;
+	std::unique_ptr<PlayerStates::Movement::Walking>walkingState_;
+	std::unique_ptr<PlayerStates::Movement::Running>runningState_;
+	std::unique_ptr<PlayerStates::Movement::Airborne>airborneState_;
+	std::unique_ptr<PlayerStates::Movement::Restricted>restrictedState_;// アクションの際に動きを制限するState
 
 	// Action State
-	std::unique_ptr<Action::SheatheWeapon>sheatheWeaponState_;
-	std::unique_ptr<Action::DrawWeapon>drawWeaponState_;
-	std::unique_ptr<Action::Normal>normalState_;
-	std::unique_ptr<Action::Attack>attackState_;
-	std::unique_ptr<Action::Guard>guardState_;
+	std::unique_ptr<PlayerStates::Action::SheatheWeapon>sheatheWeaponState_;
+	std::unique_ptr<PlayerStates::Action::DrawWeapon>drawWeaponState_;
+	std::unique_ptr<PlayerStates::Action::Normal>normalState_;
+	std::unique_ptr<PlayerStates::Action::Attack>attackState_;
+	std::unique_ptr<PlayerStates::Action::Guard>guardState_;
 
-	std::unique_ptr<Action::UmbrellaOpen>umbrellaOpenState_;
-	std::unique_ptr<Action::UmbrellaClose>umbrellaCloseState_;
-	std::unique_ptr<Action::UmbrellaReverse>umbrellaReverseState_;
+	std::unique_ptr<PlayerStates::Action::UmbrellaOpen>umbrellaOpenState_;
+	std::unique_ptr<PlayerStates::Action::UmbrellaClose>umbrellaCloseState_;
+	std::unique_ptr<PlayerStates::Action::UmbrellaReverse>umbrellaReverseState_;
 
 public:// Get・Set
-	WeaponStance GetWeaponStance() const { return currentStance_; }
+	WeaponStance GetWeaponStance() const noexcept { return currentStance_; }
 	void SetWeaponStance(WeaponStance nextStance) { currentStance_ = nextStance; }
 	// アクションを予約する
 	void ReserveActionState(PlayerStates::Base* state) { reservedActionState_ = state; }
@@ -176,9 +189,12 @@ private:
 	/// 
 	//////////////////////////////
 private:
-	Fngine* p_fngine;
+	//Fngine* p_fngine;
 
-	std::unique_ptr<ModelObject> obj_;
+	//std::unique_ptr<ModelObject> obj_;
+	Vector3 Scale_;
+	Vector3 EulerAngle_;
+	Vector3 Position_;
 
 	// プレイヤーの行動を管理するクラス
 public:	std::unique_ptr<MotionController> motionController_;
@@ -186,8 +202,8 @@ public:	std::unique_ptr<MotionController> motionController_;
 	  /*OnGroundの実装必要だわ。浮いちゃう*/
 
 public:
-	Vector3 GetPosition()const { return obj_->worldTransform_.get_.Translation(); }
-	void SetPosition(const Vector3& pos) { obj_->worldTransform_.set_.Translation(pos); }
+	Vector3 const& GetPosition() const noexcept { return Position_; }
+	void SetPosition(Vector3 const& pos_) { Position_ = pos_; }
 private:
 	void InitializeComponents();
 };

@@ -10,7 +10,7 @@ import Lumina.Utils.Data;
 
 import : Impl;
 
-import MotionManager;
+import Game.MotionManager;
 
 namespace Game::Scene::Impl {
 	namespace {

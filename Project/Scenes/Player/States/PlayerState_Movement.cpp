@@ -1,6 +1,17 @@
-#include "../PlayerStates.h"
-#include "../Player.h"
-#include "MathUtils.h"
+module Game.Player;
+
+import : States;
+import : Main;
+import Game.Umbrella;
+import Lumina.Core.Math;
+import Game.MathUtils;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+
+	Player* Dummy_;
+}
 
 namespace PlayerStates::Movement {
 	////////////////////////////
@@ -16,14 +27,22 @@ namespace PlayerStates::Movement {
 
 		// 外部からの速度の減衰関係の処理
 		// ※ 自発的な速度はIdleで減衰させる(Walk中はしなくていいため)
-		player_->externalVelocity_.x = Lerp(player_->externalVelocity_.x, 0.0f, groundFriction * deltaTime);
-		//player_->externalVelocity_.z = Lerp(player_->externalVelocity_.z, 0.0f, groundFriction * deltaTime);
+		player_->externalVelocity_.X = std::lerp(
+			player_->externalVelocity_.X,
+			0.0f,
+			groundFriction * deltaTime
+		);
+		//player_->externalVelocity_.Z = std::lerp(
+		//	player_->externalVelocity_.Z,
+		//	0.0f,
+		//	groundFriction * deltaTime
+		//);
 
 		// 重力の処理(地面にいるからする意味はないが、一応する)
 		// ※ 関数でまとめておく
 
 		// Y軸の速度
-		player_->externalVelocity_.y -= 9.8f * deltaTime; // 通常の重力
+		player_->externalVelocity_.Y -= 9.8f * deltaTime; // 通常の重力
 
 		// ジャンプ
 		player_->Jump();
@@ -43,16 +62,16 @@ namespace PlayerStates::Movement {
 		float gravity = 9.8f * 1.3f; // 重力加速度
 
 		// 外部からの速度（X, Z軸）を少しだけ減衰させる
-		player_->externalVelocity_.x = std::lerp(player_->externalVelocity_.x, 0.0f, airResistance * deltaTime);
-		player_->externalVelocity_.z = std::lerp(player_->externalVelocity_.z, 0.0f, airResistance * deltaTime);
+		player_->externalVelocity_.X = std::lerp(player_->externalVelocity_.X, 0.0f, airResistance * deltaTime);
+		player_->externalVelocity_.Z = std::lerp(player_->externalVelocity_.Z, 0.0f, airResistance * deltaTime);
 
 		// Y軸には常に重力をかけ続ける
-		player_->externalVelocity_.y -= gravity * deltaTime;
+		player_->externalVelocity_.Y -= gravity * deltaTime;
 
 		if (player_->onGround_ == true) {
 
 			// 落下速度をリセット
-			player_->externalVelocity_.y = 0.0f;
+			player_->externalVelocity_.Y = 0.0f;
 
 			// 地上に着いたので Idle ステートに戻す！
 			player_->ChangeMovementState(player_->idleState_.get());
@@ -78,15 +97,15 @@ namespace PlayerStates::Movement {
 		const auto& input = player_->GetInput();
 
 		// 入力方向がゼロじゃない（スティックが倒された）なら、Walkingへ遷移
-		if (input.moveDirection.x != 0.0f || input.moveDirection.z != 0.0f) {
+		if (input.moveDirection.X != 0.0f || input.moveDirection.Z != 0.0f) {
 			player_->ChangeMovementState(player_->walkingState_.get());
 			return; // 遷移したらこのフレームの処理は終了
 		}
 
 		// スティックが倒されていないなら、自発的な速度(myVelocity_)を摩擦でゼロに近づける
 		float deceleration = 15.0f; // ブレーキの強さ
-		player_->myVelocity_.x = std::lerp(player_->myVelocity_.x, 0.0f, deceleration * deltaTime);
-		player_->myVelocity_.z = std::lerp(player_->myVelocity_.z, 0.0f, deceleration * deltaTime);
+		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
+		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
 	}
 
 	void Idle::Exit() {
@@ -108,7 +127,7 @@ namespace PlayerStates::Movement {
 		const auto& input = player_->GetInput();
 
 		// スティックが離されたら、Idleへ遷移！
-		if (input.moveDirection.x == 0.0f && input.moveDirection.z == 0.0f) {
+		if (input.moveDirection.X == 0.0f && input.moveDirection.Z == 0.0f) {
 			player_->ChangeMovementState(player_->idleState_.get());
 			return;
 		}
@@ -126,12 +145,12 @@ namespace PlayerStates::Movement {
 		}
 
 		float acceleration = 15.0f;
-		float targetVelocityX = input.moveDirection.x * targetSpeed;
-		//float targetVelocityZ = player_->moveDirection_.z * targetSpeed;今回はいらない
+		float targetVelocityX = input.moveDirection.X * targetSpeed;
+		//float targetVelocityZ = player_->moveDirection_.Z * targetSpeed;//今回はいらない
 
 		// 目標速度に加速させる
-		player_->myVelocity_.x = Lerp(player_->myVelocity_.x, targetVelocityX, acceleration * deltaTime);
-		//player_->myVelocity_.z = Lerp(player_->myVelocity_.z, targetVelocityZ, acceleration * deltaTime);
+		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, targetVelocityX, acceleration * deltaTime);
+		//player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, targetVelocityZ, acceleration * deltaTime);
 
 		// もし、トップスピードになったらRunningに移行
 		// ※もしキャラクターのモデルの向きを移動方向に合わせるなら、ここに書く
@@ -159,8 +178,8 @@ namespace PlayerStates::Movement {
 
 		// 攻撃などで付与された myVelocity_（踏み込み速度）を摩擦で減衰させる
 		float deceleration = 15.0f; // ※ここの値が踏み込みの「滑り具合」
-		player_->myVelocity_.x = std::lerp(player_->myVelocity_.x, 0.0f, deceleration * deltaTime);
-		player_->myVelocity_.z = std::lerp(player_->myVelocity_.z, 0.0f, deceleration * deltaTime);
+		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
+		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
 	}
 
 	void Restricted::Exit() {

@@ -1,5 +1,13 @@
-#include "CollisionManager.h"
-#include "GJK.h"
+module CollisionManager;
+
+import : GJK;
+
+namespace {
+	using Vector2 = Lumina::Math::F32x2;
+	using Vector3 = Lumina::Math::F32x3;
+	using Vector4 = Lumina::Math::F32x4;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+}
 
 void CollisionManager::Begin() {
 	colliders_.clear();
@@ -34,7 +42,7 @@ void CollisionManager::CheckAllCollisions() {
 			// ==========================================
 			// 【第1段階】ブロードフェーズ (AABB判定)
 			// ==========================================
-			if (AABB::IsHitAABB2AABB(colA->GetAABB(), colB->GetAABB())){
+			if (IsCollided(colA->GetAABB(), colB->GetAABB())){
 				// 押し出す量　※ 押し出す量を保存するため
 				Vector3 pushOut = { 0.0f,0.0f,0.0f };
 
@@ -46,7 +54,7 @@ void CollisionManager::CheckAllCollisions() {
 				{
 					// 最終的に当たっていたらコールバック呼び出し！
 					colA->OnCollision(colB, pushOut);
-					Vector3 pushOutB = { -pushOut.x, -pushOut.y, -pushOut.z };
+					Vector3 pushOutB = { -pushOut.X, -pushOut.Y, -pushOut.Z };
 					colB->OnCollision(colA, pushOutB);
 				}
 			}
@@ -89,30 +97,30 @@ bool CollisionManager::GJK(ConvexCollider* a, ConvexCollider* b, Vector3& outPus
 
 	// コライダーAのワールド座標
 	//Vector3 posA = a->GetWorldPosition();
-	Matrix4x4 matA = a->GetWorldMatrix();
+	Matrix4x4 const& matA = a->GetWorldMatrix();
 	for (const auto& v : a->GetVertices()) {
-		Vector3 worldPos = Matrix4x4::Transform(v, matA);
+		Vector4 worldPos = Vector4{ v, 1.0f } * matA;
 		// ローカル座標にワールド座標を足して、Vector2に変換
-		shapeA.push_back({ worldPos.x, worldPos.y });
+		shapeA.emplace_back(worldPos.X(), worldPos.Y());
 	}
 
 	// コライダーBのワールド座標
 	//Vector3 posB = b->GetWorldPosition();
 	Matrix4x4 matB = b->GetWorldMatrix();
 	for (const auto& v : b->GetVertices()) {
-		Vector3 worldPos = Matrix4x4::Transform(v, matB);
-		shapeB.push_back({ worldPos.x, worldPos.y });
+		Vector4 worldPos = Vector4{ v, 1.0f } * matB;
+		shapeB.emplace_back(worldPos.X(), worldPos.Y());
 	}
 
 	// 2. GJKの判定関数を呼び出す
-	std::vector<SupportPoint> simplex;
+	std::vector<GJKUtils::SupportPoint> simplex;
 	if (collision(shapeA, shapeB, simplex)) {
 		
-		Contact contact = EPA(shapeA, shapeB, simplex);
+		GJKUtils::Contact contact = EPA(shapeA, shapeB, simplex);
 
-		outPush.x += contact.direction.x * contact.depth;
-		outPush.y += contact.direction.y * contact.depth;
-		outPush.z = 0.0f;
+		outPush.X += contact.direction.X * contact.depth;
+		outPush.Y += contact.direction.Y * contact.depth;
+		outPush.Z = 0.0f;
 
 		return true; // 当たっている
 	}

@@ -1,5 +1,12 @@
-#include "Umbrella.h"
-#include "UmbrellaState.h"
+module Game.Umbrella : State;
+
+import : Main;
+
+import Lumina.Core.Math;
+
+namespace {
+	using Umbrella::Top;
+}
 
 namespace UmbrellaStates {
 	/////////////////////////
@@ -10,7 +17,7 @@ namespace UmbrellaStates {
 	void Close::Enter() {
 		// アニメーション開始
 	}
-	void Close::Update(float deltaTime) {
+	void Close::Update([[maybe_unused]] float deltaTime) {
 		if (true/*アニメーションが終わったら*/) {
 			top_->ChangeState(new UmbrellaStates::Attached());
 		}
@@ -26,7 +33,7 @@ namespace UmbrellaStates {
 	void Open::Enter() {
 		// アニメーション開始
 	}
-	void Open::Update(float deltaTime) {
+	void Open::Update([[maybe_unused]] float deltaTime) {
 		if (true/*アニメーションが終わったら*/) {
 			top_->ChangeState(new UmbrellaStates::Attached());
 		}
@@ -42,7 +49,7 @@ namespace UmbrellaStates {
 	void Reverse::Enter() {
 		// アニメーション開始
 	}
-	void Reverse::Update(float deltaTime) {
+	void Reverse::Update([[maybe_unused]] float deltaTime) {
 		if (true/*アニメーションが終わったら*/) {
 			top_->ChangeState(new Attached());
 		}
@@ -58,7 +65,7 @@ namespace UmbrellaStates {
 	void Attached::Enter() {
 
 	}
-	void Attached::Update(float deltaTime) {
+	void Attached::Update([[maybe_unused]] float deltaTime) {
 		
 	}
 	void Attached::Exit() {
@@ -80,7 +87,7 @@ namespace UmbrellaStates {
 		// top_->SetCollisionEnabled(true);
 	}
 
-	void NormalAttack::Update(float deltaTime) {
+	void NormalAttack::Update([[maybe_unused]] float deltaTime) {
 		
 		// モーション（振り）が終わったら、自動的に「いつもの手持ち状態」に戻る！
 		if (!motion_.IsPlaying()) {
@@ -99,10 +106,14 @@ namespace UmbrellaStates {
 	///
 	//////////////////////////
 	void Thrown::Enter() {
-		Vector3 startPos = { top_->GetRootJoint()->GetMatrix().m[3][0],top_->GetRootJoint()->GetMatrix().m[3][1] ,top_->GetRootJoint()->GetMatrix().m[3][2] };
+		using Vector3 = Lumina::Math::F32x3;
+		using Matrix4x4 = Lumina::Math::F32x4x4<>;
+		Matrix4x4 const& mat{ top_->GetRootJoint()->GetMatrix() };
+		auto const& matRow3{ mat[3] };
+		Vector3 startPos = { matRow3.Get(0), matRow3.Get(1), matRow3.Get(2) };
 		motion_.Play("", startPos, 1.0f);
 	}
-	void Thrown::Update(float deltaTime) {
+	void Thrown::Update([[maybe_unused]] float deltaTime) {
 
 	}
 	void Thrown::Exit() {

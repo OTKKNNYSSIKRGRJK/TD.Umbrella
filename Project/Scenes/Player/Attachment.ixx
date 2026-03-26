@@ -1,6 +1,16 @@
-module;
-//#include "Structures.h"
-export module Attachment;
+export module Game.Attachment;
+
+import <memory>;
+
+import Lumina.Core.Math;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+
+	template<typename T>
+	using UniPtr = std::unique_ptr<T>;
+}
 
 export enum AttachmentType : int {
 	None = 0,
@@ -32,13 +42,20 @@ public:
 	void SetRot(const Vector3& rot) { rotation_ = rot; }
 	Vector3 GetPos() { return position_; }
 	// 取得
-	Matrix4x4 GetMatrix()const { return matWorld_; }
-	Vector3 GetWorldPos()const { return { matWorld_.m[3][0],matWorld_.m[3][1], matWorld_.m[3][2], }; }
+	Matrix4x4 const& GetMatrix() const noexcept { return *matWorld_; }
+	Vector3 GetWorldPos() const noexcept {
+		auto const& row3{ (*matWorld_)[3] };
+		return {
+			row3.Get(0),
+			row3.Get(1),
+			row3.Get(2),
+		};
+	}
 private:
 	Vector3 position_;// 座標
 	Vector3 rotation_;// 回転
 	//Vector3 scale_;※ Scaleは使わないのでいらない{1.0f,1.0f,1.0f}で固定
-	Matrix4x4 matWorld_; // 最終的な座標・回転
+	UniPtr<Matrix4x4> matWorld_; // 最終的な座標・回転
 	//////////////////////////
 	///
 	///   接続関係の情報

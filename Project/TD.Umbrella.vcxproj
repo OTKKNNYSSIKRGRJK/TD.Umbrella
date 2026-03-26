@@ -26,11 +26,19 @@
     <ClCompile Include="Scenes\Player\InputHandler.cpp" />
     <ClCompile Include="Scenes\Player\ManaComponent.cpp" />
     <ClCompile Include="Scenes\Player\ManaComponent.ixx" />
-    <ClCompile Include="Scenes\Player\Player.cpp" />
+    <ClCompile Include="Scenes\Player\MathUtils.ixx" />
+    <ClCompile Include="Scenes\Player\Player.Common.ixx" />
+    <ClCompile Include="Scenes\Player\Player.ixx" />
+    <ClCompile Include="Scenes\Player\Player.Main.cpp" />
+    <ClCompile Include="Scenes\Player\States\PlayerStates.ixx" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
-    <ClCompile Include="Scenes\Player\Umbrella.cpp" />
-    <ClCompile Include="Scenes\Player\UmbrellaState.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Common.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.ixx" />
     <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
     <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
     <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
@@ -65,16 +73,25 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Scenes\Hermite\MotionManager.h" />
-    <ClInclude Include="Scenes\MapInfo\Ground.h" />
-    <ClInclude Include="Scenes\Player\InputHandler.h" />
-    <ClInclude Include="Scenes\Player\Player.h" />
-    <ClInclude Include="Scenes\Player\PlayerStates.h" />
-    <ClInclude Include="Scenes\Player\Umbrella.h" />
-    <ClInclude Include="Scenes\Player\UmbrellaState.h" />
-    <ClInclude Include="Scenes\TDCollider\Collider.h" />
-    <ClInclude Include="Scenes\TDCollider\CollisionManager.h" />
-    <ClInclude Include="Scenes\TDCollider\GJK.h" />
+    <ClCompile Include="Scenes\Hermite\MotionManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\MapInfo\Ground.ixx" />
+    <ClCompile Include="Scenes\Player\InputHandler.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.Main.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\Collider.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\GJK.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

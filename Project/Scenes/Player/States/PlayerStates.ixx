@@ -1,6 +1,8 @@
-#pragma once
-#include "MotionManager.h"
-class Player;
+export module Game.Player : States;
+
+import : Common;
+
+import Game.MotionManager;
 
 namespace PlayerStates {
 	class Base {
@@ -50,7 +52,7 @@ namespace PlayerStates {
 		class Running : public Base {
 		public:
 			void Enter() override {};
-			void Update(float deltaTime) override {};
+			void Update([[maybe_unused]] float deltaTime) override {}
 			void Exit() override {};
 		};
 		// アクション実行中などで移動入力を受け付けないステート

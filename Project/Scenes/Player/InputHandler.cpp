@@ -1,43 +1,55 @@
-#include "InputHandler.h"
-#include "InputManager.h"
-#include "Player.h"
+module Game.Player : InputHandler;
+
+import : Main;
+
+import Lumina.Main;
+import Lumina.OS.Windows.RawInput;
+
+void InputHandler::SetPlayer(Player* player) { player_ = player; }
 
 void InputHandler::HandleInput() {
-	if (!player_)return;
-	// 初期化
+	if (!player_) return;
+	
+    auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+    auto const& keyboard{ inputMngr.Keyboard() };
+
+    // 初期化
 	PlayerInputData input;
 	input.moveDirection = { 0.0f,0.0f,0.0f };
 	// 移動入力を取得
-    float stickX = InputManager::GetGamePad(0).GetLeftStickX();
+    // コントローラまだ実装してないから一旦コメントアウト
+    /*float stickX = InputManager::GetGamePad(0).GetLeftStickX();
     float stickY = InputManager::GetGamePad(0).GetLeftStickY();
-    if (std::abs(stickX) > 0.15f) { input.moveDirection.x = stickX; }
-    if (std::abs(stickY) > 0.15f) input.moveDirection.z = stickY;
+    if (std::abs(stickX) > 0.15f) { input.moveDirection.X = stickX; }
+    if (std::abs(stickY) > 0.15f) input.moveDirection.Z = stickY;*/
 
-    if (InputManager::GetKey().PressKey(DIK_W)) input.moveDirection.z += 1.0f;
-    if (InputManager::GetKey().PressKey(DIK_S)) input.moveDirection.z -= 1.0f;
-    if (InputManager::GetKey().PressKey(DIK_A)) input.moveDirection.x -= 1.0f;
-    if (InputManager::GetKey().PressKey(DIK_D)) input.moveDirection.x += 1.0f;
+    using Lumina::OS::Windows::KEY;
+    if (keyboard.IsPressed(KEY::W)) { input.moveDirection.Z += 1.0f; }
+    if (keyboard.IsPressed(KEY::S)) { input.moveDirection.Z -= 1.0f; }
+    if (keyboard.IsPressed(KEY::A)) { input.moveDirection.X -= 1.0f; }
+    if (keyboard.IsPressed(KEY::D)) { input.moveDirection.X += 1.0f; }
 
-    if (input.moveDirection.x != 0.0f) {
-        player_->eyesDirection_.x = input.moveDirection.x;
+    if (input.moveDirection.X != 0.0f) {
+        player_->eyesDirection_.X = input.moveDirection.X;
     }
 
     // --- アクション入力の取得 ---
-    input.isJump = InputManager::IsJump();
-    input.isAttack = InputManager::IsAttack();
-    input.isEvasion = InputManager::TrigerEvasion();
+    // IsJump, IsAttack, TrigerEvasionはコントローラ関連かな？わからん
+    //input.isJump = InputManager::IsJump();
+    //input.isAttack = InputManager::IsAttack();
+    //input.isEvasion = InputManager::TrigerEvasion();
     input.isSheathe = false; // ※任意のボタンを設定（例: IsSheathe() など）
     input.isGuard = false;
-    if (InputManager::GetKey().PressedKey(DIK_RETURN)) {
+    if (keyboard.IsPressed(KEY::ENTER)) {
         input.isSheathe = true;
     }
-    if (InputManager::GetKey().PressedKey(DIK_I)) {
+    if (keyboard.IsPressed(KEY::I)) {
         input.isGuard = true;
     }
 
     input.useMana = false;
     // マナ使用モードとして実装するかどうか
-    if (InputManager::GetKey().PressKey(DIK_LSHIFT)) {
+    if (keyboard.IsPressed(KEY::SHIFT_LEFT)) {
         input.useMana = true;
     }
 
