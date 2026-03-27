@@ -18,6 +18,7 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
     <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
@@ -96,6 +97,9 @@
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="Scenes\TDCollider\GJK.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.EnemyManager.ixx">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>

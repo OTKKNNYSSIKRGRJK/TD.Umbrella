@@ -1,0 +1,218 @@
+export module Game.EnemyManager;
+
+import <string>;
+import <memory>;
+import <unordered_map>;
+import <vector>;
+import <functional>;
+
+import Lumina;
+import Game.Editor.EnemyEditor;
+
+export namespace Game {
+
+	/// <summary>
+	/// ゲーム内で実際に動く敵インスタンス
+	/// </summary>
+	struct EnemyInstance {
+		// --- テンプレートデータ（EnemyEditorから読み込み） ---
+		Editor::EnemyData baseData;
+
+		// --- ランタイム状態 ---
+		uint32_t id = 0;                              // ユニークID
+		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };
+		int currentHP = 0;
+		bool isDead = false;
+		bool facingRight = true;
+		float hurtTimer = 0.0f;
+
+		// --- AI 状態 ---
+		enum class AIState { Idle, Patrol, Chase, Attack, Retreat };
+		AIState aiState = AIState::Idle;
+		float attackCooldownTimer = 0.0f;
+		float stateTimer = 0.0f;                      // 現在の状態維持タイマー
+
+		// --- アニメーション ---
+		std::string currentAction = "Idle";            // 現在のアクション名
+
+		/// <summary>
+		/// baseData の値で初期化する
+		/// </summary>
+		void InitFromBase() {
+			currentHP = baseData.hp;
+			isDead = false;
+			hurtTimer = 0.0f;
+			attackCooldownTimer = 0.0f;
+			stateTimer = 0.0f;
+			aiState = AIState::Idle;
+			currentAction = "Idle";
+		}
+	};
+
+	/// <summary>
+	/// EnemyEditor で作成した敵データを包括的に管理するクラス
+	///
+	/// ・敵テンプレート（JSON）の一括読み込み・キャッシュ
+	/// ・敵インスタンスのスポーン／破棄／全体管理
+	/// ・毎フレーム更新（AI・タイマー・死亡判定）
+	/// ・条件検索・コールバック
+	/// </summary>
+	class EnemyManager {
+	public:
+		static EnemyManager* GetInstance();
+
+		// ============================
+		//  テンプレート管理
+		// ============================
+
+		/// <summary>
+		/// 指定ディレクトリ内の全 .json をテンプレートとして一括ロード
+		/// （"area" で始まるファイルは除外）
+		/// </summary>
+		void LoadTemplates(const std::string& directoryPath);
+
+		/// <summary>
+		/// 単一ファイルからテンプレートをロード（上書き可）
+		/// </summary>
+		void LoadTemplate(const std::string& filePath);
+
+		/// <summary>
+		/// 名前でテンプレートを取得（なければ nullptr）
+		/// </summary>
+		const Editor::EnemyData* GetTemplate(const std::string& name) const;
+
+		/// <summary>
+		/// ロード済みテンプレート名一覧を返す
+		/// </summary>
+		std::vector<std::string> GetTemplateNames() const;
+
+		/// <summary>
+		/// 全テンプレートをクリア
+		/// </summary>
+		void ClearTemplates();
+
+		// ============================
+		//  インスタンス管理
+		// ============================
+
+		/// <summary>
+		/// テンプレート名と初期位置を指定してスポーン
+		/// </summary>
+		/// <returns>スポーンした EnemyInstance への参照（失敗時は nullptr）</returns>
+		EnemyInstance* Spawn(const std::string& templateName,
+			const Lumina::Math::F32x3& position,
+			bool facingRight = true);
+
+		/// <summary>
+		/// 既存の EnemyData を直接渡してスポーン
+		/// </summary>
+		EnemyInstance* SpawnFromData(const Editor::EnemyData& data,
+			const Lumina::Math::F32x3& position,
+			bool facingRight = true);
+
+		/// <summary>
+		/// ID で インスタンス取得
+		/// </summary>
+		EnemyInstance* GetInstance(uint32_t id);
+		const EnemyInstance* GetInstance(uint32_t id) const;
+
+		/// <summary>
+		/// 全インスタンス取得（読み取り用）
+		/// </summary>
+		const std::vector<EnemyInstance>& GetAllInstances() const { return instances_; }
+
+		/// <summary>
+		/// 全インスタンス取得（書き込み可）
+		/// </summary>
+		std::vector<EnemyInstance>& GetAllInstances() { return instances_; }
+
+		/// <summary>
+		/// 生存中の敵のみ取得
+		/// </summary>
+		std::vector<EnemyInstance*> GetAliveInstances();
+
+		/// <summary>
+		/// 生存中の敵の数
+		/// </summary>
+		int GetAliveCount() const;
+
+		/// <summary>
+		/// 全インスタンスをクリア
+		/// </summary>
+		void ClearInstances();
+
+		/// <summary>
+		/// 死亡済みインスタンスの除去
+		/// </summary>
+		void RemoveDeadInstances();
+
+		// ============================
+		//  更新
+		// ============================
+
+		/// <summary>
+		/// 全インスタンスを毎フレーム更新
+		/// (AI、タイマー、死亡判定など)
+		/// </summary>
+		/// <param name="deltaTime">フレームの経過秒数</param>
+		/// <param name="playerPosition">プレイヤーの現在位置</param>
+		void Update(float deltaTime, const Lumina::Math::F32x3& playerPosition);
+
+		// ============================
+		//  ダメージ・インタラクション
+		// ============================
+
+		/// <summary>
+		/// IDで指定した敵にダメージを与える
+		/// </summary>
+		/// <returns>true if enemy died from this hit</returns>
+		bool DealDamage(uint32_t enemyId, int damage);
+
+		/// <summary>
+		/// 範囲内の敵全てにダメージを与える
+		/// </summary>
+		/// <param name="origin">攻撃の中心座標</param>
+		/// <param name="radius">攻撃範囲の半径</param>
+		/// <param name="damage">ダメージ量</param>
+		/// <param name="facingRight">攻撃方向（trueで右方向のみ判定）</param>
+		/// <param name="directional">方向制限をかけるか</param>
+		/// <returns>倒した敵の数</returns>
+		int DealAreaDamage(const Lumina::Math::F32x3& origin, float radius,
+			int damage, bool facingRight = true, bool directional = false);
+
+		// ============================
+		//  コールバック
+		// ============================
+
+		using OnEnemyDeathCallback = std::function<void(const EnemyInstance&)>;
+
+		/// <summary>
+		/// 敵が死亡した時に呼ばれるコールバックを設定
+		/// </summary>
+		void SetOnEnemyDeathCallback(OnEnemyDeathCallback callback);
+
+	public:
+		~EnemyManager() = default;
+
+	private:
+		EnemyManager() = default;
+
+		uint32_t GenerateId();
+
+	private:
+		static std::unique_ptr<EnemyManager> instance_;
+
+		// テンプレートキャッシュ（名前 → EnemyData）
+		std::unordered_map<std::string, Editor::EnemyData> templates_;
+
+		// 現在のインスタンス
+		std::vector<EnemyInstance> instances_;
+
+		// ID カウンタ
+		uint32_t nextId_ = 1;
+
+		// コールバック
+		OnEnemyDeathCallback onDeathCallback_;
+	};
+}

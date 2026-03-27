@@ -9,6 +9,12 @@ import Lumina;
 
 export namespace Game::Editor {
 
+	// 当たり判定ポリゴンの頂点（敵の原点からの相対座標）
+	struct CollisionVertex {
+		float x = 0.0f;
+		float y = 0.0f;
+	};
+
 	struct EnemyData {
 		std::string name = "NewEnemy";
 		int hp = 100;
@@ -23,6 +29,10 @@ export namespace Game::Editor {
 		std::map<std::string, std::string> motionMap = {
 			{"Idle", ""}, {"Walk", ""}, {"Attack", ""}
 		};
+
+		// --- 当たり判定（ポリゴン頂点リスト） ---
+		// 頂点を順番に結んだ多角形が当たり判定になる
+		std::vector<CollisionVertex> collisionVertices;
 
 		// --- AI Parameters ---
 		float aggroRadius = 15.0f;       // 索敵範囲
@@ -40,6 +50,7 @@ export namespace Game::Editor {
 			gltfPath = "Models/Enemy/default.gltf";
 			for (auto& [key, val] : animationMap) val = "";
 			motionMap = { {"Idle", ""}, {"Walk", ""}, {"Attack", ""} };
+			collisionVertices.clear();
 			aggroRadius = 15.0f;
 			attackRange = 2.0f;
 			moveSpeed = 3.0f;
@@ -58,6 +69,7 @@ export namespace Game::Editor {
 
 	private:
 		void DrawEditorUI();
+		void DrawCollisionEditor();
 		void SaveEnemy(const EnemyData& enemy);
 		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
 
@@ -67,5 +79,9 @@ export namespace Game::Editor {
 		// アニメーション名キャッシュ（gltfPath変更時のみ再取得）
 		std::string cachedGltfPath_;
 		std::vector<std::string> cachedAnimationNames_;
+
+		// 当たり判定エディタ状態
+		int draggedVertexIndex_ = -1;    // ドラッグ中の頂点インデックス
+		float collisionZoom_ = 3.0f;     // キャンバスのズーム倍率
 	};
 }

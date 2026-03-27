@@ -9,6 +9,14 @@ import <filesystem>;
 
 namespace fs = std::filesystem;
 
+#if defined(_DEBUG)
+namespace {
+	constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
+		return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
+	}
+}
+#endif
+
 namespace Game::Editor {
 	void EnemyEditor::Update() {
 #if defined(_DEBUG)
@@ -249,11 +257,196 @@ namespace Game::Editor {
 			}
 		}
 
+		if (ImGui::CollapsingHeader("Collision Shape", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextDisabled("Click canvas to add vertex. Drag to move. Right-click to delete.");
+			ImGui::Text("Vertices: %d", static_cast<int>(editingEnemy_.collisionVertices.size()));
+			ImGui::SameLine();
+			if (ImGui::Button("Clear All##collision")) {
+				editingEnemy_.collisionVertices.clear();
+			}
+			ImGui::SameLine();
+			ImGui::SliderFloat("Zoom", &collisionZoom_, 1.0f, 10.0f, "%.1fx");
+		}
+
 		ImGui::Separator();
 		ImGui::Spacing();
 		if (ImGui::Button("SAVE ASSET", ImVec2(-1, 40))) {
 			SaveEnemy(editingEnemy_);
 		}
+		ImGui::End();
+
+		// 中央キャンバス: 当たり判定エディタ
+		DrawCollisionEditor();
+	}
+
+	void EnemyEditor::DrawCollisionEditor() {
+		// キャンバスウィンドウ（左パネルと右パネルの間）
+		const float canvasX = 255.0f;
+		const float canvasW = 1280.0f - 350.0f - canvasX - 5.0f;
+		const float canvasY = 18.0f;
+		const float canvasH = 700.0f;
+
+		ImGui::SetNextWindowPos(ImVec2(canvasX, canvasY), ImGuiCond_Always);
+		ImGui::SetNextWindowSize(ImVec2(canvasW, canvasH), ImGuiCond_Always);
+		ImGui::Begin("Collision Editor", nullptr,
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar);
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 canvasP0 = ImGui::GetCursorScreenPos();
+		ImVec2 canvasSz = ImGui::GetContentRegionAvail();
+		if (canvasSz.x < 50.0f) canvasSz.x = 50.0f;
+		if (canvasSz.y < 50.0f) canvasSz.y = 50.0f;
+		ImVec2 canvasP1 = ImVec2(canvasP0.x + canvasSz.x, canvasP0.y + canvasSz.y);
+
+		// キャンバス背景
+		drawList->AddRectFilled(canvasP0, canvasP1, MakeCol32(30, 30, 35, 255));
+		drawList->AddRect(canvasP0, canvasP1, MakeCol32(80, 80, 90, 255));
+
+		ImGui::InvisibleButton("collision_canvas", canvasSz,
+			ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+		bool isHovered = ImGui::IsItemHovered();
+
+		// キャンバス中心 = 敵の原点
+		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f, canvasP0.y + canvasSz.y * 0.5f);
+		float scale = collisionZoom_ * 30.0f; // 1単位 = scale pixels
+
+		// --- グリッド描画 ---
+		float gridStep = scale; // 1単位ごとにグリッド
+		if (gridStep < 15.0f) gridStep *= 2.0f;
+		if (gridStep < 15.0f) gridStep *= 2.0f;
+
+		for (float gx = center.x; gx < canvasP1.x; gx += gridStep) {
+			drawList->AddLine(ImVec2(gx, canvasP0.y), ImVec2(gx, canvasP1.y), MakeCol32(50, 50, 55, 255));
+		}
+		for (float gx = center.x - gridStep; gx > canvasP0.x; gx -= gridStep) {
+			drawList->AddLine(ImVec2(gx, canvasP0.y), ImVec2(gx, canvasP1.y), MakeCol32(50, 50, 55, 255));
+		}
+		for (float gy = center.y; gy < canvasP1.y; gy += gridStep) {
+			drawList->AddLine(ImVec2(canvasP0.x, gy), ImVec2(canvasP1.x, gy), MakeCol32(50, 50, 55, 255));
+		}
+		for (float gy = center.y - gridStep; gy > canvasP0.y; gy -= gridStep) {
+			drawList->AddLine(ImVec2(canvasP0.x, gy), ImVec2(canvasP1.x, gy), MakeCol32(50, 50, 55, 255));
+		}
+
+		// --- 十字ガイド（原点） ---
+		drawList->AddLine(ImVec2(canvasP0.x, center.y), ImVec2(canvasP1.x, center.y), MakeCol32(100, 100, 110, 200), 1.0f);
+		drawList->AddLine(ImVec2(center.x, canvasP0.y), ImVec2(center.x, canvasP1.y), MakeCol32(100, 100, 110, 200), 1.0f);
+
+		// 原点マーカー
+		drawList->AddCircleFilled(center, 4.0f, MakeCol32(255, 200, 50, 200));
+		drawList->AddText(ImVec2(center.x + 6, center.y - 14), MakeCol32(200, 200, 200, 200), "Origin");
+
+		// --- ローカル→スクリーン変換 ---
+		auto localToScreen = [&](float lx, float ly) -> ImVec2 {
+			return ImVec2(center.x + lx * scale, center.y - ly * scale); // Y反転
+		};
+		auto screenToLocal = [&](ImVec2 screen) -> std::pair<float, float> {
+			return { (screen.x - center.x) / scale, -(screen.y - center.y) / scale };
+		};
+
+		auto& verts = editingEnemy_.collisionVertices;
+		const float VERTEX_RADIUS = 7.0f;
+		const float VERTEX_HIT_RADIUS = 12.0f;
+
+		// --- ポリゴン塗りつぶし描画 ---
+		if (verts.size() >= 3) {
+			std::vector<ImVec2> polyPoints;
+			for (const auto& v : verts) {
+				polyPoints.push_back(localToScreen(v.x, v.y));
+			}
+			drawList->AddConvexPolyFilled(polyPoints.data(), static_cast<int>(polyPoints.size()),
+				MakeCol32(0, 180, 255, 40));
+		}
+
+		// --- 辺描画 ---
+		if (verts.size() >= 2) {
+			for (size_t i = 0; i < verts.size(); ++i) {
+				size_t next = (i + 1) % verts.size();
+				ImVec2 p0 = localToScreen(verts[i].x, verts[i].y);
+				ImVec2 p1 = localToScreen(verts[next].x, verts[next].y);
+				drawList->AddLine(p0, p1, MakeCol32(0, 200, 255, 220), 2.0f);
+			}
+		}
+
+		// --- 頂点描画 ---
+		for (size_t i = 0; i < verts.size(); ++i) {
+			ImVec2 sp = localToScreen(verts[i].x, verts[i].y);
+			bool isDragged = (draggedVertexIndex_ == static_cast<int>(i));
+			ImU32 col = isDragged ? MakeCol32(255, 100, 50, 255) : MakeCol32(0, 220, 255, 255);
+			drawList->AddCircleFilled(sp, VERTEX_RADIUS, col);
+			drawList->AddCircle(sp, VERTEX_RADIUS, MakeCol32(255, 255, 255, 180), 0, 1.5f);
+
+			// 頂点番号
+			char idxBuf[8];
+			snprintf(idxBuf, sizeof(idxBuf), "%d", static_cast<int>(i));
+			drawList->AddText(ImVec2(sp.x + 9, sp.y - 12), MakeCol32(255, 255, 255, 200), idxBuf);
+		}
+
+		// --- マウス操作 ---
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+
+		// 左クリック: 頂点追加 or ドラッグ開始
+		if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			// 既存頂点のクリック判定
+			int hitIdx = -1;
+			for (size_t i = 0; i < verts.size(); ++i) {
+				ImVec2 sp = localToScreen(verts[i].x, verts[i].y);
+				float dx = mousePos.x - sp.x;
+				float dy = mousePos.y - sp.y;
+				if (dx * dx + dy * dy < VERTEX_HIT_RADIUS * VERTEX_HIT_RADIUS) {
+					hitIdx = static_cast<int>(i);
+					break;
+				}
+			}
+
+			if (hitIdx >= 0) {
+				// 既存頂点をドラッグ開始
+				draggedVertexIndex_ = hitIdx;
+			} else {
+				// 新規頂点追加
+				auto [lx, ly] = screenToLocal(mousePos);
+				CollisionVertex newVert;
+				newVert.x = lx;
+				newVert.y = ly;
+				verts.push_back(newVert);
+			}
+		}
+
+		// ドラッグ中: 頂点移動
+		if (draggedVertexIndex_ >= 0 && draggedVertexIndex_ < static_cast<int>(verts.size())) {
+			if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
+				auto [lx, ly] = screenToLocal(mousePos);
+				verts[draggedVertexIndex_].x = lx;
+				verts[draggedVertexIndex_].y = ly;
+			}
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				draggedVertexIndex_ = -1;
+			}
+		}
+
+		// 右クリック: 頂点削除
+		if (isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+			for (size_t i = 0; i < verts.size(); ++i) {
+				ImVec2 sp = localToScreen(verts[i].x, verts[i].y);
+				float dx = mousePos.x - sp.x;
+				float dy = mousePos.y - sp.y;
+				if (dx * dx + dy * dy < VERTEX_HIT_RADIUS * VERTEX_HIT_RADIUS) {
+					verts.erase(verts.begin() + i);
+					if (draggedVertexIndex_ == static_cast<int>(i)) draggedVertexIndex_ = -1;
+					break;
+				}
+			}
+		}
+
+		// --- 座標表示 ---
+		if (isHovered) {
+			auto [lx, ly] = screenToLocal(mousePos);
+			char coordBuf[64];
+			snprintf(coordBuf, sizeof(coordBuf), "(%.2f, %.2f)", lx, ly);
+			drawList->AddText(ImVec2(mousePos.x + 15, mousePos.y - 5), MakeCol32(200, 200, 200, 220), coordBuf);
+		}
+
 		ImGui::End();
 	}
 #endif
