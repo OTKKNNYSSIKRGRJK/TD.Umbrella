@@ -6,7 +6,7 @@
   <ItemGroup>
     <ClCompile Include="Common.ixx" />
     <ClCompile Include="Common.SIMD.ixx" />
-    <ClCompile Include="Common.TypeAlias.ixx" />
+    <ClCompile Include="Common.Type.ixx" />
     <ClCompile Include="Common.Time.ixx" />
     <ClCompile Include="Common.Mixins.ixx" />
     <ClCompile Include="DataStructures\DataStructure.Bitset.ixx">

@@ -1,0 +1,11 @@
+{
+    "animationMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "gltfPath": "Models/Enemy/default.gltf",
+    "hp": 100,
+    "name": "NewEnemy",
+    "power": 1.0
+}

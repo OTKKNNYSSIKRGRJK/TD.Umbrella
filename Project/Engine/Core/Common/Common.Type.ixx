@@ -1,5 +1,5 @@
 //////	//////	//////	//////	//////	//////	//////	//////	//////
-export module Lumina.Core.Common : TypeAlias;
+export module Lumina.Core.Common : Type;
 //////	//////	//////	//////	//////	//////	//////	//////	//////
 
 import <cstdint>;
@@ -31,4 +31,8 @@ namespace Lumina {
 
 	export using F32 = float;
 	export using F64 = double;
+	
+	export struct F32x2 { F32 X, Y; };
+	export struct F32x3 { F32 X, Y, Z; };
+	export struct F32x4 { F32 X, Y, Z, W; };
 }

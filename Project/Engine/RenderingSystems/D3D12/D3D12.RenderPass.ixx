@@ -8,8 +8,6 @@ import <d3d12.h>;
 
 import : Command;
 
-import Lumina.Core.Math;
-
 namespace Lumina::D3D12 {
 	export class RenderPass {
 		struct DescCollection {
@@ -29,7 +27,7 @@ namespace Lumina::D3D12 {
 		void Begin(
 			CommandList const& cmdList_,
 			D3D12_RENDER_PASS_FLAGS renderPassFlags_ = D3D12_RENDER_PASS_FLAG_NONE
-		){
+		) {
 			CommandList_ = &cmdList_;
 
 			static_cast<ID3D12GraphicsCommandList4*>(CommandList_->Get())->BeginRenderPass(
