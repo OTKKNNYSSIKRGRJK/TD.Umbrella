@@ -28,6 +28,9 @@
     <Filter Include="Scenes\Player\Umbrella">
       <UniqueIdentifier>{6b879442-6da7-45f7-bf57-0ba3ec4c30c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TerrainEditor">
+      <UniqueIdentifier>{9bd74b84-ee90-46f7-8f43-cd4735399fdc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -141,6 +144,18 @@
     </ClCompile>
     <ClCompile Include="Scenes\MapInfo\Ground.ixx">
       <Filter>Scenes\MapInfo</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp">
+      <Filter>TerrainEditor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

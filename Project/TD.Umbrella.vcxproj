@@ -42,6 +42,10 @@
     <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
     <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
     <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
