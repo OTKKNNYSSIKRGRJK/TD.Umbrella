@@ -142,6 +142,12 @@
     <ClCompile Include="Scenes\MapInfo\Ground.ixx">
       <Filter>Scenes\MapInfo</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
