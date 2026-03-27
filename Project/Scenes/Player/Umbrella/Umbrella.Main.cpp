@@ -4,6 +4,12 @@ module Game.Umbrella : Main;
 //	Codes temporarily commented out should be revised afterwards carefully!
 //	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+import Lumina.Core.Math;
+
+namespace {
+	using Vector3 = Lumina::Math::F32x3;
+}
+
 namespace Umbrella {
 
 	////////////////////////
@@ -22,9 +28,10 @@ namespace Umbrella {
 		baseJoint_.SetAcceptType(AttachmentType::PlayerHand | AttachmentType::PlayerBack);
 		baseJoint_.SetInfo({0.0f,-0.5f,0.0f}, {0.0f,0.0f,0.0f});
 
-		tipJoint_.SetAcceptType(AttachmentType::UmbrellaTopRoot);
 		tipJoint_.SetType(AttachmentType::UmbrellaTip);
-		tipJoint_.SetInfo({ 0.0f,0.5f,0.0f }, { 0.0f,0.0f,0.0f });
+		tipJoint_.SetAcceptType(AttachmentType::UmbrellaTopRoot | AttachmentType::UmbrellaHandle);
+		tipJoint_.SetInfo({ 0.0f,1.25f,0.0f }, { 0.0f,0.0f,0.0f });
+		tipJoint_.AttachTo(&baseJoint_);
 	}
 
 	void Handle::Update([[maybe_unused]] float deltaTime) {
@@ -32,7 +39,6 @@ namespace Umbrella {
 		baseJoint_.Update();
 		//obj_->worldTransform_.mat_ = baseJoint_.GetMatrix();
 
-		//tipJoint_.SetPos({ obj_->worldTransform_.mat_.m[3][0],obj_->worldTransform_.mat_.m[3][1] + 1.25f ,obj_->worldTransform_.mat_.m[3][2]});
 		tipJoint_.Update(); 
 	}
 
@@ -60,7 +66,24 @@ namespace Umbrella {
 
 		rootJoint_.SetAcceptType(AttachmentType::UmbrellaTip);
 		rootJoint_.SetType(AttachmentType::UmbrellaTopRoot);
-		rootJoint_.SetInfo({ 0.0f,0.5f,0.0f }, { 0.0f,0.0f,0.0f });
+		rootJoint_.SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+		// ======================
+		// 当たり判定
+		// ======================
+		collider_ = std::make_unique<ConvexCollider>();
+
+		collider_->SetMyType(COL_None);
+		collider_->SetYourType(COL_Enemy);
+
+		collider_->SetUserData(this);
+
+		collider_->onCollisionCallback = [](Collider* other, const Vector3& outPush) {
+			outPush;
+			other;
+		};
+
+		UpdateColliderShape();
 	}
 
 	void Top::Update(float deltaTime) {
@@ -78,6 +101,14 @@ namespace Umbrella {
 		case UmbrellaForm::Opened:
 			//openObj_->worldTransform_.mat_ = rootJoint_.GetMatrix();
 			break;
+		}
+
+		if (collider_->GetMyType() != COL_None) {
+			collider_->SetWorldPosition(rootJoint_.GetWorldPos());
+
+			collider_->SetWorldMatrix(rootJoint_.GetMatrix());
+
+			collider_->UpdateAABB();
 		}
 	}
 
@@ -106,6 +137,30 @@ namespace Umbrella {
 			currentState_->SetTop(this);
 			currentState_->Enter();
 		}
+	}
+
+	void Top::UpdateColliderShape() {
+		std::vector<Vector3> vertices;
+
+		if (form_ == UmbrellaForm::Closed) {
+			// 閉じた状態：細長い剣のような判定（ローカル座標で定義）
+			// 幅0.2m、長さ1.5m(Y方向) の直方体の8頂点などを設定
+			float w = 0.1f;
+			float h = 1.5f;
+			vertices = {
+				{-w,  0.0f, -w}, { w,  0.0f, -w}, {-w,  0.0f,  w}, { w,  0.0f,  w}, // 根元
+				{-w,     h, -w}, { w,     h, -w}, {-w,     h,  w}, { w,     h,  w}  // 先端
+			};
+		}
+		else if (form_ == UmbrellaForm::Opened) {
+
+		}
+		else if (form_ == UmbrellaForm::Reverse) {
+
+		}
+
+		// ConvexCollider に頂点をセットする関数（無ければ Collider.h に追加してください）
+		collider_->SetVertices(vertices);
 	}
 
 	////////////////////////

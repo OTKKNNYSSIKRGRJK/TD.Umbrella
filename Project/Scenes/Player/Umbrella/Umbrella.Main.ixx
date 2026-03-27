@@ -2,6 +2,7 @@ export module Game.Umbrella : Main;
 
 import : Common;
 import : State;
+import Collider;
 
 import Game.Attachment;
 
@@ -110,8 +111,19 @@ namespace Umbrella {
         ///  当たり判定とパラメータ
         /// 
         //////////////////////
+    public:
+        void UpdateColliderShape();
+        ConvexCollider* GetCollider() const { return collider_.get(); }
+        // 攻撃判定のON/OFF（属性の切り替え）
+        void EnableAttackCollision() {
+            collider_->SetMyType(COL_Player_Attack);
+        }
+        void DisableAttackCollision() {
+            collider_->SetMyType(COL_None);
+        }
+
     private:
-        /*Collider*/
+        std::unique_ptr<ConvexCollider>collider_;
         float durability_;// 耐久度
         float manaAmount_;// 過剰量のマナ管理
 

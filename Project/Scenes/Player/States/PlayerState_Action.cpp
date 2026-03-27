@@ -142,6 +142,11 @@ namespace PlayerStates::Action {
 		// 踏み込みの初速を与える（これがRestrictedステート内で徐々に減速していく）
 		player_->myVelocity_.X = forward.X * stepPower;
 		player_->myVelocity_.Z = forward.Z * stepPower;
+
+		// =============
+		// 【 傘の設定 】
+		// =============
+		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
 	}
 
 	void Attack::Update(float deltaTime) {
@@ -184,6 +189,9 @@ namespace PlayerStates::Action {
 
 				// 攻撃が終わったので、移動ステートを元に戻す（Idleにして入力を再開させる）
 				player_->ChangeMovementState(player_->idleState_.get());
+
+				// 傘の設定を戻す
+				player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
 			}
 		}
 	}

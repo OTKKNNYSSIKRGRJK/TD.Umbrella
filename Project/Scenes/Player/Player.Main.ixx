@@ -122,6 +122,10 @@ public:
 	Vector3 moveAmount_;// 最終的な1フレームの移動量
 	// ※加速度や速さはそれぞれのStateで各々作る
 
+	// 【 ジャンプ 】
+	float jumpCoyoteTimer_ = 0.0f;
+	const float JUMP_COYOTE_MAX_TIME = 0.15f;
+
 	//////////////////////////////
 	///
 	///   入力関係

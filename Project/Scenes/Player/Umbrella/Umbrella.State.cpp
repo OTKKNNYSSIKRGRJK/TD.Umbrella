@@ -78,26 +78,21 @@ namespace UmbrellaStates {
 	///
 	/////////////////////////
 	void NormalAttack::Enter() {
-		// ① 攻撃の軌道（Hermite曲線）を再生！
-		// ※ 例えば、振りかぶってから振り下ろす軌道を "Swing" として作っておく
-		//Vector3 startPos = { top_->GetRootJoint()->GetMatrix().m[3][0],top_->GetRootJoint()->GetMatrix().m[3][1] ,top_->GetRootJoint()->GetMatrix().m[3][2] };
-		///motion_.Play("Swing", startPos, 0.4f); // 0.4秒で素早く振る！
-
 		// 傘の当たり判定をON
-		// top_->SetCollisionEnabled(true);
+		top_->EnableAttackCollision();
 	}
 
 	void NormalAttack::Update([[maybe_unused]] float deltaTime) {
 		
-		// モーション（振り）が終わったら、自動的に「いつもの手持ち状態」に戻る！
-		if (!motion_.IsPlaying()) {
-			top_->ChangeState(new UmbrellaStates::Attached());
-		}
+		//// モーション（振り）が終わったら、自動的に「いつもの手持ち状態」に戻る！
+		//if (!motion_.IsPlaying()) {
+		//	top_->ChangeState(new UmbrellaStates::Attached());
+		//}
 	}
 
 	void NormalAttack::Exit() {
 		// 状態が終わる時（Attachedに戻る瞬間）に、当たり判定をOFFにする
-		// top_->SetCollisionEnabled(false);
+		top_->DisableAttackCollision();
 	}
 
 	//////////////////////////

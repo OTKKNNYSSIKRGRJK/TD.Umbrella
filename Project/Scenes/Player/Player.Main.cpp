@@ -17,10 +17,6 @@ namespace {
 }
 
 void Player::Initialize() {
-	//obj_ = std::make_unique<ModelObject>();
-	//obj_->modelName_ = "player";
-	//obj_->textureName_ = "ulthimaSky";
-	//obj_->Initialize(p_fngine);
 
 	InitializeStates();
 	InitializeComponents();
@@ -42,6 +38,10 @@ void Player::Initialize() {
 	umbrella_->handle_->GetBaseJoint()->AttachTo(GetRightHandJoint());
 
 	motionController_ = std::make_unique<MotionController>();
+
+	// =====================
+	// 【 当たり判定の設定 】
+	// =====================
 
 	// 1. コライダーの生成
 	collider_ = std::make_unique<ConvexCollider>();
@@ -137,6 +137,16 @@ void Player::Update(float deltaTime) {
 	}
 	if (currentActionState_) {
 		currentActionState_->Update(deltaTime);
+	}
+
+	// =========================
+	// 【 コヨーテタイムの処理 】
+	// =========================
+	if (this->onGround_) {
+		jumpCoyoteTimer_ = 0.0f;
+	}
+	else {
+		jumpCoyoteTimer_ += deltaTime;
 	}
 
 	// ここから移動関係の処理
@@ -274,11 +284,13 @@ void Player::AddForce(const Vector3& force) {
 
 void Player::Jump() {
 	if (inputData_.isJump) {
-		if (this->onGround_) {
+		if (this->onGround_ || this->jumpCoyoteTimer_ < JUMP_COYOTE_MAX_TIME) {
 			// Y軸に上向きの初速（ジャンプ力）を与える！
 			float jumpPower = 7.0f; // 調整
-			externalVelocity_.Y = jumpPower;
+			externalVelocity_.Y = jumpPower;// 初速
+			// フラグの処理
 			this->onGround_ = false;
+			this->jumpCoyoteTimer_ = this->JUMP_COYOTE_MAX_TIME;
 
 			// ステートを「空中」に切り替える！
 			ChangeMovementState(airborneState_.get());

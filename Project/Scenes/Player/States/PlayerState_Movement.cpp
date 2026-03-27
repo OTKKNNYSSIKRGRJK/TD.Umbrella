@@ -76,6 +76,8 @@ namespace PlayerStates::Movement {
 			// 地上に着いたので Idle ステートに戻す！
 			player_->ChangeMovementState(player_->idleState_.get());
 		}
+
+		player_->Jump();// コヨーテタイムのため
 	}
 
 	/*void Airborne::Exit() {
