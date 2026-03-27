@@ -7,10 +7,6 @@ import : Resource;
 namespace Lumina::D3D12 {
 	export class Barrier : public D3D12_RESOURCE_BARRIER {
 	public:
-		constexpr operator D3D12_RESOURCE_BARRIER()
-			const noexcept { return (*this); }
-
-	public:
 		template<Concept::Resource ResourceType>
 		static auto Transition(
 			ResourceType const& res_,

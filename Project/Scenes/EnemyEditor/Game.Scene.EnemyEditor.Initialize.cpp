@@ -12,12 +12,21 @@ using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 namespace Game::Editor {
+	void to_json(json& j, const CollisionVertex& v) {
+		j = json{ {"x", v.x}, {"y", v.y} };
+	}
+	void from_json(const json& j, CollisionVertex& v) {
+		if (j.contains("x")) j.at("x").get_to(v.x);
+		if (j.contains("y")) j.at("y").get_to(v.y);
+	}
+
 	// JSON シリアライズ定義
 	void to_json(json& j, const EnemyData& e) {
 		j = json{
 			{"name", e.name}, {"hp", e.hp}, {"power", e.power},
 			{"gltfPath", e.gltfPath}, {"animationMap", e.animationMap},
 			{"motionMap", e.motionMap},
+			{"collisionVertices", e.collisionVertices},
 			{"aggroRadius", e.aggroRadius}, {"attackRange", e.attackRange},
 			{"moveSpeed", e.moveSpeed}, {"attackCooldown", e.attackCooldown},
 			{"retreatThreshold", e.retreatThreshold},
@@ -31,6 +40,7 @@ namespace Game::Editor {
 		if (j.contains("gltfPath")) j.at("gltfPath").get_to(e.gltfPath);
 		if (j.contains("animationMap")) j.at("animationMap").get_to(e.animationMap);
 		if (j.contains("motionMap")) j.at("motionMap").get_to(e.motionMap);
+		if (j.contains("collisionVertices")) j.at("collisionVertices").get_to(e.collisionVertices);
 		if (j.contains("aggroRadius")) j.at("aggroRadius").get_to(e.aggroRadius);
 		if (j.contains("attackRange")) j.at("attackRange").get_to(e.attackRange);
 		if (j.contains("moveSpeed")) j.at("moveSpeed").get_to(e.moveSpeed);
@@ -83,10 +93,6 @@ namespace Game::Editor {
 				return names;
 			}
 		} else if (ext == ".glb") {
-			// .glb: バイナリフォーマットからJSONチャンクを抽出
-			// GLBヘッダー: magic(4) + version(4) + length(4) = 12 bytes
-			// チャンク: chunkLength(4) + chunkType(4) + chunkData(chunkLength)
-			// 最初のチャンクは JSON (type = 0x4E4F534A)
 			std::ifstream ifs(gltfPath, std::ios::binary);
 			if (!ifs.is_open()) return names;
 
@@ -115,7 +121,7 @@ namespace Game::Editor {
 			return names;
 		}
 
-		// glTF仕様: "animations" 配列内の各要素の "name" を取得
+		//"animations" 配列内の各要素の "name" を取得
 		if (gltfJson.contains("animations") && gltfJson["animations"].is_array()) {
 			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
 				const auto& anim = gltfJson["animations"][i];

@@ -1,8 +1,6 @@
-module;
-
-#include<d3d12.h>
-
 export module Lumina.D3D12.Aux;
+
+export import Lumina.D3D12.Aux.View;
 
 //****	******	******	******	******	****//
 
@@ -18,12 +16,12 @@ import <unordered_map>;
 
 import <string>;
 
+import <d3d12.h>;
+
 import Lumina.D3D12;
 
 import Lumina.Core.Common;
 import Lumina.Core.Debug;
-
-import nlohmann.json;
 
 //////	//////	//////	//////	//////	//////
 
@@ -43,19 +41,16 @@ namespace {
 //	LoadInputLayout							//
 //////	//////	//////	//////	//////	//////
 
-namespace Lumina::D3D12 {
+export namespace Lumina::D3D12 {
 	export void LoadRootSignature(
 		RootSignature& rs_,
 		const GraphicsDevice& device_,
 		const nlohmann::json& dict_RSSetup_,
 		std::string_view debugName_
 	);
-	export auto LoadRootSignatureSetup(
+	export RootSignature::Setup LoadRootSignatureSetup(
 		const nlohmann::json& dict_RSSetup_
-	) -> RootSignature::Setup;
-	
-	export template<typename T>
-	auto LoadSetup(nlohmann::json& dict_Setup_) -> typename T::Setup;
+	);
 
 	export void LoadGraphicsPipelineState(
 		GraphicsPipelineState& graphicsPSO_,
@@ -66,22 +61,30 @@ namespace Lumina::D3D12 {
 		const nlohmann::json& dict_PSOSetup_,
 		std::string_view debugName_
 	);
-	export BlendState LoadBlendState0(
+	BlendState LoadBlendState0(
 		nlohmann::json const& arr_BlendState_
 	);
-	export BlendState LoadBlendState(
+	BlendState LoadBlendState(
 		nlohmann::json const& dict_PSOSetup_
 	);
-	export RasterizerState LoadRasterizerState(
+	RasterizerState LoadRasterizerState(
 		nlohmann::json const& dict_PSOSetup_
 	);
-	export DepthStencilState LoadDepthStencilState(
+	DepthStencilState LoadDepthStencilState(
 		nlohmann::json const& dict_PSOSetup_
 	);
-	export GraphicsPipelineState::InputLayout LoadInputLayout(
+	GraphicsPipelineState::InputLayout LoadInputLayout(
 		nlohmann::json const& dict_PSOSetup_
 	);
 }
+
+//////	//////	//////	//////	//////	//////
+//////	//////	//////	//////	//////	//////
+//////	//////	//////	//////	//////	//////
+
+module : private;
+
+//////	//////	//////	//////	//////	//////
 
 namespace Lumina::D3D12 {
 	namespace {
@@ -319,13 +322,9 @@ namespace Lumina::D3D12 {
 	//	LoadRootSignatureSetup					//
 	//////	//////	//////	//////	//////	//////
 
-	template<>
-	auto LoadSetup<RootSignature>(nlohmann::json& dict_Setup_)
-		-> typename RootSignature::Setup { return LoadRootSignatureSetup(dict_Setup_); }
-
-	auto LoadRootSignatureSetup(
+	RootSignature::Setup LoadRootSignatureSetup(
 		const nlohmann::json& dict_RSSetup_
-	) -> RootSignature::Setup {
+	) {
 		RootSignature::Setup rsSetup{};
 		{
 			const auto& arr_RSParams{ dict_RSSetup_.at("Parameters") };

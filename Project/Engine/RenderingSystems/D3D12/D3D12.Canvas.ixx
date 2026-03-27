@@ -58,8 +58,7 @@ namespace Lumina::D3D12 {
 		~Canvas();
 
 	private:
-		std::vector<std::unique_ptr<RenderTexture2D>> RenderTextures_;
-		std::unique_ptr<DepthTexture2D> DepthTexture_;
+		std::vector<std::unique_ptr<Texture2D>> Textures_{};
 
 		std::vector<D3D12_VIEWPORT> Viewports_{};
 		std::vector<D3D12_RECT> ScissorRects_{};
@@ -73,20 +72,20 @@ namespace Lumina::D3D12 {
 
 	inline auto Canvas::RenderTexture(uint32_t idx_)
 		noexcept -> RenderTexture2D& {
-		return *(RenderTextures_[idx_]);
+		return reinterpret_cast<RenderTexture2D&>(*(Textures_[idx_]));
 	}
 	inline auto Canvas::RenderTexture(uint32_t idx_)
 		const noexcept -> RenderTexture2D const& {
-		return *(RenderTextures_[idx_]);
+		return reinterpret_cast<RenderTexture2D const&>(*(Textures_[idx_]));
 	}
 
 	inline auto Canvas::DepthTexture()
 		noexcept -> DepthTexture2D& {
-		return *DepthTexture_;
+		return reinterpret_cast<DepthTexture2D&>(*(Textures_.back()));
 	}
 	inline auto Canvas::DepthTexture()
 		const noexcept -> DepthTexture2D const& {
-		return *DepthTexture_;
+		return reinterpret_cast<DepthTexture2D const&>(*(Textures_.back()));
 	}
 
 	constexpr auto Canvas::Viewport(uint32_t idx_)
@@ -134,13 +133,15 @@ namespace Lumina::D3D12 {
 		Num_RenderTargets_ = (num_RenderTargets_ < 1U) ? (1U) : (num_RenderTargets_);
 		Num_RenderTargets_ = (Num_RenderTargets_ < 8U) ? (Num_RenderTargets_) : (8U);
 
-		for (U32 i{ 0U }; i < Num_RenderTargets_; ++i) {
-			RenderTextures_.emplace_back(std::make_unique<RenderTexture2D>());
+		Textures_.resize(Num_RenderTargets_);
+		for (auto& renderTex : Textures_) {
+			renderTex = std::make_unique<RenderTexture2D>();
 		}
 
 		Flag_UseDepthTest_ = !!flag_UseDepthTest_;
 		if (Flag_UseDepthTest_) {
-			DepthTexture_ = std::make_unique<DepthTexture2D>();
+			auto& depthTex{ Textures_.emplace_back() };
+			depthTex = std::make_unique<DepthTexture2D>();
 		}
 
 		Viewports_.resize(Num_RenderTargets_);
@@ -220,5 +221,15 @@ namespace Lumina::D3D12 {
 	}
 
 	Canvas::~Canvas() {
+		for (uint32_t idx{ 0U }; idx < Num_RenderTargets_; ++idx) {
+			auto* renderTex{ reinterpret_cast<RenderTexture2D*>(Textures_[idx].release()) };
+			delete renderTex;
+			renderTex = nullptr;
+		}
+		if (Flag_UseDepthTest_) {
+			auto* depthTex{ reinterpret_cast<DepthTexture2D*>(Textures_.back().release()) };
+			delete depthTex;
+			depthTex = nullptr;
+		}
 	}
 }

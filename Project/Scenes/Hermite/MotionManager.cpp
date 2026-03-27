@@ -1,23 +1,22 @@
-module;
-#include <iostream>
-#include <fstream>
-#include <filesystem>
-#include <imgui.h>
+module Game.MotionManager; 
 
-module MotionManager;
+import <fstream>;
+import <filesystem>;
 
 import nlohmann.json;
-import Lumina.Core.Math;
 import Lumina.Utils.ImGui;
 
-using json = nlohmann::json;
-using namespace Lumina::Math;
-using namespace MathUtils;
+namespace {
+    using Vector3 = Lumina::Math::F32x3;
+    using MotionData = std::vector<MathUtils::Spline::Node<Vector3>>;
+    using json = nlohmann::json;
+    using namespace MathUtils;
+}
 
-std::unique_ptr<MotionManager>MotionManager::instance_ = nullptr;
-std::unique_ptr<MotionEditor>MotionEditor::instance_ = nullptr;
+std::unique_ptr<MotionManager> MotionManager::instance_ = nullptr;
+std::unique_ptr<MotionEditor> MotionEditor::instance_ = nullptr;
 
-void MotionManager::LoadActionData(const std::string& fileName, std::vector<MathUtils::Spline::Node<F32x3>>& outNodes) {
+void MotionManager::LoadActionData(const std::string& fileName, std::vector<MathUtils::Spline::Node<Vector3>>& outNodes) {
 	std::string fullPath = fileName + ".json";
 	std::ifstream file(fullPath);
 
@@ -27,7 +26,7 @@ void MotionManager::LoadActionData(const std::string& fileName, std::vector<Math
 		file.close();
 
 		// JSONからNodeの配列に復元して上書き
-		outNodes = MathUtils::Spline::DeserializeNodes<F32x3>(j);
+		outNodes = MathUtils::Spline::DeserializeNodes<Vector3>(j);
 	}
 }
 
@@ -52,7 +51,7 @@ const MotionData& MotionManager::GetMotion(const std::string& name) const {
 	return motions_.begin()->second; // データがないときは先頭のデータを返す（要注意）
 }
 
-void MotionController::Play(const std::string& motionName, const F32x3& startPosition, float motionDuration) {
+void MotionController::Play(const std::string& motionName, const Vector3& startPosition, float motionDuration) {
 	currentMotionName_ = motionName;
 	motionDuration_ = motionDuration;
 	motionTimer_ = 0.0f;
@@ -60,12 +59,12 @@ void MotionController::Play(const std::string& motionName, const F32x3& startPos
 	actionStartPosition_ = startPosition;
 }
 
-F32x3 MotionController::Update(float deltaTime, const F32x3& direction) {
-	if (!isPlaying_) return F32x3{};
+Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
+	if (!isPlaying_) return Vector3{};
 	auto& motionData = MotionManager::GetInstance()->GetMotion(currentMotionName_);
 	motionTimer_ += deltaTime;
 	float t = motionTimer_ / motionDuration_;
-	F32x3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
+	Vector3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
 	localOffset.Y *= -1.0f;
 	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
 
@@ -76,9 +75,16 @@ F32x3 MotionController::Update(float deltaTime, const F32x3& direction) {
 	return actionStartPosition_ + localOffset;
 }
 
+namespace {
+    constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
+        return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
+    }
+}
+
 void MotionEditor::NodeImGui() {
+#if defined(_DEBUG)
     if (ImGui::IsKeyPressed(ImGuiKey_P)) {
-        nodes_.push_back(Spline::Node<F32x3>({ 0.0f,0.0f,0.0f }));
+        nodes_.push_back(Spline::Node<Vector3>({ 0.0f,0.0f,0.0f }));
     }
 
     ImGui::Begin("Action Editor (Hermite Spline)");
@@ -93,10 +99,10 @@ void MotionEditor::NodeImGui() {
     ImVec2 canvas_sz = ImGui::GetContentRegionAvail();
     if (canvas_sz.x < 50.0f) canvas_sz.x = 50.0f;
     if (canvas_sz.y < 50.0f) canvas_sz.y = 50.0f;
-    ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.y, canvas_p0.y + canvas_sz.y);
+    ImVec2 canvas_p1 = ImVec2(canvas_p0.x + canvas_sz.x, canvas_p0.y + canvas_sz.y);
 
-    draw_list->AddRectFilled(canvas_p0, canvas_p1, IM_COL32(50, 50, 50, 255));
-    draw_list->AddRect(canvas_p0, canvas_p1, IM_COL32(255, 255, 255, 255));
+    draw_list->AddRectFilled(canvas_p0, canvas_p1, MakeCol32(50, 50, 50, 255));
+    draw_list->AddRect(canvas_p0, canvas_p1, MakeCol32(255, 255, 255, 255));
 
     ImGui::InvisibleButton("canvas", canvas_sz);
     ImVec2 mouse_pos_in_canvas = ImVec2(ImGui::GetIO().MousePos.x - canvas_p0.x, ImGui::GetIO().MousePos.y - canvas_p0.y);
@@ -108,16 +114,16 @@ void MotionEditor::NodeImGui() {
         // キャンバス中心を使ってノード描画と同じ基準にする
         ImVec2 canvas_center = ImVec2(canvas_p0.x + canvas_sz.x * 0.5f, canvas_p0.y + canvas_sz.y * 0.5f);
 
-        F32x3 prev_point = nodes_[0].position;
+        Vector3 prev_point = nodes_[0].position;
         for (int i = 1; i <= num_segments; ++i) {
             float t = (float)i / (float)num_segments;
-            F32x3 current_point = MathUtils::Spline::GetPointSpline(nodes_, t);
+            Vector3 current_point = MathUtils::Spline::GetPointSpline(nodes_, t);
 
             // 中心基準でスクリーン座標に変換
             ImVec2 p1 = ImVec2(canvas_center.x + prev_point.X * DISPLAY_SCALE, canvas_center.y + prev_point.Y * DISPLAY_SCALE);
             ImVec2 p2 = ImVec2(canvas_center.x + current_point.X * DISPLAY_SCALE, canvas_center.y + current_point.Y * DISPLAY_SCALE);
 
-            draw_list->AddLine(p1, p2, IM_COL32(255, 200, 0, 255), 2.0f);
+            draw_list->AddLine(p1, p2, MakeCol32(255, 200, 0, 255), 2.0f);
             prev_point = current_point;
         }
     }
@@ -134,8 +140,8 @@ void MotionEditor::NodeImGui() {
         ImVec2 in_screen = ImVec2(canvas_center.x + node.TangentIn.X * DISPLAY_SCALE, canvas_center.y + node.TangentIn.Y * DISPLAY_SCALE);
         ImVec2 out_screen = ImVec2(canvas_center.x + node.TangentOut.X * DISPLAY_SCALE, canvas_center.y + node.TangentOut.Y * DISPLAY_SCALE);
 
-        draw_list->AddLine(pos_screen, in_screen, IM_COL32(150, 150, 150, 200), 1.0f);
-        draw_list->AddLine(pos_screen, out_screen, IM_COL32(150, 150, 150, 200), 1.0f);
+        draw_list->AddLine(pos_screen, in_screen, MakeCol32(150, 150, 150, 200), 1.0f);
+        draw_list->AddLine(pos_screen, out_screen, MakeCol32(150, 150, 150, 200), 1.0f);
 
         // --- クリック判定（左/右/中 を全てチェック） ---
         if (is_hovered && ImGui::IsMouseClicked(0)) {
@@ -160,9 +166,9 @@ void MotionEditor::NodeImGui() {
             }
         }
 
-        draw_list->AddCircleFilled(in_screen, HANDLE_RADIUS, IM_COL32(100, 200, 100, 255));
-        draw_list->AddCircleFilled(out_screen, HANDLE_RADIUS, IM_COL32(200, 100, 100, 255));
-        draw_list->AddCircleFilled(pos_screen, NODE_RADIUS, IM_COL32(255, 255, 255, 255));
+        draw_list->AddCircleFilled(in_screen, HANDLE_RADIUS, MakeCol32(100, 200, 100, 255));
+        draw_list->AddCircleFilled(out_screen, HANDLE_RADIUS, MakeCol32(200, 100, 100, 255));
+        draw_list->AddCircleFilled(pos_screen, NODE_RADIUS, MakeCol32(255, 255, 255, 255));
     }
 
     // --- 4. ドラッグ中の座標更新 ---
@@ -216,6 +222,14 @@ void MotionEditor::NodeImGui() {
     if (ImGui::Button("Load")) {
         nodes_ = MotionManager::GetInstance()->GetMotion(inputNodeName_);
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+		nodes_.clear();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("ReLoad")) {
+		MotionManager::GetInstance()->LoadMotions("resources/Data/Motion/Hermite/");
+    }
 
     // 保存システム ここまで↑↑↑
 
@@ -240,10 +254,11 @@ void MotionEditor::NodeImGui() {
         ImGui::TreePop();
     }
     ImGui::End();
+#endif // _DEBUG
 }
 
-void MotionEditor::SaveNode(const std::string& filename, const std::vector<Spline::Node<F32x3>>& nodes) {
-    std::string filePath = "Assets/Data/Motion/" + filename + ".json";
+void MotionEditor::SaveNode(const std::string& filename, const std::vector<Spline::Node<Vector3>>& nodes) {
+    std::string filePath = "resources/Data/Motion/Hermite/" + filename + ".json";
     json j = MathUtils::Spline::SerializeNodes(nodes);
     std::ofstream file(filePath);
     if (file.is_open()) {

@@ -4,7 +4,7 @@ export module Lumina.Core.Common : Time;
 
 import <chrono>;
 
-import : Type;
+import : TypeAlias;
 
 namespace Lumina {
 	export template<typename DurationType = std::chrono::seconds>

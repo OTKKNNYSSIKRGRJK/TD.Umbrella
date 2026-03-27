@@ -12,23 +12,43 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
-    <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
-    <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
-    <ClCompile Include="Scenes\Hermite\MotionManager.ixx" />
-    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
-    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
-    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />
-    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp" />
-    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp" />
-    <ClCompile Include="Test\Game.CharacterTest.cpp" />
-    <ClCompile Include="Test\Game.CharacterTest.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
+    <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
+    <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
+    <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Render.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Update.cpp" />
+    <ClCompile Include="Scenes\MapInfo\Ground.cpp" />
+    <ClCompile Include="Scenes\Player\Attachment.cpp" />
+    <ClCompile Include="Scenes\Player\Attachment.ixx" />
+    <ClCompile Include="Scenes\Player\InputHandler.cpp" />
+    <ClCompile Include="Scenes\Player\ManaComponent.cpp" />
+    <ClCompile Include="Scenes\Player\ManaComponent.ixx" />
+    <ClCompile Include="Scenes\Player\MathUtils.ixx" />
+    <ClCompile Include="Scenes\Player\Player.Common.ixx" />
+    <ClCompile Include="Scenes\Player\Player.ixx" />
+    <ClCompile Include="Scenes\Player\Player.Main.cpp" />
+    <ClCompile Include="Scenes\Player\States\PlayerStates.ixx" />
+    <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
+    <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Common.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.ixx" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.cpp" />
+    <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.ixx" />
+    <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
+    <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -58,6 +78,30 @@
     <ProjectReference Include="Engine\RenderingSystems\D3D12\RenderingSystem.D3D12.vcxproj">
       <Project>{fcae7dc6-57d3-4d16-b4c2-7bad8f427939}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Scenes\Hermite\MotionManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\MapInfo\Ground.ixx" />
+    <ClCompile Include="Scenes\Player\InputHandler.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\Player.Main.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\Collider.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\CollisionManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\TDCollider\GJK.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.EnemyManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

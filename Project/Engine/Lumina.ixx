@@ -1,6 +1,6 @@
 export module Lumina;
 
-export import : Main;
+export import Lumina.Main;
 
 export import Lumina.Core.Common;
 export import Lumina.Core.Math;

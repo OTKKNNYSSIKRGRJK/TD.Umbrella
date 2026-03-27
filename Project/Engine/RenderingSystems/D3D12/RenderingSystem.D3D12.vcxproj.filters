@@ -4,6 +4,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="D3D12.Aux.ixx" />
     <ClCompile Include="D3D12.Aux.View.ixx" />
     <ClCompile Include="D3D12.Barrier.ixx" />
     <ClCompile Include="D3D12.Canvas.ixx" />
@@ -25,6 +26,5 @@
     <ClCompile Include="D3D12.Shader.ixx" />
     <ClCompile Include="D3D12.Texture.ixx" />
     <ClCompile Include="D3D12.Wrapper.ixx" />
-    <ClCompile Include="D3D12.Aux.ixx" />
   </ItemGroup>
 </Project>

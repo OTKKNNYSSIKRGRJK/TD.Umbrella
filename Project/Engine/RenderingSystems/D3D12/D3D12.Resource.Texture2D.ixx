@@ -27,6 +27,7 @@ import : Wrapper;
 import : Debug;
 
 import Lumina.Core.Common;
+import Lumina.Core.Math;
 import Lumina.Core.Debug;
 
 //////	//////	//////	//////	//////	//////
@@ -338,7 +339,7 @@ namespace Lumina::D3D12 {
 		auto CreateD3D12Resource(
 			GraphicsDevice const& device_,
 			D3D12_RESOURCE_DESC const& resDesc_,
-			F32x4 const& clearColor_,
+			Math::F32x4 const& clearColor_,
 			std::string_view debugName_
 		) -> void;
 
@@ -350,7 +351,7 @@ namespace Lumina::D3D12 {
 			uint32_t width_,
 			uint32_t height_,
 			DXGI_FORMAT format_ = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-			F32x4 const& clearColor_ = { 0.0f, 0.0f, 0.0f, 0.0f },
+			Math::F32x4 const& clearColor_ = { 0.0f, 0.0f, 0.0f, 0.0f },
 			std::string_view debugName_ = "RenderTex2D"
 		);
 
@@ -368,12 +369,12 @@ namespace Lumina::D3D12 {
 	auto RenderTexture2D::CreateD3D12Resource(
 		GraphicsDevice const& device_,
 		D3D12_RESOURCE_DESC const& resDesc_,
-		F32x4 const& clearColor_,
+		Math::F32x4 const& clearColor_,
 		std::string_view debugName_
 	) -> void {
 		D3D12_CLEAR_VALUE const clearValue{
 			.Format{ resDesc_.Format },
-			.Color{ clearColor_.X, clearColor_.Y, clearColor_.Z, clearColor_.W, },
+			.Color{ clearColor_.X(), clearColor_.Y(), clearColor_.Z(), clearColor_.W(),},
 		};
 
 		device_->CreateCommittedResource(
@@ -399,7 +400,7 @@ namespace Lumina::D3D12 {
 		uint32_t width_,
 		uint32_t height_,
 		DXGI_FORMAT format_,
-		F32x4 const& clearColor_,
+		Math::F32x4 const& clearColor_,
 		std::string_view debugName_
 	) {
 		ParentType::ThrowIfInitialized(debugName_);

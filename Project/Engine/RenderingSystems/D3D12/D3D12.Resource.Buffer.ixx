@@ -371,12 +371,6 @@ namespace Lumina::D3D12 {
 		//====	======	======	======	======	====//
 
 	public:
-		constexpr auto Get() const noexcept -> ID3D12Resource*;
-		constexpr auto SizeInBytes() const noexcept -> uint64_t;
-
-		//----	------	------	------	------	----//
-
-	public:
 		void Initialize(
 			GraphicsDevice const& device_,
 			uint64_t sizeInBytes_,
@@ -393,13 +387,6 @@ namespace Lumina::D3D12 {
 	//----	------	------	------	------	----//
 	//	Implementation							//
 	//----	------	------	------	------	----//
-
-
-	constexpr auto DefaultBuffer::Get()
-		const noexcept -> ID3D12Resource* { return reinterpret_cast<ParentType const*>(this)->Get(); }
-
-	constexpr auto DefaultBuffer::SizeInBytes()
-		const noexcept -> uint64_t { return reinterpret_cast<ParentType const*>(this)->SizeInBytes(); }
 
 	void DefaultBuffer::Initialize(
 		GraphicsDevice const& device_,

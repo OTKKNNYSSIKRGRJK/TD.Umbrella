@@ -18,7 +18,7 @@
     <ClCompile Include="Common.Mixins.ixx" />
     <ClCompile Include="Common.SIMD.ixx" />
     <ClCompile Include="Common.Time.ixx" />
-    <ClCompile Include="Common.Type.ixx" />
+    <ClCompile Include="Common.TypeAlias.ixx" />
     <ClCompile Include="DataStructures\DataStructure.Bitset.ixx" />
     <ClCompile Include="DataStructures\DataStructure.List.ixx" />
     <ClCompile Include="External\nlohmann.json.ixx" />

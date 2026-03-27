@@ -12,7 +12,7 @@ import Lumina;
 import Lumina.Utils.ImGui;
 #endif
 
-import MotionManager;
+import Game.MotionManager;
 
 #if defined(_DEBUG)
 namespace {
@@ -413,8 +413,6 @@ namespace Game::Scene::Impl {
 			break;
 		}
 #endif
-
-		Test_.Update();
 	}
 }
 

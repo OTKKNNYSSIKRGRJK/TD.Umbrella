@@ -5,9 +5,6 @@ import <memory>;
 import <vector>;
 
 import Lumina;
-import Lumina.MeshManager;
-import Lumina.Utils.Data.Mesh;
-import Game.CharacterTest;
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
 
@@ -35,9 +32,7 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
-		Game::CharacterTest Test_;
-
-		// エディタ・プレイループ統合
+		// エディタ統合
 		enum class EditorTab { None, Motion, Area, Enemy, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
@@ -69,7 +64,7 @@ namespace Game::Scene::Impl {
 			Character Player;
 			std::vector<PlayEnemy> Enemies;
 
-			// Debug buffs
+			
 			float PlayerSpeedMultiplier = 1.0f;
 			float PlayerAttackPower = 10.0f;
 			
@@ -88,20 +83,5 @@ namespace Game::Scene::Impl {
 #endif
 
 	private:
-		struct MeshMaterial {
-			Lumina::F32 RGBA[4]{ 1.0f, 1.0f, 1.0f, 1.0f };
-			Lumina::U32 ID_DiffuseMap;
-			Lumina::U32 ID_SpecularMap;
-			Lumina::U32 ID_NormalMap;
-		};
-
-		MeshMaterial KinokoMaterial_;
-		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
-		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
-		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
-		Lumina::D3D12::GraphicsPSO GraphicsPSO_MeshDeferredGeometry_;
-
-		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
-		Lumina::D3D12::Canvas Canvas_GeometryPass_;
 	};
 }

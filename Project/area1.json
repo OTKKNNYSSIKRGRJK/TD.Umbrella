@@ -3,11 +3,11 @@
     "collisionGroups": [],
     "connections": [
         {
-            "targetAreaIndex": 2,
+            "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 764.0,
-                    "y": 346.0
+                    "x": 1248.0,
+                    "y": 688.0
                 },
                 "size": {
                     "x": 32.0,
@@ -19,7 +19,7 @@
             "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 624.0,
+                    "x": 656.0,
                     "y": 344.0
                 },
                 "size": {
@@ -30,8 +30,8 @@
         }
     ],
     "editorPos": {
-        "x": 108.0,
-        "y": -1004.0
+        "x": 342.0,
+        "y": -1514.0
     },
     "enemies": [],
     "height": 720,
