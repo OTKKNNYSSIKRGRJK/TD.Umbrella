@@ -1,0 +1,41 @@
+{
+    "backgroundMusic": "",
+    "collisionGroups": [],
+    "connections": [
+        {
+            "targetAreaIndex": 1,
+            "trigger": {
+                "position": {
+                    "x": 802.0,
+                    "y": 0.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
+            "targetAreaIndex": 1,
+            "trigger": {
+                "position": {
+                    "x": 624.0,
+                    "y": 344.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        }
+    ],
+    "editorPos": {
+        "x": 352.0,
+        "y": -682.0
+    },
+    "enemies": [],
+    "height": 720,
+    "index": 0,
+    "name": 0,
+    "width": 1280
+}

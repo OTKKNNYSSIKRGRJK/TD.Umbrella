@@ -19,6 +19,13 @@ namespace Game::Scene::Impl {
 	template<>
 	void InGame::Initialize() {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+		areaEditor_.Initialize();
+		enemyEditor_.Initialize();
+		
+#if defined(_DEBUG)
+		playState_.IsPlaying = true;
+		CheckAndLoadArea(0);
+#endif
 	}
 
 	InGame::InGame() = default;
