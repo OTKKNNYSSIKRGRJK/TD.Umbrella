@@ -3,6 +3,7 @@ module Game.Editor.EnemyEditor;
 import <fstream>;
 import <filesystem>;
 import <string>;
+import <map>;
 
 import nlohmann.json;
 
@@ -134,5 +135,202 @@ namespace Game::Editor {
 		}
 
 		return names;
+	}
+
+	void EnemyEditor::ExtractMeshWireframe(const std::string& gltfPath) {
+		cachedMeshPositions_.clear();
+		cachedMeshEdges_.clear();
+		cachedMeshGltfPath_ = gltfPath;
+
+		if (gltfPath.empty() || !fs::exists(gltfPath)) return;
+
+		std::string ext = fs::path(gltfPath).extension().string();
+		for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		json gltfJson;
+		std::vector<uint8_t> binData; // バイナリデータ
+
+		if (ext == ".gltf") {
+			std::ifstream ifs(gltfPath);
+			if (!ifs.is_open()) return;
+			try { ifs >> gltfJson; } catch (...) { return; }
+
+			// .bin ファイルを探す
+			if (gltfJson.contains("buffers") && gltfJson["buffers"].is_array() &&
+				!gltfJson["buffers"].empty()) {
+				auto& buf0 = gltfJson["buffers"][0];
+				if (buf0.contains("uri") && buf0["uri"].is_string()) {
+					std::string binPath = fs::path(gltfPath).parent_path().string()
+						+ "/" + buf0["uri"].get<std::string>();
+					std::ifstream binFile(binPath, std::ios::binary | std::ios::ate);
+					if (binFile.is_open()) {
+						size_t sz = static_cast<size_t>(binFile.tellg());
+						binFile.seekg(0);
+						binData.resize(sz);
+						binFile.read(reinterpret_cast<char*>(binData.data()), sz);
+					}
+				}
+			}
+		} else if (ext == ".glb") {
+			std::ifstream ifs(gltfPath, std::ios::binary);
+			if (!ifs.is_open()) return;
+
+			uint32_t magic = 0, version = 0, totalLength = 0;
+			ifs.read(reinterpret_cast<char*>(&magic), 4);
+			ifs.read(reinterpret_cast<char*>(&version), 4);
+			ifs.read(reinterpret_cast<char*>(&totalLength), 4);
+			if (magic != 0x46546C67) return;
+
+			// JSON チャンク
+			uint32_t chunkLen = 0, chunkType = 0;
+			ifs.read(reinterpret_cast<char*>(&chunkLen), 4);
+			ifs.read(reinterpret_cast<char*>(&chunkType), 4);
+			if (chunkType != 0x4E4F534A) return;
+
+			std::string jsonStr(chunkLen, '\0');
+			ifs.read(jsonStr.data(), chunkLen);
+			try { gltfJson = json::parse(jsonStr); } catch (...) { return; }
+
+			// BIN チャンク
+			if (ifs.peek() != EOF) {
+				ifs.read(reinterpret_cast<char*>(&chunkLen), 4);
+				ifs.read(reinterpret_cast<char*>(&chunkType), 4);
+				if (chunkType == 0x004E4942) {
+					binData.resize(chunkLen);
+					ifs.read(reinterpret_cast<char*>(binData.data()), chunkLen);
+				}
+			}
+		} else {
+			return;
+		}
+
+		if (binData.empty()) return;
+		if (!gltfJson.contains("meshes") || !gltfJson["meshes"].is_array()) return;
+		if (!gltfJson.contains("accessors") || !gltfJson.contains("bufferViews")) return;
+
+		const auto& accessors = gltfJson["accessors"];
+		const auto& bufferViews = gltfJson["bufferViews"];
+
+		// ヘルパー: accessor から float 配列を読み取る
+		auto readFloats = [&](int accIdx, int expectedComponents) -> std::vector<float> {
+			std::vector<float> result;
+			if (accIdx < 0 || accIdx >= static_cast<int>(accessors.size())) return result;
+			const auto& acc = accessors[accIdx];
+			int count = acc.value("count", 0);
+			int bvIdx = acc.value("bufferView", -1);
+			int accOffset = acc.value("byteOffset", 0);
+			if (bvIdx < 0 || bvIdx >= static_cast<int>(bufferViews.size())) return result;
+			const auto& bv = bufferViews[bvIdx];
+			int bvOffset = bv.value("byteOffset", 0);
+			int stride = bv.value("byteStride", expectedComponents * 4);
+
+			result.reserve(count * expectedComponents);
+			for (int i = 0; i < count; ++i) {
+				size_t base = static_cast<size_t>(bvOffset + accOffset + i * stride);
+				for (int c = 0; c < expectedComponents; ++c) {
+					size_t off = base + c * sizeof(float);
+					if (off + sizeof(float) > binData.size()) { result.push_back(0.0f); continue; }
+					float val;
+					const uint8_t* src = &binData[off];
+					uint8_t* dst = reinterpret_cast<uint8_t*>(&val);
+					for (size_t b = 0; b < sizeof(float); ++b) dst[b] = src[b];
+					result.push_back(val);
+				}
+			}
+			return result;
+		};
+
+		// ヘルパー: accessor から uint16/uint32 インデックスを読み取る
+		auto readIndices = [&](int accIdx) -> std::vector<uint32_t> {
+			std::vector<uint32_t> result;
+			if (accIdx < 0 || accIdx >= static_cast<int>(accessors.size())) return result;
+			const auto& acc = accessors[accIdx];
+			int count = acc.value("count", 0);
+			int componentType = acc.value("componentType", 0);
+			int bvIdx = acc.value("bufferView", -1);
+			int accOffset = acc.value("byteOffset", 0);
+			if (bvIdx < 0 || bvIdx >= static_cast<int>(bufferViews.size())) return result;
+			const auto& bv = bufferViews[bvIdx];
+			int bvOffset = bv.value("byteOffset", 0);
+
+			result.reserve(count);
+			for (int i = 0; i < count; ++i) {
+				size_t base = static_cast<size_t>(bvOffset + accOffset);
+				if (componentType == 5123) { // UNSIGNED_SHORT
+					size_t off = base + i * sizeof(uint16_t);
+					if (off + sizeof(uint16_t) > binData.size()) continue;
+					uint16_t val;
+					const uint8_t* src16 = &binData[off];
+					uint8_t* dst16 = reinterpret_cast<uint8_t*>(&val);
+					for (size_t b = 0; b < sizeof(uint16_t); ++b) dst16[b] = src16[b];
+					result.push_back(static_cast<uint32_t>(val));
+				} else if (componentType == 5125) { // UNSIGNED_INT
+					size_t off = base + i * sizeof(uint32_t);
+					if (off + sizeof(uint32_t) > binData.size()) continue;
+					uint32_t val;
+					const uint8_t* src32 = &binData[off];
+					uint8_t* dst32 = reinterpret_cast<uint8_t*>(&val);
+					for (size_t b = 0; b < sizeof(uint32_t); ++b) dst32[b] = src32[b];
+					result.push_back(val);
+				} else if (componentType == 5121) { // UNSIGNED_BYTE
+					size_t off = base + i;
+					if (off >= binData.size()) continue;
+					result.push_back(static_cast<uint32_t>(binData[off]));
+				}
+			}
+			return result;
+		};
+
+		// 全メッシュの全プリミティブを処理
+		// エッジ重複排除用: (a,b) を int64_t キーにエンコード
+		std::map<int64_t, bool> edgeMap;
+		auto edgeKey = [](int a, int b) -> int64_t {
+			if (a > b) { int t = a; a = b; b = t; }
+			return (static_cast<int64_t>(a) << 32) | static_cast<int64_t>(b);
+		};
+
+		for (const auto& mesh : gltfJson["meshes"]) {
+			if (!mesh.contains("primitives")) continue;
+			for (const auto& prim : mesh["primitives"]) {
+				// POSITION 取得
+				if (!prim.contains("attributes") ||
+					!prim["attributes"].contains("POSITION")) continue;
+				int posAccIdx = prim["attributes"]["POSITION"].get<int>();
+				auto positions = readFloats(posAccIdx, 3);
+
+				int baseVertex = static_cast<int>(cachedMeshPositions_.size());
+				for (size_t i = 0; i + 2 < positions.size(); i += 3) {
+					cachedMeshPositions_.push_back({ positions[i], positions[i+1], positions[i+2] });
+				}
+
+				// インデックス取得
+				std::vector<uint32_t> indices;
+				if (prim.contains("indices")) {
+					indices = readIndices(prim["indices"].get<int>());
+				} else {
+					// インデックスなし → 順番に並ぶ
+					int numVerts = static_cast<int>(positions.size()) / 3;
+					for (int i = 0; i < numVerts; ++i) indices.push_back(static_cast<uint32_t>(i));
+				}
+
+				// 三角形からエッジを抽出
+				for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+					int v0 = baseVertex + static_cast<int>(indices[i]);
+					int v1 = baseVertex + static_cast<int>(indices[i+1]);
+					int v2 = baseVertex + static_cast<int>(indices[i+2]);
+
+					auto addEdge = [&](int a, int b) {
+						int64_t key = edgeKey(a, b);
+						if (edgeMap.find(key) == edgeMap.end()) {
+							edgeMap[key] = true;
+							cachedMeshEdges_.push_back({ a, b });
+						}
+					};
+					addEdge(v0, v1);
+					addEdge(v1, v2);
+					addEdge(v2, v0);
+				}
+			}
+		}
 	}
 }

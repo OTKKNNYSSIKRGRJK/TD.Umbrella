@@ -8,6 +8,8 @@ import <functional>;
 
 import Lumina;
 import Game.Editor.EnemyEditor;
+import Collider;
+import CollisionManager;
 
 export namespace Game {
 
@@ -15,6 +17,57 @@ export namespace Game {
 	/// ゲーム内で実際に動く敵インスタンス
 	/// </summary>
 	struct EnemyInstance {
+		// --- コンストラクタ / 代入演算子 ---
+		EnemyInstance() = default;
+		~EnemyInstance() = default;
+
+		// ムーブは問題なし (unique_ptr はムーブ可能)
+		EnemyInstance(EnemyInstance&&) noexcept = default;
+		EnemyInstance& operator=(EnemyInstance&&) noexcept = default;
+
+		// コピー時はコライダーを除いてコピーし、後で InitCollider() で再生成する
+		EnemyInstance(const EnemyInstance& other)
+			: baseData(other.baseData)
+			, id(other.id)
+			, position(other.position)
+			, velocity(other.velocity)
+			, currentHP(other.currentHP)
+			, isDead(other.isDead)
+			, facingRight(other.facingRight)
+			, hurtTimer(other.hurtTimer)
+			, aiState(other.aiState)
+			, attackCooldownTimer(other.attackCooldownTimer)
+			, stateTimer(other.stateTimer)
+			, currentAction(other.currentAction)
+			// colliders は再生成する
+		{
+			if (!other.colliders.empty()) {
+				InitCollider();
+			}
+		}
+
+		EnemyInstance& operator=(const EnemyInstance& other) {
+			if (this != &other) {
+				baseData = other.baseData;
+				id = other.id;
+				position = other.position;
+				velocity = other.velocity;
+				currentHP = other.currentHP;
+				isDead = other.isDead;
+				facingRight = other.facingRight;
+				hurtTimer = other.hurtTimer;
+				aiState = other.aiState;
+				attackCooldownTimer = other.attackCooldownTimer;
+				stateTimer = other.stateTimer;
+				currentAction = other.currentAction;
+				colliders.clear();
+				if (!other.colliders.empty()) {
+					InitCollider();
+				}
+			}
+			return *this;
+		}
+
 		// --- テンプレートデータ（EnemyEditorから読み込み） ---
 		Editor::EnemyData baseData;
 
@@ -36,6 +89,9 @@ export namespace Game {
 		// --- アニメーション ---
 		std::string currentAction = "Idle";            // 現在のアクション名
 
+		// --- 当たり判定（凸包分割された複数のConvexCollider） ---
+		std::vector<std::unique_ptr<ConvexCollider>> colliders;
+
 		/// <summary>
 		/// baseData の値で初期化する
 		/// </summary>
@@ -47,6 +103,24 @@ export namespace Game {
 			stateTimer = 0.0f;
 			aiState = AIState::Idle;
 			currentAction = "Idle";
+		}
+
+		/// <summary>
+		/// エディタで定義した collisionVertices (2D) から
+		/// ConvexCollider (3D) を初期化する。
+		/// 凹多角形の場合は Ear Clipping で三角形に分割し、
+		/// 各三角形ごとに ConvexCollider を作成する。
+		/// </summary>
+		void InitCollider();
+
+		/// <summary>
+		/// 全コライダーのワールド座標を現在の position に更新する
+		/// </summary>
+		void UpdateCollider() {
+			for (auto& col : colliders) {
+				col->SetWorldPosition(position);
+				col->UpdateAABB();
+			}
 		}
 	};
 
@@ -141,6 +215,16 @@ export namespace Game {
 		/// 全インスタンスをクリア
 		/// </summary>
 		void ClearInstances();
+
+		// ============================
+		//  コリジョン登録
+		// ============================
+
+		/// <summary>
+		/// 生存中の全敵コライダーを指定の CollisionManager に登録する
+		/// 毎フレーム Begin() の後、CheckAllCollisions() の前に呼ぶ
+		/// </summary>
+		void RegisterCollidersTo(CollisionManager& cm);
 
 		/// <summary>
 		/// 死亡済みインスタンスの除去
