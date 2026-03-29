@@ -261,7 +261,7 @@ namespace Lumina::Math {
 		//++##	++##++	##++##	++##++	##++##	++##++	##++##	++##++	##++//
 
 	public:
-		F32x4x4<ROW_MAJOR> static const Identity;
+		static F32x4x4<ROW_MAJOR> const Identity;
 	};
 
 	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
@@ -369,15 +369,13 @@ namespace Lumina::Math {
 		//--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
 
 		for (U32 i{ 0U }; i < 4U; ++i) {
-			for (U32 j{ 0U }; j < 4U; ++j) {
-				dst_.Set(
-					j,
-					src_LHS_.Get(0U) * src_RHS_.Rows_[0U].Get(j) +
-					src_LHS_.Get(1U) * src_RHS_.Rows_[1U].Get(j) +
-					src_LHS_.Get(2U) * src_RHS_.Rows_[2U].Get(j) +
-					src_LHS_.Get(3U) * src_RHS_.Rows_[3U].Get(j)
-				);
-			}
+			dst_.Set(
+				i,
+				src_LHS_.Get(0U) * src_RHS_.Rows_[0U].Get(i) +
+				src_LHS_.Get(1U) * src_RHS_.Rows_[1U].Get(i) +
+				src_LHS_.Get(2U) * src_RHS_.Rows_[2U].Get(i) +
+				src_LHS_.Get(3U) * src_RHS_.Rows_[3U].Get(i)
+			);
 		}
 
 		//--#-	defined(_LUMINA_INTRINSICS_UNUSED_)
@@ -407,11 +405,159 @@ namespace Lumina::Math {
 
 	//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 
-	//_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Determinant() const noexcept -> F32 {
-	//}
+	_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Determinant() const noexcept -> F32 {
+		F32x4x4<ROW_MAJOR> m{ *this };
 
-	//_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Inverse() const noexcept -> F32x4x4<ROW_MAJOR> {
-	//}
+		float k{ 1.0f };
+
+		auto swap{
+			[] (F32x4& lhs_, F32x4& rhs_) {
+				F32x4 tmp{ rhs_ };
+				rhs_ = lhs_;
+				lhs_ = tmp;
+			}
+		};
+
+		int i{ 0 };
+		while (i < 4 && m.Rows_[i].Get(0) == 0) {
+			k *= -1.0f;
+			++i;
+		}
+		if (i > 3) { return 0.0f; }
+		else if (i > 0) { swap(m.Rows_[i], m.Rows_[0]); }
+		for (i = 1; i < 4; ++i) {
+			m.Rows_[i] -= m.Rows_[0] * (m.Rows_[i].Get(0) / m.Rows_[0].Get(0));
+		}
+
+		i = 1;
+		while (i < 4 && m.Rows_[i].Get(1) == 0) {
+			k *= -1.0f;
+			++i;
+		}
+		if (i > 3) { return 0.0f; }
+		else if (i > 1) { swap(m.Rows_[i], m.Rows_[1]); }
+		for (i = 2; i < 4; ++i) {
+			m.Rows_[i] -= m.Rows_[0] * (m.Rows_[i].Get(1) / m.Rows_[1].Get(1));
+		}
+
+		i = 2;
+		while (i < 4 && m.Rows_[i].Get(2) == 0) {
+			k *= -1.0f;
+			++i;
+		}
+		if (i > 3) { return 0.0f; }
+		else if (i > 2) { swap(m.Rows_[i], m.Rows_[2]); }
+
+		m.Rows_[3] -= m.Rows_[2] * (m.Rows_[3].Get(2) / m.Rows_[2].Get(2));
+		
+		return k * m.Rows_[0].Get(0) * m.Rows_[1].Get(1) * m.Rows_[2].Get(2) * m.Rows_[3].Get(3);
+	}
+
+	_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Inverse() const noexcept -> F32x4x4<ROW_MAJOR> {
+		F32x4x4<ROW_MAJOR> ret{};
+
+		F32x4 det{};
+
+		F32x4 rows[4]{};
+		F32x4 minors[4]{};
+
+		F32x4 tmp{};
+
+		tmp = F32x4::Shuffle<0, 1, 0, 1>(Rows_[0], Rows_[1]);
+		rows[1] = F32x4::Shuffle<0, 1, 0, 1>(Rows_[2], Rows_[3]);
+
+		rows[0] = F32x4::Shuffle<0b10001000>(tmp, rows[1]);
+		rows[1] = F32x4::Shuffle<0b11011101>(rows[1], tmp);
+
+		tmp = F32x4::Shuffle<2, 3, 2, 3>(Rows_[0], Rows_[1]);
+		rows[3] = F32x4::Shuffle<2, 3, 2, 3>(Rows_[2], Rows_[3]);
+
+		rows[2] = F32x4::Shuffle<0b10001000>(tmp, rows[3]);
+		rows[3] = F32x4::Shuffle<0b11011101>(rows[3], tmp);
+
+		tmp = rows[2] * rows[3];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+
+		minors[0] = rows[1] * tmp;
+		minors[1] = rows[0] * tmp;
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[0] = (rows[1] * tmp) - minors[0];
+		minors[1] = (rows[0] * tmp) - minors[1];
+		minors[1] = F32x4::Shuffle<0b01001110>(minors[1], minors[1]);
+
+		tmp = rows[1] * rows[2];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+
+		minors[0] = (rows[3] * tmp) + minors[0];
+		minors[3] = rows[0] * tmp;
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[0] = minors[0] - (rows[3] * tmp);
+		minors[3] = (rows[0] * tmp) - minors[3];
+		minors[3] = F32x4::Shuffle<0b01001110>(minors[3], minors[3]);
+
+		tmp = F32x4::Shuffle<0b01001110>(rows[1], rows[1]) * rows[3];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+		rows[2] = F32x4::Shuffle<0b01001110>(rows[2], rows[2]);
+
+		minors[0] = (rows[2] * tmp) + minors[0];
+		minors[2] = rows[0] * tmp;
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[0] = minors[0] - (rows[2] * tmp);
+		minors[2] = (rows[0] * tmp) - minors[2];
+		minors[2] = F32x4::Shuffle<0b01001110>(minors[2], minors[2]);
+
+		tmp = rows[0] * rows[1];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+
+		minors[2] = (rows[3] * tmp) + minors[2];
+		minors[3] = (rows[2] * tmp) - minors[3];
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[2] = (rows[3] * tmp) - minors[2];
+		minors[3] = minors[3] - (rows[2] * tmp);
+
+		tmp = rows[0] * rows[3];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+
+		minors[1] = minors[1] - (rows[2] * tmp);
+		minors[2] = (rows[1] * tmp) + minors[2];
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[1] = (rows[2] * tmp) + minors[1];
+		minors[2] = minors[2] - (rows[1] * tmp);
+
+		tmp = rows[0] * rows[2];
+		tmp = F32x4::Shuffle<0b10110001>(tmp, tmp);
+
+		minors[1] = (rows[3] * tmp) + minors[1];
+		minors[3] = minors[3] - (rows[1] * tmp);
+
+		tmp = F32x4::Shuffle<0b01001110>(tmp, tmp);
+
+		minors[1] = minors[1] - (rows[3] * tmp);
+		minors[3] = (rows[1] * tmp) + minors[3];
+
+		det = rows[0] * minors[0];
+		det = F32x4::Shuffle<0b01001110>(det, det) + det;
+		det = F32x4::Shuffle<0b10110001>(det, det) + det;
+
+		F32 const inv_Det{ 1.0f / det.Get(0) };
+
+		ret.Rows_[0] = inv_Det * minors[0];
+		ret.Rows_[1] = inv_Det * minors[1];
+		ret.Rows_[2] = inv_Det * minors[2];
+		ret.Rows_[3] = inv_Det * minors[3];
+
+		return ret;
+	}
 
 	_LUMINA_INLINE_ auto F32x4x4<ROW_MAJOR>::Transpose(
 		F32x4x4<ROW_MAJOR>::OUT dst_,
@@ -599,7 +745,7 @@ namespace Lumina::Math {
 		//++##	++##++	##++##	++##++	##++##	++##++	##++##	++##++	##++//
 
 	public:
-		F32x4x4<COLUMN_MAJOR> static const Identity;
+		static F32x4x4<COLUMN_MAJOR> const Identity;
 	};
 
 	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://

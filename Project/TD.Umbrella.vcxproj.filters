@@ -31,6 +31,12 @@
     <Filter Include="TerrainEditor">
       <UniqueIdentifier>{9bd74b84-ee90-46f7-8f43-cd4735399fdc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{b0e30334-ce49-4706-aba5-cbf71624d890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Terrain">
+      <UniqueIdentifier>{9c3cfdd8-34ff-4bb2-a9f6-0df55cbac6f8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -156,6 +162,15 @@
     </ClCompile>
     <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp">
       <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp">
+      <Filter>Game\Terrain</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

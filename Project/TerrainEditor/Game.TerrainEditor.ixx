@@ -2,7 +2,8 @@ export module Game.TerrainEditor;
 
 import <vector>;
 
-import Lumina;
+import Lumina.Core.Common;
+import Lumina.Core.Math;
 
 namespace Game {
 	struct Point {

@@ -11,6 +11,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.ixx" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
@@ -101,7 +104,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{5d12660b-35c4-4430-b9c9-8695c59a167b}</ProjectGuid>
-    <RootNamespace>Lumina</RootNamespace>
+    <RootNamespace>TD.Umbrella</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

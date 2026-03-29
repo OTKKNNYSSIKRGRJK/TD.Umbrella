@@ -48,6 +48,12 @@
     <ClCompile Include="Utils\Utils.Data.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\Utils.Camera.ixx">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Utils.Misc.ixx">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

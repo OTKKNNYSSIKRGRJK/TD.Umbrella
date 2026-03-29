@@ -4,7 +4,7 @@ import <vector>;
 
 import nlohmann.json;
 
-import Lumina;
+//import Lumina;
 
 import Lumina.Utils.Data;
 
@@ -19,6 +19,8 @@ namespace Game::Scene::Impl {
 	template<>
 	void InGame::Initialize() {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+		TerrainEditor_ = std::make_unique<TerrainEditor>();
+		TerrainEditor_->Initialize();
 	}
 
 	InGame::InGame() = default;

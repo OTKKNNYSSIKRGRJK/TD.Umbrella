@@ -4,7 +4,9 @@ import <memory>;
 
 import <vector>;
 
-import Lumina;
+#if defined(_DEBUG)
+import Game.TerrainEditor;
+#endif
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -30,5 +32,6 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
+		std::unique_ptr<TerrainEditor> TerrainEditor_;
 	};
 }
