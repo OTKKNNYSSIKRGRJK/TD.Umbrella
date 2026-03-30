@@ -55,13 +55,6 @@ namespace Game::Scene::Impl {
 			ワールド行列
 		);*/
 
-		/*meshMngr.Batch(
-			MeshShaderAssets_[0],
-			1U,
-			LocalHeap_Materials_.CPUHandle(0U),
-			Lumina::Math::F32x4x4<>::Identity
-		);*/
-
 		Player_->Draw();
 
 		meshMngr.BatchEnd();

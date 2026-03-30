@@ -201,11 +201,6 @@ void Player::Update(float deltaTime) {
 }
 
 void Player::Draw() {
-	// 描画関連は後で
-	//obj_->LocalToWorld();
-	//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-	//obj_->Draw();
-
 	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
 	meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, *WorldMatrix_);
 
