@@ -20,34 +20,34 @@ namespace Game::Scene::Impl {
 
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
 			 Lumina::D3D12::Barrier::Transition(
-				 Canvas_.RenderTexture(0U),
+				 Canvas_GeometryPass_.RenderTexture(0U),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				 D3D12_RESOURCE_STATE_RENDER_TARGET
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
-				 Canvas_.RenderTexture(1U),
+				 Canvas_GeometryPass_.RenderTexture(1U),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				 D3D12_RESOURCE_STATE_RENDER_TARGET
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
-				 Canvas_.DepthTexture(),
+				 Canvas_GeometryPass_.DepthTexture(),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				 D3D12_RESOURCE_STATE_DEPTH_WRITE
 			 ),
 		};
 		cmdList->ResourceBarrier(3U, barriers_PreGeometryPass);
 
-		D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2]{ Canvas_.RTV(0U), Canvas_.RTV(1U) };
+		/*D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2]{ Canvas_.RTV(0U), Canvas_.RTV(1U) };
 		auto dsv{ Canvas_.DSV() };
-		cmdList->OMSetRenderTargets(2U, rtvs, false, &dsv);
+		cmdList->OMSetRenderTargets(2U, rtvs, false, &dsv);*/
 
 		cmdList->RSSetViewports(
-			Canvas_.Num_RenderTargets(),
-			Canvas_.Viewports().data()
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.Viewports().data()
 		);
 		cmdList->RSSetScissorRects(
-			Canvas_.Num_RenderTargets(),
-			Canvas_.ScissorRects().data()
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
 		// メッシュバッチ処理
@@ -60,12 +60,12 @@ namespace Game::Scene::Impl {
 		);
 		*/
 
-		/*meshMngr.Batch(
-			MeshShaderAssets_[2],
+		meshMngr.Batch(
+			MeshShaderAssets_[0],
 			1U,
-			LocalHeap_Materials_.CPUHandle(2U),
-			boss_->GetWorldMat()
-		);*/
+			LocalHeap_Materials_.CPUHandle(0U),
+			Lumina::Math::F32x4x4<>::Identity
+		);
 
 		meshMngr.BatchEnd();
 
@@ -77,22 +77,21 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
 			LocalHeap_Scene_.CPUHandle(0U)
 		);
-
-		/*RenderPass_.End();*/
+		GeometryPass_->End();
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
-				Canvas_.RenderTexture(0U),
+				Canvas_GeometryPass_.RenderTexture(0U),
 				D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 			Lumina::D3D12::Barrier::Transition(
-				Canvas_.RenderTexture(1U),
+				Canvas_GeometryPass_.RenderTexture(1U),
 				D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 			Lumina::D3D12::Barrier::Transition(
-				Canvas_.DepthTexture(),
+				Canvas_GeometryPass_.DepthTexture(),
 				D3D12_RESOURCE_STATE_DEPTH_WRITE,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),

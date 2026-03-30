@@ -1,6 +1,8 @@
-export module Lumina.D3D12 : Barrier;
+module;
 
-import <d3d12.h>;
+#include<d3d12.h>
+
+export module Lumina.D3D12 : Barrier;
 
 import : Resource;
 

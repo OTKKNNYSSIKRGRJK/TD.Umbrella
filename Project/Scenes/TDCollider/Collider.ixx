@@ -48,6 +48,7 @@ export enum class ColliderShape {
 export class Collider
 {
 public:
+	Collider() = default;
 	virtual ~Collider() = default;
 public:
 	using CollisionCallback = std::function<void(Collider*, const Vector3&)>;
@@ -106,21 +107,21 @@ public:
 		worldMatrix_ = std::make_unique<Matrix4x4>();
 		*worldMatrix_ = Matrix4x4::Identity;
 	}
-	~ConvexCollider() {}
+	virtual ~ConvexCollider() {}
 
 public:
 	ColliderShape GetShapeType() const override { return ColliderShape::Convex; }
 
 	// GJKに必要な頂点データ
-	void SetVertices(const std::vector<Vector3>& vertices) { vertices_ = vertices; }
-	const std::vector<Vector3>& GetVertices() const { return vertices_; }
+	void SetVertices(std::vector<Vector3> const& vertices) { vertices_ = vertices; }
+	std::vector<Vector3> const& GetVertices() const { return vertices_; }
 
 	// 自身の頂点群からAABBを計算して更新する
 	void UpdateAABB() override;
 public:
 	// PositionではなくMatrixを持たせる
-	void SetWorldMatrix(const Matrix4x4& mat) { *worldMatrix_ = mat; }
-	const Matrix4x4& GetWorldMatrix() const { return *worldMatrix_; }
+	void SetWorldMatrix(Matrix4x4 const& mat) { *worldMatrix_ = mat; }
+	Matrix4x4 const& GetWorldMatrix() const { return *worldMatrix_; }
 
 private:
 	std::vector<Vector3> vertices_;

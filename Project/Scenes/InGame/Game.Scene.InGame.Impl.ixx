@@ -41,13 +41,12 @@ namespace Game::Scene::Impl {
 
 	private:
 		struct MeshMaterial {
-			Lumina::F32 RGBA[4]{ 1.0f, 1.0f, 1.0f, 1.0f };
+			Lumina::F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
 			Lumina::U32 ID_DiffuseMap;
 			Lumina::U32 ID_SpecularMap;
 			Lumina::U32 ID_NormalMap;
 		};
 
-		MeshMaterial Material_;
 		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
 		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
 		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
@@ -57,6 +56,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
 		Lumina::D3D12::Canvas Canvas_GeometryPass_;
 
+		MeshMaterial Material_;
 		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;

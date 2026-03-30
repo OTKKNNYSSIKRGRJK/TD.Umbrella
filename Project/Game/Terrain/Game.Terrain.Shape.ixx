@@ -29,7 +29,7 @@ namespace Game {
 			Lumina::I32 NextID;
 		};
 
-		Lumina::List<ConvexCollider> Colliders;
+		std::vector<std::unique_ptr<ConvexCollider>> Colliders;
 
 		Lumina::List<Vertex> Vertices;
 	};

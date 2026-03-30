@@ -130,16 +130,15 @@ namespace Game {
 			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), worldPos.Z() };
 		}
 
-		out_.Ground_.Colliders.Initialize(1024);
-
 		Lumina::List<Ground::Vertex>::Iterator it_RetGroundVert{ out_.Ground_.Vertices };
 		it_RetGroundVert.Begin();
 		auto const* retGroundVert0{ &(*it_RetGroundVert) };
 		for (it_RetGroundVert.Next(); !it_RetGroundVert.End(); it_RetGroundVert.Next()) {
 			auto const* retGroundVert1{ &(*it_RetGroundVert) };
 
-			auto& collider{ out_.Ground_.Colliders.New() };
-			collider.SetVertices(
+			auto& collider{ out_.Ground_.Colliders.emplace_back() };
+			collider = std::make_unique<ConvexCollider>();
+			collider->SetVertices(
 				{
 					retGroundVert0->Pos,
 					retGroundVert1->Pos,
@@ -148,7 +147,7 @@ namespace Game {
 					{ retGroundVert0->Pos.X, -10.0f, retGroundVert0->Pos.Z }
 				}
 			);
-			collider.UpdateAABB();
+			collider->UpdateAABB();
 
 			retGroundVert0 = retGroundVert1;
 		}

@@ -74,12 +74,24 @@ namespace Game::Scene::Impl {
 			);
 		}
 
-		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);
-		LocalHeap_Scene_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
-		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
+		Material_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
+		Material_.ID_DiffuseMap = 0;
+
+		auto& material0{ UB_Materials_.emplace_back() };
+		material0 = std::make_unique<Lumina::D3D12::UploadBuffer>();
+		material0->Initialize(d3d12Device, 256LLU);
+		material0->Store(&Material_, sizeof(Material_), 0LLU);
+		LocalHeap_Materials_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *material0);
 
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+		auto&& worldToHomogeneous_{ Camera_->View() * Camera_->Projection() };
+		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);
+		UB_WorldToHomogeneous_.Store(worldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+		LocalHeap_Scene_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
 
 		//////	//////	//////	//////	//////	//////	//////
 
