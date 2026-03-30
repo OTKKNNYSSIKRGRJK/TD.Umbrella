@@ -31,6 +31,9 @@
     <Filter Include="Scenes\Enemy">
       <UniqueIdentifier>{a4e1f3d2-8b7c-4e5f-9d6a-1c2b3d4e5f6a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\ActorEditor">
+      <UniqueIdentifier>{b5f2e4d3-9c8d-5f6e-ae7b-2d3c4e5f6a7b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -156,6 +159,15 @@
     </ClCompile>
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp">
       <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx">
+      <Filter>Scenes\ActorEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Initialize.cpp">
+      <Filter>Scenes\ActorEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp">
+      <Filter>Scenes\ActorEditor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

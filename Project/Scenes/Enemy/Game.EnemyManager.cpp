@@ -7,6 +7,7 @@ import <algorithm>;
 import <array>;
 
 import nlohmann.json;
+import Game.MathUtils;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -184,6 +185,16 @@ namespace Game {
 			col->SetUserData(this);
 			col->SetVertices(verts3d);
 			col->SetWorldPosition(position);
+
+			col->onCollisionCallback = [this](Collider* other, const Lumina::Math::F32x3& pushOut) {
+				if (other->GetMyType() == COL_Ground || other->GetMyType() == COL_Player) {
+					position.X += (-pushOut.X);
+					position.Y += (-pushOut.Y);
+					position.Z += (-pushOut.Z);
+				}
+				// Player Attack takes damage handling elsewhere or could be handled here
+			};
+
 			col->UpdateAABB();
 			colliders.push_back(std::move(col));
 		};
@@ -213,8 +224,24 @@ namespace Game {
 		}
 	}
 
+	void EnemyInstance::UpdateCollider() {
+		Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+		Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+		if (!facingRight) {
+			rot.Y = 3.14159265f; // rotate 180 degrees
+		}
+		auto worldMat = Game::MathUtils::SRT(scale, rot, position);
+
+		for (auto& col : colliders) {
+			col->SetWorldPosition(position);
+			col->SetWorldMatrix(worldMat);
+			col->UpdateAABB();
+		}
+	}
+
 	// ============================
 	//  シングルトン
+
 	// ============================
 
 	std::unique_ptr<EnemyManager> EnemyManager::instance_ = nullptr;

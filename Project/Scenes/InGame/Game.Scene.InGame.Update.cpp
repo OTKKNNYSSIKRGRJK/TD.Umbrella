@@ -118,24 +118,64 @@ namespace Game::Scene::Impl {
 		}
 		
 		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::ENTER) && playState_.PlayerAttackTimer <= 0.0f) {
-			playState_.PlayerAttackTimer = 0.3f; // Cooldown
+			playState_.PlayerAttackTimer = 0.3f; // attack lasts 0.3s
 			
-			// Hit detection (2D Horizontal + Vertical distance)
 			for (auto& e : playState_.Enemies) {
-				if (e.IsDead) continue;
-				float dx = e.Position.X - playState_.Player.Position.X;
-				float dy = e.Position.Y - playState_.Player.Position.Y;
-				float dist = std::sqrt(dx*dx + dy*dy);
+				if (e.IsDead || e.HurtTimer > 0.0f) continue;
 				
-				// Facing check and distance
-				if (dist < 150.0f) {
-					if ((playState_.Player.FacingRight && dx >= -50.0f) || (!playState_.Player.FacingRight && dx <= 50.0f)) {
-						e.CurrentHP -= static_cast<int>(playState_.PlayerAttackPower);
-						e.HurtTimer = 0.2f;
-						if (e.CurrentHP <= 0) {
-							e.IsDead = true;
-							playState_.Player.Mana += 10; // Gain Mana
+				bool isHit = false;
+				if (e.BaseData.collisionVertices.size() >= 3) {
+					float ex = e.Position.X;
+					float ey = e.Position.Y;
+					float pcx = playState_.Player.Position.X;
+					float pcy = playState_.Player.Position.Y;
+					bool eFacingRight = (pcx - ex > 0);
+					float scale = 60.0f;
+					
+					float atkLeft = playState_.Player.FacingRight ? pcx : pcx - 50.0f;
+					float atkRight = playState_.Player.FacingRight ? pcx + 50.0f : pcx;
+					float atkTop = pcy + 40.0f;
+					float atkBottom = pcy;
+
+					int n = static_cast<int>(e.BaseData.collisionVertices.size());
+					for (int i = 0; i < n; ++i) {
+						float vi_x = ex + (eFacingRight ? e.BaseData.collisionVertices[i].x : -e.BaseData.collisionVertices[i].x) * scale;
+						float vi_y = ey + e.BaseData.collisionVertices[i].y * scale;
+						if (vi_x >= atkLeft && vi_x <= atkRight && vi_y >= atkBottom && vi_y <= atkTop) {
+							isHit = true; break;
 						}
+					}
+					if (!isHit) {
+						float cx = (atkLeft + atkRight) / 2.0f;
+						float cy = (atkBottom + atkTop) / 2.0f;
+						bool inside = false;
+						for (int i = 0, j = n - 1; i < n; j = i++) {
+							float vi_x = ex + (eFacingRight ? e.BaseData.collisionVertices[i].x : -e.BaseData.collisionVertices[i].x) * scale;
+							float vi_y = ey + e.BaseData.collisionVertices[i].y * scale;
+							float vj_x = ex + (eFacingRight ? e.BaseData.collisionVertices[j].x : -e.BaseData.collisionVertices[j].x) * scale;
+							float vj_y = ey + e.BaseData.collisionVertices[j].y * scale;
+							if (((vi_y > cy) != (vj_y > cy)) &&
+								(cx < (vj_x - vi_x) * (cy - vi_y) / (vj_y - vi_y) + vi_x)) {
+								inside = !inside;
+							}
+						}
+						isHit = inside;
+					}
+				} else {
+					float dx = e.Position.X - playState_.Player.Position.X;
+					float dy = std::abs(e.Position.Y - playState_.Player.Position.Y);
+					if (dy < 40.0f && ((playState_.Player.FacingRight && dx > 0 && dx < 50.0f) || 
+									   (!playState_.Player.FacingRight && dx < 0 && dx > -50.0f))) {
+						isHit = true;
+					}
+				}
+				
+				if (isHit) {
+					e.CurrentHP -= static_cast<int>(playState_.PlayerAttackPower);
+					e.HurtTimer = 0.2f;
+					if (e.CurrentHP <= 0) {
+						e.IsDead = true;
+						playState_.Player.Mana += 10; // Gain Mana
 					}
 				}
 			}
@@ -179,14 +219,7 @@ namespace Game::Scene::Impl {
 		for (auto& e : playState_.Enemies) {
 			if (e.IsDead) continue;
 			
-			// Puppet Auto-Regen
-			if (e.BaseData.name == "Puppet") {
-				if (e.HurtTimer <= 0.0f && e.CurrentHP < e.BaseData.hp) {
-					e.CurrentHP += 10; // Extremely high regeneration (600 HP / sec)
-					if (e.CurrentHP > e.BaseData.hp) e.CurrentHP = e.BaseData.hp;
-				}
-				continue; // Puppets don't move or attack
-			}
+			// Regenerate logic removed for NewEnemy or general prototype testing
 			
 			float dx = playState_.Player.Position.X - e.Position.X;
 			float dy = playState_.Player.Position.Y - e.Position.Y;
@@ -196,7 +229,51 @@ namespace Game::Scene::Impl {
 				e.Position.X += (dx > 0 ? 1.0f : -1.0f) * e.BaseData.moveSpeed * 60.0f * dt;
 			}
 			
-			if (dist < 50.0f && playState_.Player.HurtTimer <= 0.0f) {
+			bool isHit = false;
+			if (e.BaseData.collisionVertices.size() >= 3) {
+				float px = playState_.Player.Position.X;
+				float py = playState_.Player.Position.Y;
+				float ex = e.Position.X;
+				float ey = e.Position.Y;
+				float scale = 60.0f;
+				bool facingRight = (dx > 0);
+				
+				std::array<ImVec2, 5> playerPts = {
+					ImVec2(px - 20.0f, py), ImVec2(px + 20.0f, py),
+					ImVec2(px - 20.0f, py + 40.0f), ImVec2(px + 20.0f, py + 40.0f),
+					ImVec2(px, py + 20.0f)
+				};
+				
+				int n = static_cast<int>(e.BaseData.collisionVertices.size());
+				for (const auto& pt : playerPts) {
+					bool inside = false;
+					for (int i = 0, j = n - 1; i < n; j = i++) {
+						float vi_x = ex + (facingRight ? e.BaseData.collisionVertices[i].x : -e.BaseData.collisionVertices[i].x) * scale;
+						float vi_y = ey + e.BaseData.collisionVertices[i].y * scale;
+						float vj_x = ex + (facingRight ? e.BaseData.collisionVertices[j].x : -e.BaseData.collisionVertices[j].x) * scale;
+						float vj_y = ey + e.BaseData.collisionVertices[j].y * scale;
+						if (((vi_y > pt.y) != (vj_y > pt.y)) &&
+							(pt.x < (vj_x - vi_x) * (pt.y - vi_y) / (vj_y - vi_y) + vi_x)) {
+							inside = !inside;
+						}
+					}
+					if (inside) { isHit = true; break; }
+				}
+				
+				if (!isHit) {
+					for (int i = 0; i < n; ++i) {
+						float vi_x = ex + (facingRight ? e.BaseData.collisionVertices[i].x : -e.BaseData.collisionVertices[i].x) * scale;
+						float vi_y = ey + e.BaseData.collisionVertices[i].y * scale;
+						if (vi_x >= px - 20.0f && vi_x <= px + 20.0f && vi_y >= py && vi_y <= py + 40.0f) {
+							isHit = true; break;
+						}
+					}
+				}
+			} else {
+				isHit = (dist < 50.0f);
+			}
+
+			if (isHit && playState_.Player.HurtTimer <= 0.0f) {
 				playState_.Player.HP -= static_cast<int>(e.BaseData.power);
 				playState_.Player.HurtTimer = 1.0f; // Invincibility frame
 			}
@@ -259,17 +336,14 @@ namespace Game::Scene::Impl {
 		if (ImGui::Button("Add 100 Mana")) {
 			playState_.Player.Mana += 100;
 		}
-		if (ImGui::Button("Spawn Puppet (Target Dummy)")) {
-			PlayEnemy puppet;
-			puppet.BaseData.hp = 50; // Set to 50 HP
-			puppet.BaseData.name = "Puppet";
-			puppet.BaseData.moveSpeed = 0.0f; // Doesn't move
-			puppet.BaseData.power = 0.0f; // Doesn't attack
-			puppet.Position = playState_.Player.Position;
-			puppet.Position.X += (playState_.Player.FacingRight ? 150.0f : -150.0f);
-			puppet.CurrentHP = puppet.BaseData.hp;
-			puppet.IsDead = false;
-			playState_.Enemies.push_back(puppet);
+		if (ImGui::Button("Spawn newenemy")) {
+			PlayEnemy newEnemy;
+			enemyEditor_.LoadEnemy(newEnemy.BaseData, "NewEnemy.json");
+			newEnemy.Position = playState_.Player.Position;
+			newEnemy.Position.X += (playState_.Player.FacingRight ? 150.0f : -150.0f);
+			newEnemy.CurrentHP = newEnemy.BaseData.hp;
+			newEnemy.IsDead = false;
+			playState_.Enemies.push_back(newEnemy);
 		}
 		
 		ImGui::End();
@@ -318,7 +392,51 @@ namespace Game::Scene::Impl {
 			if (e.BaseData.name == "Puppet") ec = MakeCol32(100, 100, 200, 255); // Blue-ish for dummy
 			if (e.HurtTimer > 0.0f) ec = MakeCol32(255, 255, 255, 255); // Flash white
 
-			drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 40), ImVec2(sp.x + 20, sp.y), ec);
+			if (enemyEditor_.GetCachedMeshGltfPath() != e.BaseData.gltfPath) {
+				enemyEditor_.ExtractMeshWireframe(e.BaseData.gltfPath);
+			}
+			const auto& edges = enemyEditor_.GetCachedMeshEdges();
+			const auto& positions = enemyEditor_.GetCachedMeshPositions();
+
+			if (!edges.empty()) {
+				float scale = 60.0f; // 1 unit in GLTF = 60 pixels
+				bool facingRight = (playState_.Player.Position.X - e.Position.X > 0);
+				for (const auto& edge : edges) {
+					if (edge[0] < 0 || edge[0] >= positions.size()) continue;
+					if (edge[1] < 0 || edge[1] >= positions.size()) continue;
+					const auto& p0 = positions[edge[0]];
+					const auto& p1 = positions[edge[1]];
+
+					float p0x = facingRight ? p0[0] : -p0[0];
+					float p1x = facingRight ? p1[0] : -p1[0];
+
+					Lumina::Math::F32x3 wp0{ e.Position.X + p0x * scale, e.Position.Y + p0[1] * scale, 0.0f };
+					Lumina::Math::F32x3 wp1{ e.Position.X + p1x * scale, e.Position.Y + p1[1] * scale, 0.0f };
+
+					ImVec2 sp0 = WorldToScreen(wp0);
+					ImVec2 sp1 = WorldToScreen(wp1);
+					drawList->AddLine(sp0, sp1, MakeCol32(80, 220, 120, 200), 1.5f);
+				}
+			} else {
+				drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 40), ImVec2(sp.x + 20, sp.y), ec);
+			}
+
+			if (e.BaseData.collisionVertices.size() >= 3) {
+				float scale = 60.0f;
+				int n = static_cast<int>(e.BaseData.collisionVertices.size());
+				bool facingRight = (playState_.Player.Position.X - e.Position.X > 0);
+				for (int i = 0; i < n; ++i) {
+					int j = (i + 1) % n;
+					float vi_x = facingRight ? e.BaseData.collisionVertices[i].x : -e.BaseData.collisionVertices[i].x;
+					float vi_y = e.BaseData.collisionVertices[i].y;
+					float vj_x = facingRight ? e.BaseData.collisionVertices[j].x : -e.BaseData.collisionVertices[j].x;
+					float vj_y = e.BaseData.collisionVertices[j].y;
+					
+					ImVec2 spA = WorldToScreen({e.Position.X + vi_x * scale, e.Position.Y + vi_y * scale, 0.0f});
+					ImVec2 spB = WorldToScreen({e.Position.X + vj_x * scale, e.Position.Y + vj_y * scale, 0.0f});
+					drawList->AddLine(spA, spB, MakeCol32(255, 0, 0, 230), 2.0f);
+				}
+			}
 			
 			// HP bar
 			if (e.BaseData.hp > 0) {
@@ -389,6 +507,10 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Enemy;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Actor Editor", nullptr, activeEditor_ == EditorTab::Actor)) {
+					activeEditor_ = EditorTab::Actor;
+					playState_.IsPlaying = false;
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
@@ -404,6 +526,9 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Enemy:
 			enemyEditor_.Update();
+			break;
+		case EditorTab::Actor:
+			actorEditor_.Update();
 			break;
 		case EditorTab::Play:
 			UpdatePlayLogic();

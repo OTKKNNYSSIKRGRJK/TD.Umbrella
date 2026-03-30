@@ -411,7 +411,7 @@ namespace Game::Editor {
 		bool isHovered = ImGui::IsItemHovered();
 
 		// キャンバス中心 = 敵の原点
-		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f, canvasP0.y + canvasSz.y * 0.5f);
+		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f + canvasOffsetX_, canvasP0.y + canvasSz.y * 0.5f + canvasOffsetY_);
 		float scale = collisionZoom_ * 30.0f; // 1単位 = scale pixels
 
 		// --- グリッド描画 ---
@@ -634,6 +634,13 @@ namespace Game::Editor {
 					break;
 				}
 			}
+		}
+
+		// 右クリックドラッグ: キャンバスの移動
+		if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+			ImVec2 delta = ImGui::GetIO().MouseDelta;
+			canvasOffsetX_ += delta.x;
+			canvasOffsetY_ += delta.y;
 		}
 
 		// --- 座標表示 ---

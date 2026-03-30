@@ -160,8 +160,13 @@ namespace Game::Editor {
 				!gltfJson["buffers"].empty()) {
 				auto& buf0 = gltfJson["buffers"][0];
 				if (buf0.contains("uri") && buf0["uri"].is_string()) {
-					std::string binPath = fs::path(gltfPath).parent_path().string()
-						+ "/" + buf0["uri"].get<std::string>();
+					fs::path parentPath = fs::path(gltfPath).parent_path();
+					std::string binPath;
+					if (parentPath.empty()) {
+						binPath = buf0["uri"].get<std::string>();
+					} else {
+						binPath = parentPath.string() + "/" + buf0["uri"].get<std::string>();
+					}
 					std::ifstream binFile(binPath, std::ios::binary | std::ios::ate);
 					if (binFile.is_open()) {
 						size_t sz = static_cast<size_t>(binFile.tellg());
@@ -281,15 +286,91 @@ namespace Game::Editor {
 			return result;
 		};
 
-		// 全メッシュの全プリミティブを処理
-		// エッジ重複排除用: (a,b) を int64_t キーにエンコード
-		std::map<int64_t, bool> edgeMap;
-		auto edgeKey = [](int a, int b) -> int64_t {
-			if (a > b) { int t = a; a = b; b = t; }
-			return (static_cast<int64_t>(a) << 32) | static_cast<int64_t>(b);
+		// ノード階層からの各メッシュのグローバルトランスフォームの取得
+		std::map<int, std::vector<int>> childrenMap;
+		std::map<int, std::array<float, 16>> nodeTransforms;
+		std::map<int, int> nodeToMesh;
+
+		if (gltfJson.contains("nodes") && gltfJson["nodes"].is_array()) {
+			int idx = 0;
+			for (const auto& node : gltfJson["nodes"]) {
+				std::array<float, 16> localMat = {
+					1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1
+				};
+				if (node.contains("matrix")) {
+					for (int i=0; i<16; ++i) localMat[i] = node["matrix"][i].get<float>();
+				} else {
+					if (node.contains("translation")) {
+						localMat[12] = node["translation"][0].get<float>();
+						localMat[13] = node["translation"][1].get<float>();
+						localMat[14] = node["translation"][2].get<float>();
+					}
+					if (node.contains("scale")) {
+						localMat[0] = node["scale"][0].get<float>();
+						localMat[5] = node["scale"][1].get<float>();
+						localMat[10] = node["scale"][2].get<float>();
+					}
+					// 簡易パースのためクォータニオン(rotation)はここでは省略
+				}
+				nodeTransforms[idx] = localMat;
+				if (node.contains("mesh")) {
+					nodeToMesh[idx] = node["mesh"].get<int>();
+				}
+				if (node.contains("children")) {
+					for (auto& c : node["children"]) {
+						childrenMap[idx].push_back(c.get<int>());
+					}
+				}
+				idx++;
+			}
+		}
+
+		std::vector<std::pair<int, std::array<float, 16>>> meshInstances; // meshIdx, globalMat
+		std::function<void(int, std::array<float, 16>)> dfs = [&](int nodeIdx, std::array<float, 16> parentMat) {
+			std::array<float, 16> globalMat{};
+			for (int i=0; i<4; ++i) {
+				for (int j=0; j<4; ++j) {
+					for (int k=0; k<4; ++k) {
+						globalMat[i + j*4] += parentMat[i + k*4] * nodeTransforms[nodeIdx][k + j*4];
+					}
+				}
+			}
+			if (nodeToMesh.count(nodeIdx)) {
+				meshInstances.push_back({ nodeToMesh[nodeIdx], globalMat });
+			}
+			for (int child : childrenMap[nodeIdx]) {
+				dfs(child, globalMat);
+			}
 		};
 
-		for (const auto& mesh : gltfJson["meshes"]) {
+		std::map<int, bool> isChild;
+		for (auto& [p, children] : childrenMap) {
+			for (int c : children) isChild[c] = true;
+		}
+		if (gltfJson.contains("nodes") && gltfJson["nodes"].is_array()) {
+			for (int i = 0; i < gltfJson["nodes"].size(); ++i) {
+				if (!isChild[i]) {
+					std::array<float, 16> rootMat = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+					dfs(i, rootMat);
+				}
+			}
+		}
+
+		// ノードが存在しない、またはメッシュがノードに関連付けられていない場合のフォールバック
+		if (meshInstances.empty()) {
+			for (size_t i = 0; i < gltfJson["meshes"].size(); ++i) {
+				std::array<float, 16> rootMat = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
+				meshInstances.push_back({ static_cast<int>(i), rootMat });
+			}
+		}
+
+		// 全インスタンスの全プリミティブを処理
+		for (const auto& instance : meshInstances) {
+			int meshIdx = instance.first;
+			if (meshIdx < 0 || meshIdx >= gltfJson["meshes"].size()) continue;
+			const auto& mesh = gltfJson["meshes"][meshIdx];
+			const auto& mat = instance.second;
+
 			if (!mesh.contains("primitives")) continue;
 			for (const auto& prim : mesh["primitives"]) {
 				// POSITION 取得
@@ -300,7 +381,15 @@ namespace Game::Editor {
 
 				int baseVertex = static_cast<int>(cachedMeshPositions_.size());
 				for (size_t i = 0; i + 2 < positions.size(); i += 3) {
-					cachedMeshPositions_.push_back({ positions[i], positions[i+1], positions[i+2] });
+					float px = positions[i];
+					float py = positions[i+1];
+					float pz = positions[i+2];
+
+					float tx = px * mat[0] + py * mat[4] + pz * mat[8] + mat[12];
+					float ty = px * mat[1] + py * mat[5] + pz * mat[9] + mat[13];
+					float tz = px * mat[2] + py * mat[6] + pz * mat[10] + mat[14];
+
+					cachedMeshPositions_.push_back({ tx, ty, tz });
 				}
 
 				// インデックス取得
@@ -312,6 +401,13 @@ namespace Game::Editor {
 					int numVerts = static_cast<int>(positions.size()) / 3;
 					for (int i = 0; i < numVerts; ++i) indices.push_back(static_cast<uint32_t>(i));
 				}
+
+				// エッジ重複排除用: (a,b) を int64_t キーにエンコード
+				std::map<int64_t, bool> edgeMap;
+				auto edgeKey = [](int a, int b) -> int64_t {
+					if (a > b) { int t = a; a = b; b = t; }
+					return (static_cast<int64_t>(a) << 32) | static_cast<int64_t>(b);
+				};
 
 				// 三角形からエッジを抽出
 				for (size_t i = 0; i + 2 < indices.size(); i += 3) {

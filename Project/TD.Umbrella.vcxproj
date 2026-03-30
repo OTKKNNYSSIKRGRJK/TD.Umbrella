@@ -18,6 +18,9 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp" />
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />

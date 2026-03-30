@@ -73,7 +73,12 @@ export namespace Game::Editor {
 		void DrawCollisionEditor();
 		void SaveEnemy(const EnemyData& enemy);
 		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
+
+	public:
 		void ExtractMeshWireframe(const std::string& gltfPath);
+		const std::string& GetCachedMeshGltfPath() const { return cachedMeshGltfPath_; }
+		const std::vector<std::array<float, 3>>& GetCachedMeshPositions() const { return cachedMeshPositions_; }
+		const std::vector<std::array<int, 2>>& GetCachedMeshEdges() const { return cachedMeshEdges_; }
 
 	private:
 		EnemyData editingEnemy_{};
@@ -94,5 +99,9 @@ export namespace Game::Editor {
 		// ワイヤーフレームビューモード (0=正面XY, 1=側面ZY, 2=上面XZ)
 		int meshViewMode_ = 0;
 		bool showMeshWireframe_ = true;
+
+		// キャンバス移動オフセット
+		float canvasOffsetX_ = 0.0f;
+		float canvasOffsetY_ = 0.0f;
 	};
 }

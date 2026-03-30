@@ -116,12 +116,7 @@ export namespace Game {
 		/// <summary>
 		/// 全コライダーのワールド座標を現在の position に更新する
 		/// </summary>
-		void UpdateCollider() {
-			for (auto& col : colliders) {
-				col->SetWorldPosition(position);
-				col->UpdateAABB();
-			}
-		}
+		void UpdateCollider();
 	};
 
 	/// <summary>

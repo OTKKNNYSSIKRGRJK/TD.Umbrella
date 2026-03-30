@@ -7,6 +7,7 @@ import <vector>;
 import Lumina;
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
+import Game.Editor.ActorEditor;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -33,10 +34,11 @@ namespace Game::Scene::Impl {
 
 	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Play };
+		enum class EditorTab { None, Motion, Area, Enemy, Actor, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
+		Game::Editor::ActorEditor actorEditor_;
 
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
