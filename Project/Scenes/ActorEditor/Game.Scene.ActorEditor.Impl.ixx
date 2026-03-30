@@ -4,6 +4,7 @@ import <memory>;
 import <string>;
 import <vector>;
 import <array>;
+import <map>;
 
 import Lumina;
 import Hermite;
@@ -30,11 +31,21 @@ export namespace Game::Editor {
 	// ============================================================
 	// Collider
 	// ============================================================
-	enum class ColliderType { None, Box, Sphere };
+	enum class ColliderType { None, Box, Sphere, Polygon };
+
+	// ポリゴンコリジョン用頂点（原点からの相対座標）
+	struct ActorCollisionVertex {
+		float x = 0.0f;
+		float y = 0.0f;
+	};
 
 	struct ActorCollider {
 		ColliderType type = ColliderType::None;
 		float sizeX = 1.0f, sizeY = 1.0f, sizeZ = 1.0f;
+
+		// --- ポリゴンコリジョン（頂点リスト）---
+		// 頂点を順番に結んだ多角形が当たり判定になる
+		std::vector<ActorCollisionVertex> collisionVertices;
 	};
 
 	// ============================================================
@@ -125,9 +136,16 @@ export namespace Game::Editor {
 	private:
 		void DrawEditorUI();
 		void DrawPreviewCanvas();
+		void DrawCollisionEditor();
 		void SaveActor(const ActorData& actor);
 		void ScanMotionFiles();
 		void SyncNodeTimings();  // motionデータとnodeTimingsの数を同期
+
+	public:
+		void ExtractMeshWireframe(const std::string& meshPath);
+		const std::string& GetCachedMeshPath() const { return cachedMeshPath_; }
+		const std::vector<std::array<float, 3>>& GetCachedMeshPositions() const { return cachedMeshPositions_; }
+		const std::vector<std::array<int, 2>>& GetCachedMeshEdges() const { return cachedMeshEdges_; }
 
 	private:
 		ActorData editingActor_{};
@@ -147,5 +165,23 @@ export namespace Game::Editor {
 		// 読み込んだ曲線データのキャッシュ（表示・プレビュー用）
 		std::string cachedMotionName_;
 		std::vector<MathUtils::Spline::Node<Lumina::Math::F32x3>> cachedNodes_;
+
+		// コリジョンエディタ状態
+		int collisionDraggedVertexIndex_ = -1;   // ドラッグ中の頂点インデックス
+		float collisionZoom_ = 3.0f;             // コリジョンキャンバスのズーム倍率
+		float collisionCanvasOffsetX_ = 0.0f;
+		float collisionCanvasOffsetY_ = 0.0f;
+
+		// メッシュワイヤーフレームキャッシュ
+		std::string cachedMeshPath_;
+		std::vector<std::array<float, 3>> cachedMeshPositions_;  // 3D頂点座標
+		std::vector<std::array<int, 2>> cachedMeshEdges_;        // エッジ（頂点インデックスペア）
+
+		// ワイヤーフレームビューモード (0=正面XY, 1=側面ZY, 2=上面XZ)
+		int meshViewMode_ = 0;
+		bool showMeshWireframe_ = true;
+
+		// キャンバスモード (0=移動プレビュー, 1=コリジョンエディタ)
+		int canvasMode_ = 0;
 	};
 }
