@@ -1,4 +1,4 @@
-#include"Basic.hlsli"
+#include"Primitive.hlsli"
 
 float4x4 VP : register(b0);
 

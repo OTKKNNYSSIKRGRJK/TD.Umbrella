@@ -15,6 +15,7 @@ import Lumina.D3D12.Aux.View;
 import : Impl;
 
 import Game.MotionManager;
+import Game.Player;
 
 namespace Game::Scene::Impl {
 	namespace {
@@ -277,6 +278,11 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_CanvasTexture_.CPUHandle(1U),
 			Canvas_GeometryPass_.RenderTexture(1U)
 		);
+
+		Player_ = std::make_unique<Player>();
+		Player_->Initialize();
+		Player_->SetMesh(MeshShaderAssets_[0]);
+		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 	}
 
 	InGame::InGame() = default;

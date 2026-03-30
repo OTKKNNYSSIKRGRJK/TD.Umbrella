@@ -48,22 +48,21 @@ namespace Game::Scene::Impl {
 			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
-		// メッシュバッチ処理
-		/*
-		MeshManager_->Batch(
+		/*MeshManager_->Batch(
 			MeshShaderAssets_[メッシュ番号],
 			1U,
 			LocalHeap_Materials_.CPUHandle(マテリアル番号),
 			ワールド行列
-		);
-		*/
+		);*/
 
-		meshMngr.Batch(
+		/*meshMngr.Batch(
 			MeshShaderAssets_[0],
 			1U,
 			LocalHeap_Materials_.CPUHandle(0U),
 			Lumina::Math::F32x4x4<>::Identity
-		);
+		);*/
+
+		Player_->Draw();
 
 		meshMngr.BatchEnd();
 
@@ -128,7 +127,7 @@ namespace Game::Scene::Impl {
 		MergePass_.RenderTarget(0).View() = swapChain.BackBufferRTVCPUHandle();
 		MergePass_.DepthStencil().View() = swapChain.DSVCPUHandle();
 		MergePass_.Begin(cmdList);
-		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, {}, 1);
+		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, Lumina::Math::F32x4x4<>::Identity, 1);
 		MergePass_.End();
 	}
 

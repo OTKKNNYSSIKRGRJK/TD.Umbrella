@@ -17,6 +17,8 @@ import Game.Terrain;
 import Lumina.Utils.Camera;
 import Lumina.Primitive;
 
+import Game.Player;
+
 namespace Game::Scene::Impl {
 	export class InGame {
 	private:
@@ -76,6 +78,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
 
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
+		std::unique_ptr<Player> Player_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 	};

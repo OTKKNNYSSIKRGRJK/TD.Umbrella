@@ -7,12 +7,18 @@ module Game.Player : Main;
 
 import Game.MathUtils;
 
+import Lumina.Main;
+import Lumina.MeshManager;
+import Lumina.D3D12.Aux.View;
+import Game.MathUtils;
+
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
 #endif
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
 	using namespace PlayerStates;
 }
 
@@ -118,6 +124,8 @@ void Player::Initialize() {
 			//}
 		}
 	};
+
+	WorldMatrix_ = std::make_unique<Matrix4x4>();
 }
 
 void Player::Update(float deltaTime) {
@@ -159,8 +167,8 @@ void Player::Update(float deltaTime) {
 	// Colliderに設定
 	collider_->SetWorldPosition(GetPosition());
 
-	auto&& worldMat{ Game::MathUtils::SRT(Scale_, EulerAngle_, Position_) };
-	collider_->SetWorldMatrix(worldMat);
+	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
+	collider_->SetWorldMatrix(*WorldMatrix_);
 
 	collider_->UpdateAABB();
 
@@ -197,6 +205,9 @@ void Player::Draw() {
 	//obj_->LocalToWorld();
 	//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
 	//obj_->Draw();
+
+	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+	meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, *WorldMatrix_);
 
 	umbrella_->Draw();
 }

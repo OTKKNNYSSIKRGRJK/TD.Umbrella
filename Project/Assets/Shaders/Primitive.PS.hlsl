@@ -1,4 +1,4 @@
-#include"Basic.hlsli"
+#include"Primitive.hlsli"
 
 struct PSOutput {
 	float4 Color : SV_TARGET0;
