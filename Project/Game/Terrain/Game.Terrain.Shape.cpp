@@ -114,7 +114,8 @@ namespace Game {
 				auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ vert.Pos.X, vert.Pos.Y, tmp.Z() }) };
 				auto&& worldPos{ ndcPos * ndcToWorld };
 				worldPos /= worldPos.W();
-				retPolygon.Vertices.emplace_back(worldPos);
+				auto& retVert{ retPolygon.Vertices.emplace_back() };
+				retVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), worldPos.Z() };
 			}
 		}
 
@@ -126,8 +127,10 @@ namespace Game {
 			auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ groundVert.Pos.X, groundVert.Pos.Y, tmp.Z() }) };
 			auto&& worldPos{ ndcPos * ndcToWorld };
 			worldPos /= worldPos.W();
-			retGroundVert.Pos = { worldPos.X(), worldPos.Y(), worldPos.Z() };
+			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), worldPos.Z() };
 		}
+
+		return ret;
 	}
 
 	TerrainShapeCollection::TerrainShapeCollection() {}

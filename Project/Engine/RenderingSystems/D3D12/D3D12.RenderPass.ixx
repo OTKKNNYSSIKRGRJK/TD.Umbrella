@@ -8,8 +8,6 @@ import <d3d12.h>;
 
 import : Command;
 
-import Lumina.Core.Math;
-
 namespace Lumina::D3D12 {
 	export class RenderPass {
 		struct DescCollection {
@@ -29,7 +27,7 @@ namespace Lumina::D3D12 {
 		void Begin(
 			CommandList const& cmdList_,
 			D3D12_RENDER_PASS_FLAGS renderPassFlags_ = D3D12_RENDER_PASS_FLAG_NONE
-		){
+		) {
 			CommandList_ = &cmdList_;
 
 			static_cast<ID3D12GraphicsCommandList4*>(CommandList_->Get())->BeginRenderPass(
@@ -74,7 +72,7 @@ namespace Lumina::D3D12 {
 
 	public:
 		CommandList const* CommandList_{ nullptr };
-		
+
 		std::unique_ptr<DescCollection> DescCollection_{ nullptr };
 		int32_t Flag_UseDepthStencil_{};
 	};
@@ -84,12 +82,18 @@ namespace Lumina::D3D12 {
 
 	public:
 		[[nodiscard]] constexpr auto View()
-			noexcept -> D3D12_CPU_DESCRIPTOR_HANDLE& { return cpuDescriptor; }
+			noexcept -> D3D12_CPU_DESCRIPTOR_HANDLE& {
+			return cpuDescriptor;
+		}
 
 		[[nodiscard]] inline auto BeginningEvent()
-			noexcept -> BeginningAccessSetup& { return reinterpret_cast<BeginningAccessSetup&>(BeginningAccess); }
+			noexcept -> BeginningAccessSetup& {
+			return reinterpret_cast<BeginningAccessSetup&>(BeginningAccess);
+		}
 		[[nodiscard]] inline auto EndingEvent()
-			noexcept -> EndingAccessSetup& { return reinterpret_cast<EndingAccessSetup&>(EndingAccess); }
+			noexcept -> EndingAccessSetup& {
+			return reinterpret_cast<EndingAccessSetup&>(EndingAccess);
+		}
 	};
 
 	class RenderPass::DepthStencilSetup final :
@@ -97,17 +101,27 @@ namespace Lumina::D3D12 {
 
 	public:
 		[[nodiscard]] constexpr auto View()
-			noexcept -> D3D12_CPU_DESCRIPTOR_HANDLE& { return cpuDescriptor; }
+			noexcept -> D3D12_CPU_DESCRIPTOR_HANDLE& {
+			return cpuDescriptor;
+		}
 
 		[[nodiscard]] inline auto DepthBeginningEvent()
-			noexcept -> BeginningAccessSetup& { return reinterpret_cast<BeginningAccessSetup&>(DepthBeginningAccess); }
+			noexcept -> BeginningAccessSetup& {
+			return reinterpret_cast<BeginningAccessSetup&>(DepthBeginningAccess);
+		}
 		[[nodiscard]] inline auto StencilBeginningEvent()
-			noexcept -> BeginningAccessSetup& { return reinterpret_cast<BeginningAccessSetup&>(StencilBeginningAccess); }
-		
+			noexcept -> BeginningAccessSetup& {
+			return reinterpret_cast<BeginningAccessSetup&>(StencilBeginningAccess);
+		}
+
 		[[nodiscard]] inline auto DepthEndingEvent()
-			noexcept -> EndingAccessSetup& { return reinterpret_cast<EndingAccessSetup&>(DepthEndingAccess); }
+			noexcept -> EndingAccessSetup& {
+			return reinterpret_cast<EndingAccessSetup&>(DepthEndingAccess);
+		}
 		[[nodiscard]] inline auto StencilEndingEvent()
-			noexcept -> EndingAccessSetup& { return reinterpret_cast<EndingAccessSetup&>(StencilEndingAccess); }
+			noexcept -> EndingAccessSetup& {
+			return reinterpret_cast<EndingAccessSetup&>(StencilEndingAccess);
+		}
 	};
 
 	class RenderPass::BeginningAccessSetup final :
