@@ -14,8 +14,6 @@ namespace Game::Scene::Impl {
 
 		meshMngr.Begin(cmdList);
 
-		meshMngr.BatchBegin();
-
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
 			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_GeometryPass_.RenderTexture(0U),
@@ -35,10 +33,6 @@ namespace Game::Scene::Impl {
 		};
 		cmdList->ResourceBarrier(3U, barriers_PreGeometryPass);
 
-		/*D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2]{ Canvas_.RTV(0U), Canvas_.RTV(1U) };
-		auto dsv{ Canvas_.DSV() };
-		cmdList->OMSetRenderTargets(2U, rtvs, false, &dsv);*/
-
 		cmdList->RSSetViewports(
 			Canvas_GeometryPass_.Num_RenderTargets(),
 			Canvas_GeometryPass_.Viewports().data()
@@ -48,19 +42,23 @@ namespace Game::Scene::Impl {
 			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
-		/*MeshManager_->Batch(
+		meshMngr.BatchBegin();
+
+		// メッシュバッチはmeshMngr.BatchBegin()とmeshMngr.BatchEnd()の間に書かないといけない
+		// メッシュを描画バッチに追加するテンプレート
+		/*
+		meshMngr.Batch(
 			MeshShaderAssets_[メッシュ番号],
 			1U,
 			LocalHeap_Materials_.CPUHandle(マテリアル番号),
 			ワールド行列
-		);*/
+		);
+		*/
 
 		Player_->Draw();
 
 		meshMngr.BatchEnd();
 
-		//auto rtv{ DXContext_->SwapChain().BackBufferRTVCPUHandle() };
-		//auto dsv{ DXContext_->SwapChain().DSVCPUHandle() };
 		GeometryPass_.Begin(cmdList);
 		meshMngr.Render(
 			GraphicsPSO_MeshDeferredGeometry_,
