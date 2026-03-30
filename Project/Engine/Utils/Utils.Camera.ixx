@@ -77,6 +77,7 @@ namespace Lumina::Utils {
 		ret[0] = View_[0];
 		ret[1] = View_[1];
 		ret[2] = View_[2];
+		ret[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		ret = ret.Transpose();
 
 		ret[3] = Math::F32x4{ View_[3] * ret }.FlipSign<1, 1, 1, 0>();

@@ -8,6 +8,9 @@ import nlohmann.json;
 
 import Lumina.Utils.Data;
 import Lumina.Main;
+import Lumina.D3D12;
+import Lumina.D3D12.Aux;
+import Lumina.D3D12.Aux.View;
 
 import : Impl;
 
@@ -19,6 +22,9 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Initialize() {
+		auto& context{ Lumina::Context::Instance() };
+		auto& resMngr{ context.ResourceContext() };
+
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 		TerrainEditor_ = std::make_unique<TerrainEditor>();
 		TerrainEditor_->Initialize();
@@ -43,6 +49,39 @@ namespace Game::Scene::Impl {
 			meshUploader.Batch(mesh);
 		}
 		meshUploader.End(MeshShaderAssets_);
+
+
+		//////	//////	//////	//////	//////	//////	//////
+
+		// テクスチャ読み込み
+
+		std::vector<uint32_t> texIDs{};
+		resMngr.Graphics().LoadImageTextures(
+			texIDs,
+			{
+				// uvCheckerは一番目に読み込まれるだからIDは0
+				{ "uvChecker", "Assets/Img/uvChecker.png" },
+			}
+		);
+
+		GlobalTable_SRV_ImageTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
+		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
+			d3d12Device->CopyDescriptorsSimple(
+				1U,
+				GlobalTable_SRV_ImageTexture_.CPUHandle(idx),
+				resMngr.Graphics().CPUHandle(texIDs.at(idx)),
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+			);
+		}
+
+		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);
+		LocalHeap_Scene_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
+
+		Camera_ = std::make_unique<Lumina::Utils::Camera>();
+		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+
+		//////	//////	//////	//////	//////	//////	//////
 
 		d3d12Context.Compile(
 			VS_MeshDeferredGeometry_,
@@ -188,6 +227,20 @@ namespace Game::Scene::Impl {
 			GeometryPass_->RenderTarget(idx).View() = Canvas_GeometryPass_.RTV(idx);
 		}
 		GeometryPass_->DepthStencil().View() = Canvas_GeometryPass_.DSV();
+
+		auto&& terrainScreenPos{ std::make_unique<TerrainShapeCollection>() };
+		terrainScreenPos = std::make_unique<TerrainShapeCollection>();
+		terrainScreenPos->Initialize(
+			Lumina::Utils::LoadFromFile<nlohmann::json>(
+				"zxcv.json", "Assets/Data/Terrain"
+			)
+		);
+		Terrain_ = std::make_unique<TerrainShapeCollection>();
+		terrainScreenPos->ConvertToWorldCoordinate(
+			*Terrain_,
+			*Camera_,
+			{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
+		);
 	}
 
 	InGame::InGame() = default;

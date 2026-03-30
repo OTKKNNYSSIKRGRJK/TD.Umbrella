@@ -74,9 +74,10 @@ namespace Game {
 	}
 
 	auto TerrainShapeCollection::ConvertToWorldCoordinate(
+		TerrainShapeCollection& out_,
 		Lumina::Utils::Camera const& camera_,
 		Lumina::Utils::Viewport const& viewport_
-	) const -> TerrainShapeCollection {
+	) const -> void {
 		//	We want to know the depth in screen coordinate of the world origin (0, 0, 0).
 		auto const worldToHomogeneous{ camera_.View() * camera_.Projection() };
 		auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous };
@@ -99,16 +100,15 @@ namespace Game {
 		
 		auto const& inv_View{ camera_.ViewInverse() };
 		auto const inv_Proj{ camera_.Projection().Inverse() };
-		auto const ndcToWorld{inv_Proj * inv_View};
+		auto const ndcToWorld{ inv_Proj * inv_View };
 
-		TerrainShapeCollection ret{};
-		ret.Polygons_.Initialize(Polygons_.Size());
-		ret.Ground_.Vertices.Initialize(Ground_.Vertices.Size());
+		out_.Polygons_.Initialize(Polygons_.Size());
+		out_.Ground_.Vertices.Initialize(Ground_.Vertices.Size());
 
 		Lumina::List<Polygon>::Iterator it{ Polygons_ };
 		for (it.Begin(); !it.End(); it.Next()) {
 			auto const& polygon{ *it };
-			auto& retPolygon{ ret.Polygons_.New() };
+			auto& retPolygon{ out_.Polygons_.New() };
 
 			for (auto const& vert : polygon.Vertices) {
 				auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ vert.Pos.X, vert.Pos.Y, tmp.Z() }) };
@@ -122,7 +122,7 @@ namespace Game {
 		Lumina::List<Ground::Vertex>::Iterator it_GroundVert{ Ground_.Vertices };
 		for (it_GroundVert.Begin(); !it_GroundVert.End(); it_GroundVert.Next()) {
 			auto const& groundVert{ *it_GroundVert };
-			auto& retGroundVert{ ret.Ground_.Vertices.New() };
+			auto& retGroundVert{ out_.Ground_.Vertices.New() };
 
 			auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ groundVert.Pos.X, groundVert.Pos.Y, tmp.Z() }) };
 			auto&& worldPos{ ndcPos * ndcToWorld };
@@ -130,7 +130,28 @@ namespace Game {
 			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), worldPos.Z() };
 		}
 
-		return ret;
+		out_.Ground_.Colliders.Initialize(1024);
+
+		Lumina::List<Ground::Vertex>::Iterator it_RetGroundVert{ out_.Ground_.Vertices };
+		it_RetGroundVert.Begin();
+		auto const* retGroundVert0{ &(*it_RetGroundVert) };
+		for (it_RetGroundVert.Next(); !it_RetGroundVert.End(); it_RetGroundVert.Next()) {
+			auto const* retGroundVert1{ &(*it_RetGroundVert) };
+
+			auto& collider{ out_.Ground_.Colliders.New() };
+			collider.SetVertices(
+				{
+					retGroundVert0->Pos,
+					retGroundVert1->Pos,
+					//	便宜上ｙ座標を一旦適当なマイナスナンバーにする
+					{ retGroundVert1->Pos.X, -10.0f, retGroundVert1->Pos.Z },
+					{ retGroundVert0->Pos.X, -10.0f, retGroundVert0->Pos.Z }
+				}
+			);
+			collider.UpdateAABB();
+
+			retGroundVert0 = retGroundVert1;
+		}
 	}
 
 	TerrainShapeCollection::TerrainShapeCollection() {}

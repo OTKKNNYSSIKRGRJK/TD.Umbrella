@@ -102,7 +102,10 @@ private:
 export class ConvexCollider : public Collider
 {
 public:
-	ConvexCollider() { worldMatrix_ = std::make_unique<Matrix4x4>(); }
+	ConvexCollider() {
+		worldMatrix_ = std::make_unique<Matrix4x4>();
+		*worldMatrix_ = Matrix4x4::Identity;
+	}
 	~ConvexCollider() {}
 
 public:

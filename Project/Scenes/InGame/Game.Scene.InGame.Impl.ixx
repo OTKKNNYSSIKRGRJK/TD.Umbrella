@@ -13,6 +13,9 @@ import Lumina.Utils.Data;
 import Lumina.D3D12;
 import Lumina.MeshManager;
 
+import Game.Terrain;
+import Lumina.Utils.Camera;
+
 namespace Game::Scene::Impl {
 	export class InGame {
 	private:
@@ -44,7 +47,7 @@ namespace Game::Scene::Impl {
 			Lumina::U32 ID_NormalMap;
 		};
 
-		MeshMaterial KinokoMaterial_;
+		MeshMaterial Material_;
 		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
 		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
 		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
@@ -54,6 +57,16 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
 		Lumina::D3D12::Canvas Canvas_GeometryPass_;
 
+		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
+		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
+		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
+
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
+		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
+
+		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
+
+		std::unique_ptr<TerrainShapeCollection> Terrain_;
 	};
 }

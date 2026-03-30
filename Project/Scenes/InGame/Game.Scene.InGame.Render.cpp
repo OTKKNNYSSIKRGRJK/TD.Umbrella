@@ -9,6 +9,14 @@ import Lumina.MeshManager;
 namespace Game::Scene::Impl {
 	void InGame::Render() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+		ID3D12DescriptorHeap* descriptorHeaps[]{ Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Get(), };
+		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
+
+		meshMngr.Begin(cmdList);
+
+		meshMngr.BatchBegin();
 
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
 			 Lumina::D3D12::Barrier::Transition(
@@ -42,6 +50,36 @@ namespace Game::Scene::Impl {
 			Canvas_.ScissorRects().data()
 		);
 
+		// メッシュバッチ処理
+		/*
+		MeshManager_->Batch(
+			MeshShaderAssets_[メッシュ番号],
+			1U,
+			LocalHeap_Materials_.CPUHandle(マテリアル番号),
+			ワールド行列
+		);
+		*/
+
+		/*meshMngr.Batch(
+			MeshShaderAssets_[2],
+			1U,
+			LocalHeap_Materials_.CPUHandle(2U),
+			boss_->GetWorldMat()
+		);*/
+
+		meshMngr.BatchEnd();
+
+		//auto rtv{ DXContext_->SwapChain().BackBufferRTVCPUHandle() };
+		//auto dsv{ DXContext_->SwapChain().DSVCPUHandle() };
+		GeometryPass_->Begin(cmdList);
+		meshMngr.Render(
+			GraphicsPSO_MeshDeferredGeometry_,
+			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U)
+		);
+
+		/*RenderPass_.End();*/
+
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
 				Canvas_.RenderTexture(0U),
@@ -60,6 +98,8 @@ namespace Game::Scene::Impl {
 			),
 		};
 		cmdList->ResourceBarrier(3U, barriers_PostGeometryPass);
+
+		meshMngr.End();
 	}
 }
 

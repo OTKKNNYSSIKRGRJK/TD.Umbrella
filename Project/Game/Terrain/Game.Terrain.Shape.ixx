@@ -1,11 +1,14 @@
 export module Game.Terrain : Shape;
 
+import <memory>;
 import <vector>;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
 import Lumina.Utils.Camera;
 import Lumina.Utils.Misc;
+
+import Collider;
 
 namespace Game {
 	export struct Polygon {
@@ -26,6 +29,8 @@ namespace Game {
 			Lumina::I32 NextID;
 		};
 
+		Lumina::List<ConvexCollider> Colliders;
+
 		Lumina::List<Vertex> Vertices;
 	};
 
@@ -41,9 +46,10 @@ namespace Game {
 		void Initialize(_Serialized const& serialized_);
 
 		auto ConvertToWorldCoordinate(
+			TerrainShapeCollection& out_,
 			Lumina::Utils::Camera const& camera_,
 			Lumina::Utils::Viewport const& viewport_
-		) const -> TerrainShapeCollection;
+		) const -> void;
 
 	public:
 		TerrainShapeCollection();
