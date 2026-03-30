@@ -18,55 +18,36 @@ import Game.MotionManager;
 import Game.Player;
 
 namespace Game::Scene::Impl {
-	namespace {
-	}
 
-	template<>
-	void InGame::Initialize() {
+	// テクスチャ読み込み
+	auto InGame::LoadImageTextures() -> void {
+		// エンジン
 		auto& context{ Lumina::Context::Instance() };
+		// 画像や音声の読み込みなどを司るやつ
 		auto& resMngr{ context.ResourceContext() };
-
-		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
-		TerrainEditor_ = std::make_unique<TerrainEditor>();
-		TerrainEditor_->Initialize();
-
-		auto&& testModel{
-			Lumina::Utils::Mesh::Load(
-				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
-					"teapot.obj", "Assets"
-				)
-			)
-		};
-
-		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
+		// D3D12関連
+		auto const& d3d12Context{ context.D3D12Context() };
+		// D3D12デバイス
 		auto const& d3d12Device{ d3d12Context.Device() };
-
-		std::vector<Lumina::Utils::Mesh> meshes{};
-		meshes.insert(meshes.cend(), testModel.cbegin(), testModel.cend());
-		Lumina::MeshUploader meshUploader{};
-		meshUploader.Initialize(d3d12Context);
-		meshUploader.Begin();
-		for (auto const& mesh : meshes) {
-			meshUploader.Batch(mesh);
-		}
-		meshUploader.End(MeshShaderAssets_);
-
-
-		//////	//////	//////	//////	//////	//////	//////
-
-		// テクスチャ読み込み
 
 		std::vector<uint32_t> texIDs{};
 		resMngr.Graphics().LoadImageTextures(
 			texIDs,
 			{
-				// uvCheckerは一番目に読み込まれるだからIDは0
+				//{ 適当な名前（重複しちゃダメ）, ファイルパス },
+				
+				// uvCheckerは1番目に読み込まれるだからIDは0
 				{ "uvChecker", "Assets/Img/uvChecker.png" },
+				// Diff2は2番目だからIDは1
+				{ "Diff2", "Assets/Img/Diff2.png" },
 			}
 		);
 
+		// シェーダーで使えるディスクリプタ
 		GlobalTable_SRV_ImageTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
 		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
+			
+			// さき読み込んだテクスチャのSRVをシェーダーで使えるディスクリプタにコピー
 			d3d12Device->CopyDescriptorsSimple(
 				1U,
 				GlobalTable_SRV_ImageTexture_.CPUHandle(idx),
@@ -74,16 +55,104 @@ namespace Game::Scene::Impl {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+	}
 
-		Material_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material_.ID_DiffuseMap = 0;
+	// メッシュ読み込み
+	auto InGame::LoadMeshes() -> void {
+		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
 
-		auto& material0{ UB_Materials_.emplace_back() };
-		material0 = std::make_unique<Lumina::D3D12::UploadBuffer>();
-		material0->Initialize(d3d12Device, 256LLU);
-		material0->Store(&Material_, sizeof(Material_), 0LLU);
+		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
+		// Lumina::Utils::Meshにはメッシュ1個分が入る
+		auto&& teapot{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"teapot.obj", "Assets"
+				)
+			)
+		};
+
+		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+		
+		// アップロード用vector
+		MeshCollection meshesToBeUploaded{};
+
+		// メッシュvectorをアップロードリストに追加
+		// 可読性向上させるべくラムダ式に
+		auto addMeshesToBeUploaded{
+			[&] (MeshCollection const& meshCollection_) -> void {
+				meshesToBeUploaded.insert(
+					meshesToBeUploaded.cend(),
+					meshCollection_.cbegin(),
+					meshCollection_.cend()
+				);
+			}
+		};
+
+		addMeshesToBeUploaded(teapot);
+
+		// メッシュデータをGPU側にアップロードするやつ
+		Lumina::MeshUploader meshUploader{};
+		meshUploader.Initialize(d3d12Context);
+		meshUploader.Begin();
+		for (auto const& mesh : meshesToBeUploaded) {
+			meshUploader.Batch(mesh);
+		}
+		meshUploader.End(MeshShaderAssets_);
+
+		// MeshShaderAssets_ : Lumina::MeshShaderAssetが入ってる
+		// Lumina::MeshShaderAsset : バッファとかいろいろシェーダーが使えるやつが入ってて、描画の際にLumina::MeshManagerに渡す
+	}
+	
+	// シェーダーにマテリアルを使ってもらうにはバッファとビューが必要だから
+	// ここでこいつらの下ごしらえを
+	auto InGame::InitializeMeshMaterials() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		// とりあえず64個分のアップロードバッファを確保する
+		UB_Materials_.resize(64U);
+		for (auto& ub : UB_Materials_) {
+			ub = std::make_unique<Lumina::D3D12::UploadBuffer>();
+			ub->Initialize(d3d12Device, 256LLU);
+		}
+
+		// マテリアル用ディスクリプタヒープ（64個分）
+		// シェーダー側には見えないけど、メッシュバッチとともにメッシュマネージャになんとかしてもらう
 		LocalHeap_Materials_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64U, false);
-		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *material0);
+		
+		// CBV作成
+		// --- パラメータ ---
+		// GraphicsDevice const& device_ : D3D12デバイス
+		// D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle_ : マテリアル用ディスクリプタのCPUハンドル
+		// BufferType const& buffer_ : マテリアル用バッファ
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
+
+		// アップデートでマテリアルをいじったりするのであれば下記のように書くとよろし
+		// マテリアルデータを更新
+		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
+		Material0_.ID_DiffuseMap = 0;
+		
+		// マテリアルデータをCBVと紐づけてあるバッファに格納
+		// --- パラメータ ---
+		// void const* src_ : 格納されるデータへのポインター。ボイドポインター最強
+		// uint64_t sizeInBytes_ : 格納されるサイズ。ここは構造体のサイズで大丈夫
+		// uint64_t offsetInBytes_: バッファ先頭からのオフセット。ここは0で大丈夫
+		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
+	}
+
+	void InGame::Initialize() {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+		TerrainEditor_ = std::make_unique<TerrainEditor>();
+		TerrainEditor_->Initialize();
+
+		LoadImageTextures();
+		LoadMeshes();
+		InitializeMeshMaterials();
 
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });

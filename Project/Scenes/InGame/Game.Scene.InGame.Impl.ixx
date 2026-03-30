@@ -39,9 +39,13 @@ namespace Game::Scene::Impl {
 		void Update();
 		void Render();
 
+	private:
+		auto LoadImageTextures() -> void;
+		auto LoadMeshes() -> void;
+		auto InitializeMeshMaterials() -> void;
+
 	public:
-		template<typename...ArgTypes>
-		void Initialize(typename ArgTypes const&...args_);
+		void Initialize();
 
 		InGame();
 		virtual ~InGame();
@@ -65,7 +69,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::RenderPass GeometryPass_;
 		Lumina::D3D12::RenderPass MergePass_;
 
-		MeshMaterial Material_;
+		MeshMaterial Material0_;
 		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;

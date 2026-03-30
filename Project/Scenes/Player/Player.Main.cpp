@@ -200,8 +200,20 @@ void Player::Update(float deltaTime) {
 	this->onGround_ = false;
 }
 
+// メッシュバッチ自体はMeshManager::BatchBegin()とBatchEnd()の間に入れないといけないので
+// Draw()の中からメッシュをバッチするのであればシーンのほうのPlayer::Draw()も
+// BatchBegin()とBatchEnd()の間で呼び出さなくてはならない
 void Player::Draw() {
+
+	// メッシュバッチ・描画マネージャ
 	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+	// 描画してほしいメッシュをバッチ
+	// --- パラメータ ---
+	// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
+	// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
+	// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
+	// Matrix4x4 const& world_ : ワールド行列
 	meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, *WorldMatrix_);
 
 	umbrella_->Draw();
