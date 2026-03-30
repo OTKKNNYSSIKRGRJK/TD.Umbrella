@@ -48,7 +48,7 @@
       {
         "Name": "PositionArrays",
         "RangeType": "SRV",
-        "NumDescriptors": 2048,
+        "NumDescriptors": 4096,
         "BaseShaderRegister": 0,
         "RegisterSpace": 32,
         "OffsetInDescriptorsFromTableStart": -1
@@ -56,7 +56,7 @@
       {
         "Name": "TexCoordArrays",
         "RangeType": "SRV",
-        "NumDescriptors": 2048,
+        "NumDescriptors": 4096,
         "BaseShaderRegister": 0,
         "RegisterSpace": 33,
         "OffsetInDescriptorsFromTableStart": -1
@@ -64,7 +64,7 @@
       {
         "Name": "NormalArrays",
         "RangeType": "SRV",
-        "NumDescriptors": 2048,
+        "NumDescriptors": 4096,
         "BaseShaderRegister": 0,
         "RegisterSpace": 34,
         "OffsetInDescriptorsFromTableStart": -1
@@ -72,7 +72,7 @@
       {
         "Name": "TangentArrays",
         "RangeType": "SRV",
-        "NumDescriptors": 2048,
+        "NumDescriptors": 4096,
         "BaseShaderRegister": 0,
         "RegisterSpace": 35,
         "OffsetInDescriptorsFromTableStart": -1
