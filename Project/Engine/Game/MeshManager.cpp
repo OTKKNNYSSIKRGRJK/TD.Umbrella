@@ -230,47 +230,6 @@ namespace Lumina {
 		auto&& rsSetup{ D3D12::LoadSetup<D3D12::RootSignature>(config.at("RS")) };
 		RS_.Initialize(device, rsSetup);
 
-		/*D3D12Context_->Compile(
-			VS_,
-			L"Assets/Shaders/Model.VS.hlsl",
-			L"vs_6_6",
-			L"main",
-			"Model.VS"
-		);
-		D3D12Context_->Compile(
-			PS_,
-			L"Assets/Shaders/Model.PS.hlsl",
-			L"ps_6_6",
-			L"main",
-			"Model.PS"
-		);
-
-		auto&& rasterizerState{ D3D12::LoadRasterizerState(config.at("Model.PSO")) };
-		auto&& depthStencilState{ D3D12::LoadDepthStencilState(config.at("Model.PSO")) };
-		auto&& inputLayout{ D3D12::LoadInputLayout(config.at("Model.PSO")) };
-
-		PSOs_.resize(static_cast<uint32_t>(BlendMode::Count));
-		for (uint32_t i{ 0U }; i < static_cast<uint32_t>(BlendMode::Count); ++i) {
-			auto&& arr_BlendState{ config.at("BlendStates").at(i) };
-			BlendModeNames_.emplace_back(arr_BlendState.at(0).at("Name"));
-			auto&& blendState{ D3D12::LoadBlendState0(arr_BlendState) };
-
-			PSOs_[i].reset(new D3D12::GraphicsPSO{});
-			PSOs_[i]->Initialize(
-				device,
-				RS_,
-				VS_,
-				PS_,
-				blendState,
-				rasterizerState,
-				depthStencilState,
-				inputLayout,
-				D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-				D3D12::GraphicsPSO::DefaultRTVFormats,
-				D3D12::GraphicsPSO::DefaultDSVFormat
-			);
-		}*/
-
 		std::vector<D3D12_INDIRECT_ARGUMENT_DESC> argDescs{};
 		auto& arg0{ argDescs.emplace_back(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT) };
 		arg0.Constant.RootParameterIndex = static_cast<uint32_t>(RootSignatureEntry::Constant_BatchIndex);

@@ -214,31 +214,40 @@ namespace Game::Scene::Impl {
 			.bottom{ 720 },
 		};
 
-		GeometryPass_ = std::make_unique<Lumina::D3D12::RenderPass>();
 		Lumina::F32 const clearColor[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
-		GeometryPass_->Initialize(2U, true);
-		GeometryPass_->RenderTarget(0).BeginningEvent().ClearTarget(
+		GeometryPass_.Initialize(2U, true);
+		GeometryPass_.RenderTarget(0).BeginningEvent().ClearTarget(
 			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 			clearColor
 		);
-		GeometryPass_->RenderTarget(0).EndingEvent().Preserve();
-		GeometryPass_->RenderTarget(1).BeginningEvent().ClearTarget(
+		GeometryPass_.RenderTarget(0).EndingEvent().Preserve();
+		GeometryPass_.RenderTarget(1).BeginningEvent().ClearTarget(
 			DXGI_FORMAT_R8G8B8A8_UNORM,
 			clearColor
 		);
-		GeometryPass_->RenderTarget(1).EndingEvent().Preserve();
-		GeometryPass_->DepthStencil().DepthBeginningEvent().ClearTarget(
+		GeometryPass_.RenderTarget(1).EndingEvent().Preserve();
+		GeometryPass_.DepthStencil().DepthBeginningEvent().ClearTarget(
 			DXGI_FORMAT_D24_UNORM_S8_UINT,
 			{ .Depth{ 1.0f }, }
 		);
-		GeometryPass_->DepthStencil().DepthEndingEvent().Preserve();
-		GeometryPass_->DepthStencil().StencilBeginningEvent().NoAccess();
-		GeometryPass_->DepthStencil().StencilEndingEvent().NoAccess();
+		GeometryPass_.DepthStencil().DepthEndingEvent().Preserve();
+		GeometryPass_.DepthStencil().StencilBeginningEvent().NoAccess();
+		GeometryPass_.DepthStencil().StencilEndingEvent().NoAccess();
 
 		for (uint32_t idx{ 0U }; idx < Canvas_GeometryPass_.Num_RenderTargets(); ++idx) {
-			GeometryPass_->RenderTarget(idx).View() = Canvas_GeometryPass_.RTV(idx);
+			GeometryPass_.RenderTarget(idx).View() = Canvas_GeometryPass_.RTV(idx);
 		}
-		GeometryPass_->DepthStencil().View() = Canvas_GeometryPass_.DSV();
+		GeometryPass_.DepthStencil().View() = Canvas_GeometryPass_.DSV();
+
+		MergePass_.Initialize(1U, true);
+		MergePass_.RenderTarget(0).BeginningEvent().ClearTarget(
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+			clearColor
+		);
+		MergePass_.RenderTarget(0).EndingEvent().Preserve();
+		MergePass_.DepthStencil().DepthEndingEvent().Preserve();
+		MergePass_.DepthStencil().StencilBeginningEvent().NoAccess();
+		MergePass_.DepthStencil().StencilEndingEvent().NoAccess();
 
 		auto&& terrainScreenPos{ std::make_unique<TerrainShapeCollection>() };
 		terrainScreenPos = std::make_unique<TerrainShapeCollection>();
@@ -252,6 +261,21 @@ namespace Game::Scene::Impl {
 			*Terrain_,
 			*Camera_,
 			{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
+		);
+
+		PrimitiveManager_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager_->Initialize(d3d12Context);
+
+		GlobalTable_SRV_CanvasTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(8U);
+		Lumina::D3D12::SRV<void>::Create(
+			d3d12Device,
+			GlobalTable_SRV_CanvasTexture_.CPUHandle(0U),
+			Canvas_GeometryPass_.RenderTexture(0U)
+		);
+		Lumina::D3D12::SRV<void>::Create(
+			d3d12Device,
+			GlobalTable_SRV_CanvasTexture_.CPUHandle(1U),
+			Canvas_GeometryPass_.RenderTexture(1U)
 		);
 	}
 

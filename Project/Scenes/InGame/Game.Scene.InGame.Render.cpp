@@ -5,14 +5,12 @@ import : Impl;
 import Lumina.Main;
 import Lumina.D3D12;
 import Lumina.MeshManager;
+import Lumina.Primitive;
 
 namespace Game::Scene::Impl {
-	void InGame::Render() {
+	void InGame::Render_Geometry() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
-
-		ID3D12DescriptorHeap* descriptorHeaps[]{ Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Get(), };
-		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
 
 		meshMngr.Begin(cmdList);
 
@@ -71,13 +69,13 @@ namespace Game::Scene::Impl {
 
 		//auto rtv{ DXContext_->SwapChain().BackBufferRTVCPUHandle() };
 		//auto dsv{ DXContext_->SwapChain().DSVCPUHandle() };
-		GeometryPass_->Begin(cmdList);
+		GeometryPass_.Begin(cmdList);
 		meshMngr.Render(
 			GraphicsPSO_MeshDeferredGeometry_,
 			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
 			LocalHeap_Scene_.CPUHandle(0U)
 		);
-		GeometryPass_->End();
+		GeometryPass_.End();
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
@@ -99,6 +97,50 @@ namespace Game::Scene::Impl {
 		cmdList->ResourceBarrier(3U, barriers_PostGeometryPass);
 
 		meshMngr.End();
+	}
+
+	void InGame::Render_Merge() {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		cmdList->RSSetViewports(
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.Viewports().data()
+		);
+		cmdList->RSSetScissorRects(
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.ScissorRects().data()
+		);
+
+		PrimitiveManager_->Begin(cmdList);
+		PrimitiveManager_->BatchTriangle(
+			{ { -1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }, 0U },
+			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
+			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
+		);
+		PrimitiveManager_->BatchTriangle(
+			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
+			{ { 1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0U },
+			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
+		);
+		PrimitiveManager_->End(cmdList);
+
+		auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+		MergePass_.RenderTarget(0).View() = swapChain.BackBufferRTVCPUHandle();
+		MergePass_.DepthStencil().View() = swapChain.DSVCPUHandle();
+		MergePass_.Begin(cmdList);
+		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, {}, 1);
+		MergePass_.End();
+	}
+
+	void InGame::Render() {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		ID3D12DescriptorHeap* descriptorHeaps[]{
+			Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Get(),
+		};
+		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
+
+		Render_Geometry();
+		Render_Merge();
 	}
 }
 

@@ -67,6 +67,12 @@
     <ClCompile Include="Utils\Utils.Data.Mesh.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Primitive.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Primitive.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

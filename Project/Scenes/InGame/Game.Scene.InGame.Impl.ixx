@@ -15,6 +15,7 @@ import Lumina.MeshManager;
 
 import Game.Terrain;
 import Lumina.Utils.Camera;
+import Lumina.Primitive;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -27,6 +28,10 @@ namespace Game::Scene::Impl {
 		void Win(typename ArgTypes const&...args_);
 		template<typename...ArgTypes>
 		void Lose(typename ArgTypes const&...args_);
+
+	private:
+		void Render_Geometry();
+		void Render_Merge();
 
 	public:
 		void Update();
@@ -53,8 +58,10 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::GraphicsPSO GraphicsPSO_MeshDeferredGeometry_;
 
 		Lumina::D3D12::Canvas Canvas_;
-		std::unique_ptr<Lumina::D3D12::RenderPass> GeometryPass_;
 		Lumina::D3D12::Canvas Canvas_GeometryPass_;
+
+		Lumina::D3D12::RenderPass GeometryPass_;
+		Lumina::D3D12::RenderPass MergePass_;
 
 		MeshMaterial Material_;
 		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
@@ -62,11 +69,14 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
 
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
 
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
+
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 	};
 }
