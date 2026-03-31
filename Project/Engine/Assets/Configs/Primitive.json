@@ -1,0 +1,167 @@
+{
+  "CommonRS": {
+    "Parameters": [
+      {
+        "ShaderVisibility": "Vertex",
+        "ParameterType": "CBV",
+        "ShaderRegister": 0,
+        "RegisterSpace": 0
+      },
+      
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Textures"
+      },
+
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "SceneConstants"
+      }
+    ],
+
+    "Textures": [
+      {
+        "RangeType": "SRV",
+        "NumDescriptors": 32,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 1,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "SceneConstants": [
+      {
+        "RangeType": "CBV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 1,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "StaticSamplers": [
+      {
+        "Filter": {
+          "ReductionType": "Standard",
+          "IsAnisotropic": 0,
+          "MinFilter": "Bilinear",
+          "MagFilter": "Bilinear",
+          "MipFilter": "Bilinear"
+        },
+        "TextureAddressU": "Clamp",
+        "TextureAddressV": "Clamp",
+        "TextureAddressW": "Clamp",
+        "ShaderRegister": 0,
+        "ShaderVisibility": "Pixel"
+      }
+    ]
+  },
+
+  "Line.PSO": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "InvSrcAlpha",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "RasterizerState": {
+      "FillMode": "Solid",
+      "CullMode": "None"
+    },
+    "DepthStencilState": {
+      "DepthEnable": 1,
+      "DepthWriteMask": "All",
+      "DepthFunc": "LessEqual",
+      "StencilEnable": 0
+    },
+    "InputLayout": [
+      [ "POSITION", 0, "float4" ],
+      [ "COLOR", 0, "float4" ],
+      [ "TEXCOORD", 0, "float2" ],
+      [ "TEXID", 0, "uint" ]
+    ],
+    "PrimitiveTopologyType": "Line"
+  },
+  
+  "Line.PSO.2": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "One",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "DepthStencilState": {
+      "DepthEnable": 0,
+      "StencilEnable": 0
+    }
+  },
+
+  "Triangle.PSO": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "InvSrcAlpha",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "RasterizerState": {
+      "FillMode": "Solid",
+      "CullMode": "None"
+    },
+    "DepthStencilState": {
+      "DepthEnable": 1,
+      "DepthWriteMask": "All",
+      "DepthFunc": "LessEqual",
+      "StencilEnable": 0
+    },
+    "InputLayout": [
+      [ "POSITION", 0, "float4" ],
+      [ "COLOR", 0, "float4" ],
+      [ "TEXCOORD", 0, "float2" ],
+      [ "TEXID", 0, "uint" ]
+    ],
+    "PrimitiveTopologyType": "Triangle"
+  },
+  
+  "Triangle.PSO.2": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "One",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "DepthStencilState": {
+      "DepthEnable": 0,
+      "StencilEnable": 0
+    }
+  }
+}

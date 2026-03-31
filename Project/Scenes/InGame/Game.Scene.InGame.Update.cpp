@@ -6,8 +6,6 @@ import <cmath>;
 import <algorithm>;
 import <string>;
 
-import Lumina;
-
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
 #endif
@@ -366,33 +364,19 @@ namespace Game::Scene::Impl {
 #endif
 
 	void InGame::Update() {
-#if defined(_DEBUG)
-		// メインメニューバー: エディタ切り替え
-		if (ImGui::BeginMainMenuBar()) {
-			if (ImGui::BeginMenu("Mode")) {
-				if (ImGui::MenuItem("Play Prototype", nullptr, activeEditor_ == EditorTab::Play)) {
-					activeEditor_ = EditorTab::Play;
-					if (!playState_.IsPlaying) {
-						playState_.IsPlaying = true;
-						CheckAndLoadArea(0); // Load default area 0
-					}
-				}
-				if (ImGui::MenuItem("Motion Editor", nullptr, activeEditor_ == EditorTab::Motion)) {
-					activeEditor_ = EditorTab::Motion;
-					playState_.IsPlaying = false;
-				}
-				if (ImGui::MenuItem("Area Editor", nullptr, activeEditor_ == EditorTab::Area)) {
-					activeEditor_ = EditorTab::Area;
-					playState_.IsPlaying = false;
-				}
-				if (ImGui::MenuItem("Enemy Editor", nullptr, activeEditor_ == EditorTab::Enemy)) {
-					activeEditor_ = EditorTab::Enemy;
-					playState_.IsPlaying = false;
-				}
-				ImGui::EndMenu();
-			}
-			ImGui::EndMainMenuBar();
-		}
+		MotionEditor::GetInstance()->NodeImGui();
+		//TerrainEditor_->Update();
+		Player_->Update(1.0f);
+
+		ImGui::Begin("Camera");
+		static Lumina::Math::F32x3 eye{ 0.0f, 0.0f, -30.0f };
+		static Lumina::Math::F32x3 target{ 0.0f, 0.0f, 0.0f };
+		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
+		ImGui::DragFloat3("Target", &target.X, 0.1f);
+		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
+		ImGui::End();
+
+		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 
 		// アクティブなエディタを描画
 		switch (activeEditor_) {

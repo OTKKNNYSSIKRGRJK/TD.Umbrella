@@ -79,15 +79,24 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Game\MeshManager.cpp" />
+    <ClCompile Include="Game\MeshManager.ixx" />
+    <ClCompile Include="Game\Primitive.cpp" />
+    <ClCompile Include="Game\Primitive.ixx" />
     <ClCompile Include="Game\ResourceManager.Audio.ixx" />
     <ClCompile Include="Game\ResourceManager.Graphics.ixx" />
     <ClCompile Include="Game\ResourceManager.ixx" />
     <ClCompile Include="Game\Scene.ixx" />
     <ClCompile Include="Game\Sprite.ixx" />
+    <ClCompile Include="Game\Sprite.Renderer.cpp" />
     <ClCompile Include="Lumina.ixx" />
+    <ClCompile Include="Lumina.Main.cpp" />
     <ClCompile Include="Lumina.Main.ixx" />
+    <ClCompile Include="Utils\Utils.Camera.ixx" />
     <ClCompile Include="Utils\Utils.Data.ixx" />
+    <ClCompile Include="Utils\Utils.Data.Mesh.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />
+    <ClCompile Include="Utils\Utils.Misc.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\ImGui\backends\imgui_impl_dx12.h">

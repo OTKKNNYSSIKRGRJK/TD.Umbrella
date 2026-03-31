@@ -14,9 +14,12 @@ import : States;
 import ManaComponent;
 
 import Lumina.Core.Math;
+import Lumina.MeshManager;
+import Lumina.D3D12;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
 }
 
 export enum class WeaponStance {
@@ -192,13 +195,21 @@ private:
 	///   その他
 	/// 
 	//////////////////////////////
+public:
+	void SetMesh(Lumina::MeshShaderAsset const& mesh_) noexcept { Mesh_ = &mesh_; }
+	void SetMeshMaterialCBV(D3D12_CPU_DESCRIPTOR_HANDLE cbv_) noexcept { MeshMaterialCBV_ = cbv_; }
 private:
 	//Fngine* p_fngine;
 
 	//std::unique_ptr<ModelObject> obj_;
+	Lumina::MeshShaderAsset const* Mesh_;
+	D3D12_CPU_DESCRIPTOR_HANDLE MeshMaterialCBV_;
+
 	Vector3 Scale_;
 	Vector3 EulerAngle_;
 	Vector3 Position_;
+
+	std::unique_ptr<Matrix4x4> WorldMatrix_;
 
 	// プレイヤーの行動を管理するクラス
 public:	std::unique_ptr<MotionController> motionController_;
@@ -208,6 +219,8 @@ public:	std::unique_ptr<MotionController> motionController_;
 public:
 	Vector3 const& GetPosition() const noexcept { return Position_; }
 	void SetPosition(Vector3 const& pos_) { Position_ = pos_; }
+	auto WorldMatrix() const noexcept -> Matrix4x4 const& { return *WorldMatrix_; }
+
 private:
 	void InitializeComponents();
 };

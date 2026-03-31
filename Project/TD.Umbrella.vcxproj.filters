@@ -28,6 +28,15 @@
     <Filter Include="Scenes\Player\Umbrella">
       <UniqueIdentifier>{6b879442-6da7-45f7-bf57-0ba3ec4c30c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TerrainEditor">
+      <UniqueIdentifier>{9bd74b84-ee90-46f7-8f43-cd4735399fdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{b0e30334-ce49-4706-aba5-cbf71624d890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Terrain">
+      <UniqueIdentifier>{9c3cfdd8-34ff-4bb2-a9f6-0df55cbac6f8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Scenes\Enemy">
       <UniqueIdentifier>{a4e1f3d2-8b7c-4e5f-9d6a-1c2b3d4e5f6a}</UniqueIdentifier>
     </Filter>
@@ -144,6 +153,33 @@
     </ClCompile>
     <ClCompile Include="Scenes\MapInfo\Ground.ixx">
       <Filter>Scenes\MapInfo</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp">
+      <Filter>Game\Terrain</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />

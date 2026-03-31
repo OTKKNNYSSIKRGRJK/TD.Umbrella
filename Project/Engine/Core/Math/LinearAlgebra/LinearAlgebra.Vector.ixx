@@ -1121,6 +1121,16 @@ namespace Lumina::Math {
 	}
 
 	//''""	''""''	""''""	''""''	""''""	''""''	""''""	''""''	""''//
+	
+	template<B1 IsMasked_X, B1 IsMasked_Y, B1 IsMasked_Z, B1 IsMasked_W>
+	_LUMINA_INLINE_ auto _LUMINA_VECTORCALL_ F32x4::FlipSign() const noexcept -> F32x4 {
+		return F32x4{
+			(IsMasked_X) ? (-X_) : (X_),
+			(IsMasked_Y) ? (-Y_) : (Y_),
+			(IsMasked_Z) ? (-Z_) : (Z_),
+			(IsMasked_W) ? (-W_) : (W_)
+		};
+	}
 
 	_LUMINA_INLINE_ auto _LUMINA_VECTORCALL_
 		F32x4::operator-()

@@ -2,7 +2,7 @@ export module Game.Scene.InGame;
 
 import <memory>;
 
-import Lumina;
+import Lumina.Scene;
 
 namespace Game::Scene {
 	namespace Impl { class InGame; }

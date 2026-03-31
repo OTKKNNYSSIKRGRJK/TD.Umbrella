@@ -7,12 +7,18 @@ module Game.Player : Main;
 
 import Game.MathUtils;
 
+import Lumina.Main;
+import Lumina.MeshManager;
+import Lumina.D3D12.Aux.View;
+import Game.MathUtils;
+
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
 #endif
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
 	using namespace PlayerStates;
 }
 
@@ -118,6 +124,8 @@ void Player::Initialize() {
 			//}
 		}
 	};
+
+	WorldMatrix_ = std::make_unique<Matrix4x4>();
 }
 
 void Player::Update(float deltaTime) {
@@ -151,7 +159,7 @@ void Player::Update(float deltaTime) {
 
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
-	Position_ += moveAmount_;
+	//Position_ += moveAmount_;
 	//obj_->worldTransform_.set_.Translation(obj_->worldTransform_.get_.Translation() + moveAmount_);
 
 	// rightHandJoint_.SetRot( 手の回転 );
@@ -169,8 +177,8 @@ void Player::Update(float deltaTime) {
 	// Colliderに設定
 	collider_->SetWorldPosition(GetPosition());
 
-	auto&& worldMat{ Game::MathUtils::SRT(Scale_, EulerAngle_, Position_) };
-	collider_->SetWorldMatrix(worldMat);
+	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
+	collider_->SetWorldMatrix(*WorldMatrix_);
 
 	collider_->UpdateAABB();
 
@@ -202,11 +210,21 @@ void Player::Update(float deltaTime) {
 	this->onGround_ = false;
 }
 
+// メッシュバッチ自体はMeshManager::BatchBegin()とBatchEnd()の間に入れないといけないので
+// Draw()の中からメッシュをバッチするのであればシーンのほうのPlayer::Draw()も
+// BatchBegin()とBatchEnd()の間で呼び出さなくてはならない
 void Player::Draw() {
-	// 描画関連は後で
-	//obj_->LocalToWorld();
-	//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-	//obj_->Draw();
+
+	// メッシュバッチ・描画マネージャ
+	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+	// 描画してほしいメッシュをバッチ
+	// --- パラメータ ---
+	// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
+	// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
+	// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
+	// Matrix4x4 const& world_ : ワールド行列
+	meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, *WorldMatrix_);
 
 	umbrella_->Draw();
 }
