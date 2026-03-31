@@ -383,6 +383,41 @@ namespace Game::Scene::Impl {
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 
 		#if defined(_DEBUG)
+		// メインメニューバー: エディタ切り替え
+		if (ImGui::BeginMainMenuBar()) {
+			if (ImGui::BeginMenu("Mode")) {
+				if (ImGui::MenuItem("Play Prototype", nullptr, activeEditor_ == EditorTab::Play)) {
+					activeEditor_ = EditorTab::Play;
+					if (!playState_.IsPlaying) {
+						playState_.IsPlaying = true;
+						CheckAndLoadArea(0); // Load default area 0
+					}
+				}
+				if (ImGui::MenuItem("Motion Editor", nullptr, activeEditor_ == EditorTab::Motion)) {
+					activeEditor_ = EditorTab::Motion;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Area Editor", nullptr, activeEditor_ == EditorTab::Area)) {
+					activeEditor_ = EditorTab::Area;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Enemy Editor", nullptr, activeEditor_ == EditorTab::Enemy)) {
+					activeEditor_ = EditorTab::Enemy;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Actor Editor", nullptr, activeEditor_ == EditorTab::Actor)) {
+					activeEditor_ = EditorTab::Actor;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Terrain Editor", nullptr, activeEditor_ == EditorTab::Terrain)) {
+					activeEditor_ = EditorTab::Terrain;
+					playState_.IsPlaying = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
 		// アクティブなエディタを描画
 		switch (activeEditor_) {
 		case EditorTab::Motion:
@@ -393,6 +428,12 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Enemy:
 			enemyEditor_.Update();
+			break;
+		case EditorTab::Actor:
+			actorEditor_.Update();
+			break;
+		case EditorTab::Terrain:
+			if (TerrainEditor_) TerrainEditor_->Update();
 			break;
 		case EditorTab::Play:
 			UpdatePlayLogic();
