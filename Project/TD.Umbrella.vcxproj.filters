@@ -193,6 +193,8 @@
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp">
       <Filter>Scenes\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\Player\StatusComponent.ixx" />
+    <ClCompile Include="Scenes\Player\StatusComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

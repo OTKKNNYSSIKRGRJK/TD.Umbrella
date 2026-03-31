@@ -37,6 +37,7 @@ export enum COLLISIONATTRIBUTE : int{
 	COL_Player_Attack = 1 << 2,
 	COL_Enemy_Attack = 1 << 3,
 	COL_Ground = 1 << 4,
+	COL_Umbrella_Ground = 1 << 5,
 };
 
 export enum class ColliderShape {
@@ -115,6 +116,7 @@ public:
 	// GJKに必要な頂点データ
 	void SetVertices(std::vector<Vector3> const& vertices) { vertices_ = vertices; }
 	std::vector<Vector3> const& GetVertices() const { return vertices_; }
+	void ClearVertices() { vertices_.clear(); }
 
 	// 自身の頂点群からAABBを計算して更新する
 	void UpdateAABB() override;

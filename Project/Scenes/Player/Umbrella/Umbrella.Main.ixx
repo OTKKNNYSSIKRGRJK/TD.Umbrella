@@ -5,6 +5,8 @@ import : State;
 import Collider;
 
 import Game.Attachment;
+import StatusComponent;
+import ManaComponent;
 
 //////////////////////
 /// 
@@ -108,24 +110,37 @@ namespace Umbrella {
 
         //////////////////////
         /// 
-        ///  当たり判定とパラメータ
+        ///  当たり判定
         /// 
         //////////////////////
     public:
         void UpdateColliderShape();
         ConvexCollider* GetCollider() const { return collider_.get(); }
         // 攻撃判定のON/OFF（属性の切り替え）
-        void EnableAttackCollision() {
-            collider_->SetMyType(COL_Player_Attack);
-        }
-        void DisableAttackCollision() {
-            collider_->SetMyType(COL_None);
-        }
-
+        void EnableAttackCollision() { collider_->SetMyType(COL_Player_Attack); }
+        void DisableAttackCollision() { collider_->SetMyType(COL_None); }
     private:
         std::unique_ptr<ConvexCollider>collider_;
-        float durability_;// 耐久度
-        float manaAmount_;// 過剰量のマナ管理
+
+        //////////////////////
+        /// 
+        ///  パラメータ
+        /// 
+        //////////////////////
+    public:
+        // 壊れているかどうかの判定（HPが0以下なら壊れている）
+        bool IsBroken() const { return status_->IsDead(); }
+        void Repair() {
+            // MaxHP分の回復値を渡すことで全回復させる(だんだんはHealを呼び出す)
+            status_->Heal(status_->GetMaxHp());
+        }
+    private:
+        std::unique_ptr<StatusComponent>status_;// 耐久度・攻撃力
+        std::unique_ptr<ManaComponent>mana_;// マナ回収用
+
+    public:
+        StatusComponent& GetStatusComponent() { return *status_; }
+        ManaComponent& GetManaComponent() { return *mana_; }
 
         //////////////////////
         /// 
