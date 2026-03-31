@@ -1,6 +1,7 @@
 module Game.Scene.InGame;
 
 import <vector>;
+import <filesystem>;
 
 import nlohmann.json;
 
@@ -61,16 +62,6 @@ namespace Game::Scene::Impl {
 	auto InGame::LoadMeshes() -> void {
 		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
 
-		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
-		// Lumina::Utils::Meshにはメッシュ1個分が入る
-		auto&& teapot{
-			Lumina::Utils::Mesh::Load(
-				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
-					"teapot.obj", "Assets"
-				)
-			)
-		};
-
 		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 		
 		// アップロード用vector
@@ -88,7 +79,54 @@ namespace Game::Scene::Impl {
 			}
 		};
 
+		// プレイヤー用
+		auto&& teapot{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"teapot.obj", "Assets"
+				)
+			)
+		};
 		addMeshesToBeUploaded(teapot);
+
+		// 敵用
+		EnemyMeshIndices_.clear();
+		namespace fs = std::filesystem;
+		if (fs::exists("./")) {
+			for (const auto& entry : fs::directory_iterator("./")) {
+				if (entry.is_regular_file() && entry.path().extension() == ".json") {
+					std::string fName = entry.path().filename().string();
+					if (fName.find("area") == 0) continue; // エリアデータは除外
+					
+					Game::Editor::EnemyData ed;
+					enemyEditor_.LoadEnemy(ed, fName);
+					
+					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4 && ed.gltfPath.substr(ed.gltfPath.size() - 4) == ".obj") {
+						try {
+							auto&& enemyMesh = Lumina::Utils::Mesh::Load(
+								Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath)
+							);
+							
+							using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+							MeshCollection validMeshes;
+							for (auto& m : enemyMesh) {
+								// D3D12への空バッファ転送を防ぐため、頂点が存在するかチェック
+								if (!m.Positions.empty() && !m.Vertices.empty()) {
+									validMeshes.push_back(std::move(m));
+								}
+							}
+
+							if (!validMeshes.empty()) {
+								EnemyMeshIndices_[ed.name] = meshesToBeUploaded.size();
+								addMeshesToBeUploaded(validMeshes);
+							}
+						} catch (...) {
+							// 読み込み失敗時はスキップ
+						}
+					}
+				}
+			}
+		}
 
 		// メッシュデータをGPU側にアップロードするやつ
 		Lumina::MeshUploader meshUploader{};

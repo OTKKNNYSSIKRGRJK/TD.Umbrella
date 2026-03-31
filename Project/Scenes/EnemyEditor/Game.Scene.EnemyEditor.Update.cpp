@@ -361,8 +361,8 @@ namespace Game::Editor {
 
 			ImGui::SliderFloat("Zoom", &collisionZoom_, 1.0f, 10.0f, "%.1fx");
 
-			// ワイヤーフレームプレビュー設定
-			ImGui::Checkbox("Show Mesh Wireframe", &showMeshWireframe_);
+			// 3Dプレビュー設定
+			ImGui::Checkbox("Show Solid Mesh", &showMeshWireframe_);
 			if (showMeshWireframe_) {
 				ImGui::SameLine();
 				const char* viewNames[] = { "Front (XY)", "Side (ZY)", "Top (XZ)" };
@@ -445,8 +445,8 @@ namespace Game::Editor {
 			ExtractMeshWireframe(editingEnemy_.gltfPath);
 		}
 
-		// --- メッシュワイヤーフレーム描画 ---
-		if (showMeshWireframe_ && !cachedMeshEdges_.empty()) {
+		// --- メッシュ描画（ソリッドポリゴン） ---
+		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
 			// 3D→ 2D投影 (ビューモードに応じた座標選択)
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
 				float px, py;
@@ -463,28 +463,83 @@ namespace Game::Editor {
 				return ImVec2(center.x + px * scale, center.y - py * scale);
 			};
 
-			// クリッピング付きでエッジ描画
-			ImU32 wireColor = MakeCol32(80, 220, 120, 100);
-			for (const auto& edge : cachedMeshEdges_) {
-				if (edge[0] < 0 || edge[0] >= static_cast<int>(cachedMeshPositions_.size())) continue;
-				if (edge[1] < 0 || edge[1] >= static_cast<int>(cachedMeshPositions_.size())) continue;
-				ImVec2 p0 = project3D(cachedMeshPositions_[edge[0]]);
-				ImVec2 p1 = project3D(cachedMeshPositions_[edge[1]]);
-				// キャンバス内か簡易チェック
-				if (p0.x < canvasP0.x - 50 && p1.x < canvasP0.x - 50) continue;
-				if (p0.x > canvasP1.x + 50 && p1.x > canvasP1.x + 50) continue;
-				if (p0.y < canvasP0.y - 50 && p1.y < canvasP0.y - 50) continue;
-				if (p0.y > canvasP1.y + 50 && p1.y > canvasP1.y + 50) continue;
-				drawList->AddLine(p0, p1, wireColor, 0.8f);
+			// 深度取得（奥にあるものから手前に描画するためのZソート用）
+			auto getDepth = [&](const std::array<float, 3>& pos) -> float {
+				switch (meshViewMode_) {
+				case 0: return -pos[2]; // Front: 奥方向は -Z
+				case 1: return -pos[0]; // Side: 奥方向は -X
+				case 2: return -pos[1]; // Top: 奥方向は -Y
+				default: return -pos[2];
+				}
+			};
+
+			struct SolidFace {
+				ImVec2 p0, p1, p2;
+				float depth;
+				ImU32 col;
+			};
+			std::vector<SolidFace> renderFaces;
+
+			for (const auto& face : cachedMeshFaces_) {
+				if (face[0] < 0 || face[0] >= cachedMeshPositions_.size()) continue;
+				if (face[1] < 0 || face[1] >= cachedMeshPositions_.size()) continue;
+				if (face[2] < 0 || face[2] >= cachedMeshPositions_.size()) continue;
+
+				const auto& v0 = cachedMeshPositions_[face[0]];
+				const auto& v1 = cachedMeshPositions_[face[1]];
+				const auto& v2 = cachedMeshPositions_[face[2]];
+
+				float d = (getDepth(v0) + getDepth(v1) + getDepth(v2)) / 3.0f;
+
+				ImVec2 p0 = project3D(v0);
+				ImVec2 p1 = project3D(v1);
+				ImVec2 p2 = project3D(v2);
+
+				// キャンバス内か簡易チェック（カリング）
+				if (p0.x < canvasP0.x - 50 && p1.x < canvasP0.x - 50 && p2.x < canvasP0.x - 50) continue;
+				if (p0.x > canvasP1.x + 50 && p1.x > canvasP1.x + 50 && p2.x > canvasP1.x + 50) continue;
+				if (p0.y < canvasP0.y - 50 && p1.y < canvasP0.y - 50 && p2.y < canvasP0.y - 50) continue;
+				if (p0.y > canvasP1.y + 50 && p1.y > canvasP1.y + 50 && p2.y > canvasP1.y + 50) continue;
+
+				// 法線計算と簡易Lighting（フラットシェーディング）
+				float dx1 = v1[0] - v0[0]; float dy1 = v1[1] - v0[1]; float dz1 = v1[2] - v0[2];
+				float dx2 = v2[0] - v0[0]; float dy2 = v2[1] - v0[1]; float dz2 = v2[2] - v0[2];
+				float nx = dy1*dz2 - dz1*dy2;
+				float ny = dz1*dx2 - dx1*dz2;
+				float nz = dx1*dy2 - dy1*dx2;
+				float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+				if (len > 0.0001f) { nx /= len; ny /= len; nz /= len; }
+
+				float dot = nx * 0.4f + ny * 0.8f + nz * 0.4f;
+				float intensity = 0.35f + 0.65f * std::max(0.0f, dot);
+				
+				ImU32 faceColor = MakeCol32(
+					static_cast<int>(120 * intensity),
+					static_cast<int>(150 * intensity),
+					static_cast<int>(200 * intensity),
+					255
+				);
+
+				renderFaces.push_back({ p0, p1, p2, d, faceColor });
+			}
+
+			// Zソート（奥から手前へPainter's Algorithm）
+			std::sort(renderFaces.begin(), renderFaces.end(), [](const SolidFace& a, const SolidFace& b) {
+				return a.depth > b.depth;
+			});
+
+			for (const auto& f : renderFaces) {
+				drawList->AddTriangleFilled(f.p0, f.p1, f.p2, f.col);
+				drawList->AddTriangle(f.p0, f.p1, f.p2, MakeCol32(50, 70, 90, 80), 1.0f); // 輪郭を薄く表示して立体感を強調
 			}
 
 			// メッシュ情報表示
 			char meshInfo[128];
-			snprintf(meshInfo, sizeof(meshInfo), "Mesh: %d verts, %d edges",
+			snprintf(meshInfo, sizeof(meshInfo), "Solid Mesh: %d verts, %d faces",
 				static_cast<int>(cachedMeshPositions_.size()),
-				static_cast<int>(cachedMeshEdges_.size()));
+				static_cast<int>(cachedMeshFaces_.size()));
 			drawList->AddText(ImVec2(canvasP0.x + 5, canvasP0.y + 5),
-				MakeCol32(80, 220, 120, 180), meshInfo);
+				MakeCol32(120, 200, 255, 200), meshInfo);
 		}
 
 		// --- ローカル→スクリーン変換 ---

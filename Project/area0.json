@@ -137,7 +137,16 @@
         "x": 0.0,
         "y": 0.0
     },
-    "enemies": [],
+    "enemies": [
+        {
+            "enemyName": "NewEnemy",
+            "facingRight": true,
+            "position": {
+                "x": 404.0,
+                "y": 182.0
+            }
+        }
+    ],
     "height": 344,
     "index": 0,
     "name": 0,
