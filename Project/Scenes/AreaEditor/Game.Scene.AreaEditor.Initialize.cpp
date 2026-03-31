@@ -66,14 +66,25 @@ namespace Game::Editor {
 	}
 
 	void to_json(json& j, const AreaData& a) {
-		j = json{
-			{"name", a.name}, {"index", a.index}, {"width", a.width}, {"height", a.height},
-			{"backgroundMusic", a.backgroundMusic}, {"connections", a.connections},
-			{"enemies", a.enemies}, {"collisionGroups", a.collisionGroups}, {"editorPos", a.editorPos}
-		};
+		j = a.originalJson;
+		j["name"] = a.name;
+		j["index"] = a.index;
+		j["width"] = a.width;
+		j["height"] = a.height;
+		j["backgroundMusic"] = a.backgroundMusic;
+		j["connections"] = a.connections;
+		j["enemies"] = a.enemies;
+		j["collisionGroups"] = a.collisionGroups;
+		j["editorPos"] = a.editorPos;
 	}
 
 	void from_json(const json& j, AreaData& a) {
+		if (j.is_object()) {
+			a.originalJson = j;
+		} else {
+			a.originalJson = json::object();
+		}
+
 		if (j.contains("name")) {
 			if (j.at("name").is_string()) {
 				std::string n = j.at("name").get<std::string>();

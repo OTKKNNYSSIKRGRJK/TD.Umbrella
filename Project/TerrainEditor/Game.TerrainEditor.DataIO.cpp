@@ -10,6 +10,7 @@ namespace Game {
 			nlohmann::json const& in_,
 			[[maybe_unused]] Lumina::List<Polygon>& polygons_
 		) -> nlohmann::json const& {
+			if (!in_.contains("Polygons")) return in_;
 			auto const& arr_Polygons{ in_.at("Polygons") };
 			for (auto const& dict_PolygonAttrs : arr_Polygons) {
 				auto& polygon{ polygons_.New() };
@@ -31,6 +32,7 @@ namespace Game {
 			nlohmann::json const& in_,
 			[[maybe_unused]] Lumina::List<GroundPoint>& groundPolygon_
 		) -> nlohmann::json const& {
+			if (!in_.contains("GroundPoints")) return in_;
 			auto const& arr_GroundPoints{ in_.at("GroundPoints") };
 			for (auto const& dict_VertexAttrs : arr_GroundPoints) {
 				auto& vert{ groundPolygon_.New() };
@@ -59,10 +61,26 @@ namespace Game {
 
 		Reset();
 
-		auto const& dict_MapInfo{ input_.at("MapInfo") };
-		auto const& arr_MapSize{ dict_MapInfo.at("Size") };
-		CanvasSize_.X = arr_MapSize.at(0).get<Lumina::F32>();
-		CanvasSize_.Y = arr_MapSize.at(1).get<Lumina::F32>();
+		if (input_.is_object()) {
+			OriginalData_ = input_;
+		} else {
+			OriginalData_ = nlohmann::json::object();
+		}
+
+		if (input_.contains("width") && input_.contains("height")) {
+			CanvasSize_.X = input_.at("width").get<Lumina::F32>();
+			CanvasSize_.Y = input_.at("height").get<Lumina::F32>();
+		} else if (input_.contains("MapInfo")) {
+			auto const& dict_MapInfo{ input_.at("MapInfo") };
+			if (dict_MapInfo.contains("Size")) {
+				auto const& arr_MapSize{ dict_MapInfo.at("Size") };
+				CanvasSize_.X = arr_MapSize.at(0).get<Lumina::F32>();
+				CanvasSize_.Y = arr_MapSize.at(1).get<Lumina::F32>();
+			}
+		} else {
+			CanvasSize_.X = 1280.0f;
+			CanvasSize_.Y = 720.0f;
+		}
 
 		SelectedPoint_ = nullptr;
 		SelectedGroundPoint_ = nullptr;
@@ -123,10 +141,15 @@ namespace Game {
 
 	template<>
 	auto TerrainEditor::OutputData() const -> nlohmann::ordered_json {
-		nlohmann::ordered_json ret{};
+		nlohmann::ordered_json ret = OriginalData_;
 		ret["MapInfo"] = nlohmann::ordered_json::object();
+		ret["MapInfo"]["Size"] = nlohmann::ordered_json::array();
 		ret["MapInfo"]["Size"].emplace_back(CanvasSize_.X);
 		ret["MapInfo"]["Size"].emplace_back(CanvasSize_.Y);
+		
+		ret["width"] = CanvasSize_.X;
+		ret["height"] = CanvasSize_.Y;
+
 		ret << Polygons_ << GroundPolygon_;
 		return ret;
 	}

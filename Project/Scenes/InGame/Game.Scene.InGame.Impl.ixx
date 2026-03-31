@@ -87,6 +87,7 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
 
+		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
 		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
 		std::unique_ptr<Player> Player_;

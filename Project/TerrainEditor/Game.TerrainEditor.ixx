@@ -2,6 +2,8 @@ export module Game.TerrainEditor;
 
 import <vector>;
 
+import nlohmann.json;
+
 import Lumina.Core.Common;
 import Lumina.Core.Math;
 
@@ -72,5 +74,6 @@ namespace Game {
 
 		Lumina::F32 Zoom_;
 		
+		nlohmann::json OriginalData_{};
 	};
 }

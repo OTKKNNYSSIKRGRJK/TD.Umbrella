@@ -320,19 +320,8 @@ namespace Game::Scene::Impl {
 		MergePass_.DepthStencil().StencilBeginningEvent().NoAccess();
 		MergePass_.DepthStencil().StencilEndingEvent().NoAccess();
 
-		auto&& terrainScreenPos{ std::make_unique<TerrainShapeCollection>() };
-		terrainScreenPos = std::make_unique<TerrainShapeCollection>();
-		terrainScreenPos->Initialize(
-			Lumina::Utils::LoadFromFile<nlohmann::json>(
-				"zxcv.json", "Assets/Data/Terrain"
-			)
-		);
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
-		terrainScreenPos->ConvertToWorldCoordinate(
-			*Terrain_,
-			*Camera_,
-			{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
-		);
+
 		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
 		TerrainRenderer_->Initialize();
 

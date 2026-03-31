@@ -428,8 +428,8 @@ namespace Game::Editor {
 			if (ImGui::InputInt("Area Name / Index", &editingArea_.index)) {
 				editingArea_.name = editingArea_.index;
 			}
-			ImGui::DragInt("Width", &editingArea_.width, 10, 1, 100000);
-			ImGui::DragInt("Height", &editingArea_.height, 10, 1, 100000);
+			ImGui::Text("Width: %d", editingArea_.width);
+			ImGui::Text("Height: %d", editingArea_.height);
 			char musicBuf[256];
 			strncpy_s(musicBuf, editingArea_.backgroundMusic.c_str(), sizeof(musicBuf));
 			if (ImGui::InputText("Background Music", musicBuf, sizeof(musicBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
