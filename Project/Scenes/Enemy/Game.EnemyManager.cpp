@@ -4,13 +4,141 @@ import <fstream>;
 import <filesystem>;
 import <cmath>;
 import <algorithm>;
+import <array>;
 
 import nlohmann.json;
+import Game.MathUtils;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 namespace {
+	using Vector2 = std::pair<float, float>;
+
+	// 2D外積 (p1-p0) x (p2-p0)
+	float Cross2D(const Vector2& p0, const Vector2& p1, const Vector2& p2) {
+		return (p1.first - p0.first) * (p2.second - p0.second)
+		     - (p1.second - p0.second) * (p2.first - p0.first);
+	}
+
+	// ポリゴンが凸かどうかを判定
+	bool IsConvexPolygon(const std::vector<Game::Editor::CollisionVertex>& verts) {
+		if (verts.size() < 3) return false;
+		int n = static_cast<int>(verts.size());
+		bool hasPositive = false, hasNegative = false;
+		for (int i = 0; i < n; ++i) {
+			int j = (i + 1) % n;
+			int k = (i + 2) % n;
+			float cross = Cross2D(
+				{ verts[i].x, verts[i].y },
+				{ verts[j].x, verts[j].y },
+				{ verts[k].x, verts[k].y }
+			);
+			if (cross > 0.0f) hasPositive = true;
+			if (cross < 0.0f) hasNegative = true;
+			if (hasPositive && hasNegative) return false;
+		}
+		return true;
+	}
+
+	// 点が三角形の内部にあるか判定 (Barycentric)
+	bool PointInTriangle(const Vector2& p, const Vector2& a, const Vector2& b, const Vector2& c) {
+		float d1 = Cross2D(a, b, p);
+		float d2 = Cross2D(b, c, p);
+		float d3 = Cross2D(c, a, p);
+		bool hasNeg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+		bool hasPos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+		return !(hasNeg && hasPos);
+	}
+
+	// ポリゴンの面積符号 (正=CCW, 負=CW)
+	float PolygonSignedArea(const std::vector<Vector2>& poly) {
+		float area = 0.0f;
+		int n = static_cast<int>(poly.size());
+		for (int i = 0; i < n; ++i) {
+			int j = (i + 1) % n;
+			area += poly[i].first * poly[j].second;
+			area -= poly[j].first * poly[i].second;
+		}
+		return area * 0.5f;
+	}
+
+	// Ear Clipping 三角形分割
+	// 入力: 2D頂点列（単純多角形）
+	// 出力: 三角形のインデックス列 (i0,i1,i2, i0,i1,i2, ...)
+	std::vector<std::array<int, 3>> TriangulateEarClipping(
+		const std::vector<Game::Editor::CollisionVertex>& inputVerts)
+	{
+		std::vector<std::array<int, 3>> triangles;
+		int n = static_cast<int>(inputVerts.size());
+		if (n < 3) return triangles;
+
+		// 作業用インデックスリスト
+		std::vector<int> indices(n);
+		// CCW になるように順序を決定
+		std::vector<Vector2> poly(n);
+		for (int i = 0; i < n; ++i) {
+			poly[i] = { inputVerts[i].x, inputVerts[i].y };
+		}
+
+		if (PolygonSignedArea(poly) > 0.0f) {
+			// CCW
+			for (int i = 0; i < n; ++i) indices[i] = i;
+		} else {
+			// CW → 反転してCCWに
+			for (int i = 0; i < n; ++i) indices[i] = (n - 1) - i;
+		}
+
+		int remaining = n;
+		int failCount = 0;
+
+		while (remaining > 3) {
+			bool earFound = false;
+			for (int i = 0; i < remaining; ++i) {
+				int prev = (i + remaining - 1) % remaining;
+				int next = (i + 1) % remaining;
+
+				Vector2 a = poly[indices[prev]];
+				Vector2 b = poly[indices[i]];
+				Vector2 c = poly[indices[next]];
+
+				// 凸頂点か？ (CCW前提なのでcross > 0 が凸)
+				if (Cross2D(a, b, c) <= 0.0f) continue;
+
+				// 他の頂点が三角形内にないか？
+				bool isEar = true;
+				for (int j = 0; j < remaining; ++j) {
+					if (j == prev || j == i || j == next) continue;
+					if (PointInTriangle(poly[indices[j]], a, b, c)) {
+						isEar = false;
+						break;
+					}
+				}
+
+				if (isEar) {
+					triangles.push_back({ indices[prev], indices[i], indices[next] });
+					indices.erase(indices.begin() + i);
+					--remaining;
+					earFound = true;
+					failCount = 0;
+					break;
+				}
+			}
+
+			if (!earFound) {
+				++failCount;
+				if (failCount > remaining) break; // 無限ループ防止
+			}
+		}
+
+		// 残りの3頂点
+		if (remaining == 3) {
+			triangles.push_back({ indices[0], indices[1], indices[2] });
+		}
+
+		return triangles;
+	}
+
 	// EnemyData の JSON シリアライズ（EnemyEditor と同じ形式）
 	void from_json(const json& j, Game::Editor::EnemyData& e) {
 		if (j.contains("name")) j.at("name").get_to(e.name);
@@ -41,7 +169,79 @@ namespace {
 namespace Game {
 
 	// ============================
+	//  コライダー初期化（凸包分割対応）
+	// ============================
+
+	void EnemyInstance::InitCollider() {
+		colliders.clear();
+		if (baseData.collisionVertices.size() < 3) return;
+
+		constexpr float kDepth = 0.1f;
+
+		auto makeCollider = [&](const std::vector<Lumina::Math::F32x3>& verts3d) {
+			auto col = std::make_unique<ConvexCollider>();
+			col->SetMyType(COL_Enemy);
+			col->SetYourType(COL_Player | COL_Player_Attack);
+			col->SetUserData(this);
+			col->SetVertices(verts3d);
+			col->SetWorldPosition(position);
+
+			col->onCollisionCallback = [this](Collider* other, const Lumina::Math::F32x3& pushOut) {
+				if (other->GetMyType() == COL_Ground || other->GetMyType() == COL_Player) {
+					position.X += (-pushOut.X);
+					position.Y += (-pushOut.Y);
+					position.Z += (-pushOut.Z);
+				}
+				// Player Attack takes damage handling elsewhere or could be handled here
+			};
+
+			col->UpdateAABB();
+			colliders.push_back(std::move(col));
+		};
+
+		if (IsConvexPolygon(baseData.collisionVertices)) {
+			// 凸多角形 → そのまま1つのコライダー
+			std::vector<Lumina::Math::F32x3> verts3d;
+			verts3d.reserve(baseData.collisionVertices.size() * 2);
+			for (const auto& v : baseData.collisionVertices) {
+				verts3d.push_back({ v.x, v.y, -kDepth });
+				verts3d.push_back({ v.x, v.y,  kDepth });
+			}
+			makeCollider(verts3d);
+		} else {
+			// 凹多角形 → Ear Clipping で三角形に分割
+			auto triangles = TriangulateEarClipping(baseData.collisionVertices);
+			for (const auto& tri : triangles) {
+				std::vector<Lumina::Math::F32x3> verts3d;
+				verts3d.reserve(6); // 三角形3頂点 × 前後2面
+				for (int idx : tri) {
+					const auto& v = baseData.collisionVertices[idx];
+					verts3d.push_back({ v.x, v.y, -kDepth });
+					verts3d.push_back({ v.x, v.y,  kDepth });
+				}
+				makeCollider(verts3d);
+			}
+		}
+	}
+
+	void EnemyInstance::UpdateCollider() {
+		Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+		Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+		if (!facingRight) {
+			rot.Y = 3.14159265f; // rotate 180 degrees
+		}
+		auto worldMat = Game::MathUtils::SRT(scale, rot, position);
+
+		for (auto& col : colliders) {
+			col->SetWorldPosition(position);
+			col->SetWorldMatrix(worldMat);
+			col->UpdateAABB();
+		}
+	}
+
+	// ============================
 	//  シングルトン
+
 	// ============================
 
 	std::unique_ptr<EnemyManager> EnemyManager::instance_ = nullptr;
@@ -137,8 +337,9 @@ namespace Game {
 		inst.position = position;
 		inst.facingRight = facingRight;
 		inst.InitFromBase();
+		inst.InitCollider();
 
-		instances_.push_back(inst);
+		instances_.push_back(std::move(inst));
 		return &instances_.back();
 	}
 
@@ -177,6 +378,15 @@ namespace Game {
 	void EnemyManager::ClearInstances() {
 		instances_.clear();
 		nextId_ = 1;
+	}
+
+	void EnemyManager::RegisterCollidersTo(CollisionManager& cm) {
+		for (auto& enemy : instances_) {
+			if (enemy.isDead) continue;
+			for (auto& col : enemy.colliders) {
+				cm.SetColliders(col.get());
+			}
+		}
 	}
 
 	void EnemyManager::RemoveDeadInstances() {
@@ -282,6 +492,9 @@ namespace Game {
 
 			// --- 状態タイマー更新 ---
 			enemy.stateTimer += deltaTime;
+
+			// --- コライダー位置更新 ---
+			enemy.UpdateCollider();
 		}
 	}
 
