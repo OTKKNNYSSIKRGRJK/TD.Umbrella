@@ -8,6 +8,10 @@ import Game.Attachment;
 import StatusComponent;
 import ManaComponent;
 
+import Lumina.Core.Math;
+import Lumina.MeshManager;
+import Lumina.D3D12;
+
 //////////////////////
 /// 
 ///  傘
@@ -54,7 +58,8 @@ namespace Umbrella {
     public:
         Attachment* GetTipJoint() { return &tipJoint_; }
         Attachment* GetBaseJoint() { return &baseJoint_; }
-
+        void SetMesh(Lumina::MeshShaderAsset const& mesh_) noexcept { Mesh_ = &mesh_; }
+        void SetMeshMaterialCBV(D3D12_CPU_DESCRIPTOR_HANDLE cbv_) noexcept { MeshMaterialCBV_ = cbv_; }
     private:
         // プレイヤーに持たれる用のJoint
         Attachment baseJoint_;
@@ -62,8 +67,8 @@ namespace Umbrella {
         // 「かさ」をくっつけるための先端のJoint(他にもおｋでいいかも)
         Attachment tipJoint_;
 
-        //std::unique_ptr<ModelObject>obj_;
-    //public:  Fngine* p_fngine_;
+        Lumina::MeshShaderAsset const* Mesh_;
+        D3D12_CPU_DESCRIPTOR_HANDLE MeshMaterialCBV_;
     };
 
     //////////////////////
@@ -157,10 +162,6 @@ namespace Umbrella {
 
         // 現在のステート
         UmbrellaStates::Base* currentState_;
-        //// ステート達
-        //std::unique_ptr<UmbrellaStates::Close>closeState_;
-        //std::unique_ptr<UmbrellaStates::Open>openState_;
-        //std::unique_ptr<UmbrellaStates::Reverse>reverseState_;
 
     public:// Get・Set関係の関数
         // 傘の「かさ」の状態を返す関数
@@ -171,10 +172,15 @@ namespace Umbrella {
         ///  基本的な情報
         /// 
         //////////////////////
+    public:
+        void SetMesh(Lumina::MeshShaderAsset const& mesh_) noexcept { Mesh_ = &mesh_; }
+        void SetMeshOpen(Lumina::MeshShaderAsset const& mesh_) noexcept { MeshOpen_ = &mesh_; }
+        void SetMeshMaterialCBV(D3D12_CPU_DESCRIPTOR_HANDLE cbv_) noexcept { MeshMaterialCBV_ = cbv_; }
     private:
-        //std::unique_ptr<ModelObject>obj_;
-        //std::unique_ptr<ModelObject>openObj_;
-    //public:  Fngine* p_fngine_;
+        Lumina::MeshShaderAsset const* Mesh_;
+        Lumina::MeshShaderAsset const* MeshOpen_;
+        D3D12_CPU_DESCRIPTOR_HANDLE MeshMaterialCBV_;
+
     };
 
     //////////////////////

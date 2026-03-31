@@ -5,6 +5,13 @@ module Game.Umbrella : Main;
 //	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 import Lumina.Core.Math;
+import Lumina.Main;
+import Lumina.MeshManager;
+import Lumina.D3D12.Aux.View;
+
+#if defined(_DEBUG)
+import Lumina.Utils.ImGui;
+#endif
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -18,12 +25,7 @@ namespace Umbrella {
 	///
 	///////////////////////
 	void Handle::Initialize() {
-		//obj_ = std::make_unique<ModelObject>();
-		//p_fngine_ = f;
-		//obj_->textureName_ = "GridLine";
-		//obj_->modelName_ = "UmbrellaHandle";
-		//obj_->Initialize(p_fngine_);
-
+		
 		baseJoint_.SetType(AttachmentType::UmbrellaHandle);
 		baseJoint_.SetAcceptType(AttachmentType::PlayerHand | AttachmentType::PlayerBack);
 		baseJoint_.SetInfo({0.0f,-0.5f,0.0f}, {0.0f,0.0f,0.0f});
@@ -37,14 +39,26 @@ namespace Umbrella {
 	void Handle::Update([[maybe_unused]] float deltaTime) {
 		
 		baseJoint_.Update();
-		//obj_->worldTransform_.mat_ = baseJoint_.GetMatrix();
 
 		tipJoint_.Update(); 
+
+		Vector3 tipPos = tipJoint_.GetWorldPos();
+		Vector3 basePos = baseJoint_.GetWorldPos();
+		ImGui::DragFloat3("TipPos", &tipPos.X);
+		ImGui::DragFloat3("BasePos", &basePos.X);
 	}
 
 	void Handle::Draw() {
-		//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-		//obj_->Draw();
+		// メッシュバッチ・描画マネージャ
+		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+		// 描画してほしいメッシュをバッチ
+		// --- パラメータ ---
+		// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
+		// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
+		// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
+		// Matrix4x4 const& world_ : ワールド行列
+		meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, baseJoint_.GetMatrix());
 	}
 
 	////////////////////////
@@ -53,16 +67,6 @@ namespace Umbrella {
 	///
 	///////////////////////
 	void Top::Initialize() {
-		//obj_ = std::make_unique<ModelObject>();
-		//p_fngine_ = f;
-		//obj_->textureName_ = "GridLine";
-		//obj_->modelName_ = "UmbrellaTopClose";
-		//obj_->Initialize(p_fngine_);
-
-		//openObj_ = std::make_unique<ModelObject>();
-		//openObj_->textureName_ = "GridLine";
-		//openObj_->modelName_ = "UmbrellaTop";
-		//openObj_->Initialize(p_fngine_);
 
 		rootJoint_.SetAcceptType(AttachmentType::UmbrellaTip);
 		rootJoint_.SetType(AttachmentType::UmbrellaTopRoot);
@@ -114,19 +118,15 @@ namespace Umbrella {
 		switch (form_) {
 		case UmbrellaForm::Closed:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-			//obj_->worldTransform_.mat_ = rootJoint_.GetMatrix();
 			break;
 		case UmbrellaForm::Opened:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-			//openObj_->worldTransform_.mat_ = rootJoint_.GetMatrix();
 			break;
 		case UmbrellaForm::Reverse:
-			rootJoint_.SetRot({ 3.0f,0.0f,0.0f });
-			//openObj_->worldTransform_.mat_ = rootJoint_.GetMatrix();
+			rootJoint_.SetRot({ Lumina::Math::DegToRad(180.0f),0.0f,0.0f });
 			break;
 		case UmbrellaForm::Flying:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-			//openObj_->worldTransform_.mat_ = rootJoint_.GetMatrix();
 			break;
 		}
 
@@ -138,19 +138,29 @@ namespace Umbrella {
 	}
 
 	void Top::Draw() {
-		switch (form_) {
-		case UmbrellaForm::Closed:
-			//obj_->LocalToWorld();
-			//obj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(obj_->worldTransform_.mat_));
-			//obj_->Draw();
-			break;
-		case UmbrellaForm::Opened:
-		case UmbrellaForm::Reverse:
-		case UmbrellaForm::Flying:
-			//openObj_->LocalToWorld();
-			//openObj_->SetWVPData(CameraSystem::GetInstance()->GetActiveCamera()->DrawCamera(openObj_->worldTransform_.mat_));
-			//openObj_->Draw();
-			break;
+		if (form_ == UmbrellaForm::Closed) {
+			// メッシュバッチ・描画マネージャ
+			auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+			// 描画してほしいメッシュをバッチ
+			// --- パラメータ ---
+			// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
+			// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
+			// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
+			// Matrix4x4 const& world_ : ワールド行列
+			meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, rootJoint_.GetMatrix());
+		}
+		else {
+			// メッシュバッチ・描画マネージャ
+			auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+			// 描画してほしいメッシュをバッチ
+			// --- パラメータ ---
+			// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
+			// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
+			// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
+			// Matrix4x4 const& world_ : ワールド行列
+			meshMngr.Batch(*MeshOpen_, 1U, MeshMaterialCBV_, rootJoint_.GetMatrix());
 		}
 	}
 

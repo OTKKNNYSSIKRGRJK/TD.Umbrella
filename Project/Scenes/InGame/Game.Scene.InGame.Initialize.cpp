@@ -62,6 +62,40 @@ namespace Game::Scene::Impl {
 	auto InGame::LoadMeshes() -> void {
 		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
 
+		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
+		// Lumina::Utils::Meshにはメッシュ1個分が入る
+		auto&& teapot{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"teapot.obj", "Assets"
+				)
+			)
+		};
+
+		auto&& umbrellaHandle{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaHandle.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaCloseTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTopClose.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaOpenTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTop.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
 		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 		
 		// アップロード用vector
@@ -79,15 +113,10 @@ namespace Game::Scene::Impl {
 			}
 		};
 
-		// プレイヤー用
-		auto&& teapot{
-			Lumina::Utils::Mesh::Load(
-				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
-					"teapot.obj", "Assets"
-				)
-			)
-		};
 		addMeshesToBeUploaded(teapot);
+		addMeshesToBeUploaded(umbrellaHandle);
+		addMeshesToBeUploaded(umbrellaCloseTop);
+		addMeshesToBeUploaded(umbrellaOpenTop);
 
 		// 敵用
 		EnemyMeshIndices_.clear();
@@ -382,6 +411,13 @@ namespace Game::Scene::Impl {
 		Player_->Initialize();
 		Player_->SetMesh(MeshShaderAssets_[0]);
 		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().handle_->SetMesh(MeshShaderAssets_[1]);
+		Player_->GetUmbrella().handle_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().top_->SetMesh(MeshShaderAssets_[2]);
+		Player_->GetUmbrella().top_->SetMeshOpen(MeshShaderAssets_[3]);
+		Player_->GetUmbrella().top_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
 		CollisionManager_ = std::make_unique<CollisionManager>();
 

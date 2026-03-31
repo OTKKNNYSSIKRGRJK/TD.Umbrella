@@ -380,13 +380,13 @@ namespace PlayerStates::Action {
 
 		Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
+		handPos.Y += 0.0f; // 少し上へ
 
 		float rotAmount = 50.0f;
 		Vector3 handRot = {0.0f,0.0f, Lumina::Math::DegToRad(-(rotAmount * input.moveDirection.X))};
 
 		player_->GetRightHandJoint()->SetPos(handPos);
-		player_->GetRightHandJoint()->SetRot(handRot);
+		//player_->GetRightHandJoint()->SetRot(handRot);
 
 
 		if (input.isGuard == false) {
