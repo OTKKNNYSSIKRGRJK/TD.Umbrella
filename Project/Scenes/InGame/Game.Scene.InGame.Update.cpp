@@ -10,6 +10,8 @@ import <string>;
 import Lumina.Utils.ImGui;
 #endif
 
+import Lumina.Main;
+
 import Game.MotionManager;
 
 #if defined(_DEBUG)
@@ -368,6 +370,7 @@ namespace Game::Scene::Impl {
 		//TerrainEditor_->Update();
 		Player_->Update(1.0f);
 
+		#if defined(_DEBUG)
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 0.0f, -30.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 0.0f, 0.0f };
@@ -375,9 +378,11 @@ namespace Game::Scene::Impl {
 		ImGui::DragFloat3("Target", &target.X, 0.1f);
 		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
 		ImGui::End();
+		#endif
 
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 
+		#if defined(_DEBUG)
 		// アクティブなエディタを描画
 		switch (activeEditor_) {
 		case EditorTab::Motion:
@@ -396,7 +401,7 @@ namespace Game::Scene::Impl {
 		default:
 			break;
 		}
-#endif
+		#endif
 	}
 }
 
