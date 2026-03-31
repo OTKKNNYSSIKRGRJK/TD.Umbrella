@@ -9,6 +9,7 @@ import <map>;
 import <algorithm>;
 import <filesystem>;
 import <vector>;
+import <fstream>;
 import nlohmann.json;
 
 #if defined(_DEBUG)
@@ -74,15 +75,35 @@ namespace Game::Editor {
 			cameraPos_.y += delta.y;
 		}
 
-		// 敵JSONファイルリストを毎フレーム再スキャン（ホットリロード対応）
-		enemyFiles_.clear();
-		for (const auto& entry : std::filesystem::directory_iterator("./")) {
-			std::string fName = entry.path().filename().string();
-			if (entry.path().extension() == ".json" && fName.find("area") != 0) {
-				std::string baseName = fName.substr(0, fName.size() - 5);
-				enemyFiles_.push_back(baseName);
+		// 敵JSONファイルリストをディレクトリ変更時のみ再スキャン
+		static std::filesystem::file_time_type lastScanDirTime{};
+		try {
+			auto currentDirTime = std::filesystem::last_write_time("./");
+			if (lastScanDirTime != currentDirTime) {
+				lastScanDirTime = currentDirTime;
+				enemyFiles_.clear();
+				for (const auto& entry : std::filesystem::directory_iterator("./")) {
+					try {
+						if (!entry.is_regular_file()) continue;
+						std::string fName = entry.path().filename().string();
+						if (entry.path().extension() == ".json" && fName.find("area") != 0) {
+							std::ifstream ifs(entry.path());
+							if (ifs.is_open()) {
+								nlohmann::json j;
+								ifs >> j;
+								// 敵データ固有のプロパティの有無で判別
+								if (j.is_object() && j.contains("hp") && j.contains("gltfPath") && j.contains("aggroRadius")) {
+									std::string baseName = fName.substr(0, fName.size() - 5);
+									enemyFiles_.push_back(baseName);
+								}
+							}
+						}
+					} catch (...) {
+						// パースエラーの無関係なJSON（vcpkg.json等）は無視
+					}
+				}
 			}
-		}
+		} catch (...) {}
 
 		float scale = 0.5f;
 		float cx = cameraPos_.x;
