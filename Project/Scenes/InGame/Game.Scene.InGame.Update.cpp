@@ -121,7 +121,7 @@ namespace Game::Scene::Impl {
 			auto worldPos = ndcPos * ndcToWorld;
 			worldPos /= worldPos.W();
 
-			Player_->SetPosition({ worldPos.X(), worldPos.Y() + 5.0f, 0.0f });
+			Player_->SetPosition({ worldPos.X(), worldPos.Y(), 0.0f });
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay

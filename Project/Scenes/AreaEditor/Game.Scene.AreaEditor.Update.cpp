@@ -360,11 +360,17 @@ namespace Game::Editor {
 				ImVec2 connMin(cx + (drawData.editorPos.x + conn.trigger.position.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y + conn.trigger.size.y) * scale);
 				ImVec2 connMax(cx + (drawData.editorPos.x + conn.trigger.position.x + conn.trigger.size.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y) * scale);
 
-				drawList->AddRectFilled(connMin, connMax, MakeCol32(0, 150, 255, isEditing ? 100 : 50));
-				drawList->AddRect(connMin, connMax, MakeCol32(0, 255, 255, 255), 0.0f, 0, 1.0f);
+				bool isPlayerStart = (drawData.index == 0 && conn.targetAreaIndex == 0);
+				ImU32 fillColor = isPlayerStart ? MakeCol32(255, 120, 0, isEditing ? 100 : 50) : MakeCol32(0, 150, 255, isEditing ? 100 : 50);
+				ImU32 outlineColor = isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(0, 255, 255, 255);
 
-				std::string targetText = "To: " + std::to_string(conn.targetAreaIndex);
-				drawList->AddText(ImVec2(connMin.x, connMin.y - 15.0f), MakeCol32(255, 255, 0, 255), targetText.c_str());
+				drawList->AddRectFilled(connMin, connMax, fillColor);
+				drawList->AddRect(connMin, connMax, outlineColor, 0.0f, 0, 1.0f);
+
+				std::string targetText = isPlayerStart ? "Player Start" : "To: " + std::to_string(conn.targetAreaIndex);
+				drawList->AddText(ImVec2(connMin.x, connMin.y - 15.0f), isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(255, 255, 0, 255), targetText.c_str());
+
+				if (isPlayerStart) continue; // 初期位置マーカーの場合はターゲットへの線引きをスキップ
 
 				for (const auto& target : allAreas_) {
 					const AreaData& tData = (target.name == editingArea_.name) ? editingArea_ : target;
@@ -527,8 +533,12 @@ namespace Game::Editor {
 
 			for (size_t i = 0; i < editingArea_.connections.size(); ++i) {
 				ImGui::PushID(static_cast<int>(i));
-				std::string label = "Connection " + std::to_string(i) + " (Target Index: " + std::to_string(editingArea_.connections[i].targetAreaIndex) + ")###ConnNode";
+				bool isPlayerStart = (editingArea_.index == 0 && editingArea_.connections[i].targetAreaIndex == 0);
+				std::string label = isPlayerStart ? "Player Start (Connection " + std::to_string(i) + ")###ConnNode" : "Connection " + std::to_string(i) + " (Target Index: " + std::to_string(editingArea_.connections[i].targetAreaIndex) + ")###ConnNode";
 				if (ImGui::TreeNode(label.c_str())) {
+					if (isPlayerStart) {
+						ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "[Player Start Point]");
+					}
 					ImGui::InputInt("Target Area Index", &editingArea_.connections[i].targetAreaIndex);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						trySaveArea(editingArea_, true);
