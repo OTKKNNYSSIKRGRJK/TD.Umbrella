@@ -474,7 +474,7 @@ namespace Game::Scene::Impl {
 	void InGame::Update() {
 		MotionEditor::GetInstance()->NodeImGui();
 		//TerrainEditor_->Update();
-		Player_->Update(1.0f);
+		Player_->Update(1.0f / 60.0f);
 
 		// Collision の更新処理↓↓↓
 		
@@ -484,7 +484,10 @@ namespace Game::Scene::Impl {
 		// ここからColliderを設定
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
-
+		auto const& groundColliders = Terrain_->GroundData().Colliders;
+		for (auto const& col : groundColliders) {
+			CollisionManager_->SetColliders(col.get());
+		}
 		// Check!
 		CollisionManager_->CheckAllCollisions();
 
