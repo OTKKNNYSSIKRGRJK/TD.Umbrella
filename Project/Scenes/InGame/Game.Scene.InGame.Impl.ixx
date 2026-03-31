@@ -21,6 +21,7 @@ import Lumina.Utils.Camera;
 import Lumina.Primitive;
 
 import Game.Player;
+import CollisionManager;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -89,6 +90,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
 		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
 		std::unique_ptr<Player> Player_;
+		std::unique_ptr<CollisionManager> CollisionManager_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 

@@ -45,6 +45,8 @@
     <ClCompile Include="Scenes\Player\States\PlayerStates.ixx" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Common.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.cpp" />

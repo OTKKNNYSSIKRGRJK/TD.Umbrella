@@ -356,6 +356,8 @@ namespace Game::Scene::Impl {
 		Player_->SetMesh(MeshShaderAssets_[0]);
 		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
+		CollisionManager_ = std::make_unique<CollisionManager>();
+
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 		

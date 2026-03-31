@@ -55,14 +55,14 @@ void Player::Initialize() {
 
 	// 2. 属性の設定（自分はPlayer、当たる相手はEnemyやEnemyの攻撃）
 	collider_->SetMyType(COL_Player);
-	collider_->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground);
+	collider_->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-1.0f, -1.0f, 0.0f}, // 左下
-		{ 1.0f, -1.0f, 0.0f}, // 右下
-		{-1.0f,  1.0f, 0.0f}, // 左上
-		{ 1.0f,  1.0f, 0.0f}  // 右上
+		{-1.0f, -0.0f, 0.0f}, // 左下
+		{ 1.0f, -0.0f, 0.0f}, // 右下
+		{-1.0f,  1.5f, 0.0f}, // 左上
+		{ 1.0f,  1.5f, 0.0f}  // 右上
 	};
 	collider_->SetVertices(localVertices);
 
@@ -110,6 +110,39 @@ void Player::Initialize() {
 			//
 			//}
 		}
+		else if (other->GetMyType() == COL_Umbrella_Ground) {
+
+			// =========================
+			// 【 めり込み解消処理 】
+			// =========================
+			Vector3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
+
+
+			Vector3 normal = actualPush;
+			float length = sqrtf(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z);
+			if (length > 0.0f) {
+				normal.X /= length;
+				normal.Y /= length;
+				normal.Z /= length;
+			}
+
+			// 足元に地面があるかのチェック
+			if (normal.Y > 0.8f) {
+				if (this->externalVelocity_.Y <= 0.0f) {
+					Vector3 pos = Position_;
+					pos.X += actualPush.X;
+					pos.Y += actualPush.Y;
+					pos.Z += actualPush.Z;
+					//obj_->worldTransform_.set_.Translation(pos);
+					this->onGround_ = true;
+
+					// バウンドする
+					if (this->externalVelocity_.Y < 0.0f) {
+						this->externalVelocity_.Y = normal.Y * 4.5f; // バウンドの強さを調整
+					}
+				}
+			}
+		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
 
 			// 1. 相手のコライダーから「持ち主（Enemy）」のポインタをもらう
@@ -146,6 +179,8 @@ void Player::Update(float deltaTime) {
 	if (currentActionState_) {
 		currentActionState_->Update(deltaTime);
 	}
+
+	ThrowUpdate(deltaTime);
 
 	// =========================
 	// 【 コヨーテタイムの処理 】
@@ -188,10 +223,6 @@ void Player::Update(float deltaTime) {
 
 	Vector3 colliderPos = collider_->GetWorldPosition();
 	ImGui::DragFloat3("colliderPos", &colliderPos.X);
-
-	// よくわからないのでとりまコメントアウトしちゃう
-	//ImGuiManager::GetInstance()->DrawDrag("Player : External Speed", this->externalVelocity_);
-	//ImGuiManager::GetInstance()->DrawDrag("Player : My Speed", this->myVelocity_);
 
 	if (ImGui::TreeNodeEx("Mana")) {
 		ImGui::Text("Use : Push LSHIFT");
@@ -277,10 +308,14 @@ void Player::InitializeStates() {
 	normalState_ = std::make_unique<Action::Normal>();normalState_->SetInfo(this);
 	attackState_ = std::make_unique<Action::Attack>();attackState_->SetInfo(this);
 	guardState_ = std::make_unique<Action::Guard>();guardState_->SetInfo(this);
+	reverseChargeState_ = std::make_unique<Action::ReverseCharge>();reverseChargeState_->SetInfo(this);
+	reverseAttackState_ = std::make_unique<Action::ReverseAttack>();reverseAttackState_->SetInfo(this);
+	throwUmbrellaState_ = std::make_unique<Action::ThrowUmbrella>();throwUmbrellaState_->SetInfo(this);
 
 	umbrellaOpenState_ = std::make_unique<Action::UmbrellaOpen>();umbrellaOpenState_->SetInfo(this);
 	umbrellaCloseState_ = std::make_unique<Action::UmbrellaClose>();umbrellaCloseState_->SetInfo(this);
 	umbrellaReverseState_ = std::make_unique<Action::UmbrellaReverse>();umbrellaReverseState_->SetInfo(this);
+	repairUmbrellaState_ = std::make_unique<PlayerStates::Action::RepairUmbrella>();repairUmbrellaState_->SetInfo(this);
 
 	// 最初の設定
 	currentActionState_ = normalState_.get();
@@ -289,7 +324,9 @@ void Player::InitializeStates() {
 void Player::InitializeComponents() {
 	//// ManaComponentの初期化 ////
 	mana_ = std::make_unique<ManaComponent>(100.0f);
-
+	//// StatusComponentの初期化 ////
+	// HP , Attack , Defence
+	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 5.0f);
 }
 ///////////////////
 ///
@@ -322,4 +359,49 @@ void Player::UmbrellaAttachBack() {
 
 void Player::UmbrellaAttachRHand() {
 	umbrella_->handle_->GetBaseJoint()->AttachTo(GetRightHandJoint());
+}
+
+///////////////////
+///
+///   照準・射撃
+///
+///////////////////
+void Player::ThrowUpdate([[maybe_unused]]float deltaTime) {
+	// 照準を押しているときは飛ばす方向を決めれる。
+	// ただし、抜刀済みのみ
+	float scalar = 5.0f;
+	if (inputData_.isAiming) {
+		targetPos_.X = GetPosition().X + scalar;
+		targetPos_.Y = GetPosition().Y;
+	}
+	else if (inputData_.isAimingHeld == true) {
+		// ここは要改善
+		targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
+		targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
+
+		// 照準のときのみ射撃する
+		if (inputData_.isShoot) {
+			// ここで投げる処理
+			ChangeActionState(throwUmbrellaState_.get());
+		}
+	}
+}
+
+void Player::WarpToUmbrella() {
+	// 1. 傘の現在のワールド座標を取得
+	Vector3 targetPos = umbrella_->top_->GetRootJoint()->GetWorldPos();
+
+	// 2. プレイヤーの座標を傘の場所へ上書き
+	// （SetPosition 等、環境に合わせてください）
+	this->SetPosition(targetPos);
+
+	// 3. 飛んでいた傘を手元に戻す（アタッチし直す）
+	umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
+	umbrella_->top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+	umbrella_->top_->ChangeState(new UmbrellaStates::Attached());
+	umbrella_->top_->ChangeForm(UmbrellaForm::Closed);
+
+	// 4. 空中状態にするなどの後処理
+	ChangeMovementState(airborneState_.get());
 }
