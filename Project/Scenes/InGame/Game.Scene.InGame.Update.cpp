@@ -72,7 +72,7 @@ namespace Game::Scene::Impl {
 		bool spawnedAtConnection = false;
 		if (previousAreaIndex != -1) {
 			for (const auto& conn : playState_.CurrentArea.connections) {
-				if (conn.targetAreaIndex == previousAreaIndex) {
+				if (conn.targetAreaIndex == previousAreaIndex && !(areaIndex == 0 && previousAreaIndex == 0)) {
 					// Spawn at the center of the connection linking back to where we came from
 					playState_.Player.Position.X = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
 					playState_.Player.Position.Y = conn.trigger.position.y;
@@ -81,8 +81,47 @@ namespace Game::Scene::Impl {
 				}
 			}
 		}
+
+		if (!spawnedAtConnection && areaIndex == 0) {
+			for (const auto& conn : playState_.CurrentArea.connections) {
+				if (conn.targetAreaIndex == 0) {
+					playState_.Player.Position.X = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
+					playState_.Player.Position.Y = conn.trigger.position.y;
+					spawnedAtConnection = true;
+					break;
+				}
+			}
+		}
+
 		if (!spawnedAtConnection) {
 			playState_.Player.Position.X = 100.0f; // Fallback / Start location
+		}
+
+		if (Player_ && Camera_) {
+			float start2DX = playState_.Player.Position.X;
+			float rawScreenY = playState_.CurrentArea.height - playState_.Player.Position.Y; 
+
+			auto const worldToHomogeneous_c = Camera_->View() * Camera_->Projection();
+			auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
+			tmp /= tmp.W();
+
+			Lumina::F32 const inv_ViewportWidth{ 1.0f / 1280.0f };
+			Lumina::F32 const inv_ViewportHeight{ 1.0f / 720.0f };
+			
+			auto const& inv_View{ Camera_->ViewInverse() };
+			auto const inv_Proj{ Camera_->Projection().Inverse() };
+			auto const ndcToWorld{ inv_Proj * inv_View };
+
+			Lumina::Math::F32x4 ndcPos{
+				(start2DX * inv_ViewportWidth) * 2.0f - 1.0f,
+				1.0f - (rawScreenY * inv_ViewportHeight) * 2.0f,
+				tmp.Z(),
+				1.0f
+			};
+			auto worldPos = ndcPos * ndcToWorld;
+			worldPos /= worldPos.W();
+
+			Player_->SetPosition({ worldPos.X(), worldPos.Y() + 5.0f, 0.0f });
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
@@ -260,6 +299,8 @@ namespace Game::Scene::Impl {
 				nPos /= nPos.W();
 				player2DX = (nPos.X() + 1.0f) * 0.5f * 1280.0f;
 				player2DY = playState_.CurrentArea.height - ((1.0f - nPos.Y()) * 0.5f * 720.0f);
+				playState_.Player.Position.X = player2DX;
+				playState_.Player.Position.Y = player2DY;
 			}
 		}
 
@@ -298,6 +339,9 @@ namespace Game::Scene::Impl {
 			float py = playState_.Player.Position.Y; 
 			
 			for (const auto& conn : playState_.CurrentArea.connections) {
+				// エリア0でターゲットエリアも0の場合は初期位置用なので移動判定から除外
+				if (playState_.CurrentArea.index == 0 && conn.targetAreaIndex == 0) continue;
+
 				// Player bounding box assumes Width=40 [-20~+20], Height=40 [0~40] from base position
 				if (px + 20.0f >= conn.trigger.position.x && px - 20.0f <= conn.trigger.position.x + conn.trigger.size.x &&
 				    py + 40.0f >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {

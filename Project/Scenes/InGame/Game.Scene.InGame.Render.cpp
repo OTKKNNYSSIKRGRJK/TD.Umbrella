@@ -105,6 +105,59 @@ namespace Game::Scene::Impl {
 			}
 		}
 
+		// ポータルを薄い立方体（cube.obj）で表現
+		// Cubeの大きさが2x2x2と仮定し、判定矩形サイズに合わせて薄くスケールする
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			float px = conn.trigger.position.x;
+			float py = conn.trigger.position.y;
+			float w = conn.trigger.size.x;
+			float h = conn.trigger.size.y;
+			
+			float rawCenterY = playState_.CurrentArea.height - (py + h / 2.0f);
+			Lumina::Math::F32x4 ndcPos{
+				((px + w / 2.0f) * inv_ViewportWidth) * 2.0f - 1.0f,
+				1.0f - (rawCenterY * inv_ViewportHeight) * 2.0f,
+				tmp.Z(),
+				1.0f
+			};
+			auto worldPos = ndcPos * ndcToWorld;
+			worldPos /= worldPos.W();
+
+			auto screenToWorldPos = [&](float sx, float sy) -> Lumina::Math::F32x3 {
+				Lumina::Math::F32x4 ndcP{
+					(sx * inv_ViewportWidth) * 2.0f - 1.0f,
+					1.0f - (sy * inv_ViewportHeight) * 2.0f,
+					tmp.Z(),
+					1.0f
+				};
+				auto wPos = ndcP * ndcToWorld;
+				wPos /= wPos.W();
+				return { wPos.X(), wPos.Y(), 0.0f };
+			};
+			auto v0 = screenToWorldPos(px, playState_.CurrentArea.height - py);
+			auto v2 = screenToWorldPos(px + w, playState_.CurrentArea.height - (py + h));
+			
+			float sx = std::abs(v2.X - v0.X) / 2.0f;
+			float sy = std::abs(v2.Y - v0.Y) / 2.0f;
+			float sz = 0.5f; // "薄く表示する" (ジオメトリとしての厚みを薄くする)
+
+			Lumina::Math::F32x4x4<> worldMat{
+				sx,  0.0f, 0.0f, 0.0f,
+				0.0f, sy,  0.0f, 0.0f,
+				0.0f, 0.0f, sz,  0.0f,
+				worldPos.X(), worldPos.Y(), 0.0f, 1.0f
+			};
+			
+			if (CubeMeshIdx_ < MeshShaderAssets_.size()) {
+				meshMngr.Batch(
+					MeshShaderAssets_[CubeMeshIdx_],
+					1U,
+					LocalHeap_Materials_.CPUHandle(0U),
+					worldMat
+				);
+			}
+		}
+
 		meshMngr.BatchEnd();
 
 		GeometryPass_.Begin(cmdList);
@@ -118,6 +171,7 @@ namespace Game::Scene::Impl {
 		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
 		auto dsv{ Canvas_GeometryPass_.DSV() };
 		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+		
 		TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
 		TerrainRenderer_->DebugRenderColliders(
 			GlobalTable_SRV_CanvasTexture_,

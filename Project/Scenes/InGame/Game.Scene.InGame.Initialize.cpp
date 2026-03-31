@@ -96,6 +96,14 @@ namespace Game::Scene::Impl {
 			)
 		};
 
+		auto&& cubeMesh{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"cube.obj", "Assets"
+				)
+			)
+		};
+
 		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 		
 		// アップロード用vector
@@ -117,6 +125,9 @@ namespace Game::Scene::Impl {
 		addMeshesToBeUploaded(umbrellaHandle);
 		addMeshesToBeUploaded(umbrellaCloseTop);
 		addMeshesToBeUploaded(umbrellaOpenTop);
+
+		CubeMeshIdx_ = meshesToBeUploaded.size();
+		addMeshesToBeUploaded(cubeMesh);
 
 		// 敵用
 		EnemyMeshIndices_.clear();
