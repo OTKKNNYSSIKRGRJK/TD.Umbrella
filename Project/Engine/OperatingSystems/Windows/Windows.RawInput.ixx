@@ -1,6 +1,7 @@
 module;
 
 #include<Windows.h>
+#include"GamePad.h"
 
 //////	//////	//////	//////	//////	//////
 //////	//////	//////	//////	//////	//////
@@ -393,6 +394,7 @@ namespace Lumina::OS::Windows {
 	public:
 		inline auto const& Keyboard() const noexcept;
 		inline auto const& Mouse() const noexcept;
+		inline auto const& Pad() const noexcept;
 
 		//----	------	------	------	------	----//
 
@@ -412,7 +414,10 @@ namespace Lumina::OS::Windows {
 		//----	------	------	------	------	----//
 
 	public:
-		void Update() { Keyboard_->Update(); }
+		void Update() {
+			Keyboard_->Update();
+			Pad_->Update();
+		}
 
 	public:
 		void Initialize(HWND hWnd_);
@@ -433,6 +438,7 @@ namespace Lumina::OS::Windows {
 
 		std::unique_ptr<RawKeyboard> Keyboard_{ nullptr };
 		std::unique_ptr<RawMouse> Mouse_{ nullptr };
+		std::unique_ptr<GamePad> Pad_{ nullptr };
 
 		__declspec(align(4U)) std::array<byte, 256LLU> Buffer_{};
 	};
@@ -443,6 +449,7 @@ namespace Lumina::OS::Windows {
 
 	inline auto const& RawInput::Keyboard() const noexcept { return *Keyboard_; }
 	inline auto const& RawInput::Mouse() const noexcept { return *Mouse_; }
+	inline auto const& RawInput::Pad() const noexcept { return *Pad_; }
 
 	//----	------	------	------	------	----//
 
@@ -508,6 +515,9 @@ namespace Lumina::OS::Windows {
 		if (Mouse_ == nullptr) {
 			Mouse_.reset(new RawMouse{});
 			Mouse_->Initialize(hWnd_);
+		}
+		if (Pad_ == nullptr) {
+			Pad_ = std::make_unique<GamePad>(0);
 		}
 
 		Callback_ =
