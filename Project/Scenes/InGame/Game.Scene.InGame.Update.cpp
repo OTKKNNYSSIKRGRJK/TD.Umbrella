@@ -59,6 +59,7 @@ namespace Game::Scene::Impl {
 			pe.BaseData.hp = 50; // Force normal enemies to 50 HP
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
+			pe.FacingRight = ep.facingRight;
 			playState_.Enemies.push_back(pe);
 		}
 		
@@ -424,7 +425,8 @@ namespace Game::Scene::Impl {
 			if (e.BaseData.name == "Puppet") ec = MakeCol32(100, 100, 200, 255); // Blue-ish for dummy
 			if (e.HurtTimer > 0.0f) ec = MakeCol32(255, 255, 255, 255); // Flash white
 
-			drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 40), ImVec2(sp.x + 20, sp.y), ec);
+			// 2D描画はコメントアウト（3Dの.objが表示されるため）
+			// drawList->AddRectFilled(ImVec2(sp.x - 20, sp.y - 40), ImVec2(sp.x + 20, sp.y), ec);
 			
 			// HP bar
 			if (e.BaseData.hp > 0) {

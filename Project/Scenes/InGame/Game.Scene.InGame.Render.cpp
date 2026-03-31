@@ -57,6 +57,29 @@ namespace Game::Scene::Impl {
 
 		Player_->Draw();
 
+		for (const auto& e : playState_.Enemies) {
+			if (e.IsDead) continue;
+
+			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
+				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
+				float dir = e.FacingRight ? 1.0f : -1.0f;
+				
+				Lumina::Math::F32x4x4<> worldMat{
+					dir,  0.0f, 0.0f, 0.0f,
+					0.0f, 1.0f, 0.0f, 0.0f,
+					0.0f, 0.0f, dir,  0.0f,
+					e.Position.X, e.Position.Y, e.Position.Z, 1.0f
+				};
+				
+				meshMngr.Batch(
+					MeshShaderAssets_[meshIdx],
+					1U,
+					LocalHeap_Materials_.CPUHandle(0U), // とりあえず共通マテリアル0を使用
+					worldMat
+				);
+			}
+		}
+
 		meshMngr.BatchEnd();
 
 		GeometryPass_.Begin(cmdList);

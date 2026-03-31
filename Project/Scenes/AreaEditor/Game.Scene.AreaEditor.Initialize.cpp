@@ -163,10 +163,6 @@ namespace Game::Editor {
 						editingArea_ = a;
 						firstLoaded = true;
 					}
-				} else if (entry.path().extension() == ".json" && fName.find("area") != 0) {
-					// 敵JSONファイルとしてリストに追加
-					std::string baseName = fName.substr(0, fName.size() - 5); // .jsonを除去
-					enemyFiles_.push_back(baseName);
 				}
 			}
 		}

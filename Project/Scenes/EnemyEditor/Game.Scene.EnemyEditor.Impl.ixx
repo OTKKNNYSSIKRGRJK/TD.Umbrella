@@ -79,6 +79,7 @@ export namespace Game::Editor {
 		const std::string& GetCachedMeshGltfPath() const { return cachedMeshGltfPath_; }
 		const std::vector<std::array<float, 3>>& GetCachedMeshPositions() const { return cachedMeshPositions_; }
 		const std::vector<std::array<int, 2>>& GetCachedMeshEdges() const { return cachedMeshEdges_; }
+		const std::vector<std::array<int, 3>>& GetCachedMeshFaces() const { return cachedMeshFaces_; }
 
 	private:
 		EnemyData editingEnemy_{};
@@ -91,6 +92,7 @@ export namespace Game::Editor {
 		std::string cachedMeshGltfPath_;
 		std::vector<std::array<float, 3>> cachedMeshPositions_;  // 3D頂点座標
 		std::vector<std::array<int, 2>> cachedMeshEdges_;        // エッジ（頂点インデックスペア）
+		std::vector<std::array<int, 3>> cachedMeshFaces_;        // 三角形ポリゴン（頂点インデックス3つ）
 
 		// 当たり判定エディタ状態
 		int draggedVertexIndex_ = -1;    // ドラッグ中の頂点インデックス

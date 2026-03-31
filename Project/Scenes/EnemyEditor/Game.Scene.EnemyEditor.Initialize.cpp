@@ -3,6 +3,7 @@ module Game.Editor.EnemyEditor;
 import <fstream>;
 import <filesystem>;
 import <string>;
+import <sstream>;
 import <map>;
 
 import nlohmann.json;
@@ -66,9 +67,14 @@ namespace Game::Editor {
 	void EnemyEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
 		std::ifstream file(filename);
 		if (file.is_open()) {
-			json j;
-			file >> j;
-			enemy = j.get<EnemyData>();
+			try {
+				json j;
+				file >> j;
+				enemy = j.get<EnemyData>();
+			} catch (...) {
+				// JSONパースエラー時はログを出すか無視する
+				// 敵データ以外のjson（vcpkg.json等）を読み込んだときのクラッシュを防ぐ
+			}
 		}
 	}
 
@@ -140,6 +146,7 @@ namespace Game::Editor {
 	void EnemyEditor::ExtractMeshWireframe(const std::string& gltfPath) {
 		cachedMeshPositions_.clear();
 		cachedMeshEdges_.clear();
+		cachedMeshFaces_.clear();
 		cachedMeshGltfPath_ = gltfPath;
 
 		if (gltfPath.empty() || !fs::exists(gltfPath)) return;
@@ -149,6 +156,49 @@ namespace Game::Editor {
 
 		json gltfJson;
 		std::vector<uint8_t> binData; // バイナリデータ
+
+		if (ext == ".obj") {
+			std::ifstream ifs(gltfPath);
+			if (!ifs.is_open()) return;
+			std::string line;
+			while (std::getline(ifs, line)) {
+				// Remove leading whitespaces
+				size_t startPos = line.find_first_not_of(" \t");
+				if (startPos == std::string::npos) continue;
+				line = line.substr(startPos);
+				
+				if (line.compare(0, 2, "v ") == 0) {
+					std::istringstream iss(line.substr(2));
+					float x, y, z;
+					if (iss >> x >> y >> z) {
+						cachedMeshPositions_.push_back({x, y, z});
+					}
+				} else if (line.compare(0, 2, "f ") == 0) {
+					std::istringstream iss(line.substr(2));
+					std::string token;
+					std::vector<int> faceVerts;
+					while (iss >> token) {
+						size_t slashPos = token.find('/');
+						int vIdx = 0;
+						try {
+							if (slashPos != std::string::npos) {
+								vIdx = std::stoi(token.substr(0, slashPos));
+							} else {
+								vIdx = std::stoi(token);
+							}
+						} catch(...) { continue; }
+						if (vIdx > 0) faceVerts.push_back(vIdx - 1);
+					}
+					for (size_t i = 1; i + 1 < faceVerts.size(); ++i) {
+						cachedMeshFaces_.push_back({ faceVerts[0], faceVerts[i], faceVerts[i+1] });
+						cachedMeshEdges_.push_back({ faceVerts[0], faceVerts[i] });
+						cachedMeshEdges_.push_back({ faceVerts[i], faceVerts[i+1] });
+						cachedMeshEdges_.push_back({ faceVerts[i+1], faceVerts[0] });
+					}
+				}
+			}
+			return;
+		}
 
 		if (ext == ".gltf") {
 			std::ifstream ifs(gltfPath);
@@ -425,6 +475,8 @@ namespace Game::Editor {
 					addEdge(v0, v1);
 					addEdge(v1, v2);
 					addEdge(v2, v0);
+
+					cachedMeshFaces_.push_back({ v0, v1, v2 });
 				}
 			}
 		}

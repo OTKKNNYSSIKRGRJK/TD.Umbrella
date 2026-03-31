@@ -1,0 +1,24 @@
+{
+    "aggressiveness": 0.5,
+    "aggroRadius": 15.0,
+    "animationMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "attackCooldown": 1.5,
+    "attackRange": 2.0,
+    "collisionVertices": [],
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
+    "hp": 100,
+    "motionMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "moveSpeed": 3.0,
+    "name": "Slime",
+    "patrolRadius": 10.0,
+    "power": 1.0,
+    "retreatThreshold": 0.20000000298023224
+}

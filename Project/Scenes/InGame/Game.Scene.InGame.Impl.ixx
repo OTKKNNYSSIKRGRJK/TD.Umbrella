@@ -3,6 +3,7 @@ export module Game.Scene.InGame : Impl;
 import <memory>;
 
 import <vector>;
+import <map>;
 
 #if defined(_DEBUG)
 import Game.TerrainEditor;
@@ -79,6 +80,8 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
+		std::map<std::string, size_t> EnemyMeshIndices_;
+
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
@@ -121,6 +124,7 @@ namespace Game::Scene::Impl {
 			int CurrentHP = 100;
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
+			bool FacingRight = true;
 		};
 
 		struct PlayState {
