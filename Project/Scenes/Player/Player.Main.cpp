@@ -38,7 +38,7 @@ void Player::Initialize() {
 	backJoint_.SetType(AttachmentType::PlayerBack);
 	backJoint_.SetAcceptType(AttachmentType::UmbrellaHandle);
 	backJoint_.SetInfo({ 0.0f,-0.0f,0.0f }, { 0.0f,0.0f,0.0f });
-	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(135.0f)});
+	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(0.0f)});
 
 	umbrella_ = std::make_unique<Umbrella::Main>();
 	umbrella_->Initialize();
@@ -202,7 +202,7 @@ void Player::Update(float deltaTime) {
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 
 	Vector3 backPos = Position_;
-	backPos.Y += 1.5f;
+	backPos.Y += 1.0f;
 	backPos.Z += 1.0f;
 	backJoint_.SetPos(backPos);
 	backJoint_.Update();
@@ -219,6 +219,11 @@ void Player::Update(float deltaTime) {
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
 	ImGui::DragFloat3("RHandJoint", &test.X);
+	Vector3 test2 = backJoint_.GetPos();
+	ImGui::DragFloat3("BackJoint", &test2.X);
+	Vector3 backRot = backJoint_.GetRot();
+	ImGui::DragFloat3("BackRot", &backRot.X, 0.1f);
+	backJoint_.SetRot(backRot);
 
 	Vector3 colliderPos = collider_->GetWorldPosition();
 	ImGui::DragFloat3("colliderPos", &colliderPos.X);

@@ -39,6 +39,7 @@ namespace Game::MathUtils {
 			cosAlpha * sinBeta * sinGamma - sinAlpha * cosGamma,
 			cosAlpha * cosBeta,
 			0.0f,
+
 			0.0f, 0.0f, 0.0f, 1.0f,
 		};
 	}

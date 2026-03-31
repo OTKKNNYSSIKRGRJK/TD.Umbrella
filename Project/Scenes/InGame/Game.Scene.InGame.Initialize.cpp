@@ -71,6 +71,30 @@ namespace Game::Scene::Impl {
 			)
 		};
 
+		auto&& umbrellaHandle{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaHandle.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaCloseTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTopClose.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaOpenTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTop.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
 		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 		
 		// アップロード用vector
@@ -89,6 +113,9 @@ namespace Game::Scene::Impl {
 		};
 
 		addMeshesToBeUploaded(teapot);
+		addMeshesToBeUploaded(umbrellaHandle);
+		addMeshesToBeUploaded(umbrellaCloseTop);
+		addMeshesToBeUploaded(umbrellaOpenTop);
 
 		// メッシュデータをGPU側にアップロードするやつ
 		Lumina::MeshUploader meshUploader{};
@@ -344,6 +371,13 @@ namespace Game::Scene::Impl {
 		Player_->Initialize();
 		Player_->SetMesh(MeshShaderAssets_[0]);
 		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().handle_->SetMesh(MeshShaderAssets_[1]);
+		Player_->GetUmbrella().handle_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().top_->SetMesh(MeshShaderAssets_[2]);
+		Player_->GetUmbrella().top_->SetMeshOpen(MeshShaderAssets_[3]);
+		Player_->GetUmbrella().top_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
 		CollisionManager_ = std::make_unique<CollisionManager>();
 
