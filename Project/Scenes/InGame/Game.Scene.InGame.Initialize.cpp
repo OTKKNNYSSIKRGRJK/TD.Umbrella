@@ -113,14 +113,6 @@ namespace Game::Scene::Impl {
 			}
 		};
 
-		// プレイヤー用
-		auto&& teapot{
-			Lumina::Utils::Mesh::Load(
-				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
-					"teapot.obj", "Assets"
-				)
-			)
-		};
 		addMeshesToBeUploaded(teapot);
 		addMeshesToBeUploaded(umbrellaHandle);
 		addMeshesToBeUploaded(umbrellaCloseTop);
