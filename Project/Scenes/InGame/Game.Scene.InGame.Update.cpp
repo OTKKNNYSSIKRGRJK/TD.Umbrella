@@ -250,6 +250,19 @@ namespace Game::Scene::Impl {
 			playState_.TransitionCooldownTimer -= dt;
 		}
 		
+		float player2DX = playState_.Player.Position.X;
+		float player2DY = playState_.Player.Position.Y;
+		if (Player_ && WorldToHomogeneous_) {
+			auto p3d = Player_->GetPosition();
+			Lumina::Math::F32x4 wPos{ p3d.X, p3d.Y, p3d.Z, 1.0f };
+			auto nPos = wPos * (*WorldToHomogeneous_);
+			if (nPos.W() != 0.0f) {
+				nPos /= nPos.W();
+				player2DX = (nPos.X() + 1.0f) * 0.5f * 1280.0f;
+				player2DY = playState_.CurrentArea.height - ((1.0f - nPos.Y()) * 0.5f * 720.0f);
+			}
+		}
+
 		// Enemy Logic (simple track player in 2D)
 		for (auto& e : playState_.Enemies) {
 			if (e.IsDead) continue;
@@ -263,8 +276,8 @@ namespace Game::Scene::Impl {
 				continue; // Puppets don't move or attack
 			}
 			
-			float dx = playState_.Player.Position.X - e.Position.X;
-			float dy = playState_.Player.Position.Y - e.Position.Y;
+			float dx = player2DX - e.Position.X;
+			float dy = player2DY - e.Position.Y;
 			float dist = std::sqrt(dx*dx + dy*dy);
 			
 			if (dist > 50.0f && dist < e.BaseData.aggroRadius * 50.0f) {
