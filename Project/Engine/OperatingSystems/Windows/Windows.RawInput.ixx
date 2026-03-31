@@ -120,7 +120,9 @@ namespace Lumina::OS::Windows {
 
 	public:
 		constexpr bool IsPressed(KEY key_) const noexcept;
+		constexpr bool IsJustPressed(KEY key_) const noexcept;
 		constexpr bool IsReleased(KEY key_) const noexcept;
+		constexpr bool IsJustReleased(KEY key_) const noexcept;
 
 		inline void CurrentState(Bitset<256U>& state_) const {
 			state_.Set(CurrentState_);
@@ -132,6 +134,11 @@ namespace Lumina::OS::Windows {
 		constexpr void OnInput(RAWINPUT const& rawInput_) noexcept;
 
 		//----	------	------	------	------	----//
+
+	private:
+		void Update() {
+			PreviousState_.Set(CurrentState_);
+		}
 
 	private:
 		void Initialize(HWND hWnd_);
@@ -148,6 +155,7 @@ namespace Lumina::OS::Windows {
 
 	private:
 		Bitset<256U> CurrentState_{};
+		Bitset<256U> PreviousState_{};
 	};
 
 	//----	------	------	------	------	----//
@@ -158,9 +166,17 @@ namespace Lumina::OS::Windows {
 		auto keyCode{ static_cast<uint32_t>(key_) };
 		return CurrentState_[keyCode];
 	}
+	constexpr bool RawKeyboard::IsJustPressed(KEY key_) const noexcept {
+		auto keyCode{ static_cast<uint32_t>(key_) };
+		return CurrentState_[keyCode] && !PreviousState_[keyCode];
+	}
 	constexpr bool RawKeyboard::IsReleased(KEY key_) const noexcept {
 		auto keyCode{ static_cast<uint32_t>(key_) };
 		return !CurrentState_[keyCode];
+	}
+	constexpr bool RawKeyboard::IsJustReleased(KEY key_) const noexcept {
+		auto keyCode{ static_cast<uint32_t>(key_) };
+		return !CurrentState_[keyCode] && PreviousState_[keyCode];
 	}
 
 	//----	------	------	------	------	----//
@@ -394,6 +410,9 @@ namespace Lumina::OS::Windows {
 		);
 
 		//----	------	------	------	------	----//
+
+	public:
+		void Update() { Keyboard_->Update(); }
 
 	public:
 		void Initialize(HWND hWnd_);

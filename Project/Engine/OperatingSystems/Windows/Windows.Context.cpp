@@ -110,6 +110,13 @@ namespace Lumina::OS::Windows {
 
 	//----	------	------	------	------	----//
 
+	void Context::Update() {
+		for (auto& windowInst : Array_WindowInstances_) {
+			auto& windowEX{ static_cast<WindowEX&>(*windowInst.get()) };
+			windowEX.RawInputContext->Update();
+		}
+	}
+
 	void Context::Initialize(Window::Config const& mainWindowConfig_) {
 		WindowClass_.Initialize(::LoadCursor(nullptr, IDC_ARROW));
 

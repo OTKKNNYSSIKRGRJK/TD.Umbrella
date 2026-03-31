@@ -62,6 +62,9 @@ namespace Lumina::OS::Windows {
 		//----	------	------	------	------	----//
 
 	public:
+		void Update();
+
+	public:
 		void Initialize(
 			Window::Config const& mainWindowConfig_ = {
 				.Name{ L"Main" },
