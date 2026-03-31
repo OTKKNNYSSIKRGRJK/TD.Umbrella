@@ -11,6 +11,8 @@ import Lumina.Utils.ImGui;
 #endif
 
 import Lumina.Main;
+import Lumina.Utils.Data;
+import nlohmann.json;
 
 import Game.MotionManager;
 
@@ -27,6 +29,25 @@ namespace Game::Scene::Impl {
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
+		
+		try {
+			// Load Terrain (which reads "Polygons" and "GroundPoints" stored inside area json)
+			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
+			TerrainScreenData_->Initialize(
+				Lumina::Utils::LoadFromFile<nlohmann::json>(filename, "./")
+			);
+			
+			Terrain_ = std::make_unique<TerrainShapeCollection>();
+			TerrainScreenData_->ConvertToWorldCoordinate(
+				*Terrain_,
+				*Camera_,
+				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
+			);
+		} catch (...) {
+			// Fallback or empty terrain if file has no terrain data yet
+			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
+			Terrain_ = std::make_unique<TerrainShapeCollection>();
+		}
 		
 		playState_.Enemies.clear();
 		for (auto& ep : playState_.CurrentArea.enemies) {
@@ -90,8 +111,69 @@ namespace Game::Scene::Impl {
 			playState_.Player.FacingRight = true;
 		}
 		
+		auto getTerrainY = [&](float px) -> float {
+			float yFromTop = static_cast<float>(playState_.CurrentArea.height);
+			if (TerrainScreenData_) {
+				auto& vertices = TerrainScreenData_->GroundData().Vertices;
+				bool foundMapGround = false;
+				
+				Lumina::List<Game::Ground::Vertex>::Iterator it{ vertices };
+				for (it.Begin(); !it.End(); it.Next()) {
+					auto const& v1 = *it;
+					if (v1.NextID != -1) {
+						auto const* v2_ptr = (Game::Ground::Vertex const*)nullptr;
+						
+						Lumina::List<Game::Ground::Vertex>::Iterator jt{ vertices };
+						for (jt.Begin(); !jt.End(); jt.Next()) {
+							if ((*jt).ID == v1.NextID) { v2_ptr = &(*jt); break; }
+						}
+						
+						if (v2_ptr) {
+							float x1 = v1.Pos.X; float y1 = v1.Pos.Y;
+							float x2 = v2_ptr->Pos.X; float y2 = v2_ptr->Pos.Y;
+							if (x1 > x2) { std::swap(x1, x2); std::swap(y1, y2); }
+							
+							if (px >= x1 && px <= x2) {
+								if (x2 - x1 > 0.001f) {
+									float t = (px - x1) / (x2 - x1);
+									yFromTop = y1 + t * (y2 - y1);
+								} else {
+									yFromTop = y1;
+								}
+								foundMapGround = true;
+								break;
+							}
+						}
+					}
+				}
+				if (!foundMapGround && vertices.Size() > 0) {
+					float minX = 999999.0f, maxX = -999999.0f;
+					float yAtMinX = 0, yAtMaxX = 0;
+					
+					Lumina::List<Game::Ground::Vertex>::Iterator it2{ vertices };
+					for (it2.Begin(); !it2.End(); it2.Next()) {
+						if ((*it2).Pos.X < minX) { minX = (*it2).Pos.X; yAtMinX = (*it2).Pos.Y; }
+						if ((*it2).Pos.X > maxX) { maxX = (*it2).Pos.X; yAtMaxX = (*it2).Pos.Y; }
+					}
+					if (px <= minX) yFromTop = yAtMinX;
+					else if (px >= maxX) yFromTop = yAtMaxX;
+				}
+			}
+			return static_cast<float>(playState_.CurrentArea.height) - yFromTop;
+		};
+
+		// Clamp player inside area bounds (X)
+		if (playState_.Player.Position.X < 20.0f) {
+			playState_.Player.Position.X = 20.0f;
+		}
+		if (playState_.Player.Position.X > playState_.CurrentArea.width - 20.0f) {
+			playState_.Player.Position.X = playState_.CurrentArea.width - 20.0f;
+		}
+
+		float groundY = getTerrainY(playState_.Player.Position.X);
+		
 		// 2D Jump
-		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::SPACE) && playState_.Player.Position.Y <= 0.0f) {
+		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::SPACE) && std::abs(playState_.Player.Position.Y - groundY) <= 0.1f) {
 			playState_.Player.Velocity.Y = 600.0f;
 		}
 		
@@ -99,17 +181,9 @@ namespace Game::Scene::Impl {
 		playState_.Player.Velocity.Y -= 1500.0f * dt;
 		playState_.Player.Position.Y += playState_.Player.Velocity.Y * dt;
 		
-		if (playState_.Player.Position.Y <= 0.0f) {
-			playState_.Player.Position.Y = 0.0f;
+		if (playState_.Player.Position.Y <= groundY) {
+			playState_.Player.Position.Y = groundY;
 			playState_.Player.Velocity.Y = 0.0f;
-		}
-		
-		// Clamp player inside area bounds
-		if (playState_.Player.Position.X < 20.0f) {
-			playState_.Player.Position.X = 20.0f;
-		}
-		if (playState_.Player.Position.X > playState_.CurrentArea.width - 20.0f) {
-			playState_.Player.Position.X = playState_.CurrentArea.width - 20.0f;
 		}
 		
 		// Attack
@@ -196,6 +270,8 @@ namespace Game::Scene::Impl {
 				e.Position.X += (dx > 0 ? 1.0f : -1.0f) * e.BaseData.moveSpeed * 60.0f * dt;
 			}
 			
+			e.Position.Y = getTerrainY(e.Position.X);
+
 			if (dist < 50.0f && playState_.Player.HurtTimer <= 0.0f) {
 				playState_.Player.HP -= static_cast<int>(e.BaseData.power);
 				playState_.Player.HurtTimer = 1.0f; // Invincibility frame
@@ -277,9 +353,9 @@ namespace Game::Scene::Impl {
 		// Foreground draw for game world (2D Action Side Scroller)
 		ImDrawList* drawList = ImGui::GetBackgroundDrawList();
 		
-		// Center camera horizontally on player, Y=0 is explicitly drawn near bottom
+		// Center camera horizontally on player, Y=0 is mapped to CurrentArea.height
 		float cx = 1280.0f / 2.0f - playState_.Player.Position.X;
-		float groundScreenY = 600.0f; // explicit screen coordinate for floor
+		float groundScreenY = static_cast<float>(playState_.CurrentArea.height);
 		
 		auto WorldToScreen = [&](const Lumina::Math::F32x3& p) -> ImVec2 {
 			return ImVec2(
@@ -288,13 +364,43 @@ namespace Game::Scene::Impl {
 			);
 		};
 		
-		// Draw ground line
-		drawList->AddLine(ImVec2(0.0f, groundScreenY), ImVec2(1280.0f, groundScreenY), MakeCol32(255, 255, 255, 255), 2.0f);
+		// Draw terrain line (GroundPoints)
+		if (TerrainScreenData_) {
+			auto& vertices = TerrainScreenData_->GroundData().Vertices;
+			Lumina::List<Game::Ground::Vertex>::Iterator it{ vertices };
+			for (it.Begin(); !it.End(); it.Next()) {
+				auto const& v1 = *it;
+				if (v1.NextID != -1) {
+					auto const* v2_ptr = (Game::Ground::Vertex const*)nullptr;
+					
+					Lumina::List<Game::Ground::Vertex>::Iterator jt{ vertices };
+					for (jt.Begin(); !jt.End(); jt.Next()) {
+						if ((*jt).ID == v1.NextID) { v2_ptr = &(*jt); break; }
+					}
+					
+					if (v2_ptr) {
+						drawList->AddLine(
+							ImVec2(cx + v1.Pos.X, v1.Pos.Y), // Draw at raw screen coordinates from AreaEditor
+							ImVec2(cx + v2_ptr->Pos.X, v2_ptr->Pos.Y), 
+							MakeCol32(100, 255, 100, 255), 3.0f
+						);
+						// Faint fill to the bottom
+						ImVec2 poly[4] = {
+							ImVec2(cx + v1.Pos.X, v1.Pos.Y),
+							ImVec2(cx + v2_ptr->Pos.X, v2_ptr->Pos.Y),
+							ImVec2(cx + v2_ptr->Pos.X, groundScreenY),
+							ImVec2(cx + v1.Pos.X, groundScreenY)
+						};
+						drawList->AddConvexPolyFilled(poly, 4, MakeCol32(100, 255, 100, 50));
+					}
+				}
+			}
+		}
 		
 		// Draw area limits (width)
-		drawList->AddRectFilled(ImVec2(cx, groundScreenY - playState_.CurrentArea.height), ImVec2(cx + playState_.CurrentArea.width, groundScreenY), MakeCol32(40, 40, 40, 150));
-		drawList->AddLine(ImVec2(cx, groundScreenY - playState_.CurrentArea.height), ImVec2(cx, groundScreenY), MakeCol32(255, 100, 100, 255), 2.0f);
-		drawList->AddLine(ImVec2(cx + playState_.CurrentArea.width, groundScreenY - playState_.CurrentArea.height), ImVec2(cx + playState_.CurrentArea.width, groundScreenY), MakeCol32(255, 100, 100, 255), 2.0f);
+		drawList->AddRectFilled(ImVec2(cx, 0.0f), ImVec2(cx + playState_.CurrentArea.width, groundScreenY), MakeCol32(40, 40, 40, 150));
+		drawList->AddLine(ImVec2(cx, 0.0f), ImVec2(cx, groundScreenY), MakeCol32(255, 100, 100, 255), 2.0f);
+		drawList->AddLine(ImVec2(cx + playState_.CurrentArea.width, 0.0f), ImVec2(cx + playState_.CurrentArea.width, groundScreenY), MakeCol32(255, 100, 100, 255), 2.0f);
 			
 		// Draw triggers (assuming AreaEditor Y is height-based, adjusting as needed)
 		for (const auto& conn : playState_.CurrentArea.connections) {
@@ -397,6 +503,41 @@ namespace Game::Scene::Impl {
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 
 		#if defined(_DEBUG)
+		// メインメニューバー: エディタ切り替え
+		if (ImGui::BeginMainMenuBar()) {
+			if (ImGui::BeginMenu("Mode")) {
+				if (ImGui::MenuItem("Play Prototype", nullptr, activeEditor_ == EditorTab::Play)) {
+					activeEditor_ = EditorTab::Play;
+					if (!playState_.IsPlaying) {
+						playState_.IsPlaying = true;
+						CheckAndLoadArea(0); // Load default area 0
+					}
+				}
+				if (ImGui::MenuItem("Motion Editor", nullptr, activeEditor_ == EditorTab::Motion)) {
+					activeEditor_ = EditorTab::Motion;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Area Editor", nullptr, activeEditor_ == EditorTab::Area)) {
+					activeEditor_ = EditorTab::Area;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Enemy Editor", nullptr, activeEditor_ == EditorTab::Enemy)) {
+					activeEditor_ = EditorTab::Enemy;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Actor Editor", nullptr, activeEditor_ == EditorTab::Actor)) {
+					activeEditor_ = EditorTab::Actor;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Terrain Editor", nullptr, activeEditor_ == EditorTab::Terrain)) {
+					activeEditor_ = EditorTab::Terrain;
+					playState_.IsPlaying = false;
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
 		// アクティブなエディタを描画
 		switch (activeEditor_) {
 		case EditorTab::Motion:
@@ -407,6 +548,12 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Enemy:
 			enemyEditor_.Update();
+			break;
+		case EditorTab::Actor:
+			actorEditor_.Update();
+			break;
+		case EditorTab::Terrain:
+			if (TerrainEditor_) TerrainEditor_->Update();
 			break;
 		case EditorTab::Play:
 			UpdatePlayLogic();

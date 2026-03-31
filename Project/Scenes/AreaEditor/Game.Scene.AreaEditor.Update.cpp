@@ -8,6 +8,8 @@ import <string>;
 import <map>;
 import <algorithm>;
 import <filesystem>;
+import <vector>;
+import nlohmann.json;
 
 #if defined(_DEBUG)
 namespace {
@@ -274,6 +276,63 @@ namespace Game::Editor {
 				drawList->AddText(ImVec2(areaMin.x + 5, areaMin.y + 20), MakeCol32(100, 255, 100, 255), "[Editing]");
 			}
 
+			// Draw TerrainEditor Polygons
+			if (drawData.originalJson.contains("Polygons") && drawData.originalJson["Polygons"].is_array()) {
+				for (const auto& poly : drawData.originalJson["Polygons"]) {
+					if (poly.contains("Vertices") && poly["Vertices"].is_array()) {
+						const auto& verts = poly["Vertices"];
+						if (verts.size() >= 3) {
+							std::vector<ImVec2> points;
+							for (const auto& v : verts) {
+								if (v.contains("Pos") && v["Pos"].is_array() && v["Pos"].size() >= 2) {
+									float px = v["Pos"][0].get<float>();
+									float py = v["Pos"][1].get<float>();
+									points.push_back(ImVec2(
+										cx + (drawData.editorPos.x + px) * scale,
+										cy - (drawData.editorPos.y + drawData.height - py) * scale
+									));
+								}
+							}
+							if (points.size() >= 3) {
+								drawList->AddConvexPolyFilled(points.data(), static_cast<int>(points.size()), MakeCol32(100, 200, 100, isEditing ? 80 : 30));
+								drawList->AddPolyline(points.data(), static_cast<int>(points.size()), MakeCol32(150, 255, 150, isEditing ? 255 : 100), ImDrawFlags_Closed, 1.5f);
+							}
+						}
+					}
+				}
+			}
+
+			// Draw TerrainEditor GroundPoints
+			if (drawData.originalJson.contains("GroundPoints") && drawData.originalJson["GroundPoints"].is_array()) {
+				const auto& gp = drawData.originalJson["GroundPoints"];
+				for (const auto& pt : gp) {
+					if (pt.contains("NextID") && pt.contains("Pos") && pt["Pos"].is_array() && pt["Pos"].size() >= 2) {
+						int nextID = pt["NextID"].template get<int>();
+						if (nextID != -1) {
+							for (const auto& npt : gp) {
+								if (npt.contains("ID") && npt["ID"].template get<int>() == nextID && npt.contains("Pos") && npt["Pos"].is_array() && npt["Pos"].size() >= 2) {
+									float x1 = pt["Pos"][0].template get<float>();
+									float y1 = pt["Pos"][1].template get<float>();
+									float x2 = npt["Pos"][0].template get<float>();
+									float y2 = npt["Pos"][1].template get<float>();
+									
+									ImVec2 startP(
+										cx + (drawData.editorPos.x + x1) * scale,
+										cy - (drawData.editorPos.y + drawData.height - y1) * scale
+									);
+									ImVec2 endP(
+										cx + (drawData.editorPos.x + x2) * scale,
+										cy - (drawData.editorPos.y + drawData.height - y2) * scale
+									);
+									drawList->AddLine(startP, endP, MakeCol32(100, 255, 100, isEditing ? 255 : 150), 4.0f * scale);
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+
 			std::map<int, int> targetCount;
 			for (const auto& conn : drawData.connections) {
 				int currentIdx = targetCount[conn.targetAreaIndex]++;
@@ -428,8 +487,8 @@ namespace Game::Editor {
 			if (ImGui::InputInt("Area Name / Index", &editingArea_.index)) {
 				editingArea_.name = editingArea_.index;
 			}
-			ImGui::DragInt("Width", &editingArea_.width, 10, 1, 100000);
-			ImGui::DragInt("Height", &editingArea_.height, 10, 1, 100000);
+			ImGui::Text("Width: %d", editingArea_.width);
+			ImGui::Text("Height: %d", editingArea_.height);
 			char musicBuf[256];
 			strncpy_s(musicBuf, editingArea_.backgroundMusic.c_str(), sizeof(musicBuf));
 			if (ImGui::InputText("Background Music", musicBuf, sizeof(musicBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
