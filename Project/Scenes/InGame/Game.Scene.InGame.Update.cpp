@@ -476,6 +476,20 @@ namespace Game::Scene::Impl {
 		//TerrainEditor_->Update();
 		Player_->Update(1.0f);
 
+		// Collision の更新処理↓↓↓
+		
+		// 中身をclear
+		CollisionManager_->Begin();
+
+		// ここからColliderを設定
+		CollisionManager_->SetColliders(Player_->GetCollider());
+		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
+
+		// Check!
+		CollisionManager_->CheckAllCollisions();
+
+		// Collisionの更新処理↑↑↑
+
 		#if defined(_DEBUG)
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 0.0f, -30.0f };

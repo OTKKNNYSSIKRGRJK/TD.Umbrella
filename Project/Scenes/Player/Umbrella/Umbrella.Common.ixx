@@ -9,6 +9,7 @@ export enum class UmbrellaForm {
 	Closed,     // 閉じている（攻撃特化）
 	Opened,     // 開いている（防御・マナ回収特化）
 	Reverse,    // 逆さ（防御・壊れやすい）
+	Flying,	   // かさが飛んでいる(ない)状態（壊れている状態など）
 };
 
 //////////////////////
