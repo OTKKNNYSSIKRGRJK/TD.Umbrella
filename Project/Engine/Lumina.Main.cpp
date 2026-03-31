@@ -9,6 +9,8 @@ import Lumina.Core.Math;
 import Lumina.D3D12.Aux.View;
 
 #if defined(_DEBUG)
+import Lumina.Utils.ImGui;
+
 namespace {
 	void SetImGuiAppearance() {
 		//ImGui::GetIO().Fonts->AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf", 12.0f);
@@ -114,6 +116,18 @@ namespace Lumina {
 				GlobalTable_ImageTextures_.GPUHandle(0U),
 				LocalHeap_OrthoProjMat_.CPUHandle(0U)
 			);*/
+
+			/*ImGui::Begin("Keyboard");
+			using Lumina::OS::Windows::KEY;
+			static int aaa = 0;
+			static int bbb = 0;
+			aaa += keyboard.IsJustPressed(KEY::A);
+			bbb += keyboard.IsJustReleased(KEY::A);
+			ImGui::Text("%d", keyboard.IsPressed(KEY::A));
+			ImGui::Text("%d", aaa);
+			ImGui::Text("%d", keyboard.IsReleased(KEY::A));
+			ImGui::Text("%d", bbb);
+			ImGui::End();*/
 			
 			#if defined(_DEBUG)
 			Lumina::Utils::ImGuiManager::EndFrame(CmdList_);
@@ -125,6 +139,8 @@ namespace Lumina {
 			if (keyboard.IsPressed(Lumina::OS::Windows::KEY::ESC)) {
 				::SendMessage(WinAppContext_.WindowInstance(L"Main").Handle(), WM_CLOSE, 0, 0);
 			}
+
+			WinAppContext_.Update();
 
 			return 1;
 		}

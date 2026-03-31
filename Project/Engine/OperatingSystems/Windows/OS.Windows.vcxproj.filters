@@ -8,5 +8,9 @@
     <ClCompile Include="Windows.Context.ixx" />
     <ClCompile Include="Windows.ixx" />
     <ClCompile Include="Windows.RawInput.ixx" />
+    <ClCompile Include="GamePad.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GamePad.h" />
   </ItemGroup>
 </Project>
