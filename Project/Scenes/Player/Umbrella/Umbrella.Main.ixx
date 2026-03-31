@@ -5,6 +5,12 @@ import : State;
 import Collider;
 
 import Game.Attachment;
+import StatusComponent;
+import ManaComponent;
+
+import Lumina.Core.Math;
+import Lumina.MeshManager;
+import Lumina.D3D12;
 
 //////////////////////
 /// 
@@ -52,7 +58,8 @@ namespace Umbrella {
     public:
         Attachment* GetTipJoint() { return &tipJoint_; }
         Attachment* GetBaseJoint() { return &baseJoint_; }
-
+        void SetMesh(Lumina::MeshShaderAsset const& mesh_) noexcept { Mesh_ = &mesh_; }
+        void SetMeshMaterialCBV(D3D12_CPU_DESCRIPTOR_HANDLE cbv_) noexcept { MeshMaterialCBV_ = cbv_; }
     private:
         // プレイヤーに持たれる用のJoint
         Attachment baseJoint_;
@@ -60,8 +67,8 @@ namespace Umbrella {
         // 「かさ」をくっつけるための先端のJoint(他にもおｋでいいかも)
         Attachment tipJoint_;
 
-        //std::unique_ptr<ModelObject>obj_;
-    //public:  Fngine* p_fngine_;
+        Lumina::MeshShaderAsset const* Mesh_;
+        D3D12_CPU_DESCRIPTOR_HANDLE MeshMaterialCBV_;
     };
 
     //////////////////////
@@ -108,24 +115,37 @@ namespace Umbrella {
 
         //////////////////////
         /// 
-        ///  当たり判定とパラメータ
+        ///  当たり判定
         /// 
         //////////////////////
     public:
         void UpdateColliderShape();
         ConvexCollider* GetCollider() const { return collider_.get(); }
         // 攻撃判定のON/OFF（属性の切り替え）
-        void EnableAttackCollision() {
-            collider_->SetMyType(COL_Player_Attack);
-        }
-        void DisableAttackCollision() {
-            collider_->SetMyType(COL_None);
-        }
-
+        void EnableAttackCollision() { collider_->SetMyType(COL_Player_Attack); }
+        void DisableAttackCollision() { collider_->SetMyType(COL_None); }
     private:
         std::unique_ptr<ConvexCollider>collider_;
-        float durability_;// 耐久度
-        float manaAmount_;// 過剰量のマナ管理
+
+        //////////////////////
+        /// 
+        ///  パラメータ
+        /// 
+        //////////////////////
+    public:
+        // 壊れているかどうかの判定（HPが0以下なら壊れている）
+        bool IsBroken() const { return status_->IsDead(); }
+        void Repair() {
+            // MaxHP分の回復値を渡すことで全回復させる(だんだんはHealを呼び出す)
+            status_->Heal(status_->GetMaxHp());
+        }
+    private:
+        std::unique_ptr<StatusComponent>status_;// 耐久度・攻撃力
+        std::unique_ptr<ManaComponent>mana_;// マナ回収用
+
+    public:
+        StatusComponent& GetStatusComponent() { return *status_; }
+        ManaComponent& GetManaComponent() { return *mana_; }
 
         //////////////////////
         /// 
@@ -142,10 +162,6 @@ namespace Umbrella {
 
         // 現在のステート
         UmbrellaStates::Base* currentState_;
-        //// ステート達
-        //std::unique_ptr<UmbrellaStates::Close>closeState_;
-        //std::unique_ptr<UmbrellaStates::Open>openState_;
-        //std::unique_ptr<UmbrellaStates::Reverse>reverseState_;
 
     public:// Get・Set関係の関数
         // 傘の「かさ」の状態を返す関数
@@ -156,10 +172,15 @@ namespace Umbrella {
         ///  基本的な情報
         /// 
         //////////////////////
+    public:
+        void SetMesh(Lumina::MeshShaderAsset const& mesh_) noexcept { Mesh_ = &mesh_; }
+        void SetMeshOpen(Lumina::MeshShaderAsset const& mesh_) noexcept { MeshOpen_ = &mesh_; }
+        void SetMeshMaterialCBV(D3D12_CPU_DESCRIPTOR_HANDLE cbv_) noexcept { MeshMaterialCBV_ = cbv_; }
     private:
-        //std::unique_ptr<ModelObject>obj_;
-        //std::unique_ptr<ModelObject>openObj_;
-    //public:  Fngine* p_fngine_;
+        Lumina::MeshShaderAsset const* Mesh_;
+        Lumina::MeshShaderAsset const* MeshOpen_;
+        D3D12_CPU_DESCRIPTOR_HANDLE MeshMaterialCBV_;
+
     };
 
     //////////////////////

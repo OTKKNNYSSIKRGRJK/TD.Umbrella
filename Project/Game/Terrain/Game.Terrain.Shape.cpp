@@ -127,7 +127,7 @@ namespace Game {
 			auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ groundVert.Pos.X, groundVert.Pos.Y, tmp.Z() }) };
 			auto&& worldPos{ ndcPos * ndcToWorld };
 			worldPos /= worldPos.W();
-			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), worldPos.Z() };
+			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), 0.0f };
 		}
 
 		Lumina::List<Ground::Vertex>::Iterator it_RetGroundVert{ out_.Ground_.Vertices };
@@ -147,6 +147,10 @@ namespace Game {
 					{ retGroundVert0->Pos.X, -10.0f, retGroundVert0->Pos.Z }
 				}
 			);
+			collider->SetMyType(COL_Ground);
+			collider->SetYourType(COL_Player | COL_Enemy | COL_Umbrella_Ground);
+			collider->SetWorldPosition({ 0.0f, 0.0f, 0.0f });
+
 			collider->UpdateAABB();
 
 			retGroundVert0 = retGroundVert1;

@@ -4,6 +4,7 @@ import <memory>;
 import <string>;
 import <map>;
 import <vector>;
+import <array>;
 
 import Lumina;
 
@@ -73,6 +74,13 @@ export namespace Game::Editor {
 		void SaveEnemy(const EnemyData& enemy);
 		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
 
+	public:
+		void ExtractMeshWireframe(const std::string& gltfPath);
+		const std::string& GetCachedMeshGltfPath() const { return cachedMeshGltfPath_; }
+		const std::vector<std::array<float, 3>>& GetCachedMeshPositions() const { return cachedMeshPositions_; }
+		const std::vector<std::array<int, 2>>& GetCachedMeshEdges() const { return cachedMeshEdges_; }
+		const std::vector<std::array<int, 3>>& GetCachedMeshFaces() const { return cachedMeshFaces_; }
+
 	private:
 		EnemyData editingEnemy_{};
 
@@ -80,8 +88,22 @@ export namespace Game::Editor {
 		std::string cachedGltfPath_;
 		std::vector<std::string> cachedAnimationNames_;
 
+		// メッシュワイヤーフレームキャッシュ
+		std::string cachedMeshGltfPath_;
+		std::vector<std::array<float, 3>> cachedMeshPositions_;  // 3D頂点座標
+		std::vector<std::array<int, 2>> cachedMeshEdges_;        // エッジ（頂点インデックスペア）
+		std::vector<std::array<int, 3>> cachedMeshFaces_;        // 三角形ポリゴン（頂点インデックス3つ）
+
 		// 当たり判定エディタ状態
 		int draggedVertexIndex_ = -1;    // ドラッグ中の頂点インデックス
 		float collisionZoom_ = 3.0f;     // キャンバスのズーム倍率
+
+		// ワイヤーフレームビューモード (0=正面XY, 1=側面ZY, 2=上面XZ)
+		int meshViewMode_ = 0;
+		bool showMeshWireframe_ = true;
+
+		// キャンバス移動オフセット
+		float canvasOffsetX_ = 0.0f;
+		float canvasOffsetY_ = 0.0f;
 	};
 }

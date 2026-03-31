@@ -5,6 +5,8 @@ import <vector>;
 import <string>;
 import <map>;
 
+import nlohmann.json;
+
 import Lumina;
 
 export namespace Game::Editor {
@@ -50,6 +52,7 @@ export namespace Game::Editor {
 		std::vector<EnemyPlacement> enemies;
 		std::vector<CollisionGroup> collisionGroups;
 		Vector2 editorPos = { 0.0f, 0.0f };
+		nlohmann::json originalJson{};
 
 		void Reset() {
 			name = 0;
@@ -61,6 +64,7 @@ export namespace Game::Editor {
 			enemies.clear();
 			collisionGroups.clear();
 			editorPos = { 0.0f, 0.0f };
+			originalJson = nlohmann::json::object();
 		}
 	};
 

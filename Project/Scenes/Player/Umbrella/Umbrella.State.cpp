@@ -5,6 +5,8 @@ import : Main;
 import Lumina.Core.Math;
 
 namespace {
+	using Vector3 = Lumina::Math::F32x3;
+	using Matrix4x4 = Lumina::Math::F32x4x4<>;
 	using Umbrella::Top;
 }
 
@@ -55,7 +57,25 @@ namespace UmbrellaStates {
 		}
 	}
 	void Reverse::Exit() {
+		// 状態の設定
 		top_->ChangeForm(UmbrellaForm::Reverse);
+		// 防御力を低く設定
+		top_->GetStatusComponent().SetDefense(1.0f);
+	}
+	/////////////////////////
+	/// 
+	///  Broken
+	///
+	/////////////////////////
+	void Broken::Enter() {
+		// アニメーション開始
+
+	}
+	void Broken::Update(float deltaTime) {
+		deltaTime;
+	}
+	void Broken::Exit() {
+
 	}
 	/////////////////////////
 	/// 
@@ -95,23 +115,58 @@ namespace UmbrellaStates {
 		top_->DisableAttackCollision();
 	}
 
-	//////////////////////////
+	/////////////////////////
+	/// 
+	///  Flying
 	///
-	///   Thrown
-	///
-	//////////////////////////
-	void Thrown::Enter() {
-		using Vector3 = Lumina::Math::F32x3;
-		using Matrix4x4 = Lumina::Math::F32x4x4<>;
-		Matrix4x4 const& mat{ top_->GetRootJoint()->GetMatrix() };
-		auto const& matRow3{ mat[3] };
-		Vector3 startPos = { matRow3.Get(0), matRow3.Get(1), matRow3.Get(2) };
-		motion_.Play("", startPos, 1.0f);
+	/////////////////////////
+	void Flying::Enter() {
+		// 親（持ち手）から自分（かさ）を切り離す！
+		// ※ Topクラスが持っているJoint（アタッチメント）をDetachする処理
+		top_->GetRootJoint()->Detach();
+
+		top_->ChangeForm(UmbrellaForm::Flying); // 飛んでいる間は「かさがない状態」にする
 	}
-	void Thrown::Update([[maybe_unused]] float deltaTime) {
+
+	void Flying::Update([[maybe_unused]] float deltaTime) {
+		// ③ 座標を更新して飛ばす
+		Vector3 pos = top_->GetRootJoint()->GetPos();
+		pos.X += velocity_.X * deltaTime;
+		pos.Y += velocity_.Y * deltaTime;
+		pos.Z += velocity_.Z * deltaTime;
+		top_->GetRootJoint()->SetPos(pos);
+		// Velocityをだんだん減速させる
+		float deceleration = 15.0f; // ブレーキの強さ
+		velocity_.X = std::lerp(velocity_.X, 0.0f, deceleration * deltaTime);
+		velocity_.Y = std::lerp(velocity_.Z, 0.0f, deceleration * deltaTime);
+
+		// 速度がゼロになったら飛ぶのを終了する
+		if (velocity_.X <= 0.0001f && velocity_.Y <= 0.0001f) {
+			top_->ChangeState(new Stationary());
+		}
+	}
+
+	void Flying::Exit() {
+		// 飛び終わった時の処理
+	}
+
+	// ==========================================
+	//   Stationary (静止・足場状態)
+	// ==========================================
+	void Stationary::Enter() {
+		// 足場用の当たり判定（コライダー属性）をONにするなどの処理
+		top_->GetCollider()->SetMyType(COL_Umbrella_Ground);
+		top_->UpdateColliderShape();
+	}
+
+	void Stationary::Update([[maybe_unused]] float deltaTime) {
+		// ここに留まり続ける。
+		// もしプレイヤーが「回収ボタン」を押したら、手元に戻るステートへ移行など
 
 	}
-	void Thrown::Exit() {
 
+	void Stationary::Exit() {
+		// 足場判定をOFFにするなど
+		top_->GetCollider()->SetMyType(COL_None);
 	}
 }

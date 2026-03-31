@@ -1,6 +1,7 @@
 module Game.Scene.InGame;
 
 import <vector>;
+import <filesystem>;
 
 import nlohmann.json;
 
@@ -71,6 +72,38 @@ namespace Game::Scene::Impl {
 			)
 		};
 
+		auto&& umbrellaHandle{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaHandle.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaCloseTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTopClose.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& umbrellaOpenTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTop.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
+
+		auto&& cubeMesh{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"cube.obj", "Assets"
+				)
+			)
+		};
+
 		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 		
 		// アップロード用vector
@@ -89,6 +122,51 @@ namespace Game::Scene::Impl {
 		};
 
 		addMeshesToBeUploaded(teapot);
+		addMeshesToBeUploaded(umbrellaHandle);
+		addMeshesToBeUploaded(umbrellaCloseTop);
+		addMeshesToBeUploaded(umbrellaOpenTop);
+
+		CubeMeshIdx_ = meshesToBeUploaded.size();
+		addMeshesToBeUploaded(cubeMesh);
+
+		// 敵用
+		EnemyMeshIndices_.clear();
+		namespace fs = std::filesystem;
+		if (fs::exists("./")) {
+			for (const auto& entry : fs::directory_iterator("./")) {
+				if (entry.is_regular_file() && entry.path().extension() == ".json") {
+					std::string fName = entry.path().filename().string();
+					if (fName.find("area") == 0) continue; // エリアデータは除外
+					
+					Game::Editor::EnemyData ed;
+					enemyEditor_.LoadEnemy(ed, fName);
+					
+					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4 && ed.gltfPath.substr(ed.gltfPath.size() - 4) == ".obj") {
+						try {
+							auto&& enemyMesh = Lumina::Utils::Mesh::Load(
+								Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath)
+							);
+							
+							using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+							MeshCollection validMeshes;
+							for (auto& m : enemyMesh) {
+								// D3D12への空バッファ転送を防ぐため、頂点が存在するかチェック
+								if (!m.Positions.empty() && !m.Vertices.empty()) {
+									validMeshes.push_back(std::move(m));
+								}
+							}
+
+							if (!validMeshes.empty()) {
+								EnemyMeshIndices_[ed.name] = meshesToBeUploaded.size();
+								addMeshesToBeUploaded(validMeshes);
+							}
+						} catch (...) {
+							// 読み込み失敗時はスキップ
+						}
+					}
+				}
+			}
+		}
 
 		// メッシュデータをGPU側にアップロードするやつ
 		Lumina::MeshUploader meshUploader{};
@@ -320,19 +398,8 @@ namespace Game::Scene::Impl {
 		MergePass_.DepthStencil().StencilBeginningEvent().NoAccess();
 		MergePass_.DepthStencil().StencilEndingEvent().NoAccess();
 
-		auto&& terrainScreenPos{ std::make_unique<TerrainShapeCollection>() };
-		terrainScreenPos = std::make_unique<TerrainShapeCollection>();
-		terrainScreenPos->Initialize(
-			Lumina::Utils::LoadFromFile<nlohmann::json>(
-				"zxcv.json", "Assets/Data/Terrain"
-			)
-		);
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
-		terrainScreenPos->ConvertToWorldCoordinate(
-			*Terrain_,
-			*Camera_,
-			{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
-		);
+
 		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
 		TerrainRenderer_->Initialize();
 
@@ -355,6 +422,15 @@ namespace Game::Scene::Impl {
 		Player_->Initialize();
 		Player_->SetMesh(MeshShaderAssets_[0]);
 		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().handle_->SetMesh(MeshShaderAssets_[1]);
+		Player_->GetUmbrella().handle_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		Player_->GetUmbrella().top_->SetMesh(MeshShaderAssets_[2]);
+		Player_->GetUmbrella().top_->SetMeshOpen(MeshShaderAssets_[3]);
+		Player_->GetUmbrella().top_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
+
+		CollisionManager_ = std::make_unique<CollisionManager>();
 
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();

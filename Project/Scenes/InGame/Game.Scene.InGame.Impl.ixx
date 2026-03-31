@@ -3,12 +3,14 @@ export module Game.Scene.InGame : Impl;
 import <memory>;
 
 import <vector>;
+import <map>;
 
 #if defined(_DEBUG)
 import Game.TerrainEditor;
 #endif
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
+import Game.Editor.ActorEditor;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -21,6 +23,7 @@ import Lumina.Utils.Camera;
 import Lumina.Primitive;
 
 import Game.Player;
+import CollisionManager;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -77,6 +80,9 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
+		std::map<std::string, size_t> EnemyMeshIndices_;
+		size_t CubeMeshIdx_{ 0 };
+
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
@@ -86,18 +92,21 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
 
+		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
 		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
 		std::unique_ptr<Player> Player_;
+		std::unique_ptr<CollisionManager> CollisionManager_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 
 	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Play };
+		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
+		Game::Editor::ActorEditor actorEditor_;
 
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
@@ -116,6 +125,7 @@ namespace Game::Scene::Impl {
 			int CurrentHP = 100;
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
+			bool FacingRight = true;
 		};
 
 		struct PlayState {

@@ -6,6 +6,8 @@ import Lumina.Utils.ImGui;
 
 import <string>;
 import <filesystem>;
+import <array>;
+import <vector>;
 
 namespace fs = std::filesystem;
 
@@ -13,6 +15,87 @@ namespace fs = std::filesystem;
 namespace {
 	constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
 		return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
+	}
+
+	using Vec2 = std::pair<float, float>;
+
+	float CrossProd(const Vec2& p0, const Vec2& p1, const Vec2& p2) {
+		return (p1.first - p0.first) * (p2.second - p0.second)
+		     - (p1.second - p0.second) * (p2.first - p0.first);
+	}
+
+	bool IsConvex(const std::vector<Game::Editor::CollisionVertex>& verts) {
+		if (verts.size() < 3) return false;
+		int n = static_cast<int>(verts.size());
+		bool hasPos = false, hasNeg = false;
+		for (int i = 0; i < n; ++i) {
+			float c = CrossProd(
+				{ verts[i].x, verts[i].y },
+				{ verts[(i+1)%n].x, verts[(i+1)%n].y },
+				{ verts[(i+2)%n].x, verts[(i+2)%n].y });
+			if (c > 0) hasPos = true;
+			if (c < 0) hasNeg = true;
+			if (hasPos && hasNeg) return false;
+		}
+		return true;
+	}
+
+	bool PtInTri(const Vec2& p, const Vec2& a, const Vec2& b, const Vec2& c) {
+		float d1 = CrossProd(a, b, p);
+		float d2 = CrossProd(b, c, p);
+		float d3 = CrossProd(c, a, p);
+		return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+	}
+
+	float SignedArea(const std::vector<Vec2>& poly) {
+		float a = 0;
+		int n = static_cast<int>(poly.size());
+		for (int i = 0; i < n; ++i) {
+			int j = (i + 1) % n;
+			a += poly[i].first * poly[j].second - poly[j].first * poly[i].second;
+		}
+		return a * 0.5f;
+	}
+
+	std::vector<std::array<int, 3>> Triangulate(
+		const std::vector<Game::Editor::CollisionVertex>& iv)
+	{
+		std::vector<std::array<int, 3>> tris;
+		int n = static_cast<int>(iv.size());
+		if (n < 3) return tris;
+
+		std::vector<int> idx(n);
+		std::vector<Vec2> poly(n);
+		for (int i = 0; i < n; ++i) poly[i] = { iv[i].x, iv[i].y };
+
+		if (SignedArea(poly) > 0) {
+			for (int i = 0; i < n; ++i) idx[i] = i;
+		} else {
+			for (int i = 0; i < n; ++i) idx[i] = (n - 1) - i;
+		}
+
+		int rem = n, fail = 0;
+		while (rem > 3) {
+			bool found = false;
+			for (int i = 0; i < rem; ++i) {
+				int p = (i + rem - 1) % rem, nx = (i + 1) % rem;
+				Vec2 a = poly[idx[p]], b = poly[idx[i]], c = poly[idx[nx]];
+				if (CrossProd(a, b, c) <= 0) continue;
+				bool ear = true;
+				for (int j = 0; j < rem; ++j) {
+					if (j == p || j == i || j == nx) continue;
+					if (PtInTri(poly[idx[j]], a, b, c)) { ear = false; break; }
+				}
+				if (ear) {
+					tris.push_back({ idx[p], idx[i], idx[nx] });
+					idx.erase(idx.begin() + i);
+					--rem; found = true; fail = 0; break;
+				}
+			}
+			if (!found && ++fail > rem) break;
+		}
+		if (rem == 3) tris.push_back({ idx[0], idx[1], idx[2] });
+		return tris;
 	}
 }
 #endif
@@ -264,8 +347,28 @@ namespace Game::Editor {
 			if (ImGui::Button("Clear All##collision")) {
 				editingEnemy_.collisionVertices.clear();
 			}
-			ImGui::SameLine();
+
+			// 凸包性表示
+			if (editingEnemy_.collisionVertices.size() >= 3) {
+				ImGui::SameLine();
+				if (IsConvex(editingEnemy_.collisionVertices)) {
+					ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.3f, 1.0f), "[Convex]");
+				} else {
+					ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.1f, 1.0f), "[Concave -> %d tris]",
+						static_cast<int>(Triangulate(editingEnemy_.collisionVertices).size()));
+				}
+			}
+
 			ImGui::SliderFloat("Zoom", &collisionZoom_, 1.0f, 10.0f, "%.1fx");
+
+			// 3Dプレビュー設定
+			ImGui::Checkbox("Show Solid Mesh", &showMeshWireframe_);
+			if (showMeshWireframe_) {
+				ImGui::SameLine();
+				const char* viewNames[] = { "Front (XY)", "Side (ZY)", "Top (XZ)" };
+				ImGui::SetNextItemWidth(120.0f);
+				ImGui::Combo("View", &meshViewMode_, viewNames, 3);
+			}
 		}
 
 		ImGui::Separator();
@@ -308,7 +411,7 @@ namespace Game::Editor {
 		bool isHovered = ImGui::IsItemHovered();
 
 		// キャンバス中心 = 敵の原点
-		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f, canvasP0.y + canvasSz.y * 0.5f);
+		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f + canvasOffsetX_, canvasP0.y + canvasSz.y * 0.5f + canvasOffsetY_);
 		float scale = collisionZoom_ * 30.0f; // 1単位 = scale pixels
 
 		// --- グリッド描画 ---
@@ -337,6 +440,108 @@ namespace Game::Editor {
 		drawList->AddCircleFilled(center, 4.0f, MakeCol32(255, 200, 50, 200));
 		drawList->AddText(ImVec2(center.x + 6, center.y - 14), MakeCol32(200, 200, 200, 200), "Origin");
 
+		// --- メッシュワイヤーフレームキャッシュ更新 ---
+		if (cachedMeshGltfPath_ != editingEnemy_.gltfPath) {
+			ExtractMeshWireframe(editingEnemy_.gltfPath);
+		}
+
+		// --- メッシュ描画（ソリッドポリゴン） ---
+		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
+			// 3D→ 2D投影 (ビューモードに応じた座標選択)
+			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
+				float px, py;
+				switch (meshViewMode_) {
+				case 0: // Front (XY)
+					px = pos[0]; py = pos[1]; break;
+				case 1: // Side (ZY)
+					px = pos[2]; py = pos[1]; break;
+				case 2: // Top (XZ)
+					px = pos[0]; py = pos[2]; break;
+				default:
+					px = pos[0]; py = pos[1]; break;
+				}
+				return ImVec2(center.x + px * scale, center.y - py * scale);
+			};
+
+			// 深度取得（奥にあるものから手前に描画するためのZソート用）
+			auto getDepth = [&](const std::array<float, 3>& pos) -> float {
+				switch (meshViewMode_) {
+				case 0: return -pos[2]; // Front: 奥方向は -Z
+				case 1: return -pos[0]; // Side: 奥方向は -X
+				case 2: return -pos[1]; // Top: 奥方向は -Y
+				default: return -pos[2];
+				}
+			};
+
+			struct SolidFace {
+				ImVec2 p0, p1, p2;
+				float depth;
+				ImU32 col;
+			};
+			std::vector<SolidFace> renderFaces;
+
+			for (const auto& face : cachedMeshFaces_) {
+				if (face[0] < 0 || face[0] >= cachedMeshPositions_.size()) continue;
+				if (face[1] < 0 || face[1] >= cachedMeshPositions_.size()) continue;
+				if (face[2] < 0 || face[2] >= cachedMeshPositions_.size()) continue;
+
+				const auto& v0 = cachedMeshPositions_[face[0]];
+				const auto& v1 = cachedMeshPositions_[face[1]];
+				const auto& v2 = cachedMeshPositions_[face[2]];
+
+				float d = (getDepth(v0) + getDepth(v1) + getDepth(v2)) / 3.0f;
+
+				ImVec2 p0 = project3D(v0);
+				ImVec2 p1 = project3D(v1);
+				ImVec2 p2 = project3D(v2);
+
+				// キャンバス内か簡易チェック（カリング）
+				if (p0.x < canvasP0.x - 50 && p1.x < canvasP0.x - 50 && p2.x < canvasP0.x - 50) continue;
+				if (p0.x > canvasP1.x + 50 && p1.x > canvasP1.x + 50 && p2.x > canvasP1.x + 50) continue;
+				if (p0.y < canvasP0.y - 50 && p1.y < canvasP0.y - 50 && p2.y < canvasP0.y - 50) continue;
+				if (p0.y > canvasP1.y + 50 && p1.y > canvasP1.y + 50 && p2.y > canvasP1.y + 50) continue;
+
+				// 法線計算と簡易Lighting（フラットシェーディング）
+				float dx1 = v1[0] - v0[0]; float dy1 = v1[1] - v0[1]; float dz1 = v1[2] - v0[2];
+				float dx2 = v2[0] - v0[0]; float dy2 = v2[1] - v0[1]; float dz2 = v2[2] - v0[2];
+				float nx = dy1*dz2 - dz1*dy2;
+				float ny = dz1*dx2 - dx1*dz2;
+				float nz = dx1*dy2 - dy1*dx2;
+				float len = std::sqrt(nx*nx + ny*ny + nz*nz);
+				if (len > 0.0001f) { nx /= len; ny /= len; nz /= len; }
+
+				float dot = nx * 0.4f + ny * 0.8f + nz * 0.4f;
+				float intensity = 0.35f + 0.65f * std::max(0.0f, dot);
+				
+				ImU32 faceColor = MakeCol32(
+					static_cast<int>(120 * intensity),
+					static_cast<int>(150 * intensity),
+					static_cast<int>(200 * intensity),
+					255
+				);
+
+				renderFaces.push_back({ p0, p1, p2, d, faceColor });
+			}
+
+			// Zソート（奥から手前へPainter's Algorithm）
+			std::sort(renderFaces.begin(), renderFaces.end(), [](const SolidFace& a, const SolidFace& b) {
+				return a.depth > b.depth;
+			});
+
+			for (const auto& f : renderFaces) {
+				drawList->AddTriangleFilled(f.p0, f.p1, f.p2, f.col);
+				drawList->AddTriangle(f.p0, f.p1, f.p2, MakeCol32(50, 70, 90, 80), 1.0f); // 輪郭を薄く表示して立体感を強調
+			}
+
+			// メッシュ情報表示
+			char meshInfo[128];
+			snprintf(meshInfo, sizeof(meshInfo), "Solid Mesh: %d verts, %d faces",
+				static_cast<int>(cachedMeshPositions_.size()),
+				static_cast<int>(cachedMeshFaces_.size()));
+			drawList->AddText(ImVec2(canvasP0.x + 5, canvasP0.y + 5),
+				MakeCol32(120, 200, 255, 200), meshInfo);
+		}
+
 		// --- ローカル→スクリーン変換 ---
 		auto localToScreen = [&](float lx, float ly) -> ImVec2 {
 			return ImVec2(center.x + lx * scale, center.y - ly * scale); // Y反転
@@ -349,14 +554,61 @@ namespace Game::Editor {
 		const float VERTEX_RADIUS = 7.0f;
 		const float VERTEX_HIT_RADIUS = 12.0f;
 
-		// --- ポリゴン塗りつぶし描画 ---
+		// --- ポリゴン塗りつぶし描画（三角形分割ベース） ---
 		if (verts.size() >= 3) {
-			std::vector<ImVec2> polyPoints;
-			for (const auto& v : verts) {
-				polyPoints.push_back(localToScreen(v.x, v.y));
+			bool convex = IsConvex(verts);
+
+			if (convex) {
+				// 凸ならそのまま塗りつぶし
+				std::vector<ImVec2> polyPoints;
+				for (const auto& v : verts) {
+					polyPoints.push_back(localToScreen(v.x, v.y));
+				}
+				drawList->AddConvexPolyFilled(polyPoints.data(), static_cast<int>(polyPoints.size()),
+					MakeCol32(0, 180, 255, 40));
+			} else {
+				// 凹なら三角形に分割して塗りつぶし + 分割線表示
+				auto tris = Triangulate(verts);
+
+				// 各三角形を交互色で塗りつぶし
+				constexpr ImU32 triColors[] = {
+					MakeCol32(0, 180, 255, 35),
+					MakeCol32(255, 140, 0, 35),
+					MakeCol32(0, 255, 140, 35),
+					MakeCol32(200, 80, 255, 35),
+				};
+
+				for (size_t ti = 0; ti < tris.size(); ++ti) {
+					ImVec2 triPts[3] = {
+						localToScreen(verts[tris[ti][0]].x, verts[tris[ti][0]].y),
+						localToScreen(verts[tris[ti][1]].x, verts[tris[ti][1]].y),
+						localToScreen(verts[tris[ti][2]].x, verts[tris[ti][2]].y),
+					};
+					drawList->AddConvexPolyFilled(triPts, 3, triColors[ti % 4]);
+				}
+
+				// 分割線（元の辺ではない内部辺）を点線で描画
+				for (const auto& tri : tris) {
+					for (int e = 0; e < 3; ++e) {
+						int a = tri[e], b = tri[(e + 1) % 3];
+						// 元のポリゴンの辺であるかチェック
+						bool isOrigEdge = false;
+						int vn = static_cast<int>(verts.size());
+						for (int i = 0; i < vn; ++i) {
+							int ni = (i + 1) % vn;
+							if ((i == a && ni == b) || (i == b && ni == a)) {
+								isOrigEdge = true;
+								break;
+							}
+						}
+						if (!isOrigEdge) {
+							ImVec2 pa = localToScreen(verts[a].x, verts[a].y);
+							ImVec2 pb = localToScreen(verts[b].x, verts[b].y);
+							drawList->AddLine(pa, pb, MakeCol32(255, 200, 50, 160), 1.0f);
+						}
+					}
+				}
 			}
-			drawList->AddConvexPolyFilled(polyPoints.data(), static_cast<int>(polyPoints.size()),
-				MakeCol32(0, 180, 255, 40));
 		}
 
 		// --- 辺描画 ---
@@ -437,6 +689,13 @@ namespace Game::Editor {
 					break;
 				}
 			}
+		}
+
+		// 右クリックドラッグ: キャンバスの移動
+		if (ImGui::IsItemActive() && ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
+			ImVec2 delta = ImGui::GetIO().MouseDelta;
+			canvasOffsetX_ += delta.x;
+			canvasOffsetY_ += delta.y;
 		}
 
 		// --- 座標表示 ---
