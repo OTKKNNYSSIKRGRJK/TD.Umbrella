@@ -24,6 +24,8 @@ namespace {
 
 void Player::Initialize() {
 
+	Position_ = { 0.0f, 10.0f, 0.0f };
+
 	InitializeStates();
 	InitializeComponents();
 
@@ -194,8 +196,7 @@ void Player::Update(float deltaTime) {
 
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
-	//Position_ += moveAmount_;
-	//obj_->worldTransform_.set_.Translation(obj_->worldTransform_.get_.Translation() + moveAmount_);
+	Position_ += moveAmount_;
 
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
@@ -214,8 +215,6 @@ void Player::Update(float deltaTime) {
 
 	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
-
-	collider_->UpdateAABB();
 
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
