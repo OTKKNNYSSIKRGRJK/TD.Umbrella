@@ -57,6 +57,17 @@ namespace Game::Scene::Impl {
 
 		Player_->Draw();
 
+		auto const worldToHomogeneous_c{ Camera_->View() * Camera_->Projection() };
+		auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
+		tmp /= tmp.W();
+
+		Lumina::F32 const inv_ViewportWidth{ 1.0f / 1280.0f };
+		Lumina::F32 const inv_ViewportHeight{ 1.0f / 720.0f };
+		
+		auto const& inv_View{ Camera_->ViewInverse() };
+		auto const inv_Proj{ Camera_->Projection().Inverse() };
+		auto const ndcToWorld{ inv_Proj * inv_View };
+
 		for (const auto& e : playState_.Enemies) {
 			if (e.IsDead) continue;
 
@@ -64,11 +75,25 @@ namespace Game::Scene::Impl {
 				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
 				float dir = e.FacingRight ? 1.0f : -1.0f;
 				
+				// e.Position.Y は地面から上の高さ（上が正）になっており、
+				// TerrainScreenData_ が持っていた生のピクセル座標（下が正）は (AreaHeight - e.Position.Y) です。
+				float rawScreenY = playState_.CurrentArea.height - e.Position.Y;
+
+				// 2Dの座標（AreaEditorと同じスクリーン座標）から3Dワールド座標に変換
+				Lumina::Math::F32x4 ndcPos{
+					(e.Position.X * inv_ViewportWidth) * 2.0f - 1.0f,
+					1.0f - (rawScreenY * inv_ViewportHeight) * 2.0f,
+					tmp.Z(),
+					1.0f
+				};
+				auto worldPos = ndcPos * ndcToWorld;
+				worldPos /= worldPos.W();
+				
 				Lumina::Math::F32x4x4<> worldMat{
 					dir,  0.0f, 0.0f, 0.0f,
 					0.0f, 1.0f, 0.0f, 0.0f,
 					0.0f, 0.0f, dir,  0.0f,
-					e.Position.X, e.Position.Y, e.Position.Z, 1.0f
+					worldPos.X(), worldPos.Y(), 0.0f, 1.0f
 				};
 				
 				meshMngr.Batch(
