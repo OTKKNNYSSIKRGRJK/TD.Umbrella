@@ -127,18 +127,18 @@ namespace Lumina::D3D12 {
 		std::string_view debugName_
 	) -> void {
 		(sizeInBytes_ > 0LLU) ||
-			Debug::ThrowIfFalse{
-				std::format(
-					"<D3D12.CommonBuffer - {}> Size should be larger than zero!\n",
-					debugName_
-				)
+		Debug::ThrowIfFalse{
+			std::format(
+				"<D3D12.CommonBuffer - {}> Size should be larger than zero!\n",
+				debugName_
+			)
 		};
 		(sizeInBytes_ < static_cast<uint64_t>(-1)) ||
-			Debug::ThrowIfFalse{
-				std::format(
-					"<D3D12.CommonBuffer - {}> Size required for the resource is too large!\n",
-					debugName_
-				)
+		Debug::ThrowIfFalse{
+			std::format(
+				"<D3D12.CommonBuffer - {}> Size required for the resource is too large!\n",
+				debugName_
+			)
 		};
 		SizeInBytes_ = sizeInBytes_;
 	}
@@ -157,7 +157,7 @@ namespace Lumina::D3D12 {
 			// D3D12_RESOURCE_DESC::Format must be DXGI_FORMAT_UNKNOWN
 			// when D3D12_RESOURCE_DESC::Dimension is D3D12_RESOURCE_DIMENSION_BUFFER 
 			.Format{ DXGI_FORMAT_UNKNOWN },
-			.SampleDesc{.Count{ 1U }, },
+			.SampleDesc{ .Count{ 1U }, },
 			.Layout{ D3D12_TEXTURE_LAYOUT_ROW_MAJOR },
 			.Flags{ Settings.ResourceFlags },
 		};
@@ -175,11 +175,11 @@ namespace Lumina::D3D12 {
 			nullptr,
 			IID_PPV_ARGS(WrapperType::GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.CommonBuffer> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.CommonBuffer> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 
@@ -301,11 +301,11 @@ namespace Lumina::D3D12 {
 		requires(IsAllocatedInSystemRAM(Settings.HeapProperties))
 	void BufferAllocatedInSystemRAM<Settings>::GetCPUPointerToMappedMemory() {
 		ParentType::Wrapped_->Map(0U, nullptr, reinterpret_cast<void**>(&MappedMemory_)) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.BufferAllocatedInSystemRAM> Failed to map memory for {}!\n",
-					ParentType::DebugName()
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.BufferAllocatedInSystemRAM> Failed to map memory for {}!\n",
+				ParentType::DebugName()
+			)
 		};
 	}
 
@@ -351,7 +351,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings DefaultBufferSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_NONE },
 			.InitialState{ D3D12_RESOURCE_STATE_COMMON },
 		};
@@ -396,14 +396,10 @@ namespace Lumina::D3D12 {
 
 
 	constexpr auto DefaultBuffer::Get()
-		const noexcept -> ID3D12Resource* {
-		return reinterpret_cast<ParentType const*>(this)->Get();
-	}
+		const noexcept -> ID3D12Resource* { return reinterpret_cast<ParentType const*>(this)->Get(); }
 
 	constexpr auto DefaultBuffer::SizeInBytes()
-		const noexcept -> uint64_t {
-		return reinterpret_cast<ParentType const*>(this)->SizeInBytes();
-	}
+		const noexcept -> uint64_t { return reinterpret_cast<ParentType const*>(this)->SizeInBytes(); }
 
 	void DefaultBuffer::Initialize(
 		GraphicsDevice const& device_,
@@ -430,7 +426,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings UnorderedAccessBufferSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS },
 			.InitialState{ D3D12_RESOURCE_STATE_COMMON },
 		};
@@ -492,7 +488,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings UploadBufferSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_UPLOAD }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_UPLOAD }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_NONE },
 			.InitialState{ D3D12_RESOURCE_STATE_GENERIC_READ },
 		};
@@ -575,7 +571,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings ReadbackBufferSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_READBACK }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_READBACK }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_NONE },
 			.InitialState{ D3D12_RESOURCE_STATE_COPY_DEST },
 		};

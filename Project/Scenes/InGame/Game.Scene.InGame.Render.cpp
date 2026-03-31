@@ -67,6 +67,15 @@ namespace Game::Scene::Impl {
 		);
 		GeometryPass_.End();
 
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+		TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
+		TerrainRenderer_->DebugRenderColliders(
+			GlobalTable_SRV_CanvasTexture_,
+			*WorldToHomogeneous_
+		);
+
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
 				Canvas_GeometryPass_.RenderTexture(0U),
@@ -128,6 +137,8 @@ namespace Game::Scene::Impl {
 			Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Get(),
 		};
 		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
+
+		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
 		Render_Geometry();
 		Render_Merge();

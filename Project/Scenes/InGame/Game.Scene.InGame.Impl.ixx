@@ -9,6 +9,7 @@ import Game.TerrainEditor;
 #endif
 
 import Lumina.Core.Common;
+import Lumina.Core.Math;
 import Lumina.Utils.Data;
 import Lumina.D3D12;
 import Lumina.MeshManager;
@@ -79,9 +80,12 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
 
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
+		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
+
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
 
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
+		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
 		std::unique_ptr<Player> Player_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;

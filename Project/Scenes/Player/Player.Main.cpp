@@ -149,7 +149,7 @@ void Player::Update(float deltaTime) {
 
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
-	Position_ += moveAmount_;
+	//Position_ += moveAmount_;
 	//obj_->worldTransform_.set_.Translation(obj_->worldTransform_.get_.Translation() + moveAmount_);
 
 	// rightHandJoint_.SetRot( 手の回転 );

@@ -158,11 +158,11 @@ namespace Lumina::D3D12 {
 		std::string_view debugName_
 	) -> void {
 		(width_ && height_) ||
-			Debug::ThrowIfFalse{
-				std::format(
-					"<D3D12.CommonTexture2D - {}> Both width and height must be nonzero!\n",
-					debugName_
-				)
+		Debug::ThrowIfFalse{
+			std::format(
+				"<D3D12.CommonTexture2D - {}> Both width and height must be nonzero!\n",
+				debugName_
+			)
 		};
 		Width_ = width_;
 		Height_ = height_;
@@ -203,11 +203,11 @@ namespace Lumina::D3D12 {
 			nullptr,
 			IID_PPV_ARGS(WrapperType::GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.CommonTexture2D> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.CommonTexture2D> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 
@@ -245,7 +245,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings DefaultTexture2DSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_NONE },
 			.InitialState{ D3D12_RESOURCE_STATE_COPY_DEST },
 		};
@@ -316,7 +316,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings RenderTexture2DSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET },
 			.InitialState{ D3D12_RESOURCE_STATE_RENDER_TARGET },
 		};
@@ -384,11 +384,11 @@ namespace Lumina::D3D12 {
 			&clearValue,
 			IID_PPV_ARGS(GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.RenderTexture2D> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.RenderTexture2D> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 
@@ -430,7 +430,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings ComputeTexture2DSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS },
 			.InitialState{ D3D12_RESOURCE_STATE_UNORDERED_ACCESS },
 		};
@@ -490,11 +490,11 @@ namespace Lumina::D3D12 {
 			nullptr,
 			IID_PPV_ARGS(GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.ComputeTexture2D> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.ComputeTexture2D> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 
@@ -598,11 +598,11 @@ namespace Lumina::D3D12 {
 			nullptr,
 			IID_PPV_ARGS(GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.RenderComputeTexture2D> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.RenderComputeTexture2D> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 
@@ -644,7 +644,7 @@ namespace Lumina::D3D12 {
 
 	namespace {
 		constexpr ResourceSettings DepthStencilTexture2DSettings{
-			.HeapProperties{.Type{ D3D12_HEAP_TYPE_DEFAULT }, },
+			.HeapProperties{ .Type{ D3D12_HEAP_TYPE_DEFAULT }, },
 			.ResourceFlags{ D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL },
 			.InitialState{ D3D12_RESOURCE_STATE_DEPTH_WRITE },
 		};
@@ -699,7 +699,7 @@ namespace Lumina::D3D12 {
 			// Same format as of the resource
 			.Format{ DXGI_FORMAT_D24_UNORM_S8_UINT },
 			// Clears the depth stencil texture by the largest valid value (i.e. 1.0f).
-			.DepthStencil{.Depth{ 1.0f } },
+			.DepthStencil{ .Depth{ 1.0f } },
 		};
 
 		device_->CreateCommittedResource(
@@ -710,11 +710,11 @@ namespace Lumina::D3D12 {
 			&clearValue,
 			IID_PPV_ARGS(GetAddressOf())
 		) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.DepthStencilTexture2D> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.DepthStencilTexture2D> Failed to create {}!\n",
+				debugName_
+			)
 		};
 	}
 

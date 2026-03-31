@@ -172,6 +172,12 @@
     <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp">
       <Filter>Game\Terrain</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

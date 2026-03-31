@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.ixx" />
