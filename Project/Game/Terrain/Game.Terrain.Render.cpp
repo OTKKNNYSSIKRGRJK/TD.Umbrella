@@ -17,14 +17,14 @@ namespace Game {
 		for (auto const& collider : ground.Colliders) {
 			auto const& verts{ collider->GetVertices() };
 			PrimitiveManager_->BatchTriangle(
-				{ { verts[0].X, verts[0].Y, verts[0].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+				{ { verts[0].X, verts[0].Y, verts[0].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
 			);
 			PrimitiveManager_->BatchTriangle(
-				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[2].X, verts[2].Y, verts[2].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.5f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+				{ { verts[2].X, verts[2].Y, verts[2].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
 			);
 		}
 

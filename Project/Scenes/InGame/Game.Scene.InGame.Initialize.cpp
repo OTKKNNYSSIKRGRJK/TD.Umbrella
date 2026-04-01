@@ -434,6 +434,8 @@ namespace Game::Scene::Impl {
 		Player_->GetUmbrella().top_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
 		CollisionManager_ = std::make_unique<CollisionManager>();
+		ConvexColliderDebugRenderer_ = std::make_unique<ConvexColliderDebugRenderer>();
+		ConvexColliderDebugRenderer_->Initialize();
 
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();

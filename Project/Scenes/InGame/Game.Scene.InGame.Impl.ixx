@@ -24,6 +24,7 @@ import Lumina.Primitive;
 
 import Game.Player;
 import CollisionManager;
+import Game.ConvexColliderDebug;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -97,6 +98,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
 		std::unique_ptr<Player> Player_;
 		std::unique_ptr<CollisionManager> CollisionManager_;
+		std::unique_ptr<ConvexColliderDebugRenderer> ConvexColliderDebugRenderer_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 

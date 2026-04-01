@@ -43,6 +43,9 @@
     <Filter Include="Scenes\ActorEditor">
       <UniqueIdentifier>{3d7d60de-743e-49ca-b6f2-64eab9b7f1d0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Game\Debug">
+      <UniqueIdentifier>{20bcad73-3ac5-4431-bb01-5f4097f360a3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -204,6 +207,14 @@
     </ClCompile>
     <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp">
       <Filter>Scenes\ActorEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\StatusComponent.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.ixx" />
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx">
+      <Filter>Game\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp">
+      <Filter>Game\Debug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -100,7 +100,7 @@ namespace Lumina {
 
 		uint32_t Count_{ 0U };
 
-		static constinit inline uint32_t const MaxNum_{ 128U };
+		static constinit inline uint32_t const MaxNum_{ 4096U };
 	};
 
 	class TriangleManager {
@@ -195,7 +195,7 @@ namespace Lumina {
 
 		uint32_t Count_{ 0U };
 
-		static constinit inline uint32_t const MaxNum_{ 128U };
+		static constinit inline uint32_t const MaxNum_{ 4096U };
 	};
 }
 
