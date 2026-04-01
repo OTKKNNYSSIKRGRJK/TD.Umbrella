@@ -184,9 +184,7 @@ namespace Game::Scene::Impl {
 			playState_.Enemies[i].Position = enemyInstances[i].position;
 			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
 			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
-				playState_.Enemies[i].CurrentHP = 0;
-			}
+			playState_.Enemies[i].CurrentHP = enemyInstances[i].currentHP;
 		}
 
 		TerrainEditor_->Update();
@@ -293,6 +291,18 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
+			ImGui::SetNextWindowPos(ImVec2(10, 140), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowSize(ImVec2(320, 220), ImGuiCond_FirstUseEver);
+			ImGui::Begin("Enemy HP");
+			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
+				const auto& enemy = playState_.Enemies[i];
+				ImGui::Text("Enemy[%d] HP: %d / %d %s",
+					static_cast<int>(i),
+					enemy.CurrentHP,
+					enemy.BaseData.hp,
+					enemy.IsDead ? "(Dead)" : "");
+			}
+			ImGui::End();
 			break;
 		default:
 			break;

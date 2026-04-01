@@ -219,7 +219,17 @@ namespace Game {
 					}
 				}
 				else if (other->GetMyType() == COL_Player_Attack) {
-					Game::EnemyManager::GetInstance()->DealDamage(this->id, 50);
+					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
+						this->recentlyDamagedThisFrame = true;
+						float knockbackX = 1.2f;
+						if (other->GetWorldPosition().X < this->position.X) {
+							this->velocity.X = knockbackX;
+						} else {
+							this->velocity.X = -knockbackX;
+						}
+						int damage = std::max(1, static_cast<int>(this->baseData.hp * 0.2f));
+						Game::EnemyManager::GetInstance()->DealDamage(this->id, damage);
+					}
 				}
 				};
 
@@ -431,6 +441,11 @@ namespace Game {
 	// ============================
 
 	void EnemyManager::Update(float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+		// reset per-frame damage guard
+		for (auto& enemy : instances_) {
+			enemy.recentlyDamagedThisFrame = false;
+		}
+
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
 
@@ -543,6 +558,7 @@ namespace Game {
 
 		enemy->currentHP -= damage;
 		enemy->hurtTimer = 0.2f;
+		enemy->velocity.Y = std::max(enemy->velocity.Y, 3.5f);
 
 		if (enemy->currentHP <= 0) {
 			enemy->currentHP = 0;
@@ -576,6 +592,8 @@ namespace Game {
 
 			enemy.currentHP -= damage;
 			enemy.hurtTimer = 0.2f;
+			enemy.velocity.X = (dx >= 0.0f) ? 1.2f : -1.2f;
+			enemy.velocity.Y = std::max(enemy.velocity.Y, 3.5f);
 
 			if (enemy.currentHP <= 0) {
 				enemy.currentHP = 0;

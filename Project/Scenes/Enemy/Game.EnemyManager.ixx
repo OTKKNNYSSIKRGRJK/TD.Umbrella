@@ -117,6 +117,8 @@ export namespace Game {
 		bool isDead = false;
 		bool facingRight = true;
 		float hurtTimer = 0.0f;
+		// ガード: 同一フレーム中の重複ダメージを防ぐ
+		bool recentlyDamagedThisFrame = false;
 
 		// --- AI 状態 ---
 		enum class AIState { Idle, Patrol, Chase, Attack, Retreat };
