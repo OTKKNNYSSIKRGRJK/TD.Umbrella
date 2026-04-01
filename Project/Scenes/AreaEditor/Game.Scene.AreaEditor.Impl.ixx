@@ -8,8 +8,20 @@ import <map>;
 import nlohmann.json;
 
 import Lumina;
+import Lumina.Core.Math;
+import Lumina.Utils.Camera;
+import Lumina.Utils.Misc;
+
 
 export namespace Game::Editor {
+
+	struct Vertex {
+		Lumina::Math::F32x3 Pos;
+
+		Vertex() : Pos{} {}
+		Vertex(Lumina::Math::F32x3 const& p) : Pos{ p } {}
+		Vertex& operator=(Lumina::Math::F32x3 const& p) { Pos = p; return *this; }
+	};
 
 	struct Vector2 {
 		float x = 0.0f;
@@ -73,6 +85,13 @@ export namespace Game::Editor {
 		void Initialize();
 		void Update();
 		void LoadArea(AreaData& area, const std::string& filename);
+
+		auto ConvertToWorldCoordinate(
+			std::vector<Vertex>& worldPosVertices_,
+			std::vector<Vertex> const& screenPosVertices_,
+			Lumina::Utils::Camera const& camera_,
+			Lumina::Utils::Viewport const& viewport_
+		) const -> void;
 
 	private:
 		void DrawEditorUI();

@@ -488,8 +488,8 @@ namespace Game::Editor {
 		ImGui::BeginChild("AreaFileList", ImVec2(0, 0), false);
 
 		namespace fs2 = std::filesystem;
-		if (fs2::exists("./")) {
-			for (const auto& entry : fs2::directory_iterator("./")) {
+		if (fs2::exists("Assets/Data/Terrain")) {
+			for (const auto& entry : fs2::directory_iterator("Assets/Data/Terrain")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					bool isSelected = false;

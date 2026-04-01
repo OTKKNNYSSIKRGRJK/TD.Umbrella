@@ -9,7 +9,10 @@ import <map>;
 
 import nlohmann.json;
 
+import Lumina.Utils.Camera;
 import Lumina.Utils.Data;
+import Lumina.Utils.Misc;
+
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -88,7 +91,8 @@ namespace Game::Editor {
 		if (j.contains("name")) {
 			if (j.at("name").is_string()) {
 				std::string n = j.at("name").get<std::string>();
-				try { a.name = std::stoi(n); } catch (...) { a.name = 0; }
+				try { a.name = std::stoi(n); }
+				catch (...) { a.name = 0; }
 			} else {
 				j.at("name").get_to(a.name);
 			}
@@ -113,8 +117,10 @@ namespace Game::Editor {
 
 	namespace {
 		void SaveAreaFile(const AreaData& area, std::vector<std::string>& recentFiles, std::vector<AreaData>& allAreas) {
+			fs::create_directories("Assets/Data/Terrain");
 			std::string filename = "area" + std::to_string(area.name) + ".json";
-			std::ofstream file(filename);
+			std::string fullPath = "Assets/Data/Terrain/" + filename;
+			std::ofstream file(fullPath);
 			if (!file.is_open()) {
 				return;
 			}
@@ -150,8 +156,8 @@ namespace Game::Editor {
 		editingArea_.Reset();
 
 		bool firstLoaded = false;
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Terrain")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Terrain")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					recentFiles_.push_back(fName);
@@ -263,7 +269,8 @@ namespace Game::Editor {
 	}
 
 	void AreaEditor::LoadArea(AreaData& area, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string fullPath = "Assets/Data/Terrain/" + filename;
+		std::ifstream file(fullPath);
 		if (file.is_open()) {
 			json j;
 			file >> j;
@@ -273,8 +280,9 @@ namespace Game::Editor {
 
 	void AreaEditor::DeleteArea(int areaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
-		if (fs::exists(filename)) {
-			fs::remove(filename);
+		std::string fullPath = "Assets/Data/Terrain/" + filename;
+		if (fs::exists(fullPath)) {
+			fs::remove(fullPath);
 		}
 
 		auto it = std::remove(recentFiles_.begin(), recentFiles_.end(), filename);
@@ -301,6 +309,46 @@ namespace Game::Editor {
 
 		if (editingArea_.name == areaIndex) {
 			editingArea_.Reset();
+		}
+	}
+
+	auto AreaEditor::ConvertToWorldCoordinate(
+		std::vector<Vertex>& worldPosVertices_,
+		std::vector<Vertex> const& screenPosVertices_,
+		Lumina::Utils::Camera const& camera_,
+		Lumina::Utils::Viewport const& viewport_
+	) const -> void {
+		//	We want to know the depth in screen coordinate of the world origin (0, 0, 0).
+		auto const worldToHomogeneous{ camera_.View() * camera_.Projection() };
+		auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } *worldToHomogeneous };
+		tmp /= tmp.W();
+		tmp.Z(viewport_.MinDepth + tmp.Z() * (viewport_.MaxDepth - viewport_.MinDepth));
+
+		Lumina::F32 const inv_ViewportWidth{ 1.0f / viewport_.Width };
+		Lumina::F32 const inv_ViewportHeight{ 1.0f / viewport_.Height };
+		Lumina::F32 const inv_ViewportDepthDiff{ 1.0f / (viewport_.MaxDepth - viewport_.MinDepth) };
+		auto screenToNDC{
+			[&](Lumina::Math::F32x3 const& screenPos_) noexcept -> Lumina::Math::F32x4 {
+				return {
+					((screenPos_.X - viewport_.TopLeftX) * inv_ViewportWidth) * 2.0f - 1.0f,
+					1.0f - ((screenPos_.Y - viewport_.TopLeftY) * inv_ViewportHeight) * 2.0f,
+					(screenPos_.Z - viewport_.MinDepth) * inv_ViewportDepthDiff,
+					1.0f
+				};
+			}
+		};
+
+		auto const& inv_View{ camera_.ViewInverse() };
+		auto const inv_Proj{ camera_.Projection().Inverse() };
+		auto const ndcToWorld{ inv_Proj * inv_View };
+
+		for (auto const& vertIN : screenPosVertices_) {
+			auto& vertOUT{ worldPosVertices_.emplace_back() };
+
+			auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ vertIN.Pos.X, vertIN.Pos.Y, tmp.Z() }) };
+			auto&& worldPos{ ndcPos * ndcToWorld };
+			worldPos /= worldPos.W();
+			vertOUT = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), 0.0f };
 		}
 	}
 }
