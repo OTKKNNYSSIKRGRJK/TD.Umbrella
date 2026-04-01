@@ -6,6 +6,7 @@ import Lumina.Main;
 import Lumina.D3D12;
 import Lumina.MeshManager;
 import Lumina.Primitive;
+import Game.MathUtils;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -73,28 +74,12 @@ namespace Game::Scene::Impl {
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
 				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
-				float dir = e.FacingRight ? 1.0f : -1.0f;
-				
-				// e.Position.Y は地面から上の高さ（上が正）になっており、
-				// TerrainScreenData_ が持っていた生のピクセル座標（下が正）は (AreaHeight - e.Position.Y) です。
-				float rawScreenY = playState_.CurrentArea.height - e.Position.Y;
-
-				// 2Dの座標（AreaEditorと同じスクリーン座標）から3Dワールド座標に変換
-				Lumina::Math::F32x4 ndcPos{
-					(e.Position.X * inv_ViewportWidth) * 2.0f - 1.0f,
-					1.0f - (rawScreenY * inv_ViewportHeight) * 2.0f,
-					tmp.Z(),
-					1.0f
-				};
-				auto worldPos = ndcPos * ndcToWorld;
-				worldPos /= worldPos.W();
-				
-				Lumina::Math::F32x4x4<> worldMat{
-					dir,  0.0f, 0.0f, 0.0f,
-					0.0f, 1.0f, 0.0f, 0.0f,
-					0.0f, 0.0f, dir,  0.0f,
-					worldPos.X(), worldPos.Y(), 0.0f, 1.0f
-				};
+				Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+				if (!e.FacingRight) {
+					rot.Y = 3.14159265f; // 反転
+				}
+				auto worldMat = Game::MathUtils::SRT(scale, rot, { e.Position.X, e.Position.Y, e.Position.Z });
 				
 				meshMngr.Batch(
 					MeshShaderAssets_[meshIdx],

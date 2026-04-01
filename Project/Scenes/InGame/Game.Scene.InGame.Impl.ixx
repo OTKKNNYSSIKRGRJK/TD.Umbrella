@@ -150,7 +150,6 @@ namespace Game::Scene::Impl {
 #if defined(_DEBUG)
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
 		void DrawPlayMode();
-		//void UpdatePlayLogic();
 #endif
 
 	private:

@@ -140,7 +140,6 @@ namespace Game::Scene::Impl {
 	}
 
 
-
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
@@ -165,6 +164,7 @@ namespace Game::Scene::Impl {
 		CollisionManager_->Begin();
 
 		// ここからColliderを設定
+		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
 		auto const& groundColliders = Terrain_->GroundData().Colliders;
@@ -172,18 +172,17 @@ namespace Game::Scene::Impl {
 			CollisionManager_->SetColliders(col.get());
 		}
 
-		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
+
 
 		// Check!
 		CollisionManager_->CheckAllCollisions();
 
-		// Sync positions from EnemyManager back to playState_.Enemies for Render
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
 		for (size_t i = 0; i < enemyInstances.size() && i < playState_.Enemies.size(); ++i) {
 			playState_.Enemies[i].Position = enemyInstances[i].position;
 			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
 			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if(enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
+			if(enemyInstances[i].isDead) {
 				playState_.Enemies[i].CurrentHP = 0;
 			}
 		}
@@ -191,6 +190,32 @@ namespace Game::Scene::Impl {
 		// Collisionの更新処理↑↑↑
 
 		#if defined(_DEBUG)
+		// エリアの移動処理
+		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
+			if (playState_.TransitionCooldownTimer > 0.0f) {
+				playState_.TransitionCooldownTimer -= 1.0f / 60.0f;
+			} else {
+				auto const& pos = Player_->GetPosition();
+				auto const worldToHomogeneous_c = Camera_->View() * Camera_->Projection();
+				auto ndcPos = Lumina::Math::F32x4{ pos.X, pos.Y, pos.Z, 1.0f } * worldToHomogeneous_c;
+				ndcPos /= ndcPos.W();
+
+				float rawScreenY = (1.0f - ndcPos.Y()) * 0.5f * 720.0f;
+				float px = (ndcPos.X() + 1.0f) * 0.5f * 1280.0f;
+				float py = playState_.CurrentArea.height - rawScreenY;
+
+				for (const auto& conn : playState_.CurrentArea.connections) {
+					if (px >= conn.trigger.position.x && px <= conn.trigger.position.x + conn.trigger.size.x &&
+						py >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
+						
+						int prevAreaIndex = playState_.CurrentArea.index;
+						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
+						break;
+					}
+				}
+			}
+		}
+
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 0.0f, -30.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 0.0f, 0.0f };
@@ -256,7 +281,6 @@ namespace Game::Scene::Impl {
 			if (TerrainEditor_) TerrainEditor_->Update();
 			break;
 		case EditorTab::Play:
-			//UpdatePlayLogic();
 			DrawPlayMode();
 			break;
 		default:
