@@ -28,11 +28,23 @@
     <Filter Include="Scenes\Player\Umbrella">
       <UniqueIdentifier>{6b879442-6da7-45f7-bf57-0ba3ec4c30c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="TerrainEditor">
+      <UniqueIdentifier>{9bd74b84-ee90-46f7-8f43-cd4735399fdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game">
+      <UniqueIdentifier>{b0e30334-ce49-4706-aba5-cbf71624d890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Terrain">
+      <UniqueIdentifier>{9c3cfdd8-34ff-4bb2-a9f6-0df55cbac6f8}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Scenes\Enemy">
       <UniqueIdentifier>{a4e1f3d2-8b7c-4e5f-9d6a-1c2b3d4e5f6a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Scenes\ActorEditor">
-      <UniqueIdentifier>{b5f2e4d3-9c8d-5f6e-ae7b-2d3c4e5f6a7b}</UniqueIdentifier>
+      <UniqueIdentifier>{3d7d60de-743e-49ca-b6f2-64eab9b7f1d0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Debug">
+      <UniqueIdentifier>{20bcad73-3ac5-4431-bb01-5f4097f360a3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +160,33 @@
     <ClCompile Include="Scenes\MapInfo\Ground.ixx">
       <Filter>Scenes\MapInfo</Filter>
     </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp">
+      <Filter>TerrainEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
@@ -168,6 +207,14 @@
     </ClCompile>
     <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp">
       <Filter>Scenes\ActorEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Player\StatusComponent.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.ixx" />
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx">
+      <Filter>Game\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp">
+      <Filter>Game\Debug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

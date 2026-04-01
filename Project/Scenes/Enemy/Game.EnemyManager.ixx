@@ -21,9 +21,47 @@ export namespace Game {
 		EnemyInstance() = default;
 		~EnemyInstance() = default;
 
-		// ムーブは問題なし (unique_ptr はムーブ可能)
-		EnemyInstance(EnemyInstance&&) noexcept = default;
-		EnemyInstance& operator=(EnemyInstance&&) noexcept = default;
+		// ムーブ時もコライダーを再生成して 'this' キャプチャを更新する
+		EnemyInstance(EnemyInstance&& other) noexcept
+			: baseData(std::move(other.baseData))
+			, id(other.id)
+			, position(other.position)
+			, velocity(other.velocity)
+			, currentHP(other.currentHP)
+			, isDead(other.isDead)
+			, facingRight(other.facingRight)
+			, hurtTimer(other.hurtTimer)
+			, aiState(other.aiState)
+			, attackCooldownTimer(other.attackCooldownTimer)
+			, stateTimer(other.stateTimer)
+			, currentAction(std::move(other.currentAction))
+		{
+			if (!other.colliders.empty()) {
+				InitCollider();
+			}
+		}
+
+		EnemyInstance& operator=(EnemyInstance&& other) noexcept {
+			if (this != &other) {
+				baseData = std::move(other.baseData);
+				id = other.id;
+				position = other.position;
+				velocity = other.velocity;
+				currentHP = other.currentHP;
+				isDead = other.isDead;
+				facingRight = other.facingRight;
+				hurtTimer = other.hurtTimer;
+				aiState = other.aiState;
+				attackCooldownTimer = other.attackCooldownTimer;
+				stateTimer = other.stateTimer;
+				currentAction = std::move(other.currentAction);
+				colliders.clear();
+				if (!other.colliders.empty()) {
+					InitCollider();
+				}
+			}
+			return *this;
+		}
 
 		// コピー時はコライダーを除いてコピーし、後で InitCollider() で再生成する
 		EnemyInstance(const EnemyInstance& other)

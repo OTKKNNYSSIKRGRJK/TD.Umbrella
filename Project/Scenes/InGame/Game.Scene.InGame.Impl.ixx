@@ -3,11 +3,28 @@ export module Game.Scene.InGame : Impl;
 import <memory>;
 
 import <vector>;
+import <map>;
 
-import Lumina;
+#if defined(_DEBUG)
+import Game.TerrainEditor;
+#endif
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
+
+import Lumina.Core.Common;
+import Lumina.Core.Math;
+import Lumina.Utils.Data;
+import Lumina.D3D12;
+import Lumina.MeshManager;
+
+import Game.Terrain;
+import Lumina.Utils.Camera;
+import Lumina.Primitive;
+
+import Game.Player;
+import CollisionManager;
+import Game.ConvexColliderDebug;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -21,20 +38,73 @@ namespace Game::Scene::Impl {
 		template<typename...ArgTypes>
 		void Lose(typename ArgTypes const&...args_);
 
+	private:
+		void Render_Geometry();
+		void Render_Merge();
+
 	public:
 		void Update();
 		void Render();
 
+	private:
+		auto LoadImageTextures() -> void;
+		auto LoadMeshes() -> void;
+		auto InitializeMeshMaterials() -> void;
+
 	public:
-		template<typename...ArgTypes>
-		void Initialize(typename ArgTypes const&...args_);
+		void Initialize();
 
 		InGame();
 		virtual ~InGame();
 
 	private:
+		struct MeshMaterial {
+			Lumina::F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
+			Lumina::U32 ID_DiffuseMap;
+			Lumina::U32 ID_SpecularMap;
+			Lumina::U32 ID_NormalMap;
+		};
+
+		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
+		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
+		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_MeshDeferredGeometry_;
+
+		Lumina::D3D12::Canvas Canvas_;
+		Lumina::D3D12::Canvas Canvas_GeometryPass_;
+
+		Lumina::D3D12::RenderPass GeometryPass_;
+		Lumina::D3D12::RenderPass MergePass_;
+
+		MeshMaterial Material0_;
+		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
+		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
+		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
+
+		std::map<std::string, size_t> EnemyMeshIndices_;
+		size_t CubeMeshIdx_{ 0 };
+
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
+		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
+
+		std::unique_ptr<Lumina::Utils::Camera> Camera_;
+		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
+
+		std::unique_ptr<TerrainEditor> TerrainEditor_;
+
+		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
+		std::unique_ptr<TerrainShapeCollection> Terrain_;
+		std::unique_ptr<TerrainRenderer> TerrainRenderer_;
+		std::unique_ptr<Player> Player_;
+		std::unique_ptr<CollisionManager> CollisionManager_;
+		std::unique_ptr<ConvexColliderDebugRenderer> ConvexColliderDebugRenderer_;
+
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
+
+	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Actor, Play };
+		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
@@ -57,6 +127,7 @@ namespace Game::Scene::Impl {
 			int CurrentHP = 100;
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
+			bool FacingRight = true;
 		};
 
 		struct PlayState {
@@ -81,7 +152,6 @@ namespace Game::Scene::Impl {
 #if defined(_DEBUG)
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
 		void DrawPlayMode();
-		void UpdatePlayLogic();
 #endif
 
 	private:

@@ -20,11 +20,6 @@
         "ShaderVisibility": "Pixel",
         "ParameterType": "DescriptorTable",
         "TableName": "Textures"
-      },
-      {
-        "ShaderVisibility": "Pixel",
-        "ParameterType": "DescriptorTable",
-        "TableName": "Textures2"
       }
     ],
 
@@ -61,15 +56,6 @@
         "NumDescriptors": 32,
         "BaseShaderRegister": 0,
         "RegisterSpace": 1,
-        "OffsetInDescriptorsFromTableStart": -1
-      }
-    ],
-    "Textures2": [
-      {
-        "RangeType": "SRV",
-        "NumDescriptors": 8,
-        "BaseShaderRegister": 0,
-        "RegisterSpace": 2,
         "OffsetInDescriptorsFromTableStart": -1
       }
     ],

@@ -25,6 +25,26 @@ namespace Lumina {
 		void Initialize_Implementation(uint32_t capacity_) {
 			if (capacity_ > 0U) { Capacity_ = capacity_; }
 
+			if (Elements_ != nullptr) {
+				delete[] Elements_;
+				Elements_ = nullptr;
+			}
+
+			if (Table_IsActive_ != nullptr) {
+				delete[] Table_IsActive_;
+				Table_IsActive_ = nullptr;
+			}
+
+			if (Table_Prev_ != nullptr) {
+				delete[] Table_Prev_;
+				Table_Prev_ = nullptr;
+			}
+
+			if (Table_Next_ != nullptr) {
+				delete[] Table_Next_;
+				Table_Next_ = nullptr;
+			}
+
 			assert(Elements_ == nullptr);
 			Elements_ = new T[Capacity_];
 
@@ -167,6 +187,9 @@ namespace Lumina {
 		constexpr bool IsFull() const noexcept { return (Inactive_First_ == -1); }
 
 		constexpr T const* Data() const noexcept { return Elements_; }
+
+		constexpr T& At(uint32_t idx_) noexcept { return Elements_[idx_]; }
+		constexpr T const& At(uint32_t idx_) const noexcept { return Elements_[idx_]; }
 
 		class Iterator {
 			friend List;

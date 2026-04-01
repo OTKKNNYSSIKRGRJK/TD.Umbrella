@@ -14,6 +14,7 @@
     <None Include=".editorconfig" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="GamePad.cpp" />
     <ClCompile Include="Windows.Context.cpp" />
     <ClCompile Include="Windows.Context.ixx" />
     <ClCompile Include="Windows.ixx" />
@@ -32,6 +33,9 @@
     <ProjectReference Include="..\..\Core\String\String.vcxproj">
       <Project>{c284917a-1bb1-420b-9a19-758f231dcf87}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="GamePad.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

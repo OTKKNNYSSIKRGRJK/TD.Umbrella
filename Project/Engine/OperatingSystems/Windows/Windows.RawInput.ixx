@@ -1,6 +1,7 @@
 module;
 
 #include<Windows.h>
+#include"GamePad.h"
 
 //////	//////	//////	//////	//////	//////
 //////	//////	//////	//////	//////	//////
@@ -120,7 +121,9 @@ namespace Lumina::OS::Windows {
 
 	public:
 		constexpr bool IsPressed(KEY key_) const noexcept;
+		constexpr bool IsJustPressed(KEY key_) const noexcept;
 		constexpr bool IsReleased(KEY key_) const noexcept;
+		constexpr bool IsJustReleased(KEY key_) const noexcept;
 
 		inline void CurrentState(Bitset<256U>& state_) const {
 			state_.Set(CurrentState_);
@@ -132,6 +135,11 @@ namespace Lumina::OS::Windows {
 		constexpr void OnInput(RAWINPUT const& rawInput_) noexcept;
 
 		//----	------	------	------	------	----//
+
+	private:
+		void Update() {
+			PreviousState_.Set(CurrentState_);
+		}
 
 	private:
 		void Initialize(HWND hWnd_);
@@ -148,6 +156,7 @@ namespace Lumina::OS::Windows {
 
 	private:
 		Bitset<256U> CurrentState_{};
+		Bitset<256U> PreviousState_{};
 	};
 
 	//----	------	------	------	------	----//
@@ -158,9 +167,17 @@ namespace Lumina::OS::Windows {
 		auto keyCode{ static_cast<uint32_t>(key_) };
 		return CurrentState_[keyCode];
 	}
+	constexpr bool RawKeyboard::IsJustPressed(KEY key_) const noexcept {
+		auto keyCode{ static_cast<uint32_t>(key_) };
+		return CurrentState_[keyCode] && !PreviousState_[keyCode];
+	}
 	constexpr bool RawKeyboard::IsReleased(KEY key_) const noexcept {
 		auto keyCode{ static_cast<uint32_t>(key_) };
 		return !CurrentState_[keyCode];
+	}
+	constexpr bool RawKeyboard::IsJustReleased(KEY key_) const noexcept {
+		auto keyCode{ static_cast<uint32_t>(key_) };
+		return !CurrentState_[keyCode] && PreviousState_[keyCode];
 	}
 
 	//----	------	------	------	------	----//
@@ -377,6 +394,7 @@ namespace Lumina::OS::Windows {
 	public:
 		inline auto const& Keyboard() const noexcept;
 		inline auto const& Mouse() const noexcept;
+		inline auto const& Pad() const noexcept;
 
 		//----	------	------	------	------	----//
 
@@ -394,6 +412,12 @@ namespace Lumina::OS::Windows {
 		);
 
 		//----	------	------	------	------	----//
+
+	public:
+		void Update() {
+			Keyboard_->Update();
+			Pad_->Update();
+		}
 
 	public:
 		void Initialize(HWND hWnd_);
@@ -414,6 +438,7 @@ namespace Lumina::OS::Windows {
 
 		std::unique_ptr<RawKeyboard> Keyboard_{ nullptr };
 		std::unique_ptr<RawMouse> Mouse_{ nullptr };
+		std::unique_ptr<GamePad> Pad_{ nullptr };
 
 		__declspec(align(4U)) std::array<byte, 256LLU> Buffer_{};
 	};
@@ -424,6 +449,7 @@ namespace Lumina::OS::Windows {
 
 	inline auto const& RawInput::Keyboard() const noexcept { return *Keyboard_; }
 	inline auto const& RawInput::Mouse() const noexcept { return *Mouse_; }
+	inline auto const& RawInput::Pad() const noexcept { return *Pad_; }
 
 	//----	------	------	------	------	----//
 
@@ -489,6 +515,9 @@ namespace Lumina::OS::Windows {
 		if (Mouse_ == nullptr) {
 			Mouse_.reset(new RawMouse{});
 			Mouse_->Initialize(hWnd_);
+		}
+		if (Pad_ == nullptr) {
+			Pad_ = std::make_unique<GamePad>(0);
 		}
 
 		Callback_ =

@@ -33,3 +33,5 @@ export import : Canvas;
 export import : FrameBufferSwapChain;
 
 export import : Debug;
+
+export import <d3d12.h>;

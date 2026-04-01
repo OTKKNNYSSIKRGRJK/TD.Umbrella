@@ -11,16 +11,23 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp" />
+    <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Shape.ixx" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.ixx" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
-    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx" />
-    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Initialize.cpp" />
-    <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Update.cpp" />
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
@@ -43,6 +50,8 @@
     <ClCompile Include="Scenes\Player\States\PlayerStates.ixx" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.cpp" />
+    <ClCompile Include="Scenes\Player\StatusComponent.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Common.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.cpp" />
@@ -52,6 +61,10 @@
     <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
     <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
     <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.DataIO.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.FileIO.cpp" />
+    <ClCompile Include="TerrainEditor\Game.TerrainEditor.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
@@ -110,7 +123,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{5d12660b-35c4-4430-b9c9-8695c59a167b}</ProjectGuid>
-    <RootNamespace>Lumina</RootNamespace>
+    <RootNamespace>TD.Umbrella</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

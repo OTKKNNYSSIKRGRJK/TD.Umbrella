@@ -58,8 +58,8 @@ namespace PlayerStates::Movement {
 
 	void Airborne::Update(float deltaTime) {
 		// 空気の抵抗（小さいのであまり減速しない）
-		float airResistance = 1.5f;
-		float gravity = 9.8f * 1.3f; // 重力加速度
+		float airResistance = 2.0f;
+		float gravity = 9.8f * 2.1f; // 重力加速度
 
 		// 外部からの速度（X, Z軸）を少しだけ減衰させる
 		player_->externalVelocity_.X = std::lerp(player_->externalVelocity_.X, 0.0f, airResistance * deltaTime);
@@ -139,10 +139,10 @@ namespace PlayerStates::Movement {
 		// 武器の状態で切り替え
 		switch (player_->GetWeaponStance()) {
 		case WeaponStance::Sheathed:
-			targetSpeed = 7.0f;
+			targetSpeed = 11.0f;
 			break;
 		case WeaponStance::Drawn:
-			targetSpeed = 5.0f;
+			targetSpeed = 8.0f;
 			break;
 		}
 

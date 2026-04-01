@@ -355,7 +355,7 @@ namespace Lumina::D3D12 {
 			.SampleMask{ D3D12_DEFAULT_SAMPLE_MASK },
 			.RasterizerState{ rasterizerState_ },
 			.DepthStencilState{ depthStencilState_ },
-			.InputLayout{ inputElements.data(), static_cast<uint32_t>(inputElements.size())},
+			.InputLayout{ inputElements.data(), static_cast<uint32_t>(inputElements.size()) },
 			.PrimitiveTopologyType{ primitiveTopologyType_ },
 			.NumRenderTargets{ num_RenderTargets },
 			.DSVFormat{ dsvFormat_ },

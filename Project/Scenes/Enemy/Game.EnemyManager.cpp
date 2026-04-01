@@ -18,7 +18,7 @@ namespace {
 	// 2D外積 (p1-p0) x (p2-p0)
 	float Cross2D(const Vector2& p0, const Vector2& p1, const Vector2& p2) {
 		return (p1.first - p0.first) * (p2.second - p0.second)
-		     - (p1.second - p0.second) * (p2.first - p0.first);
+			- (p1.second - p0.second) * (p2.first - p0.first);
 	}
 
 	// ポリゴンが凸かどうかを判定
@@ -67,8 +67,7 @@ namespace {
 	// 入力: 2D頂点列（単純多角形）
 	// 出力: 三角形のインデックス列 (i0,i1,i2, i0,i1,i2, ...)
 	std::vector<std::array<int, 3>> TriangulateEarClipping(
-		const std::vector<Game::Editor::CollisionVertex>& inputVerts)
-	{
+		const std::vector<Game::Editor::CollisionVertex>& inputVerts) {
 		std::vector<std::array<int, 3>> triangles;
 		int n = static_cast<int>(inputVerts.size());
 		if (n < 3) return triangles;
@@ -181,23 +180,52 @@ namespace Game {
 		auto makeCollider = [&](const std::vector<Lumina::Math::F32x3>& verts3d) {
 			auto col = std::make_unique<ConvexCollider>();
 			col->SetMyType(COL_Enemy);
-			col->SetYourType(COL_Player | COL_Player_Attack);
+			col->SetYourType(COL_Player | COL_Player_Attack | COL_Ground);
 			col->SetUserData(this);
 			col->SetVertices(verts3d);
 			col->SetWorldPosition(position);
 
+			Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+			Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+			if (!facingRight) {
+				rot.Y = 3.14159265f; // 反転
+			}
+			auto initWorld = Game::MathUtils::SRT(scale, rot, position);
+			col->SetWorldMatrix(initWorld);
+
+
 			col->onCollisionCallback = [this](Collider* other, const Lumina::Math::F32x3& pushOut) {
-				if (other->GetMyType() == COL_Ground || other->GetMyType() == COL_Player) {
-					position.X += (-pushOut.X);
-					position.Y += (-pushOut.Y);
-					position.Z += (-pushOut.Z);
+				if (other->GetMyType() == COL_Ground) {
+					Lumina::Math::F32x3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
+					position.X += actualPush.X;
+					position.Y += actualPush.Y;
+					position.Z += actualPush.Z;
+
+					Lumina::Math::F32x3 normal = actualPush;
+					float length = std::sqrt(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z);
+					if (length > 0.0f) {
+						normal.X /= length;
+						normal.Y /= length;
+						normal.Z /= length;
+					}
+
+					// 足元に地面があるかのチェック (Playerを参考)
+					if (normal.Y > 0.8f) {
+						if (this->velocity.Y <= 0.0f) {
+							if (this->velocity.Y < 0.0f) {
+								this->velocity.Y = 0.0f;
+							}
+						}
+					}
 				}
-				// Player Attack takes damage handling elsewhere or could be handled here
-			};
+				else if (other->GetMyType() == COL_Player_Attack) {
+					Game::EnemyManager::GetInstance()->DealDamage(this->id, 50);
+				}
+				};
 
 			col->UpdateAABB();
 			colliders.push_back(std::move(col));
-		};
+			};
 
 		if (IsConvexPolygon(baseData.collisionVertices)) {
 			// 凸多角形 → そのまま1つのコライダー
@@ -233,6 +261,7 @@ namespace Game {
 		auto worldMat = Game::MathUtils::SRT(scale, rot, position);
 
 		for (auto& col : colliders) {
+			position.Z = 0.0f; // Zは常に0
 			col->SetWorldPosition(position);
 			col->SetWorldMatrix(worldMat);
 			col->UpdateAABB();
@@ -404,6 +433,12 @@ namespace Game {
 	void EnemyManager::Update(float deltaTime, const Lumina::Math::F32x3& playerPosition) {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+
+			// --- 物理挙動（重力） ---
+			enemy.velocity.Y -= 9.8f * deltaTime;
+			enemy.position.Y += enemy.velocity.Y * deltaTime;
+			enemy.position.X += enemy.velocity.X * deltaTime;
+			enemy.position.Z += enemy.velocity.Z * deltaTime;
 
 			// --- ハートタイマー更新 ---
 			if (enemy.hurtTimer > 0.0f) {

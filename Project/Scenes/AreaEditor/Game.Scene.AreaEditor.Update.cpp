@@ -8,6 +8,9 @@ import <string>;
 import <map>;
 import <algorithm>;
 import <filesystem>;
+import <vector>;
+import <fstream>;
+import nlohmann.json;
 
 #if defined(_DEBUG)
 namespace {
@@ -72,15 +75,35 @@ namespace Game::Editor {
 			cameraPos_.y += delta.y;
 		}
 
-		// 敵JSONファイルリストを毎フレーム再スキャン（ホットリロード対応）
-		enemyFiles_.clear();
-		for (const auto& entry : std::filesystem::directory_iterator("./")) {
-			std::string fName = entry.path().filename().string();
-			if (entry.path().extension() == ".json" && fName.find("area") != 0) {
-				std::string baseName = fName.substr(0, fName.size() - 5);
-				enemyFiles_.push_back(baseName);
+		// 敵JSONファイルリストをディレクトリ変更時のみ再スキャン
+		static std::filesystem::file_time_type lastScanDirTime{};
+		try {
+			auto currentDirTime = std::filesystem::last_write_time("./");
+			if (lastScanDirTime != currentDirTime) {
+				lastScanDirTime = currentDirTime;
+				enemyFiles_.clear();
+				for (const auto& entry : std::filesystem::directory_iterator("./")) {
+					try {
+						if (!entry.is_regular_file()) continue;
+						std::string fName = entry.path().filename().string();
+						if (entry.path().extension() == ".json" && fName.find("area") != 0) {
+							std::ifstream ifs(entry.path());
+							if (ifs.is_open()) {
+								nlohmann::json j;
+								ifs >> j;
+								// 敵データ固有のプロパティの有無で判別
+								if (j.is_object() && j.contains("hp") && j.contains("gltfPath") && j.contains("aggroRadius")) {
+									std::string baseName = fName.substr(0, fName.size() - 5);
+									enemyFiles_.push_back(baseName);
+								}
+							}
+						}
+					} catch (...) {
+						// パースエラーの無関係なJSON（vcpkg.json等）は無視
+					}
+				}
 			}
-		}
+		} catch (...) {}
 
 		float scale = 0.5f;
 		float cx = cameraPos_.x;
@@ -274,17 +297,80 @@ namespace Game::Editor {
 				drawList->AddText(ImVec2(areaMin.x + 5, areaMin.y + 20), MakeCol32(100, 255, 100, 255), "[Editing]");
 			}
 
+			// Draw TerrainEditor Polygons
+			if (drawData.originalJson.contains("Polygons") && drawData.originalJson["Polygons"].is_array()) {
+				for (const auto& poly : drawData.originalJson["Polygons"]) {
+					if (poly.contains("Vertices") && poly["Vertices"].is_array()) {
+						const auto& verts = poly["Vertices"];
+						if (verts.size() >= 3) {
+							std::vector<ImVec2> points;
+							for (const auto& v : verts) {
+								if (v.contains("Pos") && v["Pos"].is_array() && v["Pos"].size() >= 2) {
+									float px = v["Pos"][0].get<float>();
+									float py = v["Pos"][1].get<float>();
+									points.push_back(ImVec2(
+										cx + (drawData.editorPos.x + px) * scale,
+										cy - (drawData.editorPos.y + drawData.height - py) * scale
+									));
+								}
+							}
+							if (points.size() >= 3) {
+								drawList->AddConvexPolyFilled(points.data(), static_cast<int>(points.size()), MakeCol32(100, 200, 100, isEditing ? 80 : 30));
+								drawList->AddPolyline(points.data(), static_cast<int>(points.size()), MakeCol32(150, 255, 150, isEditing ? 255 : 100), ImDrawFlags_Closed, 1.5f);
+							}
+						}
+					}
+				}
+			}
+
+			// Draw TerrainEditor GroundPoints
+			if (drawData.originalJson.contains("GroundPoints") && drawData.originalJson["GroundPoints"].is_array()) {
+				const auto& gp = drawData.originalJson["GroundPoints"];
+				for (const auto& pt : gp) {
+					if (pt.contains("NextID") && pt.contains("Pos") && pt["Pos"].is_array() && pt["Pos"].size() >= 2) {
+						int nextID = pt["NextID"].template get<int>();
+						if (nextID != -1) {
+							for (const auto& npt : gp) {
+								if (npt.contains("ID") && npt["ID"].template get<int>() == nextID && npt.contains("Pos") && npt["Pos"].is_array() && npt["Pos"].size() >= 2) {
+									float x1 = pt["Pos"][0].template get<float>();
+									float y1 = pt["Pos"][1].template get<float>();
+									float x2 = npt["Pos"][0].template get<float>();
+									float y2 = npt["Pos"][1].template get<float>();
+									
+									ImVec2 startP(
+										cx + (drawData.editorPos.x + x1) * scale,
+										cy - (drawData.editorPos.y + drawData.height - y1) * scale
+									);
+									ImVec2 endP(
+										cx + (drawData.editorPos.x + x2) * scale,
+										cy - (drawData.editorPos.y + drawData.height - y2) * scale
+									);
+									drawList->AddLine(startP, endP, MakeCol32(100, 255, 100, isEditing ? 255 : 150), 4.0f * scale);
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+
 			std::map<int, int> targetCount;
 			for (const auto& conn : drawData.connections) {
 				int currentIdx = targetCount[conn.targetAreaIndex]++;
 				ImVec2 connMin(cx + (drawData.editorPos.x + conn.trigger.position.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y + conn.trigger.size.y) * scale);
 				ImVec2 connMax(cx + (drawData.editorPos.x + conn.trigger.position.x + conn.trigger.size.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y) * scale);
 
-				drawList->AddRectFilled(connMin, connMax, MakeCol32(0, 150, 255, isEditing ? 100 : 50));
-				drawList->AddRect(connMin, connMax, MakeCol32(0, 255, 255, 255), 0.0f, 0, 1.0f);
+				bool isPlayerStart = (drawData.index == 0 && conn.targetAreaIndex == 0);
+				ImU32 fillColor = isPlayerStart ? MakeCol32(255, 120, 0, isEditing ? 100 : 50) : MakeCol32(0, 150, 255, isEditing ? 100 : 50);
+				ImU32 outlineColor = isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(0, 255, 255, 255);
 
-				std::string targetText = "To: " + std::to_string(conn.targetAreaIndex);
-				drawList->AddText(ImVec2(connMin.x, connMin.y - 15.0f), MakeCol32(255, 255, 0, 255), targetText.c_str());
+				drawList->AddRectFilled(connMin, connMax, fillColor);
+				drawList->AddRect(connMin, connMax, outlineColor, 0.0f, 0, 1.0f);
+
+				std::string targetText = isPlayerStart ? "Player Start" : "To: " + std::to_string(conn.targetAreaIndex);
+				drawList->AddText(ImVec2(connMin.x, connMin.y - 15.0f), isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(255, 255, 0, 255), targetText.c_str());
+
+				if (isPlayerStart) continue; // 初期位置マーカーの場合はターゲットへの線引きをスキップ
 
 				for (const auto& target : allAreas_) {
 					const AreaData& tData = (target.name == editingArea_.name) ? editingArea_ : target;
@@ -428,8 +514,8 @@ namespace Game::Editor {
 			if (ImGui::InputInt("Area Name / Index", &editingArea_.index)) {
 				editingArea_.name = editingArea_.index;
 			}
-			ImGui::DragInt("Width", &editingArea_.width, 10, 1, 100000);
-			ImGui::DragInt("Height", &editingArea_.height, 10, 1, 100000);
+			ImGui::Text("Width: %d", editingArea_.width);
+			ImGui::Text("Height: %d", editingArea_.height);
 			char musicBuf[256];
 			strncpy_s(musicBuf, editingArea_.backgroundMusic.c_str(), sizeof(musicBuf));
 			if (ImGui::InputText("Background Music", musicBuf, sizeof(musicBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
@@ -447,8 +533,12 @@ namespace Game::Editor {
 
 			for (size_t i = 0; i < editingArea_.connections.size(); ++i) {
 				ImGui::PushID(static_cast<int>(i));
-				std::string label = "Connection " + std::to_string(i) + " (Target Index: " + std::to_string(editingArea_.connections[i].targetAreaIndex) + ")###ConnNode";
+				bool isPlayerStart = (editingArea_.index == 0 && editingArea_.connections[i].targetAreaIndex == 0);
+				std::string label = isPlayerStart ? "Player Start (Connection " + std::to_string(i) + ")###ConnNode" : "Connection " + std::to_string(i) + " (Target Index: " + std::to_string(editingArea_.connections[i].targetAreaIndex) + ")###ConnNode";
 				if (ImGui::TreeNode(label.c_str())) {
+					if (isPlayerStart) {
+						ImGui::TextColored(ImVec4(1.0f, 0.8f, 0.0f, 1.0f), "[Player Start Point]");
+					}
 					ImGui::InputInt("Target Area Index", &editingArea_.connections[i].targetAreaIndex);
 					if (ImGui::IsItemDeactivatedAfterEdit()) {
 						trySaveArea(editingArea_, true);
