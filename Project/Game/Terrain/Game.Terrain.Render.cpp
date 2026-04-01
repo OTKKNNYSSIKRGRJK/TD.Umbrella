@@ -13,6 +13,20 @@ namespace Game {
 
 		PrimitiveManager_->Begin(cmdList);
 
+		auto const& polygons{ shapeCollection_.PolygonsData() };
+		for (auto const& polygon : polygons) {
+			if (polygon.Vertices.size() > 2) {
+				auto const* verts{ polygon.Vertices.data() };
+				for (size_t i = 2; i < polygon.Vertices.size(); ++i) {
+					PrimitiveManager_->BatchTriangle(
+						{ { verts[0].Pos.X, verts[0].Pos.Y, verts[0].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+						{ { verts[i - 1].Pos.X, verts[i - 1].Pos.Y, verts[i - 1].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
+						{ { verts[i].Pos.X, verts[i].Pos.Y, verts[i].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+					);
+				}
+			}
+		}
+
 		auto const& ground{ shapeCollection_.GroundData() };
 		for (auto const& collider : ground.Colliders) {
 			auto const& verts{ collider->GetVertices() };

@@ -169,6 +169,9 @@ namespace Game::Scene::Impl {
 		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
+		for (auto const& polygon : Terrain_->PolygonsData()) {
+			CollisionManager_->SetColliders(polygon.Col.get());
+		}
 		auto const& groundColliders = Terrain_->GroundData().Colliders;
 		for (auto const& col : groundColliders) {
 			CollisionManager_->SetColliders(col.get());

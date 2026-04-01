@@ -17,6 +17,7 @@ namespace Game {
 		};
 
 		std::vector<Vertex> Vertices;
+		std::unique_ptr<ConvexCollider> Col;
 
 		using Collection = std::vector<Polygon>;
 	};
