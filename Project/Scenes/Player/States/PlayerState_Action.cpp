@@ -175,11 +175,11 @@ namespace PlayerStates::Action {
 		// ========================================================
 		float stepPower = 0.0f;
 		if (comboCount_ == 1) { 
-			stepPower = 4.0f;
+			stepPower = 20.0f;
 			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.5f);
 		}
 		else if (comboCount_ == 2) { 
-			stepPower = 6.0f;
+			stepPower = 0.0f;
 			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.4f);
 		}
 		else if (comboCount_ == 3) { 

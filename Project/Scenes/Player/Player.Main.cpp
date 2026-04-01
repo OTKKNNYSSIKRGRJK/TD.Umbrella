@@ -81,7 +81,6 @@ void Player::Initialize() {
 			// =========================
 			Vector3 actualPush = -pushOut;
 			Position_ += actualPush;
-			//obj_->worldTransform_.set_.Translation(Position_);
 
 			Vector3 normal = actualPush;
 			float len2{ Vector3::Dot(actualPush, actualPush) };
@@ -135,7 +134,7 @@ void Player::Initialize() {
 					pos.X += actualPush.X;
 					pos.Y += actualPush.Y;
 					pos.Z += actualPush.Z;
-					//obj_->worldTransform_.set_.Translation(pos);
+					Position_ = pos;
 					this->onGround_ = true;
 
 					// バウンドする
