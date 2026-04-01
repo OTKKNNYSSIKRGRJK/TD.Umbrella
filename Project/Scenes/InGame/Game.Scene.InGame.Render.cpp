@@ -163,6 +163,12 @@ namespace Game::Scene::Impl {
 			*WorldToHomogeneous_
 		);
 
+		ConvexColliderDebugRenderer_->BatchColliders(CollisionManager_->GetColliders());
+		ConvexColliderDebugRenderer_->RenderBatched(
+			GlobalTable_SRV_CanvasTexture_,
+			*WorldToHomogeneous_
+		);
+
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
 				Canvas_GeometryPass_.RenderTexture(0U),

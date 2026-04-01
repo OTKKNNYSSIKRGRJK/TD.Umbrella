@@ -45,6 +45,7 @@ namespace Game::Scene::Impl {
 				*Camera_,
 				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
 			);
+			TerrainEditor_->SetShapes(*Terrain_);
 		} catch (...) {
 			// Fallback or empty terrain if file has no terrain data yet
 			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
@@ -183,12 +184,12 @@ namespace Game::Scene::Impl {
 			playState_.Enemies[i].Position = enemyInstances[i].position;
 			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
 			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if(enemyInstances[i].isDead) {
+			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
 				playState_.Enemies[i].CurrentHP = 0;
 			}
 		}
 
-		// Collisionの更新処理↑↑↑
+		TerrainEditor_->Update();
 
 		#if defined(_DEBUG)
 		// エリアの移動処理
@@ -224,8 +225,8 @@ namespace Game::Scene::Impl {
 		}
 
 		ImGui::Begin("Camera");
-		static Lumina::Math::F32x3 eye{ 0.0f, 0.0f, -30.0f };
-		static Lumina::Math::F32x3 target{ 0.0f, 0.0f, 0.0f };
+		static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
+		static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
 		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
 		ImGui::DragFloat3("Target", &target.X, 0.1f);
 		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });

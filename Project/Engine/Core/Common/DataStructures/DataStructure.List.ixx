@@ -25,6 +25,26 @@ namespace Lumina {
 		void Initialize_Implementation(uint32_t capacity_) {
 			if (capacity_ > 0U) { Capacity_ = capacity_; }
 
+			if (Elements_ != nullptr) {
+				delete[] Elements_;
+				Elements_ = nullptr;
+			}
+
+			if (Table_IsActive_ != nullptr) {
+				delete[] Table_IsActive_;
+				Table_IsActive_ = nullptr;
+			}
+
+			if (Table_Prev_ != nullptr) {
+				delete[] Table_Prev_;
+				Table_Prev_ = nullptr;
+			}
+
+			if (Table_Next_ != nullptr) {
+				delete[] Table_Next_;
+				Table_Next_ = nullptr;
+			}
+
 			assert(Elements_ == nullptr);
 			Elements_ = new T[Capacity_];
 

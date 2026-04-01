@@ -111,7 +111,8 @@ namespace Game {
 				std::ofstream fileOutputStream{};
 				fileOutputStream.open(fileItemPath);
 				if (fileOutputStream.good()) {
-					auto&& output{ OutputData<nlohmann::ordered_json>() };
+					nlohmann::ordered_json output{};
+					OutputData<nlohmann::ordered_json>(output);
 					fileOutputStream << output.dump(2);
 				}
 

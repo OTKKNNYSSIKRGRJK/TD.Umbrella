@@ -56,6 +56,9 @@ namespace Lumina::Utils {
 		Camera() :
 			View_{ Math::F32x4x4<>::Identity },
 			Projection_{ Math::F32x4x4<>::Identity } {}
+		Camera(Camera const& camera_) :
+			View_{ camera_.View_ },
+			Projection_{ camera_.Projection_ } {}
 		~Camera() {}
 
 	private:

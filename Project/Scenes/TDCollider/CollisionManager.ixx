@@ -17,6 +17,7 @@ public:
 	void Begin();
 	void SetColliders(Collider* collider);
 	void CheckAllCollisions();
+	auto GetColliders() const noexcept -> std::vector<Collider*> const& { return colliders_; }
 private:
 	bool CheckNarrowPhase(Collider* a, Collider* b, Vector3& outPush);
     // GJKアルゴリズムの本体
