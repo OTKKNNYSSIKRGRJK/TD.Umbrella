@@ -147,24 +147,24 @@
         }
     ],
     "editorPos": {
-        "x": 0.0,
-        "y": 0.0
+        "x": 22.0,
+        "y": -4.0
     },
     "enemies": [
         {
             "enemyName": "Slime",
             "facingRight": true,
             "position": {
-                "x": 404.0,
-                "y": 182.0
+                "x": 884.0,
+                "y": 258.0
             }
         },
         {
             "enemyName": "Slime",
             "facingRight": true,
             "position": {
-                "x": 560.0,
-                "y": 172.0
+                "x": 922.0,
+                "y": 316.0
             }
         }
     ],

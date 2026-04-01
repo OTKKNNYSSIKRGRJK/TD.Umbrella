@@ -15,6 +15,7 @@ import Lumina.Utils.Data;
 import nlohmann.json;
 
 import Game.MotionManager;
+import Game.EnemyManager;
 
 #if defined(_DEBUG)
 namespace {
@@ -50,6 +51,8 @@ namespace Game::Scene::Impl {
 		}
 		
 		playState_.Enemies.clear();
+		Game::EnemyManager::GetInstance()->ClearInstances();
+
 		for (auto& ep : playState_.CurrentArea.enemies) {
 			PlayEnemy pe;
 			enemyEditor_.LoadEnemy(pe.BaseData, ep.enemyName + ".json");
@@ -61,6 +64,9 @@ namespace Game::Scene::Impl {
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
 			playState_.Enemies.push_back(pe);
+
+			// EnemyManager側にも生成
+			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight);
 		}
 		
 		// Reset player position when entering area
@@ -133,224 +139,7 @@ namespace Game::Scene::Impl {
 		}
 	}
 
-	void InGame::UpdatePlayLogic() {
-		if (!playState_.IsPlaying) return;
-		
-		auto const& keyboard = Lumina::Context::Instance().RawInputContext().Keyboard();
-		
-		// Physics & Movement
-		float dt = 1.0f / 60.0f;
-		float speed = 300.0f * playState_.PlayerSpeedMultiplier * dt;
-		
-		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::A)) {
-			playState_.Player.Position.X -= speed;
-			playState_.Player.FacingRight = false;
-		}
-		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::D)) {
-			playState_.Player.Position.X += speed;
-			playState_.Player.FacingRight = true;
-		}
-		
-		auto getTerrainY = [&](float px) -> float {
-			float yFromTop = static_cast<float>(playState_.CurrentArea.height);
-			if (TerrainScreenData_) {
-				auto& vertices = TerrainScreenData_->GroundData().Vertices;
-				bool foundMapGround = false;
-				
-				Lumina::List<Game::Ground::Vertex>::Iterator it{ vertices };
-				for (it.Begin(); !it.End(); it.Next()) {
-					auto const& v1 = *it;
-					if (v1.NextID != -1) {
-						auto const* v2_ptr = (Game::Ground::Vertex const*)nullptr;
-						
-						Lumina::List<Game::Ground::Vertex>::Iterator jt{ vertices };
-						for (jt.Begin(); !jt.End(); jt.Next()) {
-							if ((*jt).ID == v1.NextID) { v2_ptr = &(*jt); break; }
-						}
-						
-						if (v2_ptr) {
-							float x1 = v1.Pos.X; float y1 = v1.Pos.Y;
-							float x2 = v2_ptr->Pos.X; float y2 = v2_ptr->Pos.Y;
-							if (x1 > x2) { std::swap(x1, x2); std::swap(y1, y2); }
-							
-							if (px >= x1 && px <= x2) {
-								if (x2 - x1 > 0.001f) {
-									float t = (px - x1) / (x2 - x1);
-									yFromTop = y1 + t * (y2 - y1);
-								} else {
-									yFromTop = y1;
-								}
-								foundMapGround = true;
-								break;
-							}
-						}
-					}
-				}
-				if (!foundMapGround && vertices.Size() > 0) {
-					float minX = 999999.0f, maxX = -999999.0f;
-					float yAtMinX = 0, yAtMaxX = 0;
-					
-					Lumina::List<Game::Ground::Vertex>::Iterator it2{ vertices };
-					for (it2.Begin(); !it2.End(); it2.Next()) {
-						if ((*it2).Pos.X < minX) { minX = (*it2).Pos.X; yAtMinX = (*it2).Pos.Y; }
-						if ((*it2).Pos.X > maxX) { maxX = (*it2).Pos.X; yAtMaxX = (*it2).Pos.Y; }
-					}
-					if (px <= minX) yFromTop = yAtMinX;
-					else if (px >= maxX) yFromTop = yAtMaxX;
-				}
-			}
-			return static_cast<float>(playState_.CurrentArea.height) - yFromTop;
-		};
 
-		// Clamp player inside area bounds (X)
-		if (playState_.Player.Position.X < 20.0f) {
-			playState_.Player.Position.X = 20.0f;
-		}
-		if (playState_.Player.Position.X > playState_.CurrentArea.width - 20.0f) {
-			playState_.Player.Position.X = playState_.CurrentArea.width - 20.0f;
-		}
-
-		float groundY = getTerrainY(playState_.Player.Position.X);
-		
-		// 2D Jump
-		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::SPACE) && std::abs(playState_.Player.Position.Y - groundY) <= 0.1f) {
-			playState_.Player.Velocity.Y = 600.0f;
-		}
-		
-		// Gravity
-		playState_.Player.Velocity.Y -= 1500.0f * dt;
-		playState_.Player.Position.Y += playState_.Player.Velocity.Y * dt;
-		
-		if (playState_.Player.Position.Y <= groundY) {
-			playState_.Player.Position.Y = groundY;
-			playState_.Player.Velocity.Y = 0.0f;
-		}
-		
-		// Attack
-		if (playState_.PlayerAttackTimer > 0.0f) {
-			playState_.PlayerAttackTimer -= dt;
-		}
-		
-		if (keyboard.IsPressed(Lumina::OS::Windows::KEY::ENTER) && playState_.PlayerAttackTimer <= 0.0f) {
-			playState_.PlayerAttackTimer = 0.3f; // Cooldown
-			
-			// Hit detection (2D Horizontal + Vertical distance)
-			for (auto& e : playState_.Enemies) {
-				if (e.IsDead) continue;
-				float dx = e.Position.X - playState_.Player.Position.X;
-				float dy = e.Position.Y - playState_.Player.Position.Y;
-				float dist = std::sqrt(dx*dx + dy*dy);
-				
-				// Facing check and distance
-				if (dist < 150.0f) {
-					if ((playState_.Player.FacingRight && dx >= -50.0f) || (!playState_.Player.FacingRight && dx <= 50.0f)) {
-						e.CurrentHP -= static_cast<int>(playState_.PlayerAttackPower);
-						e.HurtTimer = 0.2f;
-						if (e.CurrentHP <= 0) {
-							e.IsDead = true;
-							playState_.Player.Mana += 10; // Gain Mana
-						}
-					}
-				}
-			}
-		}
-		
-		if (playState_.Player.HurtTimer > 0.0f) playState_.Player.HurtTimer -= dt;
-		for (auto& e : playState_.Enemies) {
-			if (e.HurtTimer > 0.0f) e.HurtTimer -= dt;
-		}
-		
-		// Mana Drain Over Time (lose 1 Mana every 0.5 seconds -> 2 Mana/sec)
-		if (playState_.Player.Mana > 0) {
-			playState_.Player.ManaTimer += dt;
-			if (playState_.Player.ManaTimer >= 0.5f) {
-				playState_.Player.ManaTimer -= 0.5f;
-				playState_.Player.Mana -= 1;
-			}
-		} else {
-			playState_.Player.ManaTimer = 0.0f;
-		}
-		
-		// Buff Timers
-		if (playState_.BuffSpeedTimer > 0.0f) {
-			playState_.BuffSpeedTimer -= dt;
-			if (playState_.BuffSpeedTimer <= 0.0f) {
-				playState_.PlayerSpeedMultiplier = 1.0f;
-			}
-		}
-		if (playState_.BuffAttackTimer > 0.0f) {
-			playState_.BuffAttackTimer -= dt;
-			if (playState_.BuffAttackTimer <= 0.0f) {
-				playState_.PlayerAttackPower = 10.0f;
-			}
-		}
-		
-		if (playState_.TransitionCooldownTimer > 0.0f) {
-			playState_.TransitionCooldownTimer -= dt;
-		}
-		
-		float player2DX = playState_.Player.Position.X;
-		float player2DY = playState_.Player.Position.Y;
-		if (Player_ && WorldToHomogeneous_) {
-			auto p3d = Player_->GetPosition();
-			Lumina::Math::F32x4 wPos{ p3d.X, p3d.Y, p3d.Z, 1.0f };
-			auto nPos = wPos * (*WorldToHomogeneous_);
-			if (nPos.W() != 0.0f) {
-				nPos /= nPos.W();
-				player2DX = (nPos.X() + 1.0f) * 0.5f * 1280.0f;
-				player2DY = playState_.CurrentArea.height - ((1.0f - nPos.Y()) * 0.5f * 720.0f);
-				playState_.Player.Position.X = player2DX;
-				playState_.Player.Position.Y = player2DY;
-			}
-		}
-
-		// Enemy Logic (simple track player in 2D)
-		for (auto& e : playState_.Enemies) {
-			if (e.IsDead) continue;
-			
-			// Puppet Auto-Regen
-			if (e.BaseData.name == "Puppet") {
-				if (e.HurtTimer <= 0.0f && e.CurrentHP < e.BaseData.hp) {
-					e.CurrentHP += 10; // Extremely high regeneration (600 HP / sec)
-					if (e.CurrentHP > e.BaseData.hp) e.CurrentHP = e.BaseData.hp;
-				}
-				continue; // Puppets don't move or attack
-			}
-			
-			float dx = player2DX - e.Position.X;
-			float dy = player2DY - e.Position.Y;
-			float dist = std::sqrt(dx*dx + dy*dy);
-			
-			if (dist > 50.0f && dist < e.BaseData.aggroRadius * 50.0f) {
-				e.Position.X += (dx > 0 ? 1.0f : -1.0f) * e.BaseData.moveSpeed * 60.0f * dt;
-			}
-			
-			e.Position.Y = getTerrainY(e.Position.X);
-
-			if (dist < 50.0f && playState_.Player.HurtTimer <= 0.0f) {
-				playState_.Player.HP -= static_cast<int>(e.BaseData.power);
-				playState_.Player.HurtTimer = 1.0f; // Invincibility frame
-			}
-		}
-		
-		// Area Transition (2D Rect check with W key)
-		if (!playState_.IsGoalReached && playState_.TransitionCooldownTimer <= 0.0f && keyboard.IsPressed(Lumina::OS::Windows::KEY::W)) {
-			float px = playState_.Player.Position.X;
-			float py = playState_.Player.Position.Y; 
-			
-			for (const auto& conn : playState_.CurrentArea.connections) {
-				// エリア0でターゲットエリアも0の場合は初期位置用なので移動判定から除外
-				if (playState_.CurrentArea.index == 0 && conn.targetAreaIndex == 0) continue;
-
-				// Player bounding box assumes Width=40 [-20~+20], Height=40 [0~40] from base position
-				if (px + 20.0f >= conn.trigger.position.x && px - 20.0f <= conn.trigger.position.x + conn.trigger.size.x &&
-				    py + 40.0f >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
-					CheckAndLoadArea(conn.targetAreaIndex, playState_.CurrentArea.index);
-					break;
-				}
-			}
-		}
-	}
 
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
@@ -368,6 +157,7 @@ namespace Game::Scene::Impl {
 		MotionEditor::GetInstance()->NodeImGui();
 		//TerrainEditor_->Update();
 		Player_->Update(1.0f / 60.0f);
+		Game::EnemyManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
 
 		// Collision の更新処理↓↓↓
 		
@@ -381,8 +171,22 @@ namespace Game::Scene::Impl {
 		for (auto const& col : groundColliders) {
 			CollisionManager_->SetColliders(col.get());
 		}
+
+		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
+
 		// Check!
 		CollisionManager_->CheckAllCollisions();
+
+		// Sync positions from EnemyManager back to playState_.Enemies for Render
+		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+		for (size_t i = 0; i < enemyInstances.size() && i < playState_.Enemies.size(); ++i) {
+			playState_.Enemies[i].Position = enemyInstances[i].position;
+			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
+			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
+			if(enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
+				playState_.Enemies[i].CurrentHP = 0;
+			}
+		}
 
 		// Collisionの更新処理↑↑↑
 
@@ -452,7 +256,7 @@ namespace Game::Scene::Impl {
 			if (TerrainEditor_) TerrainEditor_->Update();
 			break;
 		case EditorTab::Play:
-			UpdatePlayLogic();
+			//UpdatePlayLogic();
 			DrawPlayMode();
 			break;
 		default:

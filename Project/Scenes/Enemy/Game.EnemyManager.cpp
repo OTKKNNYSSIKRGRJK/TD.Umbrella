@@ -181,18 +181,41 @@ namespace Game {
 		auto makeCollider = [&](const std::vector<Lumina::Math::F32x3>& verts3d) {
 			auto col = std::make_unique<ConvexCollider>();
 			col->SetMyType(COL_Enemy);
-			col->SetYourType(COL_Player | COL_Player_Attack);
+			col->SetYourType(COL_Player | COL_Player_Attack|COL_Ground);
 			col->SetUserData(this);
 			col->SetVertices(verts3d);
 			col->SetWorldPosition(position);
 
 			col->onCollisionCallback = [this](Collider* other, const Lumina::Math::F32x3& pushOut) {
-				if (other->GetMyType() == COL_Ground || other->GetMyType() == COL_Player) {
-					position.X += (-pushOut.X);
-					position.Y += (-pushOut.Y);
-					position.Z += (-pushOut.Z);
+				if (other->GetMyType() == COL_Ground) {
+					Lumina::Math::F32x3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
+					position.X += actualPush.X;
+					position.Y += actualPush.Y;
+					position.Z += actualPush.Z;
+
+					Lumina::Math::F32x3 normal = actualPush;
+					float length = std::sqrt(normal.X * normal.X + normal.Y * normal.Y + normal.Z * normal.Z);
+					if (length > 0.0f) {
+						normal.X /= length;
+						normal.Y /= length;
+						normal.Z /= length;
+					}
+
+					// 足元に地面があるかのチェック (Playerを参考)
+					if (normal.Y > 0.8f) {
+						if (this->velocity.Y <= 0.0f) {
+							if (this->velocity.Y < 0.0f) {
+								this->velocity.Y = 0.0f;
+							}
+						}
+					}
 				}
-				// Player Attack takes damage handling elsewhere or could be handled here
+				else if (other->GetMyType() == COL_Player) {
+					Lumina::Math::F32x3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
+					position.X += actualPush.X;
+					position.Y += actualPush.Y;
+					position.Z += actualPush.Z;
+				}
 			};
 
 			col->UpdateAABB();
@@ -404,6 +427,12 @@ namespace Game {
 	void EnemyManager::Update(float deltaTime, const Lumina::Math::F32x3& playerPosition) {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+
+			// --- 物理挙動（重力） ---
+			enemy.velocity.Y -= 1500.0f * deltaTime; // プレイヤーの重力と同等
+			enemy.position.Y += enemy.velocity.Y * deltaTime;
+			enemy.position.X += enemy.velocity.X * deltaTime;
+			enemy.position.Z += enemy.velocity.Z * deltaTime;
 
 			// --- ハートタイマー更新 ---
 			if (enemy.hurtTimer > 0.0f) {
