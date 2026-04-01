@@ -242,8 +242,8 @@ namespace Game {
 			std::vector<Lumina::Math::F32x3> verts3d;
 			verts3d.reserve(baseData.collisionVertices.size() * 2);
 			for (const auto& v : baseData.collisionVertices) {
-				verts3d.push_back({ v.x, v.y, -kDepth });
-				verts3d.push_back({ v.x, v.y,  kDepth });
+				verts3d.push_back({ v.x * modelScale, v.y * modelScale, -kDepth * modelScale });
+				verts3d.push_back({ v.x * modelScale, v.y * modelScale,  kDepth * modelScale });
 			}
 			makeCollider(verts3d);
 		} else {
@@ -254,8 +254,8 @@ namespace Game {
 				verts3d.reserve(6); // 三角形3頂点 × 前後2面
 				for (int idx : tri) {
 					const auto& v = baseData.collisionVertices[idx];
-					verts3d.push_back({ v.x, v.y, -kDepth });
-					verts3d.push_back({ v.x, v.y,  kDepth });
+					verts3d.push_back({ v.x * modelScale, v.y * modelScale, -kDepth * modelScale });
+					verts3d.push_back({ v.x * modelScale, v.y * modelScale,  kDepth * modelScale });
 				}
 				makeCollider(verts3d);
 			}
@@ -263,7 +263,7 @@ namespace Game {
 	}
 
 	void EnemyInstance::UpdateCollider() {
-		Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+		Lumina::Math::F32x3 scale{ modelScale, modelScale, modelScale };
 		Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 		if (!facingRight) {
 			rot.Y = 3.14159265f; // rotate 180 degrees
@@ -360,21 +360,22 @@ namespace Game {
 
 	EnemyInstance* EnemyManager::Spawn(const std::string& templateName,
 		const Lumina::Math::F32x3& position,
-		bool facingRight) {
+		bool facingRight, float scale) {
 		const auto* tmpl = GetTemplate(templateName);
 		if (!tmpl) return nullptr;
 
-		return SpawnFromData(*tmpl, position, facingRight);
+		return SpawnFromData(*tmpl, position, facingRight, scale);
 	}
 
 	EnemyInstance* EnemyManager::SpawnFromData(const Editor::EnemyData& data,
 		const Lumina::Math::F32x3& position,
-		bool facingRight) {
+		bool facingRight, float scale) {
 		EnemyInstance inst;
 		inst.baseData = data;
 		inst.id = GenerateId();
 		inst.position = position;
 		inst.facingRight = facingRight;
+		inst.modelScale = scale;
 		inst.InitFromBase();
 		inst.InitCollider();
 

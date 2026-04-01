@@ -41,12 +41,13 @@ namespace Game::Editor {
 	}
 
 	void to_json(json& j, const EnemyPlacement& e) {
-		j = json{ {"enemyName", e.enemyName}, {"position", e.position}, {"facingRight", e.facingRight} };
+		j = json{ {"enemyName", e.enemyName}, {"position", e.position}, {"facingRight", e.facingRight}, {"sizeCategory", e.sizeCategory} };
 	}
 	void from_json(const json& j, EnemyPlacement& e) {
 		if (j.contains("enemyName")) j.at("enemyName").get_to(e.enemyName);
 		if (j.contains("position")) j.at("position").get_to(e.position);
 		if (j.contains("facingRight")) j.at("facingRight").get_to(e.facingRight);
+		if (j.contains("sizeCategory")) j.at("sizeCategory").get_to(e.sizeCategory);
 	}
 
 	void to_json(json& j, const CollisionPoint& p) {

@@ -74,7 +74,7 @@ namespace Game::Scene::Impl {
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
 				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
-				Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
+				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 				if (!e.FacingRight) {
 					rot.Y = 3.14159265f; // 反転

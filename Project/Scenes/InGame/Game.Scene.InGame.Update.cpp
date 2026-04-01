@@ -161,14 +161,20 @@ namespace Game::Scene::Impl {
 			pe.Position.X = ep.position.x;
 			pe.Position.Y = ep.position.y; 
 			pe.Position.Z = 0.0f;
-			pe.BaseData.hp = 50; // Force normal enemies to 50 HP
+
+			// サイズ段階に応じたステータスを適用
+			int tierIdx = (std::max)(0, (std::min)(2, ep.sizeCategory));
+			pe.BaseData.hp    = pe.BaseData.sizeTiers[tierIdx].hp;
+			pe.BaseData.power = pe.BaseData.sizeTiers[tierIdx].power;
+			pe.Scale          = pe.BaseData.sizeTiers[tierIdx].scale;
+
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight);
+			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale);
 		}
 
 		if (Player_) {

@@ -30,6 +30,7 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
 			, aiState(other.aiState)
 			, attackCooldownTimer(other.attackCooldownTimer)
@@ -50,6 +51,7 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
 				aiState = other.aiState;
 				attackCooldownTimer = other.attackCooldownTimer;
@@ -72,6 +74,7 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
 			, aiState(other.aiState)
 			, attackCooldownTimer(other.attackCooldownTimer)
@@ -93,6 +96,7 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
 				aiState = other.aiState;
 				attackCooldownTimer = other.attackCooldownTimer;
@@ -116,6 +120,7 @@ export namespace Game {
 		int currentHP = 0;
 		bool isDead = false;
 		bool facingRight = true;
+		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;
 		// ガード: 同一フレーム中の重複ダメージを防ぐ
 		bool recentlyDamagedThisFrame = false;
@@ -211,14 +216,14 @@ export namespace Game {
 		/// <returns>スポーンした EnemyInstance への参照（失敗時は nullptr）</returns>
 		EnemyInstance* Spawn(const std::string& templateName,
 			const Lumina::Math::F32x3& position,
-			bool facingRight = true);
+			bool facingRight = true, float scale = 1.0f);
 
 		/// <summary>
 		/// 既存の EnemyData を直接渡してスポーン
 		/// </summary>
 		EnemyInstance* SpawnFromData(const Editor::EnemyData& data,
 			const Lumina::Math::F32x3& position,
-			bool facingRight = true);
+			bool facingRight = true, float scale = 1.0f);
 
 		/// <summary>
 		/// ID で インスタンス取得

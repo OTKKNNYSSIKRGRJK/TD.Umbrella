@@ -128,6 +128,7 @@ namespace Game::Scene::Impl {
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
 			bool FacingRight = true;
+			float Scale = 1.0f;
 		};
 
 		struct PlayState {
