@@ -219,6 +219,22 @@ namespace Game {
 			else if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
 				CurrentPolygonID_ = CurrentPolygonID_LastestUnused_;
 			}
+
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && CurrentPolygonID_ != CurrentPolygonID_LastestUnused_) {
+				auto const dragDelta{ ImGui::GetMouseDragDelta(ImGuiMouseButton_Left) };
+				auto const dx{ dragDelta.x / Zoom_ };
+				auto const dy{ dragDelta.y / Zoom_ };
+				
+				for (auto& vert : Polygons_[CurrentPolygonID_].Vertices) {
+					vert.Pos.X += dx;
+					vert.Pos.Y += dy;
+				}
+				ImGui::ResetMouseDragDelta();
+			}
+		}
+
+		if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
+			CurrentPolygonID_ = CurrentPolygonID_LastestUnused_;
 		}
 	}
 
