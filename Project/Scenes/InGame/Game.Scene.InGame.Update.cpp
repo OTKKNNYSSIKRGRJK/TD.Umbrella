@@ -44,6 +44,7 @@ namespace Game::Scene::Impl {
 				*Camera_,
 				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
 			);
+			TerrainEditor_->SetShapes(*Terrain_);
 		} catch (...) {
 			// Fallback or empty terrain if file has no terrain data yet
 			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
@@ -183,15 +184,12 @@ namespace Game::Scene::Impl {
 			playState_.Enemies[i].Position = enemyInstances[i].position;
 			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
 			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if(enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
+			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
 				playState_.Enemies[i].CurrentHP = 0;
 			}
 		}
 
-	void InGame::Update() {
-		MotionEditor::GetInstance()->NodeImGui();
 		TerrainEditor_->Update();
-		Player_->Update(1.0f);
 
 		#if defined(_DEBUG)
 		ImGui::Begin("Camera");

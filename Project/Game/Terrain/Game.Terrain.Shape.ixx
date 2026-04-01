@@ -18,7 +18,7 @@ namespace Game {
 
 		std::vector<Vertex> Vertices;
 
-		using Collection = Lumina::List<Polygon>;
+		using Collection = std::vector<Polygon>;
 	};
 
 	export struct Ground {
@@ -31,13 +31,13 @@ namespace Game {
 
 		std::vector<std::unique_ptr<ConvexCollider>> Colliders;
 
-		Lumina::List<Vertex> Vertices;
+		std::vector<Vertex> Vertices;
 	};
 
 	export class TerrainShapeCollection {
 	public:
-		auto PolygonsData() noexcept -> Lumina::List<Polygon>& { return Polygons_; }
-		auto PolygonsData() const noexcept -> Lumina::List<Polygon> const& { return Polygons_; }
+		auto PolygonsData() noexcept -> std::vector<Polygon>& { return Polygons_; }
+		auto PolygonsData() const noexcept -> std::vector<Polygon> const& { return Polygons_; }
 		auto GroundData() noexcept -> Ground& { return Ground_; }
 		auto GroundData() const noexcept -> Ground const& { return Ground_; }
 

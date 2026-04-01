@@ -69,21 +69,21 @@ namespace Game {
 			MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
 			if (PreviousGroundPointID_ != -1) {
-				if (Ground_.Vertices.At(PreviousGroundPointID_).Pos.X < MouseLocalPos_.X) {
-					auto& newVertex{ Ground_.Vertices.New() };
+				if (Ground_.Vertices.at(PreviousGroundPointID_).Pos.X < MouseLocalPos_.X) {
+					auto& newVertex{ Ground_.Vertices.emplace_back() };
 					newVertex.Pos = MouseLocalPos_;
 					newVertex.PrevID = PreviousGroundPointID_;
 					newVertex.NextID = -1;
-					Lumina::I32 const newGroundPointID{ static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.Data()) };
+					Lumina::I32 const newGroundPointID{ static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.data()) };
 					newVertex.ID = newGroundPointID;
-					Ground_.Vertices.At(PreviousGroundPointID_).NextID = newGroundPointID;
+					Ground_.Vertices.at(PreviousGroundPointID_).NextID = newGroundPointID;
 					PreviousGroundPointID_ = newGroundPointID;
 				}
 			}
 			else {
-				auto& newVertex{ Ground_.Vertices.New() };
+				auto& newVertex{ Ground_.Vertices.emplace_back() };
 				newVertex.Pos = MouseLocalPos_;
-				PreviousGroundPointID_ = static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.Data());
+				PreviousGroundPointID_ = static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.data());
 				newVertex.ID = PreviousGroundPointID_;
 				newVertex.PrevID = -1;
 				newVertex.NextID = -1;
@@ -94,7 +94,7 @@ namespace Game {
 	}
 
 	auto TerrainEditor::AddVertices() -> void {
-		auto& currentPolygon{ Polygons_.At(CurrentPolygonID_) };
+		auto& currentPolygon{ Polygons_.at(CurrentPolygonID_) };
 
 		if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 			MouseScreenPos_ << ImGui::GetMousePos();
@@ -112,8 +112,8 @@ namespace Game {
 		if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
 			if (currentPolygon.Vertices.size() > 2) {
 				if (CurrentPolygonID_LastestUnused_ == -1) {
-					[[maybe_unused]] auto& newPolygon{ Polygons_.New() };
-					CurrentPolygonID_ = static_cast<Lumina::I32>(&newPolygon - Polygons_.Data());
+					[[maybe_unused]] auto& newPolygon{ Polygons_.emplace_back() };
+					CurrentPolygonID_ = static_cast<Lumina::I32>(&newPolygon - Polygons_.data());
 					CurrentPolygonID_LastestUnused_ = CurrentPolygonID_;
 				}
 				else {
@@ -129,9 +129,7 @@ namespace Game {
 				MouseScreenPos_ << ImGui::GetMousePos();
 				MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
-				decltype(Ground_.Vertices)::Iterator it{ Ground_.Vertices };
-				for (it.Begin(); !it.End(); it.Next()) {
-					auto& p{ *it };
+				for (auto& p : Ground_.Vertices) {
 					auto d{ MouseLocalPos_ - p.Pos };
 					if (d.Dot(d) < 100.0f) {
 						SelectedGroundPoint_ = &p;
@@ -147,7 +145,7 @@ namespace Game {
 				auto const nextID{ SelectedGroundPoint_->NextID };
 				if (prevID != -1) {
 					SelectedGroundPoint_->Pos.X = std::max<float>(
-						Ground_.Vertices.At(prevID).Pos.X,
+						Ground_.Vertices.at(prevID).Pos.X,
 						SelectedGroundPoint_->Pos.X
 					);
 				}
@@ -159,7 +157,7 @@ namespace Game {
 				}
 				if (nextID != -1) {
 					SelectedGroundPoint_->Pos.X = std::min<float>(
-						Ground_.Vertices.At(nextID).Pos.X,
+						Ground_.Vertices.at(nextID).Pos.X,
 						SelectedGroundPoint_->Pos.X
 					);
 				}
@@ -181,11 +179,8 @@ namespace Game {
 				MouseScreenPos_ << ImGui::GetMousePos();
 				MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
-				decltype(Polygons_)::Iterator it{ Polygons_ };
-				for (it.Begin(); !it.End(); it.Next()) {
+				for (auto& polygon : Polygons_) {
 					bool isSelected{ false };
-
-					auto& polygon{ *it };
 					for (auto& p : polygon.Vertices) {
 						auto d{ MouseLocalPos_ - p.Pos };
 						if (d.Dot(d) < 100.0f) {
@@ -207,10 +202,9 @@ namespace Game {
 				MouseScreenPos_ << ImGui::GetMousePos();
 				MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
-				decltype(Polygons_)::Iterator it{ Polygons_ };
-				for (it.Begin(); !it.End(); it.Next()) {
-					if (IsInside(MouseLocalPos_, *it)) {
-						CurrentPolygonID_ = static_cast<Lumina::U32>(it.Index());
+				for (auto& polygon : Polygons_) {
+					if (IsInside(MouseLocalPos_, polygon)) {
+						CurrentPolygonID_ = static_cast<Lumina::U32>(&polygon - Polygons_.data());
 						break;
 					}
 				}
@@ -230,11 +224,9 @@ namespace Game {
 		);
 
 
-		Lumina::List<Polygon>::Iterator it{ Polygons_ };
-		for (it.Begin(); !it.End(); it.Next()) {
-			auto const& polygon{ *it };
+		for (auto const& polygon : Polygons_) {
 
-			bool const isPolygonSelected{ it.Index() == CurrentPolygonID_ };
+			bool const isPolygonSelected{ static_cast<Lumina::I32>(&polygon - Polygons_.data()) == CurrentPolygonID_ };
 			Lumina::U32 const pointColor{ (isPolygonSelected) ? (0xFF1F3FFFU) : (0x7F1F7FFFU) };
 			Lumina::U32 const segmentColor{ (isPolygonSelected) ? (0x3F1F3FFFU) : (0x1F1F7FFFU) };
 			Lumina::U32 const fillColor{ (isPolygonSelected) ? (0x0F1F3FFFU) : (0x081F7FFFU) };
@@ -267,13 +259,10 @@ namespace Game {
 			}
 		}
 
-		if (Ground_.Vertices.Size() > 0) {
-			Lumina::List<Ground::Vertex>::Iterator it_Ground{ Ground_.Vertices };
-			it_Ground.Begin();
-			auto const* p0{ &(*it_Ground) };
-			it_Ground.Next();
-			for (; !it_Ground.End(); it_Ground.Next()) {
-				auto const* p1{ &(*it_Ground) };
+		if (Ground_.Vertices.size() > 0) {
+			auto const* p0{ &(Ground_.Vertices[0]) };
+			for (size_t k = 1; k < Ground_.Vertices.size(); ++k) {
+				auto const* p1{ &(Ground_.Vertices[k]) };
 
 				std::vector<ImVec2> screenPoints{};
 				screenPoints.emplace_back(
@@ -428,23 +417,19 @@ namespace Game {
 	}
 
 	auto TerrainEditor::Reset() -> void {
-		decltype(Polygons_)::Iterator it{ Polygons_ };
-		for (it.Begin(); !it.End(); it.Next()) {
-			auto& polygon{ *it };
+		for (auto& polygon : Polygons_) {
 			polygon.Vertices.clear();
 		}
-		Polygons_.Clear();
+		Polygons_.clear();
 
-		Ground_.Vertices.Clear();
+		Ground_.Vertices.clear();
 	}
 
 	auto TerrainEditor::Initialize() -> void {
-		Polygons_.Initialize(1024U);
-		[[maybe_unused]] auto& polygon{ Polygons_.New() };
+		[[maybe_unused]] auto& polygon{ Polygons_.emplace_back() };
 		CurrentPolygonID_ = 0;
 		CurrentPolygonID_LastestUnused_ = 0;
 
-		Ground_.Vertices.Initialize(2048U);
 		PreviousGroundPointID_ = -1;
 
 		IsEditingGround_ = 1;

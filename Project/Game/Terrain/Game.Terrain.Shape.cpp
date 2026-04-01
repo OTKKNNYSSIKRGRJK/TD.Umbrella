@@ -17,12 +17,12 @@ namespace Game{
 	namespace {
 		auto operator>>(
 			JSON const& in_,
-			Lumina::List<Polygon>& polygons_
+			std::vector<Polygon>& polygons_
 		) -> JSON const& {
 			auto const& arr_Polygons{ in_.at("Polygons") };
-			polygons_.Initialize(static_cast<Lumina::U32>(arr_Polygons.size()));
+			polygons_.clear();
 			for (auto const& dict_PolygonAttrs : arr_Polygons) {
-				auto& polygon{ polygons_.New() };
+				auto& polygon{ polygons_.emplace_back() };
 
 				auto const& arr_Vertices{ dict_PolygonAttrs.at("Vertices") };
 				for (auto const& dict_VerticeAttrs : arr_Vertices) {
@@ -43,9 +43,9 @@ namespace Game{
 			Ground& ground_
 		) -> nlohmann::json const& {
 			auto const& arr_GroundPoints{ in_.at("GroundPoints") };
-			ground_.Vertices.Initialize(static_cast<Lumina::U32>(arr_GroundPoints.size()));
+			ground_.Vertices.clear();
 			for (auto const& dict_VertexAttrs : arr_GroundPoints) {
-				auto& vert{ ground_.Vertices.New() };
+				auto& vert{ ground_.Vertices.emplace_back() };
 
 				vert.ID = dict_VertexAttrs.at("ID").get<Lumina::I32>();
 				vert.PrevID = dict_VertexAttrs.at("PrevID").get<Lumina::I32>();
@@ -64,20 +64,20 @@ namespace Game{
 namespace Game {
 	template<>
 	void TerrainShapeCollection::Initialize(JSON const& serialized_) {
-		(Polygons_.Size() == 0) ||
+		(Polygons_.size() == 0) ||
 		Lumina::Debug::ThrowIfFalse{ "Polygons should be uninitialized!" };
 
-		(Ground_.Vertices.Size() == 0) ||
+		(Ground_.Vertices.size() == 0) ||
 		Lumina::Debug::ThrowIfFalse{ "Ground should be uninitialized!" };
 
 		serialized_ >> Polygons_ >> Ground_;
 	}
 	template<>
 	void TerrainShapeCollection::Initialize(nlohmann::ordered_json const& serialized_) {
-		(Polygons_.Size() == 0) ||
+		(Polygons_.size() == 0) ||
 			Lumina::Debug::ThrowIfFalse{ "Polygons should be uninitialized!" };
 
-		(Ground_.Vertices.Size() == 0) ||
+		(Ground_.Vertices.size() == 0) ||
 			Lumina::Debug::ThrowIfFalse{ "Ground should be uninitialized!" };
 
 		serialized_ >> Polygons_ >> Ground_;
@@ -112,14 +112,12 @@ namespace Game {
 		auto const inv_Proj{ camera_.Projection().Inverse() };
 		auto const ndcToWorld{ inv_Proj * inv_View };
 
-		out_.Polygons_.Initialize(Polygons_.Size());
-		out_.Ground_.Vertices.Initialize(Ground_.Vertices.Size());
+		out_.Polygons_.clear();
+		out_.Ground_.Vertices.clear();
 		out_.Ground_.Colliders.clear();
 
-		Lumina::List<Polygon>::Iterator it{ Polygons_ };
-		for (it.Begin(); !it.End(); it.Next()) {
-			auto const& polygon{ *it };
-			auto& retPolygon{ out_.Polygons_.New() };
+		for (auto const& polygon : Polygons_) {
+			auto& retPolygon{ out_.Polygons_.emplace_back() };
 
 			for (auto const& vert : polygon.Vertices) {
 				auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ vert.Pos.X, vert.Pos.Y, tmp.Z() }) };
@@ -130,10 +128,8 @@ namespace Game {
 			}
 		}
 
-		Lumina::List<Ground::Vertex>::Iterator it_GroundVert{ Ground_.Vertices };
-		for (it_GroundVert.Begin(); !it_GroundVert.End(); it_GroundVert.Next()) {
-			auto const& groundVert{ *it_GroundVert };
-			auto& retGroundVert{ out_.Ground_.Vertices.New() };
+		for (auto const& groundVert : Ground_.Vertices) {
+			auto& retGroundVert{ out_.Ground_.Vertices.emplace_back() };
 
 			auto&& ndcPos{ screenToNDC(Lumina::Math::F32x3{ groundVert.Pos.X, groundVert.Pos.Y, tmp.Z() }) };
 			auto&& worldPos{ ndcPos * ndcToWorld };
@@ -141,11 +137,9 @@ namespace Game {
 			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), 0.0f };
 		}
 
-		Lumina::List<Ground::Vertex>::Iterator it_RetGroundVert{ out_.Ground_.Vertices };
-		it_RetGroundVert.Begin();
-		auto const* retGroundVert0{ &(*it_RetGroundVert) };
-		for (it_RetGroundVert.Next(); !it_RetGroundVert.End(); it_RetGroundVert.Next()) {
-			auto const* retGroundVert1{ &(*it_RetGroundVert) };
+		auto const* retGroundVert0{ &(out_.Ground_.Vertices[0]) };
+		for (size_t i = 1; i < out_.Ground_.Vertices.size(); ++i) {
+			auto const* retGroundVert1{ &(out_.Ground_.Vertices[i]) };
 
 			auto& collider{ out_.Ground_.Colliders.emplace_back() };
 			collider = std::make_unique<ConvexCollider>();
