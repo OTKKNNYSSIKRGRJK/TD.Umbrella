@@ -30,7 +30,7 @@ namespace {
 
 			float dx1 = points[i].position.x - points[prev].position.x;
 			float dy1 = points[i].position.y - points[prev].position.y;
-			
+
 			float dx2 = points[next].position.x - points[i].position.x;
 			float dy2 = points[next].position.y - points[i].position.y;
 
@@ -66,7 +66,7 @@ namespace Game::Editor {
 			}
 			SaveArea(areaToSave, sync);
 			return true;
-		};
+			};
 
 		// 右ドラッグでカメラ移動
 		if (ImGui::IsMouseDragging(ImGuiMouseButton_Right)) {
@@ -98,12 +98,14 @@ namespace Game::Editor {
 								}
 							}
 						}
-					} catch (...) {
+					}
+					catch (...) {
 						// パースエラーの無関係なJSON（vcpkg.json等）は無視
 					}
 				}
 			}
-		} catch (...) {}
+		}
+		catch (...) {}
 
 		float scale = 0.5f;
 		float cx = cameraPos_.x;
@@ -336,7 +338,7 @@ namespace Game::Editor {
 									float y1 = pt["Pos"][1].template get<float>();
 									float x2 = npt["Pos"][0].template get<float>();
 									float y2 = npt["Pos"][1].template get<float>();
-									
+
 									ImVec2 startP(
 										cx + (drawData.editorPos.x + x1) * scale,
 										cy - (drawData.editorPos.y + drawData.height - y1) * scale
@@ -447,7 +449,7 @@ namespace Game::Editor {
 				// 当たり判定の描画
 				for (int g = 0; g < static_cast<int>(drawData.collisionGroups.size()); ++g) {
 					const auto& cg = drawData.collisionGroups[g];
-					
+
 					// ポイントを結ぶ線を描画 (ポリゴン)
 					if (cg.points.size() >= 2) {
 						for (size_t i = 0; i < cg.points.size(); ++i) {
@@ -461,7 +463,7 @@ namespace Game::Editor {
 							float p1cy = cy - (drawData.editorPos.y + p1.position.y) * scale;
 							float p2cx = cx + (drawData.editorPos.x + p2.position.x) * scale;
 							float p2cy = cy - (drawData.editorPos.y + p2.position.y) * scale;
-							
+
 							drawList->AddLine(ImVec2(p1cx, p1cy), ImVec2(p2cx, p2cy), MakeCol32(255, 100, 255, 180), 3.0f);
 						}
 					}
@@ -491,8 +493,8 @@ namespace Game::Editor {
 		ImGui::BeginChild("AreaFileList", ImVec2(0, 0), false);
 
 		namespace fs2 = std::filesystem;
-		if (fs2::exists("./")) {
-			for (const auto& entry : fs2::directory_iterator("./")) {
+		if (fs2::exists("Assets/Data/Terrain")) {
+			for (const auto& entry : fs2::directory_iterator("Assets/Data/Terrain")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					bool isSelected = false;
@@ -658,7 +660,7 @@ namespace Game::Editor {
 						p.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 						editingArea_.collisionGroups[i].points.push_back(p);
 					}
-					
+
 					ImGui::Separator();
 
 					for (size_t p = 0; p < editingArea_.collisionGroups[i].points.size(); ++p) {
