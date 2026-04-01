@@ -422,6 +422,8 @@ namespace Game {
 		ImGui::Text("CurrentPolygonID = %d", CurrentPolygonID_);
 		ImGui::Text("CurrentPolygonID_LastestUnused = %d", CurrentPolygonID_LastestUnused_);
 
+		ImGui::DragFloat2("Ground offset (in screen coordinate)", &GroundOffset_.X, 1.0f, 0.0f);
+
 		ImGui::End();
 	}
 
@@ -455,5 +457,9 @@ namespace Game {
 		SelectedGroundPoint_ = nullptr;
 
 		Zoom_ = 1.0f;
+
+		GroundOffset_ = { 0.0f, 0.0f };
+
+		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 	}
 }

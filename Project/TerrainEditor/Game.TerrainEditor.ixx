@@ -1,5 +1,6 @@
 export module Game.TerrainEditor;
 
+import <memory>;
 import <vector>;
 
 import Lumina.Core.Common;
@@ -42,7 +43,7 @@ namespace Game {
 			Shapes_ = &shapes_;
 		}
 		auto SetCamera(Lumina::Utils::Camera const& camera_) -> void {
-			Camera_ = &camera_;
+			*Camera_ = camera_;
 		}
 		auto SetViewport(Lumina::Utils::Viewport const& viewport_) -> void {
 			Viewport_ = &viewport_;
@@ -56,7 +57,7 @@ namespace Game {
 		Ground Ground_;
 
 		TerrainShapeCollection* Shapes_;
-		Lumina::Utils::Camera const* Camera_;
+		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		Lumina::Utils::Viewport const* Viewport_;
 
 		Lumina::I32 CurrentPolygonID_;
@@ -76,5 +77,6 @@ namespace Game {
 
 		Lumina::F32 Zoom_;
 		
+		Lumina::Math::F32x2 GroundOffset_;
 	};
 }
