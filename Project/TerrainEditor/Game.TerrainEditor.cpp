@@ -16,15 +16,15 @@ namespace Game {
 			dst_.y = src_.Y;
 		}
 
-		auto IsInside(Lumina::Math::F32x2 const& p_, Polygon const& poly_) -> bool {
-			if (poly_.Points.size() < 3) { return false; }
+		auto IsInside(Lumina::Math::F32x3 const& p_, Polygon const& poly_) -> bool {
+			if (poly_.Vertices.size() < 3) { return false; }
 
 			bool ret{ false };
 
 			auto isIntersected{
 				[&] (
-					Lumina::Math::F32x2 const& p0_,
-					Lumina::Math::F32x2 const& p1_
+					Lumina::Math::F32x3 const& p0_,
+					Lumina::Math::F32x3 const& p1_
 				) constexpr -> bool {
 					if (
 						p_.Y > std::min<float>(p0_.Y, p1_.Y) &&
@@ -48,15 +48,15 @@ namespace Game {
 				}
 			};
 
-			for (int i{ 1 }; i < static_cast<int>(poly_.Points.size()); ++i) {
-				auto const& p0{ poly_.Points.at(i - 1).Pos };
-				auto const& p1{ poly_.Points.at(i).Pos };
+			for (int i{ 1 }; i < static_cast<int>(poly_.Vertices.size()); ++i) {
+				auto const& p0{ poly_.Vertices.at(i - 1).Pos };
+				auto const& p1{ poly_.Vertices.at(i).Pos };
 
 				if (isIntersected(p0, p1)) { ret = !ret; }
 			}
 
-			auto const& p0{ poly_.Points.at(poly_.Points.size() - 1).Pos };
-			auto const& p1{ poly_.Points.at(0).Pos };
+			auto const& p0{ poly_.Vertices.at(poly_.Vertices.size() - 1).Pos };
+			auto const& p1{ poly_.Vertices.at(0).Pos };
 			if (isIntersected(p0, p1)) { ret = !ret; }
 
 			return ret;
@@ -69,24 +69,24 @@ namespace Game {
 			MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
 			if (PreviousGroundPointID_ != -1) {
-				if (GroundPolygon_.At(PreviousGroundPointID_).Pos.X < MouseLocalPos_.X) {
-					auto& newVertex{ GroundPolygon_.New() };
+				if (Ground_.Vertices.At(PreviousGroundPointID_).Pos.X < MouseLocalPos_.X) {
+					auto& newVertex{ Ground_.Vertices.New() };
 					newVertex.Pos = MouseLocalPos_;
-					newVertex.Prev = PreviousGroundPointID_;
-					newVertex.Next = -1;
-					Lumina::I32 const newGroundPointID{ static_cast<Lumina::I32>(&newVertex - GroundPolygon_.Data()) };
+					newVertex.PrevID = PreviousGroundPointID_;
+					newVertex.NextID = -1;
+					Lumina::I32 const newGroundPointID{ static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.Data()) };
 					newVertex.ID = newGroundPointID;
-					GroundPolygon_.At(PreviousGroundPointID_).Next = newGroundPointID;
+					Ground_.Vertices.At(PreviousGroundPointID_).NextID = newGroundPointID;
 					PreviousGroundPointID_ = newGroundPointID;
 				}
 			}
 			else {
-				auto& newVertex{ GroundPolygon_.New() };
+				auto& newVertex{ Ground_.Vertices.New() };
 				newVertex.Pos = MouseLocalPos_;
-				PreviousGroundPointID_ = static_cast<Lumina::I32>(&newVertex - GroundPolygon_.Data());
+				PreviousGroundPointID_ = static_cast<Lumina::I32>(&newVertex - Ground_.Vertices.Data());
 				newVertex.ID = PreviousGroundPointID_;
-				newVertex.Prev = -1;
-				newVertex.Next = -1;
+				newVertex.PrevID = -1;
+				newVertex.NextID = -1;
 			}
 
 			//Point const p1{ Lumina::Math::F32x2{ MouseLocalPos_.X, CanvasSize_.Y } };
@@ -102,15 +102,15 @@ namespace Game {
 
 			CurrentPolygonID_LastestUnused_ = -1;
 
-			currentPolygon.Points.emplace_back(MouseLocalPos_);
-			/*for (auto const& p : currentPolygon.Points) {
+			currentPolygon.Vertices.emplace_back(MouseLocalPos_);
+			/*for (auto const& p : currentPolygon.Vertices) {
 				Lumina::Debug::Logger::ConsolePrint("({}, {}) ", p.Pos.X, p.Pos.Y);
 			}
 			Lumina::Debug::Logger::ConsolePrint("\n");*/
 		}
 
 		if (ImGui::IsKeyPressed(ImGuiKey_Space)) {
-			if (currentPolygon.Points.size() > 2) {
+			if (currentPolygon.Vertices.size() > 2) {
 				if (CurrentPolygonID_LastestUnused_ == -1) {
 					[[maybe_unused]] auto& newPolygon{ Polygons_.New() };
 					CurrentPolygonID_ = static_cast<Lumina::I32>(&newPolygon - Polygons_.Data());
@@ -129,7 +129,7 @@ namespace Game {
 				MouseScreenPos_ << ImGui::GetMousePos();
 				MouseLocalPos_ = (MouseScreenPos_ - CanvasScreenPos_) / Zoom_;
 
-				decltype(GroundPolygon_)::Iterator it{ GroundPolygon_ };
+				decltype(Ground_.Vertices)::Iterator it{ Ground_.Vertices };
 				for (it.Begin(); !it.End(); it.Next()) {
 					auto& p{ *it };
 					auto d{ MouseLocalPos_ - p.Pos };
@@ -143,11 +143,11 @@ namespace Game {
 			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && SelectedGroundPoint_ != nullptr) {
 				auto const dragDelta{ ImGui::GetMouseDragDelta(ImGuiMouseButton_Left) };
 				SelectedGroundPoint_->Pos.X += dragDelta.x / Zoom_;
-				auto const prevID{ SelectedGroundPoint_->Prev };
-				auto const nextID{ SelectedGroundPoint_->Next };
+				auto const prevID{ SelectedGroundPoint_->PrevID };
+				auto const nextID{ SelectedGroundPoint_->NextID };
 				if (prevID != -1) {
 					SelectedGroundPoint_->Pos.X = std::max<float>(
-						GroundPolygon_.At(prevID).Pos.X,
+						Ground_.Vertices.At(prevID).Pos.X,
 						SelectedGroundPoint_->Pos.X
 					);
 				}
@@ -159,7 +159,7 @@ namespace Game {
 				}
 				if (nextID != -1) {
 					SelectedGroundPoint_->Pos.X = std::min<float>(
-						GroundPolygon_.At(nextID).Pos.X,
+						Ground_.Vertices.At(nextID).Pos.X,
 						SelectedGroundPoint_->Pos.X
 					);
 				}
@@ -186,7 +186,7 @@ namespace Game {
 					bool isSelected{ false };
 
 					auto& polygon{ *it };
-					for (auto& p : polygon.Points) {
+					for (auto& p : polygon.Vertices) {
 						auto d{ MouseLocalPos_ - p.Pos };
 						if (d.Dot(d) < 100.0f) {
 							SelectedPoint_ = &p;
@@ -240,7 +240,7 @@ namespace Game {
 			Lumina::U32 const fillColor{ (isPolygonSelected) ? (0x0F1F3FFFU) : (0x081F7FFFU) };
 
 			std::vector<ImVec2> points{};
-			for (auto const& p : polygon.Points) {
+			for (auto const& p : polygon.Vertices) {
 				points.emplace_back(
 					CanvasScreenPos_.X + p.Pos.X * Zoom_,
 					CanvasScreenPos_.Y + p.Pos.Y * Zoom_
@@ -258,7 +258,7 @@ namespace Game {
 				drawList->AddLine(p0, p1, segmentColor, 1.0f);
 			}
 
-			if (polygon.Points.size() > 2) {
+			if (polygon.Vertices.size() > 2) {
 				auto const& p0{ points.at(points.size() - 1) };
 				auto const& p1{ points.at(0) };
 				drawList->AddLine(p0, p1, segmentColor, 1.0f);
@@ -267,8 +267,8 @@ namespace Game {
 			}
 		}
 
-		if (GroundPolygon_.Size() > 0) {
-			Lumina::List<GroundPoint>::Iterator it_Ground{ GroundPolygon_ };
+		if (Ground_.Vertices.Size() > 0) {
+			Lumina::List<Ground::Vertex>::Iterator it_Ground{ Ground_.Vertices };
 			it_Ground.Begin();
 			auto const* p0{ &(*it_Ground) };
 			it_Ground.Next();
@@ -338,7 +338,6 @@ namespace Game {
 			"TerrainEditor",
 			nullptr,
 			ImGuiWindowFlags_MenuBar |
-			ImGuiWindowFlags_NoCollapse |
 			ImGuiWindowFlags_NoResize
 		);
 		ImGui::SetWindowSize(ImVec2{ 1280.0f * 0.9f, 720.0f * 0.9f });
@@ -350,6 +349,12 @@ namespace Game {
 			}
 			if (ImGui::MenuItem("Save")) {
 				SaveFile();
+			}
+			ImGui::EndMenu();
+		}
+		if (ImGui::BeginMenu("Build")) {
+			if (ImGui::MenuItem("Build In-game Terrain")) {
+				OutputData<TerrainShapeCollection>(*Shapes_);
 			}
 			ImGui::EndMenu();
 		}
@@ -417,6 +422,8 @@ namespace Game {
 		ImGui::Text("CurrentPolygonID = %d", CurrentPolygonID_);
 		ImGui::Text("CurrentPolygonID_LastestUnused = %d", CurrentPolygonID_LastestUnused_);
 
+		ImGui::DragFloat2("Ground offset (in screen coordinate)", &GroundOffset_.X, 1.0f, 0.0f);
+
 		ImGui::End();
 	}
 
@@ -424,11 +431,11 @@ namespace Game {
 		decltype(Polygons_)::Iterator it{ Polygons_ };
 		for (it.Begin(); !it.End(); it.Next()) {
 			auto& polygon{ *it };
-			polygon.Points.clear();
+			polygon.Vertices.clear();
 		}
 		Polygons_.Clear();
 
-		GroundPolygon_.Clear();
+		Ground_.Vertices.Clear();
 	}
 
 	auto TerrainEditor::Initialize() -> void {
@@ -437,7 +444,7 @@ namespace Game {
 		CurrentPolygonID_ = 0;
 		CurrentPolygonID_LastestUnused_ = 0;
 
-		GroundPolygon_.Initialize(2048U);
+		Ground_.Vertices.Initialize(2048U);
 		PreviousGroundPointID_ = -1;
 
 		IsEditingGround_ = 1;
@@ -450,5 +457,9 @@ namespace Game {
 		SelectedGroundPoint_ = nullptr;
 
 		Zoom_ = 1.0f;
+
+		GroundOffset_ = { 0.0f, 0.0f };
+
+		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 	}
 }

@@ -1,27 +1,17 @@
 export module Game.TerrainEditor;
 
+import <memory>;
 import <vector>;
 
 import nlohmann.json;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
+import Game.Terrain;
+import Lumina.Utils.Camera;
+import Lumina.Utils.Misc;
 
 namespace Game {
-	struct Point {
-		Lumina::Math::F32x2 Pos;
-	};
-
-	struct GroundPoint {
-		Lumina::Math::F32x2 Pos;
-		Lumina::I32 ID;
-		Lumina::I32 Prev;
-		Lumina::I32 Next;
-	};
-
-	struct Polygon {
-		std::vector<Point> Points;
-	};
 
 	export class TerrainEditor {
 	private:
@@ -45,25 +35,40 @@ namespace Game {
 		template<typename T>
 		auto InputData(T const& input_) -> void;
 		template<typename T>
-		auto OutputData() const -> T;
+		auto OutputData(T& output_) const -> void;
 
 	public:
 		auto Update() -> void;
 
 	public:
+		auto SetShapes(TerrainShapeCollection& shapes_) -> void {
+			Shapes_ = &shapes_;
+		}
+		auto SetCamera(Lumina::Utils::Camera const& camera_) -> void {
+			*Camera_ = camera_;
+		}
+		auto SetViewport(Lumina::Utils::Viewport const& viewport_) -> void {
+			Viewport_ = &viewport_;
+		}
+
+	public:
 		auto Initialize() -> void;
 
 	private:
-		Lumina::List<Polygon> Polygons_;
-		Lumina::List<GroundPoint> GroundPolygon_;
+		Polygon::Collection Polygons_;
+		Ground Ground_;
+
+		TerrainShapeCollection* Shapes_;
+		std::unique_ptr<Lumina::Utils::Camera> Camera_;
+		Lumina::Utils::Viewport const* Viewport_;
 
 		Lumina::I32 CurrentPolygonID_;
 		Lumina::I32 CurrentPolygonID_LastestUnused_;
 
 		Lumina::I32 PreviousGroundPointID_;
 
-		Point* SelectedPoint_;
-		GroundPoint* SelectedGroundPoint_;
+		Polygon::Vertex* SelectedPoint_;
+		Ground::Vertex* SelectedGroundPoint_;
 		Lumina::I32 IsEditingGround_;
 
 		Lumina::Math::F32x2 CanvasScreenPos_;
@@ -74,6 +79,6 @@ namespace Game {
 
 		Lumina::F32 Zoom_;
 		
-		nlohmann::json OriginalData_{};
+		Lumina::Math::F32x2 GroundOffset_;
 	};
 }
