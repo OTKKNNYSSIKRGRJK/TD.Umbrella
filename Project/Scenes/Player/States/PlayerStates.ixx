@@ -64,6 +64,15 @@ namespace PlayerStates {
 		};
 	}
 	namespace Action {
+		class Dead : public Base {
+		public:
+			void Enter() override;
+			void Update(float deltaTime) override;
+			void Exit() override;
+		private:
+			MotionController motion_;
+		};
+
 		class Normal : public Base {
 		public:
 			void Enter() override;

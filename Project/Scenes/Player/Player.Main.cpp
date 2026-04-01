@@ -145,8 +145,12 @@ void Player::Initialize() {
 				}
 			}
 		}
-		else if (other->GetMyType() == COL_Enemy_Attack) {
+		else if (other->GetMyType() == COL_Enemy) {
 
+			this->GetStatusComponent().TakeDamage(10.0f);
+		}
+		else if (other->GetMyType() == COL_Enemy_Attack) {
+			this->GetStatusComponent().TakeDamage(10.0f);
 			// 1. 相手のコライダーから「持ち主（Enemy）」のポインタをもらう
 			// ※ void* で返ってくるので、Enemy型にキャスト（変換）する
 			//Enemy* enemy = static_cast<Enemy*>(other->GetUserData());
@@ -164,6 +168,13 @@ void Player::Initialize() {
 }
 
 void Player::Update(float deltaTime) {
+
+	// 死ぬ
+	if (this->status_->IsDead()) {
+		ChangeMovementState(restrictedState_.get());
+		ChangeActionState(deadState_.get());
+	}
+
 	// 移動量の初期化
 	moveAmount_ = { 0.0f,0.0f,0.0f };
 
@@ -181,6 +192,8 @@ void Player::Update(float deltaTime) {
 	if (currentActionState_) {
 		currentActionState_->Update(deltaTime);
 	}
+
+	if (this->status_->IsDead())return;
 
 	ThrowUpdate(deltaTime);
 
@@ -228,6 +241,12 @@ void Player::Update(float deltaTime) {
 	Vector3 colliderPos = collider_->GetWorldPosition();
 	ImGui::DragFloat3("colliderPos", &colliderPos.X);
 
+	if (ImGui::Button("Take Damage")) {
+		this->status_->TakeDamage(10.0f);
+	}
+
+	ImGui::Text("HP : %f / %f", this->status_->GetHp(), this->status_->GetMaxHp());
+
 	if (ImGui::TreeNodeEx("Mana")) {
 		ImGui::Text("Use : Push LSHIFT");
 		ImGui::Text("Mana is Use ? : ");
@@ -249,6 +268,7 @@ void Player::Update(float deltaTime) {
 // Draw()の中からメッシュをバッチするのであればシーンのほうのPlayer::Draw()も
 // BatchBegin()とBatchEnd()の間で呼び出さなくてはならない
 void Player::Draw() {
+	if (status_->IsDead())return;
 
 	// メッシュバッチ・描画マネージャ
 	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
@@ -306,7 +326,7 @@ void Player::InitializeStates() {
 	currentMovementState_ = idleState_.get();
 
 	//// ActionStateの初期化 ////
-
+	deadState_ = std::make_unique<Action::Dead>();deadState_->SetInfo(this);
 	sheatheWeaponState_ = std::make_unique<Action::SheatheWeapon>();sheatheWeaponState_->SetInfo(this);
 	drawWeaponState_ = std::make_unique<Action::DrawWeapon>();drawWeaponState_->SetInfo(this);
 	normalState_ = std::make_unique<Action::Normal>();normalState_->SetInfo(this);
@@ -408,4 +428,5 @@ void Player::WarpToUmbrella() {
 
 	// 4. 空中状態にするなどの後処理
 	ChangeMovementState(airborneState_.get());
+	ChangeActionState(normalState_.get());
 }

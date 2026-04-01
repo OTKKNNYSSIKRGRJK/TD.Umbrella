@@ -89,6 +89,7 @@ public:
 	std::unique_ptr<PlayerStates::Movement::Restricted>restrictedState_;// アクションの際に動きを制限するState
 
 	// Action State
+	std::unique_ptr<PlayerStates::Action::Dead>deadState_;
 	std::unique_ptr<PlayerStates::Action::SheatheWeapon>sheatheWeaponState_;
 	std::unique_ptr<PlayerStates::Action::DrawWeapon>drawWeaponState_;
 	std::unique_ptr<PlayerStates::Action::Normal>normalState_;
@@ -206,6 +207,9 @@ private:
 	std::unique_ptr<ManaComponent>mana_;
 	// StatusComponent
 	std::unique_ptr<StatusComponent>status_;
+
+	// 無敵の時間
+	float invincibilityTimer_ = 0.0f;
 
 	//////////////////////////////
 	///

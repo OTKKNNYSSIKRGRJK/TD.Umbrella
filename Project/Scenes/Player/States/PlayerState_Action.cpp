@@ -18,6 +18,21 @@ namespace {
 namespace PlayerStates::Action {
 	////////////////////////////
 	//
+	//  Dead
+	// 
+	////////////////////////////
+	void Dead::Enter() {
+	}
+
+	void Dead::Update([[maybe_unused]] float deltaTime) {
+		// 死亡中はなにもできない
+	}
+
+	void Dead::Exit() {
+	}
+
+	////////////////////////////
+	//
 	//  Normal
 	// 
 	////////////////////////////
@@ -113,11 +128,19 @@ namespace PlayerStates::Action {
 			}
 		}
 		else if (input.isRepair) {
-			// 耐久値が減っている時（MAXじゃない時）だけ修理できるようにする
-			if (umbrella.top_->GetStatusComponent().GetHp() < umbrella.top_->GetStatusComponent().GetMaxHp()) {
-				player_->ChangeActionState(player_->repairUmbrellaState_.get());
-				return;
+			switch (player_->GetWeaponStance()) {
+			case WeaponStance::Sheathed:
+				// 耐久値が減っている時（MAXじゃない時）だけ修理できるようにする
+				if (umbrella.top_->GetStatusComponent().GetHp() < umbrella.top_->GetStatusComponent().GetMaxHp()) {
+					player_->ChangeActionState(player_->repairUmbrellaState_.get());
+					return;
+				}
+				break;
+			case WeaponStance::Drawn:
+				
+				break;
 			}
+			
 		}
 
 		if (input.isShoot) {
