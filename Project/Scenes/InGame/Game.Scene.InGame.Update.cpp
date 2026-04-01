@@ -227,6 +227,8 @@ namespace Game::Scene::Impl {
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		[[maybe_unused]] auto const& mouse{ inputMngr.Mouse() };
 		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
 		ImGui::DragFloat3("Target", &target.X, 0.1f);
 		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });

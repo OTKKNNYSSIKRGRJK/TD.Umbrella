@@ -13,27 +13,23 @@ namespace Game {
 		for (auto const& collider : colliders_) {
 			auto const& verts{ static_cast<ConvexCollider*>(collider)->GetVertices() };
 			auto const& world{ static_cast<ConvexCollider*>(collider)->GetWorldMatrix() };
-			auto&& v0{ Lumina::Math::F32x4{ verts[0], 1.0f } * world };
-			auto&& v1{ Lumina::Math::F32x4{ verts[1], 1.0f } * world };
-			auto&& v2{ Lumina::Math::F32x4{ verts[2], 1.0f } * world };
-			auto&& v3{ Lumina::Math::F32x4{ verts[3], 1.0f } * world };
-
-			PrimitiveManager_->BatchLine(
-				{ { v0.X(), v0.Y(), v0.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0},
-				{ { v1.X(), v1.Y(), v1.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0}
-			);
-			PrimitiveManager_->BatchLine(
-				{ { v1.X(), v1.Y(), v1.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0},
-				{ { v2.X(), v2.Y(), v2.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0}
-			);
-			PrimitiveManager_->BatchLine(
-				{ { v2.X(), v2.Y(), v2.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0},
-				{ { v3.X(), v3.Y(), v3.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0}
-			);
-			PrimitiveManager_->BatchLine(
-				{ { v3.X(), v3.Y(), v3.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0},
-				{ { v0.X(), v0.Y(), v0.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0}
-			);
+			if (verts.size() > 2) {
+				auto v0{ Lumina::Math::F32x4{ verts[0], 1.0f } * world };
+				Lumina::Math::F32x4 v1{ v0 }, v2{};
+				for (size_t i = 1; i < verts.size(); ++i) {
+					v2 = Lumina::Math::F32x4{ verts[i], 1.0f } * world;
+					PrimitiveManager_->BatchLine(
+						{ { v1.X(), v1.Y(), v1.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0 },
+						{ { v2.X(), v2.Y(), v2.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0 }
+					);
+					v1 = v2;
+				}
+				v2 = v0;
+				PrimitiveManager_->BatchLine(
+					{ { v1.X(), v1.Y(), v1.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0 },
+					{ { v2.X(), v2.Y(), v2.Z(), 1.0f}, {1.0f, 0.25f, 0.25f, 0.5f}, {0.0f, 0.0f}, 0 }
+				);
+			}
 		}
 
 		PrimitiveManager_->End(cmdList);
