@@ -367,7 +367,7 @@ namespace Game::Scene::Impl {
 
 	void InGame::Update() {
 		MotionEditor::GetInstance()->NodeImGui();
-		//TerrainEditor_->Update();
+		TerrainEditor_->Update();
 		Player_->Update(1.0f);
 
 		#if defined(_DEBUG)

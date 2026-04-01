@@ -72,6 +72,16 @@ namespace Game {
 
 		serialized_ >> Polygons_ >> Ground_;
 	}
+	template<>
+	void TerrainShapeCollection::Initialize(nlohmann::ordered_json const& serialized_) {
+		(Polygons_.Size() == 0) ||
+			Lumina::Debug::ThrowIfFalse{ "Polygons should be uninitialized!" };
+
+		(Ground_.Vertices.Size() == 0) ||
+			Lumina::Debug::ThrowIfFalse{ "Ground should be uninitialized!" };
+
+		serialized_ >> Polygons_ >> Ground_;
+	}
 
 	auto TerrainShapeCollection::ConvertToWorldCoordinate(
 		TerrainShapeCollection& out_,
@@ -104,6 +114,7 @@ namespace Game {
 
 		out_.Polygons_.Initialize(Polygons_.Size());
 		out_.Ground_.Vertices.Initialize(Ground_.Vertices.Size());
+		out_.Ground_.Colliders.clear();
 
 		Lumina::List<Polygon>::Iterator it{ Polygons_ };
 		for (it.Begin(); !it.End(); it.Next()) {

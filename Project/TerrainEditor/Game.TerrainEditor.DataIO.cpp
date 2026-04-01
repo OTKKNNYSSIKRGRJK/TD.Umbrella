@@ -3,6 +3,7 @@ module Game.TerrainEditor;
 import <string>;
 
 import nlohmann.json;
+import Game.Terrain;
 
 namespace Game {
 	namespace {
@@ -16,7 +17,7 @@ namespace Game {
 				
 				auto const& arr_Vertices{ dict_PolygonAttrs.at("Vertices") };
 				for (auto const& dict_VerticeAttrs : arr_Vertices) {
-					auto& vert{ polygon.Points.emplace_back() };
+					auto& vert{ polygon.Vertices.emplace_back() };
 
 					auto const& arr_Pos{ dict_VerticeAttrs.at("Pos") };
 					vert.Pos.X = arr_Pos.at(0).get<Lumina::F32>();
@@ -29,15 +30,15 @@ namespace Game {
 
 		auto operator>>(
 			nlohmann::json const& in_,
-			[[maybe_unused]] Lumina::List<GroundPoint>& groundPolygon_
+			[[maybe_unused]] Lumina::List<Ground::Vertex>& groundPolygon_
 		) -> nlohmann::json const& {
 			auto const& arr_GroundPoints{ in_.at("GroundPoints") };
 			for (auto const& dict_VertexAttrs : arr_GroundPoints) {
 				auto& vert{ groundPolygon_.New() };
 
 				vert.ID = dict_VertexAttrs.at("ID").get<Lumina::I32>();
-				vert.Prev = dict_VertexAttrs.at("PrevID").get<Lumina::I32>();
-				vert.Next = dict_VertexAttrs.at("NextID").get<Lumina::I32>();
+				vert.PrevID = dict_VertexAttrs.at("PrevID").get<Lumina::I32>();
+				vert.NextID = dict_VertexAttrs.at("NextID").get<Lumina::I32>();
 				auto const& arr_Pos{ dict_VertexAttrs.at("Pos") };
 				vert.Pos.X = arr_Pos.at(0).get<Lumina::F32>();
 				vert.Pos.Y = arr_Pos.at(1).get<Lumina::F32>();
@@ -50,7 +51,7 @@ namespace Game {
 	template<>
 	auto TerrainEditor::InputData(nlohmann::json const& input_) -> void {
 		/*Lumina::List<Polygon> Polygons_;
-		Lumina::List<GroundPoint> GroundPolygon_;
+		Lumina::List<Ground::Vertex> GroundPolygon_;
 
 		Lumina::I32 CurrentPolygonID_;
 		Lumina::I32 CurrentPolygonID_LastestUnused_;
@@ -67,7 +68,7 @@ namespace Game {
 		SelectedPoint_ = nullptr;
 		SelectedGroundPoint_ = nullptr;
 
-		input_ >> Polygons_ >> GroundPolygon_;
+		input_ >> Polygons_ >> Ground_.Vertices;
 
 		[[maybe_unused]] auto& newPolygon{ Polygons_.New() };
 		CurrentPolygonID_ = static_cast<Lumina::I32>(&newPolygon - Polygons_.Data());
@@ -86,11 +87,11 @@ namespace Game {
 			Lumina::List<Polygon>::Iterator it{ polygons_ };
 			for (it.Begin(); !it.End(); it.Next()) {
 				auto const& polygon{ *it };
-				if (!polygon.Points.empty()) {
+				if (!polygon.Vertices.empty()) {
 					auto& dict_PolygonAttrs{ arr_Polygons.emplace_back(nlohmann::ordered_json::object()) };
 					dict_PolygonAttrs["Vertices"] = nlohmann::ordered_json::array();
 					auto& arr_Vertices{ dict_PolygonAttrs["Vertices"] };
-					for (auto const& p : polygon.Points) {
+					for (auto const& p : polygon.Vertices) {
 						auto& dict_VerticeAttrs{ arr_Vertices.emplace_back() };
 						dict_VerticeAttrs["Pos"].emplace_back(p.Pos.X);
 						dict_VerticeAttrs["Pos"].emplace_back(p.Pos.Y);
@@ -102,17 +103,17 @@ namespace Game {
 
 		auto operator<<(
 			nlohmann::ordered_json& out_,
-			Lumina::List<GroundPoint> const& groundPoints_
+			Lumina::List<Ground::Vertex> const& groundPoints_
 		) -> nlohmann::ordered_json& {
 			out_["GroundPoints"] = nlohmann::ordered_json::array();
 			auto& arr_GroundPoints{ out_["GroundPoints"] };
-			Lumina::List<GroundPoint>::Iterator it{ groundPoints_ };
+			Lumina::List<Ground::Vertex>::Iterator it{ groundPoints_ };
 			for (it.Begin(); !it.End(); it.Next()) {
 				auto& dict_VerticeProp{ arr_GroundPoints.emplace_back() };
 				auto const& p{ *it };
 				dict_VerticeProp.emplace("ID", it.Index());
-				dict_VerticeProp.emplace("PrevID", p.Prev);
-				dict_VerticeProp.emplace("NextID", p.Next);
+				dict_VerticeProp.emplace("PrevID", p.PrevID);
+				dict_VerticeProp.emplace("NextID", p.NextID);
 				dict_VerticeProp["Pos"] = nlohmann::ordered_json::array();
 				dict_VerticeProp["Pos"].emplace_back(p.Pos.X);
 				dict_VerticeProp["Pos"].emplace_back(p.Pos.Y);
@@ -122,12 +123,19 @@ namespace Game {
 	}
 
 	template<>
-	auto TerrainEditor::OutputData() const -> nlohmann::ordered_json {
-		nlohmann::ordered_json ret{};
-		ret["MapInfo"] = nlohmann::ordered_json::object();
-		ret["MapInfo"]["Size"].emplace_back(CanvasSize_.X);
-		ret["MapInfo"]["Size"].emplace_back(CanvasSize_.Y);
-		ret << Polygons_ << GroundPolygon_;
-		return ret;
+	auto TerrainEditor::OutputData(nlohmann::ordered_json& output_) const -> void {
+		output_["MapInfo"] = nlohmann::ordered_json::object();
+		output_["MapInfo"]["Size"].emplace_back(CanvasSize_.X);
+		output_["MapInfo"]["Size"].emplace_back(CanvasSize_.Y);
+		output_ << Polygons_ << Ground_.Vertices;
+	}
+
+	template<>
+	auto TerrainEditor::OutputData(TerrainShapeCollection& output_) const -> void {
+		nlohmann::ordered_json intermediate0{};
+		TerrainShapeCollection intermediate1{};
+		OutputData(intermediate0);
+		intermediate1.Initialize(intermediate0);
+		intermediate1.ConvertToWorldCoordinate(output_, *Camera_, *Viewport_);
 	}
 }

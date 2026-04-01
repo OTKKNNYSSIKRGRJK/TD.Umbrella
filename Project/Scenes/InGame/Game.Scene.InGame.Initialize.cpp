@@ -335,6 +335,9 @@ namespace Game::Scene::Impl {
 		);
 		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
 		TerrainRenderer_->Initialize();
+		TerrainEditor_->SetShapes(*Terrain_);
+		TerrainEditor_->SetCamera(*Camera_);
+		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
 
 		PrimitiveManager_ = std::make_unique<Lumina::PrimitiveManager>();
 		PrimitiveManager_->Initialize(d3d12Context);
