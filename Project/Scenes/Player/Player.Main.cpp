@@ -147,10 +147,10 @@ void Player::Initialize() {
 		}
 		else if (other->GetMyType() == COL_Enemy) {
 
-			this->GetStatusComponent().TakeDamage(10.0f);
+			//this->GetStatusComponent().TakeDamage(10.0f);
 		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
-			this->GetStatusComponent().TakeDamage(10.0f);
+			//this->GetStatusComponent().TakeDamage(10.0f);
 			// 1. 相手のコライダーから「持ち主（Enemy）」のポインタをもらう
 			// ※ void* で返ってくるので、Enemy型にキャスト（変換）する
 			//Enemy* enemy = static_cast<Enemy*>(other->GetUserData());

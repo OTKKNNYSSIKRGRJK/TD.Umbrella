@@ -217,11 +217,9 @@ namespace Game {
 							}
 						}
 					}
-				} else if (other->GetMyType() == COL_Player) {
-					Lumina::Math::F32x3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
-					position.X += actualPush.X;
-					position.Y += actualPush.Y;
-					position.Z += actualPush.Z;
+				}
+				else if (other->GetMyType() == COL_Player_Attack) {
+					Game::EnemyManager::GetInstance()->DealDamage(this->id, 50);
 				}
 				};
 
@@ -437,7 +435,7 @@ namespace Game {
 			if (enemy.isDead) continue;
 
 			// --- 物理挙動（重力） ---
-			enemy.velocity.Y -= 1500.0f * deltaTime; // プレイヤーの重力と同等
+			enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;

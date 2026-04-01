@@ -11,6 +11,7 @@ import Lumina.Utils.ImGui;
 #endif
 
 import Lumina.Main;
+import Lumina.OS.Windows.RawInput;
 import Lumina.Utils.Data;
 import nlohmann.json;
 
@@ -57,7 +58,7 @@ namespace Game::Scene::Impl {
 			PlayEnemy pe;
 			enemyEditor_.LoadEnemy(pe.BaseData, ep.enemyName + ".json");
 			pe.Position.X = ep.position.x;
-			pe.Position.Y = 0.0f; // Y=0 is ground
+			pe.Position.Y = ep.position.y; 
 			pe.Position.Z = 0.0f;
 			pe.BaseData.hp = 50; // Force normal enemies to 50 HP
 			pe.CurrentHP = pe.BaseData.hp;
@@ -204,13 +205,19 @@ namespace Game::Scene::Impl {
 				float px = (ndcPos.X() + 1.0f) * 0.5f * 1280.0f;
 				float py = playState_.CurrentArea.height - rawScreenY;
 
+				auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+				auto const& keyboard{ inputMngr.Keyboard() };
+				using Lumina::OS::Windows::KEY;
+
 				for (const auto& conn : playState_.CurrentArea.connections) {
 					if (px >= conn.trigger.position.x && px <= conn.trigger.position.x + conn.trigger.size.x &&
 						py >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
 						
-						int prevAreaIndex = playState_.CurrentArea.index;
-						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
-						break;
+						if (keyboard.IsPressed(KEY::W)) {
+							int prevAreaIndex = playState_.CurrentArea.index;
+							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
+							break;
+						}
 					}
 				}
 			}
