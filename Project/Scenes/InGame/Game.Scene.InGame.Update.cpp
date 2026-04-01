@@ -213,12 +213,13 @@ namespace Game::Scene::Impl {
 				for (const auto& conn : playState_.CurrentArea.connections) {
 					if (px >= conn.trigger.position.x && px <= conn.trigger.position.x + conn.trigger.size.x &&
 						py >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
-						
+						int prevAreaIndex = playState_.CurrentArea.index;
+						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
 						if (keyboard.IsPressed(KEY::W)) {
-							int prevAreaIndex = playState_.CurrentArea.index;
-							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
-							break;
+
 						}
+						break;
+						
 					}
 				}
 			}

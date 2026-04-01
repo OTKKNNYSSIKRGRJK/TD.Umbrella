@@ -146,7 +146,7 @@ void Player::Initialize() {
 		}
 		else if (other->GetMyType() == COL_Enemy) {
 
-			//this->GetStatusComponent().TakeDamage(10.0f);
+			this->GetStatusComponent().TakeDamage(1.0f);
 		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
 			//this->GetStatusComponent().TakeDamage(10.0f);

@@ -395,6 +395,8 @@ namespace PlayerStates::Action {
 		// プレイヤーのガードのアニメーションを開始
 
 		// 座標の設定をする
+
+		player_->GetCollider()->SetYourType(COL_Ground | COL_Umbrella_Ground);
 	}
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
@@ -419,6 +421,7 @@ namespace PlayerStates::Action {
 
 	void Guard::Exit() {
 		// ここでなにかするかも
+		player_->GetCollider()->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
 	}
 
 	////////////////////////////
