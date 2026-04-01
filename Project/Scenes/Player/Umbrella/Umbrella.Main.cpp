@@ -112,7 +112,7 @@ namespace Umbrella {
 		if (currentState_) {
 			currentState_->Update(deltaTime);
 		}
-
+		UpdateColliderShape();
 		rootJoint_.Update();
 
 		switch (form_) {
@@ -131,10 +131,11 @@ namespace Umbrella {
 		}
 
 		if (collider_->GetMyType() != COL_None) {
-			collider_->SetWorldPosition(rootJoint_.GetWorldPos());
-
-			collider_->SetWorldMatrix(rootJoint_.GetMatrix());
+			
 		}
+		collider_->SetWorldPosition(rootJoint_.GetWorldPos());
+
+		collider_->SetWorldMatrix(rootJoint_.GetMatrix());
 	}
 
 	void Top::Draw() {
@@ -183,11 +184,11 @@ namespace Umbrella {
 		if (form_ == UmbrellaForm::Closed) {
 			// 閉じた状態：細長い剣のような判定（ローカル座標で定義）
 			// 幅0.2m、長さ1.5m(Y方向) の直方体の8頂点などを設定
-			float w = 0.1f;
-			float h = 1.5f;
+			float w = 0.5f;  // 半径1mくらいの広さ
+			float h = 1.5f;  // 厚み
+			float y = -1.0f;  // 持ち手から少し上の位置
 			vertices = {
-				{-w,  0.0f, -w}, { w,  0.0f, -w}, {-w,  0.0f,  w}, { w,  0.0f,  w}, // 根元
-				{-w,     h, -w}, { w,     h, -w}, {-w,     h,  w}, { w,     h,  w}  // 先端
+				{-w, y, 0.0f},{w, y, 0.0f},{w - 0.25f, y + h,0.0f},{-w + 0.25f, y + h, 0.0f}
 			};
 		}
 		else if (form_ == UmbrellaForm::Opened || form_ == UmbrellaForm::Flying) {

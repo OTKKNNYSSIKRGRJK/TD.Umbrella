@@ -61,10 +61,10 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-1.0f, -0.0f, 0.0f}, // 左下
-		{ 1.0f, -0.0f, 0.0f}, // 右下
-		{-1.0f,  1.5f, 0.0f}, // 左上
-		{ 1.0f,  1.5f, 0.0f}  // 右上
+		{-1.0f, -0.8f, 0.0f}, // 左下
+		{ 1.0f, -0.8f, 0.0f}, // 右下
+		{ 1.0f,  1.4f, 0.0f},  // 右上
+		{ -1.0f,  1.4f, 0.0f }, // 左上
 	};
 	collider_->SetVertices(localVertices);
 
