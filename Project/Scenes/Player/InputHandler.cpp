@@ -78,7 +78,7 @@ void InputHandler::HandleInput() {
         input.isAttackReleased = true;
     }
 
-    //input.isEvasion = InputManager::TrigerEvasion();
+    input.isEvasion = false;
 
     // 納刀 -> 回復がスムーズに入力出来る
     input.isSheathe = false;

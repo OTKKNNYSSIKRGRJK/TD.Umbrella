@@ -127,7 +127,7 @@ namespace PlayerStates::Action {
 				break;
 			}
 		}
-		else if (input.isRepair) {
+		if (input.isRepair) {
 			switch (player_->GetWeaponStance()) {
 			case WeaponStance::Sheathed:
 				// 耐久値が減っている時（MAXじゃない時）だけ修理できるようにする
@@ -395,7 +395,6 @@ namespace PlayerStates::Action {
 		// プレイヤーのガードのアニメーションを開始
 
 		// 座標の設定をする
-
 	}
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
@@ -671,6 +670,8 @@ namespace PlayerStates::Action {
 
 		// 予約の初期化
 		player_->ConsumeReservedAction();
+
+		player_->ChangeMovementState(player_->restrictedState_.get()); // 修理中は移動できないようにする
 	}
 
 	void RepairUmbrella::Update(float deltaTime) {
@@ -738,6 +739,6 @@ namespace PlayerStates::Action {
 	}
 
 	void RepairUmbrella::Exit() {
-
+		player_->ChangeMovementState(player_->idleState_.get()); // 修理が終わったら移動できるようにする
 	}
 }

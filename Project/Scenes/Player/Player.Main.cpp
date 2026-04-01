@@ -246,7 +246,10 @@ void Player::Update(float deltaTime) {
 	}
 
 	ImGui::Text("HP : %f / %f", this->status_->GetHp(), this->status_->GetMaxHp());
-
+	ImGui::Text("Umbrella Hp : %f", this->umbrella_->top_->GetStatusComponent().GetHp());
+	if (ImGui::Button("Take Damage(Umbrella)")) {
+		this->umbrella_->top_->GetStatusComponent().TakeDamage(10.0f);
+	}
 	if (ImGui::TreeNodeEx("Mana")) {
 		ImGui::Text("Use : Push LSHIFT");
 		ImGui::Text("Mana is Use ? : ");
@@ -365,7 +368,7 @@ void Player::Jump() {
 	if (inputData_.isJump) {
 		if (this->onGround_ || this->jumpCoyoteTimer_ < JUMP_COYOTE_MAX_TIME) {
 			// Y軸に上向きの初速（ジャンプ力）を与える！
-			float jumpPower = 7.0f; // 調整
+			float jumpPower = 12.0f; // 調整
 			externalVelocity_.Y = jumpPower;// 初速
 			// フラグの処理
 			this->onGround_ = false;
