@@ -133,11 +133,11 @@
             }
         },
         {
-            "targetAreaIndex": 1,
+            "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 998.0,
-                    "y": 88.0
+                    "x": 44.0,
+                    "y": 208.0
                 },
                 "size": {
                     "x": 32.0,
@@ -146,11 +146,11 @@
             }
         },
         {
-            "targetAreaIndex": 0,
+            "targetAreaIndex": 1,
             "trigger": {
                 "position": {
-                    "x": 44.0,
-                    "y": 208.0
+                    "x": 998.0,
+                    "y": 88.0
                 },
                 "size": {
                     "x": 32.0,
@@ -166,21 +166,12 @@
     "enemies": [
         {
             "enemyName": "Slime",
-            "facingRight": true,
+            "facingRight": false,
             "position": {
-                "x": 745.0,
-                "y": 158.0
+                "x": 857.0,
+                "y": 60.0
             },
-            "sizeCategory": 0
-        },
-        {
-            "enemyName": "Slime",
-            "facingRight": true,
-            "position": {
-                "x": 376.0,
-                "y": 290.0
-            },
-            "sizeCategory": 1
+            "sizeCategory": 2
         }
     ],
     "height": 344,

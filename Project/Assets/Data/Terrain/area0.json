@@ -133,6 +133,19 @@
             }
         },
         {
+            "targetAreaIndex": 3,
+            "trigger": {
+                "position": {
+                    "x": 534.0,
+                    "y": 116.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
             "targetAreaIndex": 2,
             "trigger": {
                 "position": {
@@ -151,19 +164,6 @@
                 "position": {
                     "x": 998.0,
                     "y": 88.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
-        },
-        {
-            "targetAreaIndex": 3,
-            "trigger": {
-                "position": {
-                    "x": 534.0,
-                    "y": 116.0
                 },
                 "size": {
                     "x": 32.0,
