@@ -15,7 +15,7 @@ namespace {
 }
 
 void ManaComponent::Update(float deltaTime) {
-	float manaDuration = 15.0f;
+	float manaDuration = 5.0f;
 	currentMana_ += deltaTime * manaDuration;
 	
 	// 上限を設定

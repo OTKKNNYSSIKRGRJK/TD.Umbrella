@@ -73,7 +73,7 @@ namespace PlayerStates {
 			MotionController motion_;
 		};
 
-		class Normal : public Base {
+		class NormalSheathed : public Base {
 		public:
 			void Enter() override;
 			void Update(float deltaTime) override;
@@ -82,6 +82,16 @@ namespace PlayerStates {
 			MotionController motion_;
 			/*アニメーションデータ*/
 		};
+		class NormalDrawn : public Base {
+		public:
+			void Enter() override;
+			void Update(float deltaTime) override;
+			void Exit() override;
+		private:
+			MotionController motion_;
+			/*アニメーションデータ*/
+		};
+
 		class Attack : public Base {
 		public:
 			void Enter() override;

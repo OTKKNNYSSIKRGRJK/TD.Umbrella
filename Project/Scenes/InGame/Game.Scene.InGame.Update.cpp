@@ -155,8 +155,6 @@ namespace Game::Scene::Impl {
 #endif
 
 	void InGame::Update() {
-		MotionEditor::GetInstance()->NodeImGui();
-		//TerrainEditor_->Update();
 		Player_->Update(1.0f / 60.0f);
 		Game::EnemyManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
 
@@ -192,7 +190,7 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		TerrainEditor_->Update();
+		//TerrainEditor_->Update();
 
 		#if defined(_DEBUG)
 		// エリアの移動処理

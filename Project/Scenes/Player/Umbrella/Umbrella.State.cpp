@@ -126,22 +126,25 @@ namespace UmbrellaStates {
 		top_->GetRootJoint()->Detach();
 
 		top_->ChangeForm(UmbrellaForm::Flying); // 飛んでいる間は「かさがない状態」にする
+
+		// 足場用の当たり判定（コライダー属性）をONにするなどの処理
+		top_->GetCollider()->SetMyType(COL_Umbrella_Ground);
 	}
 
 	void Flying::Update([[maybe_unused]] float deltaTime) {
 		// ③ 座標を更新して飛ばす
 		Vector3 pos = top_->GetRootJoint()->GetPos();
-		pos.X += velocity_.X * deltaTime;
-		pos.Y += velocity_.Y * deltaTime;
-		pos.Z += velocity_.Z * deltaTime;
+		pos.X += velocity_.X * deltaTime * 8.0f;
+		pos.Y += velocity_.Y * deltaTime * 8.0f;
+		pos.Z += velocity_.Z * deltaTime * 8.0f;
 		top_->GetRootJoint()->SetPos(pos);
 		// Velocityをだんだん減速させる
-		float deceleration = 15.0f; // ブレーキの強さ
+		float deceleration = 3.5f; // ブレーキの強さ
 		velocity_.X = std::lerp(velocity_.X, 0.0f, deceleration * deltaTime);
-		velocity_.Y = std::lerp(velocity_.Z, 0.0f, deceleration * deltaTime);
+		velocity_.Y = std::lerp(velocity_.Y, 0.0f, deceleration * deltaTime);
 
 		// 速度がゼロになったら飛ぶのを終了する
-		if (velocity_.X <= 0.0001f && velocity_.Y <= 0.0001f) {
+		if (std::abs(velocity_.X) <= 0.1f && std::abs(velocity_.Y) <= 0.1f) {
 			top_->ChangeState(new Stationary());
 		}
 	}
@@ -154,9 +157,8 @@ namespace UmbrellaStates {
 	//   Stationary (静止・足場状態)
 	// ==========================================
 	void Stationary::Enter() {
-		// 足場用の当たり判定（コライダー属性）をONにするなどの処理
-		top_->GetCollider()->SetMyType(COL_Umbrella_Ground);
 		top_->UpdateColliderShape();
+		top_->ChangeForm(UmbrellaForm::AirStop); // 飛び終わったら、開いた傘の状態にする
 	}
 
 	void Stationary::Update([[maybe_unused]] float deltaTime) {
