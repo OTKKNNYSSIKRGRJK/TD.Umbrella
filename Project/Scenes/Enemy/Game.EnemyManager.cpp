@@ -5,6 +5,7 @@ import <filesystem>;
 import <cmath>;
 import <algorithm>;
 import <array>;
+import <random>;
 
 import nlohmann.json;
 import Game.MathUtils;
@@ -14,6 +15,48 @@ namespace fs = std::filesystem;
 
 namespace {
 	using Vector2 = std::pair<float, float>;
+	constexpr int kMinEnemySizeTier = 0;
+	constexpr int kMaxEnemySizeTier = 2;
+	constexpr int kSplitChildCount = 2;
+	constexpr float kSplitHorizontalVelocity = 1.2f;
+	constexpr float kSplitVerticalVelocity = 2.5f;
+	constexpr float kEnemyHpScale = 0.7f;
+	constexpr float kLargeAttackWindup = 0.75f;
+	constexpr float kMediumAttackWindup = 0.45f;
+	constexpr float kSmallAttackWindup = 0.2f;
+	constexpr float kLargeBurstSpeed = 2.8f;
+	constexpr float kMediumBurstSpeed = 1.9f;
+	constexpr float kSmallBurstSpeed = 1.25f;
+	constexpr float kSmallStrafeAmplitude = 1.8f;
+	constexpr float kLargeLandingStunDuration = 0.3f;
+	constexpr float kLargeLandingImpactThreshold = 3.0f;
+
+	int GetScaledEnemyHp(int baseHp) {
+		return (std::max)(1, static_cast<int>(std::round(static_cast<float>(baseHp) * kEnemyHpScale)));
+	}
+
+	void ConfigureEnemyBehaviorBySize(Game::EnemyInstance& enemy) {
+		switch (enemy.sizeTier) {
+		case 2:
+			enemy.attackWindupDuration = kLargeAttackWindup;
+			enemy.attackDuration = 0.5f;
+			enemy.burstSpeedMultiplier = kLargeBurstSpeed;
+			enemy.preferredCombatDistance = enemy.baseData.attackRange * 0.9f;
+			break;
+		case 1:
+			enemy.attackWindupDuration = kMediumAttackWindup;
+			enemy.attackDuration = 0.35f;
+			enemy.burstSpeedMultiplier = kMediumBurstSpeed;
+			enemy.preferredCombatDistance = enemy.baseData.attackRange;
+			break;
+		default:
+			enemy.attackWindupDuration = kSmallAttackWindup;
+			enemy.attackDuration = 0.2f;
+			enemy.burstSpeedMultiplier = kSmallBurstSpeed;
+			enemy.preferredCombatDistance = enemy.baseData.attackRange * 1.3f;
+			break;
+		}
+	}
 
 	// 2D外積 (p1-p0) x (p2-p0)
 	float Cross2D(const Vector2& p0, const Vector2& p1, const Vector2& p2) {
@@ -144,6 +187,15 @@ namespace {
 		if (j.contains("hp")) j.at("hp").get_to(e.hp);
 		if (j.contains("power")) j.at("power").get_to(e.power);
 		if (j.contains("gltfPath")) j.at("gltfPath").get_to(e.gltfPath);
+		if (j.contains("sizeTiers") && j["sizeTiers"].is_array()) {
+			size_t count = (std::min)(e.sizeTiers.size(), j["sizeTiers"].size());
+			for (size_t i = 0; i < count; ++i) {
+				const auto& tj = j["sizeTiers"][i];
+				if (tj.contains("hp")) tj.at("hp").get_to(e.sizeTiers[i].hp);
+				if (tj.contains("power")) tj.at("power").get_to(e.sizeTiers[i].power);
+				if (tj.contains("scale")) tj.at("scale").get_to(e.sizeTiers[i].scale);
+			}
+		}
 		if (j.contains("animationMap")) j.at("animationMap").get_to(e.animationMap);
 		if (j.contains("motionMap")) j.at("motionMap").get_to(e.motionMap);
 		if (j.contains("collisionVertices") && j["collisionVertices"].is_array()) {
@@ -162,6 +214,41 @@ namespace {
 		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
 		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
 		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
+	}
+
+	void SpawnSplitChildren(
+		Game::EnemyManager& manager,
+		const Game::Editor::EnemyData& data,
+		const Lumina::Math::F32x3& position,
+		const Lumina::Math::F32x3& parentVelocity,
+		bool facingRight,
+		int parentSizeTier) {
+		if (parentSizeTier <= kMinEnemySizeTier) return;
+
+		int childSizeTier = parentSizeTier - 1;
+		float spawnOffset = (std::max)(0.3f, data.sizeTiers[childSizeTier].scale * 1.5f);
+
+		for (int i = 0; i < kSplitChildCount; ++i) {
+			float dir = (i == 0) ? -1.0f : 1.0f;
+			Lumina::Math::F32x3 childPos = position;
+			childPos.X += dir * spawnOffset;
+			childPos.Y += 0.05f;
+
+			auto* child = manager.SpawnFromData(
+				data,
+				childPos,
+				(dir > 0.0f) ? true : false,
+				data.sizeTiers[childSizeTier].scale,
+				childSizeTier
+			);
+			if (!child) continue;
+
+			child->velocity = parentVelocity;
+			child->velocity.X = dir * kSplitHorizontalVelocity;
+			child->velocity.Y = (std::max)(parentVelocity.Y, kSplitVerticalVelocity);
+			child->facingRight = (dir > 0.0f) ? true : facingRight;
+			child->UpdateCollider();
+		}
 	}
 }
 
@@ -196,6 +283,7 @@ namespace Game {
 
 			col->onCollisionCallback = [this](Collider* other, const Lumina::Math::F32x3& pushOut) {
 				if (other->GetMyType() == COL_Ground) {
+					float verticalImpactSpeed = -this->velocity.Y;
 					Lumina::Math::F32x3 actualPush = { -pushOut.X, -pushOut.Y, -pushOut.Z };
 					position.X += actualPush.X;
 					position.Y += actualPush.Y;
@@ -214,6 +302,10 @@ namespace Game {
 						if (this->velocity.Y <= 0.0f) {
 							if (this->velocity.Y < 0.0f) {
 								this->velocity.Y = 0.0f;
+							}
+							if (this->sizeTier == kMaxEnemySizeTier && verticalImpactSpeed >= kLargeLandingImpactThreshold) {
+								this->landingStunTimer = kLargeLandingStunDuration;
+								this->velocity.X *= 0.2f;
 							}
 						}
 					}
@@ -369,14 +461,22 @@ namespace Game {
 
 	EnemyInstance* EnemyManager::SpawnFromData(const Editor::EnemyData& data,
 		const Lumina::Math::F32x3& position,
-		bool facingRight, float scale) {
+		bool facingRight, float scale, int sizeTier) {
 		EnemyInstance inst;
 		inst.baseData = data;
+		for (auto& tier : inst.baseData.sizeTiers) {
+			tier.hp = GetScaledEnemyHp(tier.hp);
+		}
+		inst.baseData.hp = GetScaledEnemyHp(inst.baseData.hp);
 		inst.id = GenerateId();
 		inst.position = position;
 		inst.facingRight = facingRight;
-		inst.modelScale = scale;
+		inst.sizeTier = sizeTier;
 		inst.InitFromBase();
+		ConfigureEnemyBehaviorBySize(inst);
+		if (scale > 0.0f) {
+			inst.modelScale = scale;
+		}
 		inst.InitCollider();
 
 		instances_.push_back(std::move(inst));
@@ -465,11 +565,28 @@ namespace Game {
 			if (enemy.attackCooldownTimer > 0.0f) {
 				enemy.attackCooldownTimer -= deltaTime;
 			}
+			if (enemy.preAttackTimer > 0.0f) {
+				enemy.preAttackTimer -= deltaTime;
+			}
+			if (enemy.attackTimer > 0.0f) {
+				enemy.attackTimer -= deltaTime;
+			}
+			if (enemy.landingStunTimer > 0.0f) {
+				enemy.landingStunTimer -= deltaTime;
+			}
 
 			// --- プレイヤーとの距離計算 ---
 			float dx = playerPosition.X - enemy.position.X;
 			float dy = playerPosition.Y - enemy.position.Y;
 			float dist = std::sqrt(dx * dx + dy * dy);
+
+			if (enemy.landingStunTimer > 0.0f) {
+				enemy.currentAction = "Idle";
+				enemy.velocity.X *= 0.75f;
+				enemy.stateTimer += deltaTime;
+				enemy.UpdateCollider();
+				continue;
+			}
 
 			// --- 撤退判定 ---
 			float hpRatio = (enemy.baseData.hp > 0)
@@ -484,6 +601,7 @@ namespace Game {
 			switch (enemy.aiState) {
 			case EnemyInstance::AIState::Idle:
 				enemy.currentAction = "Idle";
+				enemy.velocity.X *= 0.9f;
 				// 索敵範囲にプレイヤーが入った場合
 				if (dist < enemy.baseData.aggroRadius) {
 					if (enemy.baseData.aggressiveness > 0.0f) {
@@ -502,9 +620,11 @@ namespace Game {
 
 			case EnemyInstance::AIState::Chase:
 				enemy.currentAction = "Walk";
-				// 攻撃範囲に入ったら攻撃へ
-				if (dist <= enemy.baseData.attackRange) {
-					enemy.aiState = EnemyInstance::AIState::Attack;
+				// 攻撃範囲に入ったら攻撃前アクションへ
+				if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
+					enemy.aiState = EnemyInstance::AIState::PreAttack;
+					enemy.preAttackTimer = enemy.attackWindupDuration;
+					enemy.velocity.X = 0.0f;
 				}
 				// 索敵範囲外に出たら Idle に戻る
 				else if (dist > enemy.baseData.aggroRadius * 1.5f) {
@@ -513,16 +633,40 @@ namespace Game {
 				// 追跡移動
 				else {
 					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-					enemy.position.X += moveDir * enemy.baseData.moveSpeed * deltaTime;
+					float moveSpeed = enemy.baseData.moveSpeed;
+					if (enemy.sizeTier == kMinEnemySizeTier) {
+						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
+						float desiredX = playerPosition.X - moveDir * enemy.preferredCombatDistance + orbitOffset;
+						moveDir = (desiredX > enemy.position.X) ? 1.0f : -1.0f;
+						moveSpeed *= 1.35f;
+					}
+					enemy.position.X += moveDir * moveSpeed * deltaTime;
 					enemy.facingRight = (dx > 0.0f);
+				}
+				break;
+
+			case EnemyInstance::AIState::PreAttack:
+				enemy.currentAction = "Walk";
+				enemy.velocity.X *= 0.8f;
+				enemy.facingRight = (dx > 0.0f);
+				if (dist > enemy.baseData.aggroRadius * 1.5f) {
+					enemy.aiState = EnemyInstance::AIState::Idle;
+				}
+				else if (enemy.preAttackTimer <= 0.0f) {
+					enemy.aiState = EnemyInstance::AIState::Attack;
+					enemy.attackTimer = enemy.attackDuration;
+					float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
+					enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
+					enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
 				}
 				break;
 
 			case EnemyInstance::AIState::Attack:
 				enemy.currentAction = "Attack";
-				// 攻撃範囲外に出たら追跡に戻る
-				if (dist > enemy.baseData.attackRange * 1.2f) {
+				if (enemy.attackTimer <= 0.0f) {
+					enemy.attackCooldownTimer = enemy.baseData.attackCooldown;
 					enemy.aiState = EnemyInstance::AIState::Chase;
+					enemy.velocity.X *= 0.35f;
 				}
 				break;
 
@@ -562,11 +706,18 @@ namespace Game {
 		enemy->velocity.Y = std::max(enemy->velocity.Y, 3.5f);
 
 		if (enemy->currentHP <= 0) {
+			auto splitData = enemy->baseData;
+			auto splitPosition = enemy->position;
+			auto splitVelocity = enemy->velocity;
+			bool splitFacingRight = enemy->facingRight;
+			int splitTier = enemy->sizeTier;
+
 			enemy->currentHP = 0;
 			enemy->isDead = true;
 			if (onDeathCallback_) {
 				onDeathCallback_(*enemy);
 			}
+			SpawnSplitChildren(*this, splitData, splitPosition, splitVelocity, splitFacingRight, splitTier);
 			return true;
 		}
 		return false;
@@ -575,6 +726,14 @@ namespace Game {
 	int EnemyManager::DealAreaDamage(const Lumina::Math::F32x3& origin, float radius,
 		int damage, bool facingRight, bool directional) {
 		int killCount = 0;
+		struct SplitRequest {
+			Editor::EnemyData data;
+			Lumina::Math::F32x3 position;
+			Lumina::Math::F32x3 velocity;
+			bool facingRight = true;
+			int sizeTier = 1;
+		};
+		std::vector<SplitRequest> splitRequests;
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
@@ -597,6 +756,13 @@ namespace Game {
 			enemy.velocity.Y = std::max(enemy.velocity.Y, 3.5f);
 
 			if (enemy.currentHP <= 0) {
+				splitRequests.push_back({
+					enemy.baseData,
+					enemy.position,
+					enemy.velocity,
+					enemy.facingRight,
+					enemy.sizeTier
+				});
 				enemy.currentHP = 0;
 				enemy.isDead = true;
 				if (onDeathCallback_) {
@@ -604,6 +770,10 @@ namespace Game {
 				}
 				++killCount;
 			}
+		}
+
+		for (const auto& split : splitRequests) {
+			SpawnSplitChildren(*this, split.data, split.position, split.velocity, split.facingRight, split.sizeTier);
 		}
 
 		return killCount;

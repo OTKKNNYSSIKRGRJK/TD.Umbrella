@@ -31,9 +31,9 @@ export namespace Game::Editor {
 
 		// --- サイズ段階 (0=Small, 1=Medium, 2=Large) ---
 		std::array<SizeTier, 3> sizeTiers = {{
-			{  50, 0.5f, 0.3f },  // Small
-			{ 100, 1.0f, 0.5f },  // Medium
-			{ 200, 2.0f, 0.7f },  // Large
+			{  35, 0.8f, 0.3f },  // Small
+			{  70, 1.0f, 0.5f },  // Medium
+			{ 140, 1.8f, 0.7f },  // Large
 		}};
 
 		std::map<std::string, std::string> animationMap = {
@@ -64,9 +64,9 @@ export namespace Game::Editor {
 			power = 1.0f;
 			gltfPath = "Models/Enemy/default.gltf";
 			sizeTiers = {{
-				{  50, 0.5f, 0.3f },
-				{ 100, 1.0f, 0.5f },
-				{ 200, 2.0f, 0.7f },
+				{  35, 0.8f, 0.3f },
+				{  70, 1.0f, 0.5f },
+				{ 140, 1.8f, 0.7f },
 			}};
 			for (auto& [key, val] : animationMap) val = "";
 			motionMap = { {"Idle", ""}, {"Walk", ""}, {"Attack", ""} };

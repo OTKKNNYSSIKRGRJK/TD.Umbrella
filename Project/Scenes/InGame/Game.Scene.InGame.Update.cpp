@@ -5,6 +5,8 @@ import : Impl;
 import <cmath>;
 import <algorithm>;
 import <string>;
+import <random>;
+import <filesystem>;
 
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
@@ -17,6 +19,9 @@ import nlohmann.json;
 
 import Game.MotionManager;
 import Game.EnemyManager;
+import Game.Editor.AreaEditor;
+import Game.Editor.EnemyEditor;
+import Game.Terrain;
 
 #if defined(_DEBUG)
 namespace {
@@ -27,10 +32,74 @@ namespace {
 #endif
 
 namespace Game::Scene::Impl {
+	namespace {
+		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
+			if (!area.enemies.empty() || enemyNames.empty()) return;
+
+			std::random_device rd;
+			std::mt19937 mt(rd());
+			std::uniform_int_distribution<int> countDist(1, 5);
+			std::uniform_int_distribution<int> enemyDist(0, static_cast<int>(enemyNames.size()) - 1);
+			std::uniform_int_distribution<int> sizeDist(0, 2);
+			std::uniform_real_distribution<float> xDist(120.0f, (std::max)(121.0f, static_cast<float>(area.width) - 120.0f));
+			std::uniform_real_distribution<float> yDist(80.0f, (std::max)(81.0f, static_cast<float>(area.height) - 80.0f));
+			std::bernoulli_distribution faceDist(0.5);
+
+			int spawnCount = countDist(mt);
+			for (int i = 0; i < spawnCount; ++i) {
+				Game::Editor::EnemyPlacement ep;
+				ep.enemyName = enemyNames[enemyDist(mt)];
+				ep.sizeCategory = sizeDist(mt);
+				ep.facingRight = faceDist(mt);
+				ep.position.x = xDist(mt);
+				ep.position.y = yDist(mt);
+				area.enemies.push_back(ep);
+			}
+		}
+
+		std::vector<std::string> CollectEnemyNames(Game::Editor::EnemyEditor& enemyEditor) {
+			std::vector<std::string> names;
+			namespace fs = std::filesystem;
+			if (!fs::exists("./")) return names;
+
+			for (const auto& entry : fs::directory_iterator("./")) {
+				if (!entry.is_regular_file() || entry.path().extension() != ".json") continue;
+				std::string stem = entry.path().stem().string();
+				if (stem.find("area") == 0) continue;
+
+				Game::Editor::EnemyData data;
+				enemyEditor.LoadEnemy(data, entry.path().filename().string());
+				if (!data.name.empty()) {
+					names.push_back(entry.path().stem().string());
+				}
+			}
+			return names;
+		}
+	}
+
+ 	void InGame::SyncPlayEnemiesFromManager() {
+		playState_.Enemies.clear();
+		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+		playState_.Enemies.reserve(enemyInstances.size());
+
+		for (const auto& inst : enemyInstances) {
+			PlayEnemy pe;
+			pe.BaseData = inst.baseData;
+			pe.Position = inst.position;
+			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
+			pe.IsDead = inst.isDead;
+			pe.FacingRight = inst.facingRight;
+			pe.SizeTier = inst.sizeTier;
+			pe.Scale = inst.modelScale;
+			playState_.Enemies.push_back(pe);
+		}
+	}
+
 #if defined(_DEBUG)
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
+		PopulateRandomEnemiesIfEmpty(playState_.CurrentArea, CollectEnemyNames(enemyEditor_));
 		
 		try {
 			// Load Terrain (which reads "Polygons" and "GroundPoints" stored inside area json)
@@ -166,6 +235,7 @@ namespace Game::Scene::Impl {
 			int tierIdx = (std::max)(0, (std::min)(2, ep.sizeCategory));
 			pe.BaseData.hp    = pe.BaseData.sizeTiers[tierIdx].hp;
 			pe.BaseData.power = pe.BaseData.sizeTiers[tierIdx].power;
+			pe.SizeTier       = tierIdx;
 			pe.Scale          = pe.BaseData.sizeTiers[tierIdx].scale;
 
 			pe.CurrentHP = pe.BaseData.hp;
@@ -174,8 +244,10 @@ namespace Game::Scene::Impl {
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale);
+			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
 		}
+
+		SyncPlayEnemiesFromManager();
 
 		if (Player_) {
 			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
@@ -233,17 +305,7 @@ namespace Game::Scene::Impl {
 		// Check!
 		CollisionManager_->CheckAllCollisions();
 
-		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
-		for (size_t i = 0; i < enemyInstances.size() && i < playState_.Enemies.size(); ++i) {
-			playState_.Enemies[i].Position = enemyInstances[i].position;
-			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
-			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
-				playState_.Enemies[i].CurrentHP = 0;
-			} else {
-				playState_.Enemies[i].CurrentHP = enemyInstances[i].currentHP;
-			}
-		}
+		SyncPlayEnemiesFromManager();
 
 		TerrainEditor_->Update();
 
