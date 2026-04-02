@@ -128,7 +128,17 @@
         "x": 0.0,
         "y": -740.0
     },
-    "enemies": [],
+    "enemies": [
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 660.0,
+                "y": 602.0
+            },
+            "sizeCategory": 2
+        }
+    ],
     "height": 720,
     "index": 1,
     "name": 1,

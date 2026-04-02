@@ -323,10 +323,9 @@ namespace Game::Scene::Impl {
 				for (const auto& conn : playState_.CurrentArea.connections) {
 					if (pos.X >= conn.trigger.position.x && pos.X <= conn.trigger.position.x + conn.trigger.size.x &&
 						pos.Y >= conn.trigger.position.y && pos.Y <= conn.trigger.position.y + conn.trigger.size.y) {
-						int prevAreaIndex = playState_.CurrentArea.index;
-						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
 						if (keyboard.IsPressed(KEY::W)) {
-
+							int prevAreaIndex = playState_.CurrentArea.index;
+							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
 						}
 						break;
 						
