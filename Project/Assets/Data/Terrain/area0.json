@@ -123,8 +123,21 @@
             "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 514.0,
-                    "y": 204.0
+                    "x": 196.0,
+                    "y": 214.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
+            "targetAreaIndex": 2,
+            "trigger": {
+                "position": {
+                    "x": 28.0,
+                    "y": 188.0
                 },
                 "size": {
                     "x": 32.0,
@@ -138,6 +151,19 @@
                 "position": {
                     "x": 998.0,
                     "y": 88.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
+            "targetAreaIndex": 3,
+            "trigger": {
+                "position": {
+                    "x": 534.0,
+                    "y": 116.0
                 },
                 "size": {
                     "x": 32.0,

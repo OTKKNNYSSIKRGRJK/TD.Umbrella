@@ -103,8 +103,8 @@ namespace Game::Editor {
 
 		a.name = a.index;
 
-		j.at("width").get_to(a.width);
-		j.at("height").get_to(a.height);
+		if (j.contains("width")) j.at("width").get_to(a.width);
+		if (j.contains("height")) j.at("height").get_to(a.height);
 		if (j.contains("backgroundMusic")) j.at("backgroundMusic").get_to(a.backgroundMusic);
 		if (j.contains("connections")) j.at("connections").get_to(a.connections);
 		if (j.contains("enemies")) j.at("enemies").get_to(a.enemies);

@@ -128,6 +128,7 @@ namespace Game::Scene::Impl {
 			}
 
 			// Apply Connections Coordinates
+			playState_.PortalColliders.clear();
 			for (auto& conn : playState_.CurrentArea.connections) {
 				float sMinX = conn.trigger.position.x;
 				float sMinY = playState_.CurrentArea.height - (conn.trigger.position.y + conn.trigger.size.y);
@@ -146,6 +147,23 @@ namespace Game::Scene::Impl {
 				conn.trigger.position.y = wMinY;
 				conn.trigger.size.x = (std::max)(0.0f, wMaxX - wMinX);
 				conn.trigger.size.y = (std::max)(0.0f, wMaxY - wMinY);
+				
+				auto col = std::make_shared<ConvexCollider>();
+				col->SetMyType(COL_None);
+				col->SetYourType(COL_None);
+				std::vector<Lumina::Math::F32x3> verts = {
+					{ wMinX, wMinY, -0.5f },
+					{ wMaxX, wMinY, -0.5f },
+					{ wMaxX, wMaxY, -0.5f },
+					{ wMinX, wMaxY, -0.5f },
+					{ wMinX, wMinY, 0.5f },
+					{ wMaxX, wMinY, 0.5f },
+					{ wMaxX, wMaxY, 0.5f },
+					{ wMinX, wMaxY, 0.5f }
+				};
+				col->SetVertices(verts);
+				col->UpdateAABB();
+				playState_.PortalColliders.push_back(col);
 			}
 		} else {
 			playState_.Player.Position.X = playerScreenX;
@@ -227,6 +245,12 @@ namespace Game::Scene::Impl {
 		for (auto const& col : groundColliders) {
 			CollisionManager_->SetColliders(col.get());
 		}
+		
+		for (auto const& pCol : playState_.PortalColliders) {
+			if (pCol) {
+				CollisionManager_->SetColliders(pCol.get());
+			}
+		}
 
 
 
@@ -261,13 +285,12 @@ namespace Game::Scene::Impl {
 				for (const auto& conn : playState_.CurrentArea.connections) {
 					if (pos.X >= conn.trigger.position.x && pos.X <= conn.trigger.position.x + conn.trigger.size.x &&
 						pos.Y >= conn.trigger.position.y && pos.Y <= conn.trigger.position.y + conn.trigger.size.y) {
-						int prevAreaIndex = playState_.CurrentArea.index;
-						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
-						if (keyboard.IsPressed(KEY::W)) {
-
-						}
-						break;
 						
+						if (keyboard.IsJustPressed(KEY::W)) {
+							int prevAreaIndex = playState_.CurrentArea.index;
+							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
+							break;
+						}
 					}
 				}
 			}

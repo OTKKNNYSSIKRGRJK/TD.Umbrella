@@ -25,6 +25,7 @@ import Lumina.Primitive;
 import Game.Player;
 import CollisionManager;
 import Game.ConvexColliderDebug;
+import Collider;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -150,6 +151,7 @@ namespace Game::Scene::Impl {
 			float PlayerAttackTimer = 0.0f;
 			
 			float TransitionCooldownTimer = 0.0f;
+			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
 		} playState_;
 
 #if defined(_DEBUG)

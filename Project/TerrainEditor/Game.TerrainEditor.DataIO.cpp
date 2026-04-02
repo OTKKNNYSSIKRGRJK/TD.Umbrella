@@ -62,11 +62,11 @@ namespace Game {
 
 		Reset();
 
-		/*if (input_.is_object()) {
+		if (input_.is_object()) {
 			OriginalData_ = input_;
 		} else {
-			OriginalData_ = nlohmann::json::object();
-		}*/
+			OriginalData_ = nlohmann::ordered_json::object();
+		}
 
 		if (input_.contains("width") && input_.contains("height")) {
 			CanvasSize_.X = input_.at("width").get<Lumina::F32>();
@@ -138,7 +138,9 @@ namespace Game {
 
 	template<>
 	auto TerrainEditor::OutputData(nlohmann::ordered_json& output_) const -> void {
+		output_ = OriginalData_;
 		output_["MapInfo"] = nlohmann::ordered_json::object();
+		output_["MapInfo"]["Size"] = nlohmann::ordered_json::array();
 		output_["MapInfo"]["Size"].emplace_back(CanvasSize_.X);
 		output_["MapInfo"]["Size"].emplace_back(CanvasSize_.Y);
 		output_ << Polygons_ << Ground_.Vertices;
