@@ -17,20 +17,19 @@ void InputHandler::HandleInput() {
     auto const& pad = Lumina::Context::Instance().RawInputContext().Pad();
 
     // 初期化
-	PlayerInputData input;
+    PlayerInputData input;
+	auto playerInput = player_->GetInput();
+
 	input.moveDirection = { 0.0f,0.0f,0.0f };
-	// 移動入力を取得
-    // コントローラまだ実装してないから一旦コメントアウト
+	///////////////////////////
+    ///
+    /// 移動入力
+    ///
+    ///////////////////////////
     float stickX = pad.GetLeftStickX();
     float stickY = pad.GetLeftStickY();
     if (std::abs(stickX) > 0.15f) { input.moveDirection.X = stickX; }
     if (std::abs(stickY) > 0.15f) input.moveDirection.Z = stickY;
-
-    float rightStickX = pad.GetRightStickX();
-    float rightStickY = pad.GetRightStickY();
-    input.aimingDirectionX = (std::abs(rightStickX) > 0.15f) ? rightStickX : 0.0f;
-    input.aimingDirectionY = (std::abs(rightStickY) > 0.15f) ? rightStickY : 0.0f;
-
 
     if (keyboard.IsPressed(KEY::W)) { input.moveDirection.Z += 1.0f; }
     if (keyboard.IsPressed(KEY::S)) { input.moveDirection.Z -= 1.0f; }
@@ -38,72 +37,48 @@ void InputHandler::HandleInput() {
     if (keyboard.IsPressed(KEY::D)) { input.moveDirection.X += 1.0f; }
 
     if (input.moveDirection.X != 0.0f) {
-        player_->eyesDirection_.X = input.moveDirection.X;
+		player_->eyesDirection_.X = input.moveDirection.X > 0.0f ? 1.0f : -1.0f;
     }
+    ///////////////////////////
+    ///
+    /// 右スティック入力
+    ///
+    ///////////////////////////
+    float rightStickX = pad.GetRightStickX();
+    float rightStickY = pad.GetRightStickY();
+    input.aimingDirectionX = (std::abs(rightStickX) > 0.15f) ? rightStickX : 0.0f;
+    input.aimingDirectionY = (std::abs(rightStickY) > 0.15f) ? rightStickY : 0.0f;
 
-    // --- アクション入力の取得 ---
-    
-    // ==================
-    // 【 アタック系 】
-    // ==================
-    input.isJump = false;
-    if (keyboard.IsPressed(KEY::SPACE)) {
-        input.isJump = true;
-    }
-    if (pad.IsHold(0x1000)) {
-		input.isJump = true;
-    }
+    // ==========================
+    // 【 アクション入力の取得 】
+    // ==========================
 
-    input.isAttack = false;
-    if (keyboard.IsPressed(KEY::J)) {
-        input.isAttack = true;
-    }
-    if (pad.IsHold(0x8000)) {
-        input.isAttack = true;
-    }
+    input.jump = UpdateButtonState(
+        keyboard.IsPressed(KEY::SPACE) || pad.IsHold(0x1000),
+        playerInput.jump
+	);
 
-    input.isAttackHeld = false;
-    if (keyboard.IsPressed(KEY::J)) {
-        input.isAttackHeld = true;
-    }
-    if (pad.IsHold(0x8000)) {
-        input.isAttackHeld = true;
-    }
+    input.attack = UpdateButtonState(
+        keyboard.IsPressed(KEY::J) || pad.IsHold(0x8000),
+        playerInput.attack
+    );
 
-    input.isAttackReleased = false;
-    if (keyboard.IsJustReleased(KEY::J)) {
-        input.isAttackReleased = true;
-    }
-    if (pad.IsRelease(0x8000)) {
-        input.isAttackReleased = true;
-    }
+    input.evasion = ButtonState::None;
 
-    input.isEvasion = false;
+    input.sheathe = UpdateButtonState(
+        keyboard.IsPressed(KEY::ENTER) || pad.IsHold(0x4000),
+        playerInput.sheathe
+	);
 
-    // 納刀 -> 回復がスムーズに入力出来る
-    input.isSheathe = false;
-    if (keyboard.IsPressed(KEY::ENTER)) {
-        input.isSheathe = true;
-    }
-    if (pad.IsHold(0x4000)) {
-        input.isSheathe = true;
-    }
+    input.reverse = UpdateButtonState(
+        keyboard.IsPressed(KEY::O) || pad.IsHold(0x2000),
+        playerInput.reverse
+    );
 
-    input.isReverse = false;
-    if (keyboard.IsPressed(KEY::O)) {
-        input.isReverse = true;
-    }
-    if (pad.IsHold(0x2000)) {
-        input.isReverse = true;
-    }
-
-    input.isGuard = false;
-    if (keyboard.IsPressed(KEY::I)) {
-        input.isGuard = true;
-    }
-    if (pad.GetRightTrigger() > 10) {
-        input.isGuard = true;
-    }
+    input.guard = UpdateButtonState(
+        keyboard.IsPressed(KEY::I) || pad.GetRightTrigger() > 10,
+        playerInput.guard
+    );
 
     input.useMana = false;
     // マナ使用モードとして実装するかどうか
@@ -117,27 +92,23 @@ void InputHandler::HandleInput() {
     // ================
     // 【 照準・発射 】
     // ================
-    input.isAiming = false; // 照準を合わせているかどうか
-    input.isAimingHeld = false;
-    input.isShoot = false;  // 射撃したかどうか
-    if (pad.GetLeftTrigger() > 10) {
-        //input.isAiming = true;
-        input.isAimingHeld = true;
-    }
-    if (pad.GetRightTrigger() > 10) {
-        input.isShoot = true;
-    }
+    input.aim = UpdateButtonState(
+        keyboard.IsPressed(KEY::K) || pad.GetLeftTrigger() > 100,
+        playerInput.aim
+    );
+
+    input.shoot = UpdateButtonState(
+        keyboard.IsPressed(KEY::L) || pad.GetRightTrigger() > 100,
+        playerInput.shoot
+    );
 
     // ================
     // 【 修復 】
     // ================
-    input.isRepair = false;
-    if(keyboard.IsPressed(KEY::R)) {
-        input.isRepair = true;
-	}
-    if (pad.IsHold(0x4000)) {
-        input.isRepair = true;
-	}
+    input.repair = UpdateButtonState(
+        keyboard.IsPressed(KEY::R) || pad.IsHold(0x4000),
+        playerInput.repair
+	);
 
     // Playerに入力情報を渡す！
     player_->SetInputData(input);

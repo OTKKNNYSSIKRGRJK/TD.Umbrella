@@ -4,7 +4,7 @@ import <algorithm>;
 
 export class ManaComponent {
 public:
-	ManaComponent(float maxMana = 100.0f) : maxMana_(maxMana), currentMana_(0.0f) {}
+	ManaComponent(float maxMana = 100.0f) : maxMana_(maxMana), currentMana_(maxMana) {}
 public:
 	// マナの基本的な処理
 	void Update(float deltaTime);

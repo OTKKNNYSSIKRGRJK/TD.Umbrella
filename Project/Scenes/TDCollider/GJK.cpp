@@ -129,7 +129,7 @@ namespace GJKUtils {
 	}
 
 	Contact EPA(std::vector<Vector2>shapeA, std::vector<Vector2>shapeB, std::vector<SupportPoint>& simplex) {
-		const int MAX_ITERATIONS = 30;// 無限ループ防止用
+		const int MAX_ITERATIONS = 60;// 無限ループ防止用
 		const float TOLERANCE = 0.0001f;// 許容範囲
 
 		Contact contact = {};

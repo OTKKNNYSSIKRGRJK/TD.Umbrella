@@ -77,7 +77,7 @@ namespace Umbrella {
 		// ======================
 		status_ = std::make_unique<StatusComponent>(100.0f, 10.0f, 10.0f);
 		mana_ = std::make_unique<ManaComponent>(100.0f);
-
+		mana_->ConsumeMana(mana_->GetCurrentMana());
 
 		// ======================
 		// 当たり判定
@@ -85,13 +85,15 @@ namespace Umbrella {
 		collider_ = std::make_unique<ConvexCollider>();
 
 		collider_->SetMyType(COL_None);
-		collider_->SetYourType(COL_Enemy | COL_Player);
+		collider_->SetYourType(COL_Enemy | COL_Player | COL_Ground);
 
 		collider_->SetUserData(this);
 
-		collider_->onCollisionCallback = [](Collider* other, const Vector3& outPush) {
-			outPush;
-			other;
+		collider_->onCollisionCallback = [this](Collider* other, const Vector3& outPush) {
+			if (other->GetMyType() == COL_Ground) {
+				Vector3 actualPush = -outPush;
+				rootJoint_.SetPos(rootJoint_.GetPos() + actualPush);
+			}
 			/*
 			* Enemy* enemy =
 			* if(enemy){
@@ -118,15 +120,22 @@ namespace Umbrella {
 		switch (form_) {
 		case UmbrellaForm::Closed:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
+			ImGui::Text("Close");
 			break;
 		case UmbrellaForm::Opened:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
+			ImGui::Text("Opened");
 			break;
 		case UmbrellaForm::Reverse:
 			rootJoint_.SetRot({ Lumina::Math::DegToRad(180.0f),0.0f,0.0f });
+			ImGui::Text("Reverse");
 			break;
 		case UmbrellaForm::Flying:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
+			ImGui::Text("Flying");
+			break;
+		case UmbrellaForm::AirStop:
+			ImGui::Text("AirStop");
 			break;
 		}
 
@@ -136,6 +145,9 @@ namespace Umbrella {
 		collider_->SetWorldPosition(rootJoint_.GetWorldPos());
 
 		collider_->SetWorldMatrix(rootJoint_.GetMatrix());
+
+		float mana = mana_->GetCurrentMana();
+		ImGui::Text("Over Mana : %f", mana);
 	}
 
 	void Top::Draw() {
@@ -191,9 +203,9 @@ namespace Umbrella {
 				{-w, y, 0.0f},{w, y, 0.0f},{w - 0.25f, y + h,0.0f},{-w + 0.25f, y + h, 0.0f}
 			};
 		}
-		else if (form_ == UmbrellaForm::Opened || form_ == UmbrellaForm::Flying) {
+		else if (form_ == UmbrellaForm::Opened || form_ == UmbrellaForm::Flying || form_ == UmbrellaForm::AirStop) {
 			float w = 1.0f;  // 半径1mくらいの広さ
-			float h = 0.05f;  // 厚み
+			float h = 0.3f;  // 厚み
 			float y = 0.0f;  // 持ち手から少し上の位置
 			vertices = {
 				{-w, y, 0.0f},{w, y, 0.0f},{-w, y + h, 0.0f},{w, y + h,0.0f}
