@@ -362,6 +362,12 @@ namespace PlayerStates::Action {
 			player_->GetUmbrella().top_->GetManaComponent().AddMana(chargeSpeed);
 
 			// ※ここで傘のモデルを少し膨張させたり、水のエフェクトを濃くする
+			player_->GetSmashCollider()->ClearVertices();
+			player_->GetSmashCollider()->SetVertices({
+				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
+				{0.0f,2.0f,0.0f},
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f}
+			});
 		}
 
 		// 攻撃ボタンを離したら、チャージ攻撃ステートへ移行！
@@ -397,6 +403,8 @@ namespace PlayerStates::Action {
 
 		// ※ プレイヤーの攻撃モーション（バシャーン！と水をぶちまける）を再生
 		motion_.Play("Swing", { 0.0f,0.0f,0.0f }, 0.5f);
+
+		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
 	}
 
 	void ReverseAttack::Update(float deltaTime) {
@@ -417,6 +425,11 @@ namespace PlayerStates::Action {
 	void ReverseAttack::Exit() {
 		// 傘の攻撃力を元に戻す
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(10.0f); // 基礎攻撃力にリセット
+		// 攻撃判定(Collider)をオフにする処理などもここに書く
+		player_->GetSmashCollider()->SetMyType(COL_None);
+
+		player_->GetSmashCollider()->ClearVertices();
+		player_->GetSmashCollider()->SetMyType(COL_None);
 	}
 
 	////////////////////////////
