@@ -163,6 +163,11 @@ void Player::Initialize() {
 		}
 	};
 
+	smashCollider_ = std::make_unique<ConvexCollider>();
+	smashCollider_->SetMyType(COL_None);
+	smashCollider_->SetYourType(COL_Enemy);
+	smashCollider_->SetUserData(this);
+
 	WorldMatrix_ = std::make_unique<Matrix4x4>();
 }
 
@@ -228,6 +233,10 @@ void Player::Update(float deltaTime) {
 
 	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
+
+	// 仮 SmashCollider
+	smashCollider_->SetWorldPosition(GetPosition());
+	smashCollider_->SetWorldMatrix(*WorldMatrix_);
 
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();

@@ -86,6 +86,11 @@ namespace PlayerStates::Movement {
 			}
 		}
 
+		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
+			// チャージ量によって落ちるのを速くする
+			gravity = 25.2f + 15.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.4f));
+		}
+
 		// Y軸には常に重力をかけ続ける
 		player_->externalVelocity_.Y -= gravity * deltaTime;
 
@@ -165,6 +170,10 @@ namespace PlayerStates::Movement {
 		case WeaponStance::Drawn:
 			targetSpeed = 8.0f;
 			break;
+		}
+
+		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
+			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.6f));
 		}
 
 		float acceleration = 15.0f;

@@ -114,6 +114,8 @@ public:
 	void ChangeMovementState(PlayerStates::Base* newState);
 	void ChangeActionState(PlayerStates::Base* newState);
 	bool onGround_ = false;
+	PlayerStates::Base* GetCurrentMovementState() const { return currentMovementState_; }
+	PlayerStates::Base* GetCurrentActionState() const { return currentActionState_; }
 private:
 	WeaponStance currentStance_ = WeaponStance::Drawn;
 
@@ -262,10 +264,10 @@ private:
 	//////////////////////////////
 public:
 	Collider* GetCollider()const { return collider_.get(); }
-
+	ConvexCollider* GetSmashCollider()const { return smashCollider_.get(); }
 private:
 	std::unique_ptr<ConvexCollider>collider_;
-
+	std::unique_ptr<ConvexCollider> smashCollider_;
 	//////////////////////////////
 	///
 	///   その他
