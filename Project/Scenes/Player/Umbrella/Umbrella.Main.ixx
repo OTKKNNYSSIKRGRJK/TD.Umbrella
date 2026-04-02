@@ -12,6 +12,10 @@ import Lumina.Core.Math;
 import Lumina.MeshManager;
 import Lumina.D3D12;
 
+namespace{
+	using Vector3 = Lumina::Math::F32x3;
+}
+
 //////////////////////
 /// 
 ///  傘
@@ -108,7 +112,11 @@ namespace Umbrella {
         //////////////////////
     public:
         Attachment* GetRootJoint() { return &rootJoint_; }
-
+        void SetAttachment(Attachment* attachment){
+            if(attachment){
+                rootJoint_.AttachTo(attachment);
+            }
+		}
     private:
         // 持ち手、壁、敵にくっつくためのJoint
         Attachment rootJoint_;
@@ -166,6 +174,20 @@ namespace Umbrella {
     public:// Get・Set関係の関数
         // 傘の「かさ」の状態を返す関数
         UmbrellaForm GetUmbrellaForm()const { return form_; }
+
+        //////////////////////
+        /// 
+        ///  Playerに関して
+        /// 
+        //////////////////////
+    public:
+		void SetPlayerPos(const Vector3& pos) { playerPos_ = pos; }
+		Vector3 GetPlayerPos() const { return playerPos_; }
+		void StartRecall() { isRecalling_ = true; }
+		bool IsRecalling() const { return isRecalling_; }
+    private:
+        Vector3 playerPos_;
+		bool isRecalling_ = false;// プレイヤーが呼び戻し中かどうか
 
         //////////////////////
         /// 

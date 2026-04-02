@@ -146,6 +146,9 @@ namespace Umbrella {
 
 		collider_->SetWorldMatrix(rootJoint_.GetMatrix());
 
+		// 全てが終わったらFalse
+		isRecalling_ = false;
+
 		float mana = mana_->GetCurrentMana();
 		ImGui::Text("Over Mana : %f", mana);
 	}
