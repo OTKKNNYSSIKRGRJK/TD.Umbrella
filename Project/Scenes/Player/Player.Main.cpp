@@ -43,7 +43,7 @@ void Player::Initialize() {
 	umbrella_ = std::make_unique<Umbrella::Main>();
 	umbrella_->Initialize();
 
-	umbrella_->handle_->GetBaseJoint()->AttachTo(GetRightHandJoint());
+	umbrella_->handle_->GetBaseJoint()->AttachTo(GetBackJoint());
 
 	motionController_ = std::make_unique<MotionController>();
 
@@ -191,6 +191,28 @@ void Player::Update(float deltaTime) {
 	}
 
 	ThrowUpdate(deltaTime);
+
+	if (IsButtonUp(inputData_.shoot)) {
+		umbrella_->top_->SetPlayerPos(GetPosition());
+		if (inputData_.aim == ButtonState::Held) {
+			umbrella_->top_->StartRecall();
+		}
+
+		if (umbrella_->top_->IsRecalling()) {
+			Vector3 toPlayer = GetPosition() - umbrella_->top_->GetRootJoint()->GetPos();
+
+			// 2. 距離を測っておく（回収判定用）
+			float distance = sqrt(toPlayer.X * toPlayer.X + toPlayer.Y * toPlayer.Y);
+
+			if (distance < 1.0f) {
+				umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
+				umbrella_->top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+				umbrella_->top_->ChangeState(new UmbrellaStates::Attached());
+				umbrella_->top_->ChangeForm(UmbrellaForm::Closed);
+			}
+		}
+	}
 
 	// ステートの更新
 	if (currentMovementState_) {

@@ -164,7 +164,32 @@ namespace UmbrellaStates {
 	void Stationary::Update([[maybe_unused]] float deltaTime) {
 		// ここに留まり続ける。
 		// もしプレイヤーが「回収ボタン」を押したら、手元に戻るステートへ移行など
+		if (top_->IsRecalling()) {
+			// 1. プレイヤーへの方向ベクトルを計算
+			Vector3 playerPos = top_->GetPlayerPos();
+			Vector3 umbrellaPos = top_->GetRootJoint()->GetPos();
+			Vector3 toPlayer = playerPos - umbrellaPos;
 
+			// 2. 距離を測っておく（回収判定用）
+			float distance = sqrt(toPlayer.X * toPlayer.X + toPlayer.Y * toPlayer.Y);
+
+			if (distance > 1.0f) { // まだ離れている場合
+				// 3. 正規化して一定の速度で移動させる
+				Vector3 direction = { toPlayer.X / distance, toPlayer.Y / distance, 0.0f };
+				float returnSpeed = 20.0f; // 戻るスピード（投げた時より速いと気持ちいい）
+
+				// 速度を適用
+				umbrellaPos.X += direction.X * returnSpeed * deltaTime;
+				umbrellaPos.Y += direction.Y * returnSpeed * deltaTime;
+
+				top_->GetRootJoint()->SetPos(umbrellaPos);
+			}
+
+			top_->GetCollider()->SetMyType(COL_None);
+		}
+		else {
+			top_->GetCollider()->SetMyType(COL_Umbrella_Ground);
+		}
 	}
 
 	void Stationary::Exit() {
