@@ -114,8 +114,9 @@ namespace Game::Editor {
 
 	namespace {
 		void SaveAreaFile(const AreaData& area, std::vector<std::string>& recentFiles, std::vector<AreaData>& allAreas) {
+			fs::create_directories("Assets/Data/Terrain");
 			std::string filename = "area" + std::to_string(area.name) + ".json";
-			std::ofstream file(filename);
+			std::ofstream file("Assets/Data/Terrain/" + filename);
 			if (!file.is_open()) {
 				return;
 			}
@@ -151,8 +152,8 @@ namespace Game::Editor {
 		editingArea_.Reset();
 
 		bool firstLoaded = false;
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Terrain")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Terrain")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					recentFiles_.push_back(fName);
@@ -264,7 +265,8 @@ namespace Game::Editor {
 	}
 
 	void AreaEditor::LoadArea(AreaData& area, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string path = "Assets/Data/Terrain/" + filename;
+		std::ifstream file(path);
 		if (file.is_open()) {
 			json j;
 			file >> j;
@@ -274,8 +276,9 @@ namespace Game::Editor {
 
 	void AreaEditor::DeleteArea(int areaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
-		if (fs::exists(filename)) {
-			fs::remove(filename);
+		std::string path = "Assets/Data/Terrain/" + filename;
+		if (fs::exists(path)) {
+			fs::remove(path);
 		}
 
 		auto it = std::remove(recentFiles_.begin(), recentFiles_.end(), filename);
