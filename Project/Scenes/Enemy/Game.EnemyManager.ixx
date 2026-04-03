@@ -382,7 +382,7 @@ export namespace Game {
 		~EnemyManager() = default;
 
 	private:
-		EnemyManager() = default;
+		EnemyManager();
 
 		uint32_t GenerateId();
 

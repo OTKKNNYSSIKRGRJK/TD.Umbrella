@@ -337,7 +337,7 @@ namespace Game {
 			};
 
 			col->UpdateAABB();
-			colliders.push_back(std::move(col));
+			colliders.emplace_back(std::move(col));
 			};
 
 		if (IsConvexPolygon(baseData.collisionVertices)) {
@@ -796,5 +796,9 @@ namespace Game {
 
 	void EnemyManager::SetOnEnemyDeathCallback(OnEnemyDeathCallback callback) {
 		onDeathCallback_ = std::move(callback);
+	}
+
+	EnemyManager::EnemyManager() {
+		instances_.reserve(4096U);
 	}
 }
