@@ -437,7 +437,7 @@ namespace Game::Scene::Impl {
 				"Y : Battou"
 			);
 			ImGui::TextColored(
-				textColor(pad.IsHold(0x1000)),
+				textColor(pad.IsHold(0x2000)),
 				"B"
 			);
 			ImGui::TextColored(
@@ -480,7 +480,7 @@ namespace Game::Scene::Impl {
 						"Y : Attack"
 					);
 					ImGui::TextColored(
-						textColor(pad.IsHold(0x1000)),
+						textColor(pad.IsHold(0x2000)),
 						"B"
 					);
 					ImGui::TextColored(
@@ -498,7 +498,7 @@ namespace Game::Scene::Impl {
 						"Y"
 					);
 					ImGui::TextColored(
-						textColor(pad.IsHold(0x1000)),
+						textColor(pad.IsHold(0x2000)),
 						"B : Reverse Umbrella"
 					);
 					ImGui::TextColored(
@@ -516,7 +516,7 @@ namespace Game::Scene::Impl {
 						"Y (Nagaoshi) : Charge Attack"
 					);
 					ImGui::TextColored(
-						textColor(pad.IsHold(0x1000)),
+						textColor(pad.IsHold(0x2000)),
 						"B"
 					);
 					ImGui::TextColored(
