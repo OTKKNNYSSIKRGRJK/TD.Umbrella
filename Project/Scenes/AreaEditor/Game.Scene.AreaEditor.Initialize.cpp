@@ -33,11 +33,15 @@ namespace Game::Editor {
 	}
 
 	void to_json(json& j, const AreaConnection& c) {
-		j = json{ {"targetAreaIndex", c.targetAreaIndex}, {"trigger", c.trigger} };
+		j = json{ {"targetAreaIndex", c.targetAreaIndex}, {"position", c.position} };
 	}
 	void from_json(const json& j, AreaConnection& c) {
 		j.at("targetAreaIndex").get_to(c.targetAreaIndex);
-		j.at("trigger").get_to(c.trigger);
+		if (j.contains("position")) {
+			j.at("position").get_to(c.position);
+		} else if (j.contains("trigger") && j.at("trigger").contains("position")) {
+			j.at("trigger").at("position").get_to(c.position);
+		}
 	}
 
 	void to_json(json& j, const EnemyPlacement& e) {
@@ -248,7 +252,7 @@ namespace Game::Editor {
 				for (int i = static_cast<int>(reciprocalConnections.size()); i < expectedCount; ++i) {
 					AreaConnection newConn;
 					newConn.targetAreaIndex = area.index;
-					newConn.trigger.position = {
+					newConn.position = {
 						targetArea.width / 2.0f - 16.0f + static_cast<float>(i) * 32.0f,
 						targetArea.height / 2.0f - 16.0f
 					};

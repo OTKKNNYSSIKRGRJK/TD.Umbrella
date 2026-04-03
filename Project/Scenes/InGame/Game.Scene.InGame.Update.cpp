@@ -68,8 +68,8 @@ namespace Game::Scene::Impl {
 			for (const auto& conn : playState_.CurrentArea.connections) {
 				if (conn.targetAreaIndex == previousAreaIndex && !(areaIndex == 0 && previousAreaIndex == 0)) {
 					// Spawn at the center of the connection linking back to where we came from
-					playerScreenX = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
-					playerScreenY = conn.trigger.position.y;
+					playerScreenX = conn.position.x;
+					playerScreenY = conn.position.y;
 					spawnedAtConnection = true;
 					break;
 				}
@@ -79,8 +79,8 @@ namespace Game::Scene::Impl {
 		if (!spawnedAtConnection && areaIndex == 0) {
 			for (const auto& conn : playState_.CurrentArea.connections) {
 				if (conn.targetAreaIndex == 0) {
-					playerScreenX = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
-					playerScreenY = conn.trigger.position.y;
+					playerScreenX = conn.position.x;
+					playerScreenY = conn.position.y;
 					spawnedAtConnection = true;
 					break;
 				}
@@ -132,36 +132,24 @@ namespace Game::Scene::Impl {
 			// Apply Connections Coordinates
 			playState_.PortalColliders.clear();
 			for (auto& conn : playState_.CurrentArea.connections) {
-				float sMinX = conn.trigger.position.x;
-				float sMinY = playState_.CurrentArea.height - (conn.trigger.position.y + conn.trigger.size.y);
-				float sMaxX = conn.trigger.position.x + conn.trigger.size.x;
-				float sMaxY = playState_.CurrentArea.height - conn.trigger.position.y;
-
-				auto p0 = ScreenToWorld(sMinX, sMinY);
-				auto p1 = ScreenToWorld(sMaxX, sMaxY);
-
-				float wMinX = p0.first;
-				float wMaxY = p0.second;
-				float wMaxX = p1.first;
-				float wMinY = p1.second;
-
-				conn.trigger.position.x = wMinX;
-				conn.trigger.position.y = wMinY;
-				conn.trigger.size.x = (std::max)(0.0f, wMaxX - wMinX);
-				conn.trigger.size.y = (std::max)(0.0f, wMaxY - wMinY);
+				auto connWPos = ScreenToWorld(conn.position.x, playState_.CurrentArea.height - conn.position.y);
+				conn.position.x = connWPos.first;
+				conn.position.y = connWPos.second;
 				
+				float wSizeX = 1.5f;
+				float wSizeY = 1.5f;
 				auto col = std::make_shared<ConvexCollider>();
 				col->SetMyType(COL_None);
 				col->SetYourType(COL_None);
 				std::vector<Lumina::Math::F32x3> verts = {
-					{ wMinX, wMinY, -0.5f },
-					{ wMaxX, wMinY, -0.5f },
-					{ wMaxX, wMaxY, -0.5f },
-					{ wMinX, wMaxY, -0.5f },
-					{ wMinX, wMinY, 0.5f },
-					{ wMaxX, wMinY, 0.5f },
-					{ wMaxX, wMaxY, 0.5f },
-					{ wMinX, wMaxY, 0.5f }
+					{ connWPos.first - wSizeX, connWPos.second - wSizeY, -0.5f },
+					{ connWPos.first + wSizeX, connWPos.second - wSizeY, -0.5f },
+					{ connWPos.first + wSizeX, connWPos.second + wSizeY, -0.5f },
+					{ connWPos.first - wSizeX, connWPos.second + wSizeY, -0.5f },
+					{ connWPos.first - wSizeX, connWPos.second - wSizeY, 0.5f },
+					{ connWPos.first + wSizeX, connWPos.second - wSizeY, 0.5f },
+					{ connWPos.first + wSizeX, connWPos.second + wSizeY, 0.5f },
+					{ connWPos.first - wSizeX, connWPos.second + wSizeY, 0.5f }
 				};
 				col->SetVertices(verts);
 				col->UpdateAABB();
@@ -291,8 +279,8 @@ namespace Game::Scene::Impl {
 				using Lumina::OS::Windows::KEY;
 
 				for (const auto& conn : playState_.CurrentArea.connections) {
-					if (pos.X >= conn.trigger.position.x && pos.X <= conn.trigger.position.x + conn.trigger.size.x &&
-						pos.Y >= conn.trigger.position.y && pos.Y <= conn.trigger.position.y + conn.trigger.size.y) {
+					if (std::abs(pos.X - conn.position.x) <= 1.5f &&
+						std::abs(pos.Y - conn.position.y) <= 1.5f) {
 						
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
@@ -410,6 +398,11 @@ namespace Game::Scene::Impl {
 					enemy.IsDead ? "(Dead)" : "");
 			}
 			ImGui::End();
+
+			// ミニマップ（エリア構成図）描画
+			if (playState_.IsPlaying) {
+				areaEditor_.DrawAreaMap(playState_.CurrentArea.index);
+			}
 			break;
 		default:
 			break;

@@ -23,7 +23,7 @@ export namespace Game::Editor {
 
 	struct AreaConnection {
 		int targetAreaIndex = 0;
-		RectCollision trigger{};
+		Vector2 position{ 0.0f, 0.0f };
 	};
 
 	struct EnemyPlacement {
@@ -74,6 +74,7 @@ export namespace Game::Editor {
 		void Initialize();
 		void Update();
 		void LoadArea(AreaData& area, const std::string& filename);
+		void DrawAreaMap(int currentAreaIndex);
 
 	private:
 		void DrawEditorUI();
