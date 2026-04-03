@@ -584,7 +584,10 @@ namespace PlayerStates::Action {
 		// 空中で開いたら少し上昇する
 		if (player_->onGround_ == false) {
 			if (IsButtonUp(player_->GetInput().aim)) {
-				player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
+					player_->GetManaComponent().ConsumeMana(25.0f);
+					player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+				}
 			}
 		}
 	}

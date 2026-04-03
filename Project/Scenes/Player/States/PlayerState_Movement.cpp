@@ -122,6 +122,10 @@ namespace PlayerStates::Movement {
 		if (parentState_) {
 			parentState_->Update(deltaTime);
 		}
+
+		// 【追加】Grounded内でジャンプして空中に移行したなら、以降の処理をキャンセル！
+		if (!player_->onGround_) return;
+
 		const auto& input = player_->GetInput();
 
 		// 入力方向がゼロじゃない（スティックが倒された）なら、Walkingへ遷移
@@ -152,6 +156,7 @@ namespace PlayerStates::Movement {
 		if (parentState_) {
 			parentState_->Update(deltaTime);
 		}
+
 		const auto& input = player_->GetInput();
 
 		// スティックが離されたら、Idleへ遷移！
