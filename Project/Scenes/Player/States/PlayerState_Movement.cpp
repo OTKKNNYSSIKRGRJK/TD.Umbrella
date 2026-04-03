@@ -22,6 +22,12 @@ namespace PlayerStates::Movement {
 	void Grounded::Update(float deltaTime) {
 		//// 地上にいる際の処理 ////
 
+		// もし接地していない（崖から落ちた）なら、強制的に空中ステートへ
+		if (!player_->onGround_) {
+			player_->ChangeMovementState(player_->airborneState_.get());
+			return;
+		}
+
 		// 地上の摩擦係数(大きいほどすぐ止まる)
 		float groundFriction = 10.0f;
 

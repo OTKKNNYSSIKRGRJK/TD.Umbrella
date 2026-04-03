@@ -227,10 +227,10 @@ namespace Game::Scene::Impl {
 		CollisionManager_->Begin();
 
 		// ここからColliderを設定
-		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetSmashCollider());
+		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		for (auto const& polygon : Terrain_->PolygonsData()) {
 			CollisionManager_->SetColliders(polygon.Col.get());
 		}
