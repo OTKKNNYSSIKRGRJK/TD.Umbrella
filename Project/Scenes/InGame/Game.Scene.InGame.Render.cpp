@@ -82,16 +82,11 @@ namespace Game::Scene::Impl {
 		// ポータルを薄い立方体（cube.obj）で表現
 		// Connectionsの座標はすでにワールド座標に変換されているため、そのまま使用する。
 		for (const auto& conn : playState_.CurrentArea.connections) {
-			float px = conn.trigger.position.x;
-			float py = conn.trigger.position.y;
-			float w = conn.trigger.size.x;
-			float h = conn.trigger.size.y;
-			
-			float cx = px + w / 2.0f;
-			float cy = py + h / 2.0f;
+			float cx = conn.position.x;
+			float cy = conn.position.y;
 
-			float sx = w / 2.0f;
-			float sy = h / 2.0f;
+			float sx = 1.5f;
+			float sy = 1.5f;
 			float sz = 0.5f; // "薄く表示する" (ジオメトリとしての厚みを薄くする)
 
 			Lumina::Math::F32x4x4<> worldMat{

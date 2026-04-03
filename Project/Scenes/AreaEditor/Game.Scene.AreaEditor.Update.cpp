@@ -6,6 +6,7 @@ import Lumina.Utils.ImGui;
 
 import <string>;
 import <map>;
+import <cmath>;
 import <algorithm>;
 import <filesystem>;
 import <vector>;
@@ -57,6 +58,11 @@ namespace Game::Editor {
 #if defined(_DEBUG)
 	void AreaEditor::DrawEditorUI() {
 		bool openConvexError = false;
+		auto centerCameraOnArea = [&]() {
+			ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * 0.5f) * 0.5f;
+			cameraPos_.y = displaySize.y * 0.5f + (editingArea_.editorPos.y + editingArea_.height * 0.5f) * 0.5f;
+		};
 		auto trySaveArea = [&](const AreaData& areaToSave, bool sync) {
 			for (const auto& cg : areaToSave.collisionGroups) {
 				if (!IsConvex(cg.points)) {
@@ -105,6 +111,44 @@ namespace Game::Editor {
 			}
 		} catch (...) {}
 
+		// エリアJSONファイルのライブリロード
+		static std::map<std::string, std::filesystem::file_time_type> lastAreaFileTimes;
+		try {
+			if (std::filesystem::exists("Assets/Data/Terrain/")) {
+				for (const auto& entry : std::filesystem::directory_iterator("Assets/Data/Terrain/")) {
+					if (!entry.is_regular_file()) continue;
+					std::string fName = entry.path().filename().string();
+					if (entry.path().extension() == ".json" && fName.find("area") == 0) {
+						auto fTime = std::filesystem::last_write_time(entry);
+						if (lastAreaFileTimes.find(fName) == lastAreaFileTimes.end()) {
+							lastAreaFileTimes[fName] = fTime;
+						} else if (lastAreaFileTimes[fName] != fTime) {
+							lastAreaFileTimes[fName] = fTime;
+							// ファイルが更新された場合、再読み込みを行う
+							AreaData reloadedArea;
+							LoadArea(reloadedArea, fName);
+							bool found = false;
+							for (auto& a : allAreas_) {
+								if (a.name == reloadedArea.name) {
+									// originalJson などを最新のものに更新しつつ、既存のデータ構造を維持
+									a = reloadedArea;
+									found = true;
+									// 現在編集中のエリアであれば、それも更新
+									if (editingArea_.name == reloadedArea.name) {
+										editingArea_ = reloadedArea;
+									}
+									break;
+								}
+							}
+							if (!found) {
+								allAreas_.push_back(reloadedArea);
+							}
+						}
+					}
+				}
+			}
+		} catch (...) {}
+
 		float scale = 0.5f;
 		float cx = cameraPos_.x;
 		float cy = cameraPos_.y;
@@ -112,8 +156,8 @@ namespace Game::Editor {
 
 		// エリア外に出ないように座標補正
 		for (auto& conn : editingArea_.connections) {
-			conn.trigger.position.x = (std::max)(0.0f, (std::min)(conn.trigger.position.x, (std::max)(0.0f, static_cast<float>(editingArea_.width) - conn.trigger.size.x)));
-			conn.trigger.position.y = (std::max)(0.0f, (std::min)(conn.trigger.position.y, (std::max)(0.0f, static_cast<float>(editingArea_.height) - conn.trigger.size.y)));
+			conn.position.x = (std::max)(0.0f, (std::min)(conn.position.x, static_cast<float>(editingArea_.width)));
+			conn.position.y = (std::max)(0.0f, (std::min)(conn.position.y, static_cast<float>(editingArea_.height)));
 		}
 
 		// 敵配置もエリア内に制限
@@ -140,16 +184,19 @@ namespace Game::Editor {
 			draggingCollisionGroupIndex_ = -1;
 			draggingCollisionPointIndex_ = -1;
 
+			constexpr float connectionMarkerSize = 16.0f;
 			for (int i = 0; i < static_cast<int>(editingArea_.connections.size()); ++i) {
 				const auto& conn = editingArea_.connections[i];
-				float cxmin = cx + (editingArea_.editorPos.x + conn.trigger.position.x) * scale;
-				float cymin = cy - (editingArea_.editorPos.y + conn.trigger.position.y + conn.trigger.size.y) * scale;
-				float cxmax = cxmin + conn.trigger.size.x * scale;
-				float cymax = cy - (editingArea_.editorPos.y + conn.trigger.position.y) * scale;
+				float ccx = cx + (editingArea_.editorPos.x + conn.position.x) * scale;
+				float ccy = cy - (editingArea_.editorPos.y + conn.position.y) * scale;
+				float cxmin = ccx - connectionMarkerSize * scale;
+				float cxmax = ccx + connectionMarkerSize * scale;
+				float cymin = ccy - connectionMarkerSize * scale;
+				float cymax = ccy + connectionMarkerSize * scale;
 
 				if (mousePos.x >= cxmin && mousePos.x <= cxmax && mousePos.y >= cymin && mousePos.y <= cymax) {
 					draggingConnectionIndex_ = i;
-					dragOffset_ = { mousePos.x - cxmin, mousePos.y - cymin };
+					dragOffset_ = { mousePos.x - ccx, mousePos.y - ccy };
 					break;
 				}
 			}
@@ -216,6 +263,7 @@ namespace Game::Editor {
 						if (mousePos.x >= paxmin && mousePos.x <= paxmax && mousePos.y >= paymin && mousePos.y <= paymax) {
 							if (trySaveArea(editingArea_, true)) {
 								LoadArea(editingArea_, "area" + std::to_string(a.name) + ".json");
+								centerCameraOnArea();
 							}
 							break;
 						}
@@ -228,13 +276,13 @@ namespace Game::Editor {
 		if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
 			if (draggingConnectionIndex_ != -1) {
 				auto& conn = editingArea_.connections[draggingConnectionIndex_];
-				float new_cxmin = mousePos.x - dragOffset_.x;
-				float new_cymin = mousePos.y - dragOffset_.y;
-				conn.trigger.position.x = (new_cxmin - cx) / scale - editingArea_.editorPos.x;
-				conn.trigger.position.y = (cy - new_cymin) / scale - editingArea_.editorPos.y - conn.trigger.size.y;
+				float newCcx = mousePos.x - dragOffset_.x;
+				float newCcy = mousePos.y - dragOffset_.y;
+				conn.position.x = (newCcx - cx) / scale - editingArea_.editorPos.x;
+				conn.position.y = (cy - newCcy) / scale - editingArea_.editorPos.y;
 
-				conn.trigger.position.x = (std::max)(0.0f, (std::min)(conn.trigger.position.x, (std::max)(0.0f, static_cast<float>(editingArea_.width) - conn.trigger.size.x)));
-				conn.trigger.position.y = (std::max)(0.0f, (std::min)(conn.trigger.position.y, (std::max)(0.0f, static_cast<float>(editingArea_.height) - conn.trigger.size.y)));
+				conn.position.x = (std::max)(0.0f, (std::min)(conn.position.x, static_cast<float>(editingArea_.width)));
+				conn.position.y = (std::max)(0.0f, (std::min)(conn.position.y, static_cast<float>(editingArea_.height)));
 			} else if (draggingEnemyIndex_ != -1) {
 				auto& ep = editingArea_.enemies[draggingEnemyIndex_];
 				float newEcx = mousePos.x - dragOffset_.x;
@@ -354,38 +402,46 @@ namespace Game::Editor {
 				}
 			}
 
+			constexpr float connectionMarkerSize = 16.0f;
 			std::map<int, int> targetCount;
 			for (const auto& conn : drawData.connections) {
 				int currentIdx = targetCount[conn.targetAreaIndex]++;
-				ImVec2 connMin(cx + (drawData.editorPos.x + conn.trigger.position.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y + conn.trigger.size.y) * scale);
-				ImVec2 connMax(cx + (drawData.editorPos.x + conn.trigger.position.x + conn.trigger.size.x) * scale, cy - (drawData.editorPos.y + conn.trigger.position.y) * scale);
+				float ccx = cx + (drawData.editorPos.x + conn.position.x) * scale;
+				float ccy = cy - (drawData.editorPos.y + conn.position.y) * scale;
+				float ms = connectionMarkerSize * scale;
 
 				bool isPlayerStart = (drawData.index == 0 && conn.targetAreaIndex == 0);
 				ImU32 fillColor = isPlayerStart ? MakeCol32(255, 120, 0, isEditing ? 100 : 50) : MakeCol32(0, 150, 255, isEditing ? 100 : 50);
 				ImU32 outlineColor = isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(0, 255, 255, 255);
 
-				drawList->AddRectFilled(connMin, connMax, fillColor);
-				drawList->AddRect(connMin, connMax, outlineColor, 0.0f, 0, 1.0f);
+				// Draw Diamond shaped
+				ImVec2 diamond[4] = {
+					ImVec2(ccx, ccy - ms),
+					ImVec2(ccx + ms, ccy),
+					ImVec2(ccx, ccy + ms),
+					ImVec2(ccx - ms, ccy),
+				};
+				drawList->AddConvexPolyFilled(diamond, 4, fillColor);
+				drawList->AddPolyline(diamond, 4, outlineColor, ImDrawFlags_Closed, 1.5f);
 
 				std::string targetText = isPlayerStart ? "Player Start" : "To: " + std::to_string(conn.targetAreaIndex);
-				drawList->AddText(ImVec2(connMin.x, connMin.y - 15.0f), isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(255, 255, 0, 255), targetText.c_str());
+				drawList->AddText(ImVec2(ccx - ms, ccy - ms - 15.0f), isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(255, 255, 0, 255), targetText.c_str());
 
 				if (isPlayerStart) continue; // 初期位置マーカーの場合はターゲットへの線引きをスキップ
 
 				for (const auto& target : allAreas_) {
 					const AreaData& tData = (target.name == editingArea_.name) ? editingArea_ : target;
 					if (tData.index == conn.targetAreaIndex) {
-						ImVec2 triggerCenter(connMin.x + conn.trigger.size.x * scale * 0.5f, connMin.y + conn.trigger.size.y * scale * 0.5f);
+						ImVec2 triggerCenter(ccx, ccy);
 						bool foundMutualTarget = false;
 						ImVec2 targetCenter;
 						int matchedCount = 0;
 						for (const auto& tConn : tData.connections) {
 							if (tConn.targetAreaIndex == drawData.index) {
 								if (matchedCount == currentIdx) {
-									targetCenter = ImVec2(
-										cx + (tData.editorPos.x + tConn.trigger.position.x + tConn.trigger.size.x * 0.5f) * scale,
-										cy - (tData.editorPos.y + tConn.trigger.position.y + tConn.trigger.size.y * 0.5f) * scale
-									);
+									float tccx = cx + (tData.editorPos.x + tConn.position.x) * scale;
+									float tccy = cy - (tData.editorPos.y + tConn.position.y) * scale;
+									targetCenter = ImVec2(tccx, tccy);
 									foundMutualTarget = true;
 									break;
 								}
@@ -499,6 +555,7 @@ namespace Game::Editor {
 					if (ImGui::Selectable(fName.c_str(), isSelected)) {
 						if (trySaveArea(editingArea_, true)) {
 							LoadArea(editingArea_, fName);
+							centerCameraOnArea();
 						}
 					}
 				}
@@ -514,8 +571,25 @@ namespace Game::Editor {
 			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse);
 
 		if (ImGui::CollapsingHeader("Area Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
-			if (ImGui::InputInt("Area Name / Index", &editingArea_.index)) {
-				editingArea_.name = editingArea_.index;
+			int inputIndex = editingArea_.index;
+			if (ImGui::InputInt("Area Name / Index", &inputIndex)) {
+				bool exists = false;
+				for (const auto& a : allAreas_) {
+					if (a.index == inputIndex) {
+						exists = true;
+						break;
+					}
+				}
+
+				if (exists && inputIndex != editingArea_.index) {
+					if (trySaveArea(editingArea_, true)) {
+						LoadArea(editingArea_, "area" + std::to_string(inputIndex) + ".json");
+						centerCameraOnArea();
+					}
+				} else {
+					editingArea_.index = inputIndex;
+					editingArea_.name = inputIndex;
+				}
 			}
 			ImGui::Text("Width: %d", editingArea_.width);
 			ImGui::Text("Height: %d", editingArea_.height);
@@ -547,9 +621,8 @@ namespace Game::Editor {
 						trySaveArea(editingArea_, true);
 					}
 
-					ImGui::Text("Trigger Collision (Rect)");
-					ImGui::DragFloat2("Position", &editingArea_.connections[i].trigger.position.x, 1.0f);
-					ImGui::DragFloat2("Size", &editingArea_.connections[i].trigger.size.x, 1.0f);
+					ImGui::Text("Portal Coordinates");
+					ImGui::DragFloat2("Position", &editingArea_.connections[i].position.x, 1.0f);
 
 					if (ImGui::Button("Remove Connection")) {
 						editingArea_.connections.erase(editingArea_.connections.begin() + i);
@@ -732,10 +805,328 @@ namespace Game::Editor {
 		}
 
 		ImGui::Separator();
-		if (ImGui::Button("RESET")) {
+		if (ImGui::Button("CREATE NEW AREA", ImVec2(-1, 40))) {
 			editingArea_.Reset();
+
+			int newIdx = 0;
+			float maxX = -999999.0f;
+			float assocY = 0.0f;
+			for (const auto& a : allAreas_) {
+				if (a.index >= newIdx) {
+					newIdx = a.index + 1;
+				}
+				float rightEdge = a.editorPos.x + static_cast<float>(a.width);
+				if (rightEdge > maxX) {
+					maxX = rightEdge;
+					assocY = a.editorPos.y;
+				}
+			}
+
+			editingArea_.index = newIdx;
+			editingArea_.name = newIdx;
+			if (static_cast<int>(maxX) != -999999) {
+				editingArea_.editorPos = { maxX + 100.0f, assocY };
+			} else {
+				editingArea_.editorPos = { 0.0f, 0.0f };
+			}
+			centerCameraOnArea();
 		}
 		ImGui::End();
+	}
+	void AreaEditor::DrawAreaMap(int currentAreaIndex) {
+		if (allAreas_.empty()) return;
+
+		// === マップウィンドウ配置 ===
+		constexpr float mapW = 420.0f; // 横長の枠に広げる
+		constexpr float mapH = 240.0f; // 高さを少し抑える
+		constexpr float margin = 12.0f;
+		constexpr float padding = 14.0f;
+
+		ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+		float mapLeft = displaySize.x - mapW - margin;
+		float mapTop  = displaySize.y - mapH - margin;
+
+		ImDrawList* drawList = ImGui::GetForegroundDrawList();
+
+		// === 背景パネル（羊皮紙風） ===
+		drawList->AddRectFilled(
+			ImVec2(mapLeft, mapTop),
+			ImVec2(mapLeft + mapW, mapTop + mapH),
+			MakeCol32(45, 38, 30, 220),
+			8.0f
+		);
+		// 内側グラデーション風の枠
+		drawList->AddRect(
+			ImVec2(mapLeft + 2, mapTop + 2),
+			ImVec2(mapLeft + mapW - 2, mapTop + mapH - 2),
+			MakeCol32(120, 95, 60, 180),
+			6.0f, 0, 1.0f
+		);
+		drawList->AddRect(
+			ImVec2(mapLeft, mapTop),
+			ImVec2(mapLeft + mapW, mapTop + mapH),
+			MakeCol32(80, 65, 40, 255),
+			8.0f, 0, 2.0f
+		);
+
+		// === ラベル ===
+		drawList->AddText(ImVec2(mapLeft + 10, mapTop + 6), MakeCol32(210, 190, 140, 255), "AREA MAP");
+
+		// === 描画可能領域 ===
+		float innerLeft   = mapLeft  + padding;
+		float innerTop    = mapTop   + padding + 18.0f;
+		float innerWidth  = mapW     - padding * 2.0f;
+		float innerHeight = mapH     - padding * 2.0f - 18.0f;
+
+		// === つながり（ネットワーク）から網の目のように配置位置を計算 ===
+		struct GridPos {
+			int x, y;
+			bool operator<(const GridPos& other) const {
+				if (x != other.x) return x < other.x;
+				return y < other.y;
+			}
+		};
+
+		// 1. 各エリアの隣接リストを作成
+		std::map<int, std::vector<int>> adjList;
+		for (const auto& a : allAreas_) {
+			for (const auto& conn : a.connections) {
+				int targetIdx = conn.targetAreaIndex;
+				if (a.index == 0 && targetIdx == 0) continue; // PlayerStart無視
+				adjList[a.index].push_back(targetIdx);
+				adjList[targetIdx].push_back(a.index); // 双方向保証
+			}
+		}
+
+		// 重複削除
+		for (auto& pair : adjList) {
+			auto& vec = pair.second;
+			std::sort(vec.begin(), vec.end());
+			vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+		}
+
+		// 探索開始順（Area 0 があれば最優先）
+		std::vector<int> startNodes;
+		auto hasNode = [&](int idx) {
+			for (const auto& a : allAreas_) if (a.index == idx) return true;
+			return false;
+		};
+		if (hasNode(0)) startNodes.push_back(0);
+		for (const auto& a : allAreas_) {
+			if (std::find(startNodes.begin(), startNodes.end(), a.index) == startNodes.end()) {
+				startNodes.push_back(a.index);
+			}
+		}
+
+		// BFSでグリッドレイアウトを決定する
+		std::map<int, GridPos> gridLayout;
+		std::map<GridPos, int> gridOccupancy;
+
+		for (int startIdx : startNodes) {
+			if (gridLayout.count(startIdx) > 0) continue;
+
+			std::vector<int> queue = { startIdx };
+			
+			// 独立したグラフ塊の場合、重複しないY座標の開始位置を探す
+			int startX = 0, startY = 0;
+			while (gridOccupancy.count({startX, startY}) > 0) {
+				startY++;
+			}
+			gridLayout[startIdx] = {startX, startY};
+			gridOccupancy[{startX, startY}] = startIdx;
+
+			size_t head = 0;
+			while (head < queue.size()) {
+				int curr = queue[head++];
+				GridPos cPos = gridLayout[curr];
+
+				int yOffset = 0;
+				for (int neighbor : adjList[curr]) {
+					if (gridLayout.count(neighbor) == 0) {
+						// 進行方向（つながりの深さ）は常に横(X+1)に進める
+						int nx = cPos.x + 1;
+						int ny = cPos.y + yOffset;
+						// 空いているY座標をジグザグに探す (0, -1, 1, -2, 2...)
+						while (gridOccupancy.count({nx, ny}) > 0) {
+							yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
+							ny = cPos.y + yOffset;
+						}
+						gridLayout[neighbor] = {nx, ny};
+						gridOccupancy[{nx, ny}] = neighbor;
+						queue.push_back(neighbor);
+						// 次の枝分かれノード用のオフセット更新
+						yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
+					}
+				}
+			}
+		}
+
+		// グリッド座標を画面上の論理座標に変換
+		struct AreaNode {
+			int index;
+			float cx, cy;
+		};
+		std::vector<AreaNode> nodes;
+		float minCX = 1e9f, minCY = 1e9f, maxCX = -1e9f, maxCY = -1e9f;
+		
+		constexpr float gridSpacingX = 100.0f;
+		constexpr float gridSpacingY = 80.0f;
+
+		for (const auto& a : allAreas_) {
+			GridPos gp = gridLayout[a.index];
+			float cx = gp.x * gridSpacingX;
+			float cy = gp.y * gridSpacingY;
+			nodes.push_back({ a.index, cx, cy });
+			
+			minCX = (std::min)(minCX, cx);
+			minCY = (std::min)(minCY, cy);
+			maxCX = (std::max)(maxCX, cx);
+			maxCY = (std::max)(maxCY, cy);
+		}
+
+		// BBox に余白を追加
+		float rangeX = maxCX - minCX;
+		float rangeY = maxCY - minCY;
+		if (rangeX < 1.0f) rangeX = 1.0f;
+		if (rangeY < 1.0f) rangeY = 1.0f;
+		float bboxPad = (std::max)(rangeX, rangeY) * 0.15f;
+		minCX -= bboxPad; minCY -= bboxPad;
+		maxCX += bboxPad; maxCY += bboxPad;
+		rangeX = maxCX - minCX;
+		rangeY = maxCY - minCY;
+
+		float scaleX = innerWidth  / rangeX;
+		float scaleY = innerHeight / rangeY;
+		float scale  = (std::min)(scaleX, scaleY);
+
+		float scaledW = rangeX * scale;
+		float scaledH = rangeY * scale;
+		float offsetX = innerLeft + (innerWidth  - scaledW) * 0.5f;
+		float offsetY = innerTop  + (innerHeight - scaledH) * 0.5f;
+
+		// クリップ
+		drawList->PushClipRect(ImVec2(mapLeft, mapTop), ImVec2(mapLeft + mapW, mapTop + mapH), true);
+
+		// エディタ座標→画面座標ラムダ (Y軸反転: editorPosはY上)
+		auto ToScreen = [&](float ex, float ey) -> ImVec2 {
+			return ImVec2(
+				offsetX + (ex - minCX) * scale,
+				offsetY + (maxCY - ey) * scale   // Y反転
+			);
+		};
+
+		// 各ノードの画面座標を求めておく
+		std::map<int, ImVec2> nodeScreenPos;
+		for (const auto& n : nodes) {
+			nodeScreenPos[n.index] = ToScreen(n.cx, n.cy);
+		}
+
+		// === 接続線の描画（重複排除） ===
+		std::vector<std::pair<int,int>> drawnEdges;
+		auto edgeDrawn = [&](int a, int b) -> bool {
+			for (const auto& e : drawnEdges) {
+				if ((e.first == a && e.second == b) || (e.first == b && e.second == a))
+					return true;
+			}
+			return false;
+		};
+
+		for (const auto& a : allAreas_) {
+			auto itFrom = nodeScreenPos.find(a.index);
+			if (itFrom == nodeScreenPos.end()) continue;
+
+			for (const auto& conn : a.connections) {
+				int targetIdx = conn.targetAreaIndex;
+				// PlayerStart (index==0, target==0) はスキップ
+				if (a.index == 0 && targetIdx == 0) continue;
+
+				auto itTo = nodeScreenPos.find(targetIdx);
+				if (itTo == nodeScreenPos.end()) continue;
+
+				if (edgeDrawn(a.index, targetIdx)) continue;
+				drawnEdges.push_back({ a.index, targetIdx });
+
+				ImVec2 from = itFrom->second;
+				ImVec2 to   = itTo->second;
+
+				// 太い接続線（道）
+				drawList->AddLine(from, to, MakeCol32(90, 75, 50, 200), 4.0f);
+				// 明るい中心線
+				drawList->AddLine(from, to, MakeCol32(180, 155, 100, 140), 2.0f);
+			}
+		}
+
+		// === 各エリアノードの描画 ===
+		constexpr float nodeRadius = 20.0f;
+
+		// エリアごとの色テーブル（モンハン風に各エリアが異なる色）
+		constexpr int numColors = 12;
+		ImU32 areaColors[numColors] = {
+			MakeCol32(220, 160,  80, 200),  // 0: 砂色
+			MakeCol32(100, 180, 100, 200),  // 1: 森緑
+			MakeCol32(160, 120,  80, 200),  // 2: 茶色
+			MakeCol32(130, 160, 200, 200),  // 3: 水色
+			MakeCol32(180, 130, 160, 200),  // 4: ピンク
+			MakeCol32(150, 180, 120, 200),  // 5: 若草
+			MakeCol32(200, 180, 100, 200),  // 6: 黄土
+			MakeCol32(120, 140, 180, 200),  // 7: 青灰
+			MakeCol32(180, 140, 100, 200),  // 8: 琥珀
+			MakeCol32(140, 180, 170, 200),  // 9: 翡翠
+			MakeCol32(200, 140, 140, 200),  // 10: 紅
+			MakeCol32(160, 160, 120, 200),  // 11: カーキ
+		};
+
+		for (const auto& n : nodes) {
+			ImVec2 pos = nodeScreenPos[n.index];
+			bool isCurrent = (n.index == currentAreaIndex);
+			int colorIdx = n.index % numColors;
+			ImU32 fillColor = areaColors[colorIdx];
+
+			// 現在エリアのグロー
+			if (isCurrent) {
+				drawList->AddCircleFilled(pos, nodeRadius + 8.0f, MakeCol32(255, 200, 50, 60));
+				drawList->AddCircleFilled(pos, nodeRadius + 5.0f, MakeCol32(255, 220, 80, 80));
+			}
+
+			// 不規則形状風: 8角形で描画
+			constexpr int numSides = 8;
+			ImVec2 polyPoints[numSides];
+			float baseRadii[numSides] = { 1.0f, 0.88f, 1.05f, 0.92f, 0.97f, 0.85f, 1.02f, 0.90f };
+			for (int i = 0; i < numSides; ++i) {
+				float angle = (static_cast<float>(i) / numSides) * 2.0f * 3.14159265f;
+				float r = nodeRadius * baseRadii[i];
+				polyPoints[i] = ImVec2(pos.x + r * cosf(angle), pos.y + r * sinf(angle));
+			}
+
+			drawList->AddConvexPolyFilled(polyPoints, numSides, fillColor);
+
+			// 境界線
+			ImU32 borderCol = isCurrent ? MakeCol32(255, 220, 80, 255) : MakeCol32(60, 50, 35, 255);
+			float borderThk = isCurrent ? 3.0f : 2.0f;
+			drawList->AddPolyline(polyPoints, numSides, borderCol, ImDrawFlags_Closed, borderThk);
+
+			// エリア番号テキスト（大きめに中央表示）
+			std::string numStr = std::to_string(n.index);
+			// ImGui デフォルトフォントは約7x13px
+			float textW = numStr.size() * 7.0f;
+			float textH = 13.0f;
+			ImU32 textCol = isCurrent ? MakeCol32(50, 30, 0, 255) : MakeCol32(230, 220, 200, 255);
+			drawList->AddText(
+				ImVec2(pos.x - textW * 0.5f, pos.y - textH * 0.5f),
+				textCol,
+				numStr.c_str()
+			);
+		}
+
+		// === 現在エリア表示テキスト ===
+		std::string currentLabel = "Now: Area " + std::to_string(currentAreaIndex);
+		drawList->AddText(
+			ImVec2(mapLeft + mapW - 110, mapTop + 6),
+			MakeCol32(255, 220, 100, 255),
+			currentLabel.c_str()
+		);
+
+		drawList->PopClipRect();
 	}
 #endif
 }
