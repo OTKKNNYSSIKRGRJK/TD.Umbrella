@@ -24,7 +24,8 @@ namespace {
 	constexpr int kSplitChildCount = 2;
 	constexpr float kSplitHorizontalVelocity = 1.2f;
 	constexpr float kSplitVerticalVelocity = 2.5f;
-	constexpr float kEnemyHpScale = 0.7f;
+	constexpr float kSplitSpawnInvulnerability = 0.15f;
+	constexpr float kEnemyHpScale = 0.45f;
 	constexpr float kLargeAttackWindup = 0.75f;
 	constexpr float kMediumAttackWindup = 0.45f;
 	constexpr float kSmallAttackWindup = 0.2f;
@@ -251,6 +252,8 @@ namespace {
 			child->velocity.X = dir * kSplitHorizontalVelocity;
 			child->velocity.Y = (std::max)(parentVelocity.Y, kSplitVerticalVelocity);
 			child->facingRight = (dir > 0.0f) ? true : facingRight;
+			child->hurtTimer = kSplitSpawnInvulnerability;
+			child->recentlyDamagedThisFrame = true;
 			child->UpdateCollider();
 		}
 	}

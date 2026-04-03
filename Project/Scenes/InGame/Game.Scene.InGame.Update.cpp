@@ -186,6 +186,7 @@ namespace Game::Scene::Impl {
 			int tierIdx = (std::max)(0, (std::min)(2, ep.sizeCategory));
 			pe.BaseData.hp    = pe.BaseData.sizeTiers[tierIdx].hp;
 			pe.BaseData.power = pe.BaseData.sizeTiers[tierIdx].power;
+			pe.SizeTier       = tierIdx;
 			pe.Scale          = pe.BaseData.sizeTiers[tierIdx].scale;
 
 			pe.CurrentHP = pe.BaseData.hp;
@@ -194,7 +195,7 @@ namespace Game::Scene::Impl {
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale);
+			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
 		}
 
 		if (Player_) {
@@ -262,15 +263,18 @@ namespace Game::Scene::Impl {
 		CollisionManager_->CheckAllCollisions();
 
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
-		for (size_t i = 0; i < enemyInstances.size() && i < playState_.Enemies.size(); ++i) {
-			playState_.Enemies[i].Position = enemyInstances[i].position;
-			playState_.Enemies[i].FacingRight = enemyInstances[i].facingRight;
-			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
-			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
-				playState_.Enemies[i].CurrentHP = 0;
-			} else {
-				playState_.Enemies[i].CurrentHP = enemyInstances[i].currentHP;
-			}
+		playState_.Enemies.clear();
+		playState_.Enemies.reserve(enemyInstances.size());
+		for (const auto& inst : enemyInstances) {
+			PlayEnemy pe;
+			pe.BaseData = inst.baseData;
+			pe.Position = inst.position;
+			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
+			pe.IsDead = inst.isDead;
+			pe.FacingRight = inst.facingRight;
+			pe.SizeTier = inst.sizeTier;
+			pe.Scale = inst.modelScale;
+			playState_.Enemies.push_back(std::move(pe));
 		}
 
 		//TerrainEditor_->Update();
