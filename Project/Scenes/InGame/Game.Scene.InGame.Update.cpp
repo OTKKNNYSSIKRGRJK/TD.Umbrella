@@ -199,6 +199,7 @@ namespace Game::Scene::Impl {
 
 		if (Player_) {
 			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
+			Event::RespawnPos = Player_->GetPosition();
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
@@ -323,10 +324,9 @@ namespace Game::Scene::Impl {
 		if (Event::CameraShakingTimer > 0) {
 			auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
 			angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
-			angleInDeg *= (Lumina::Math::Random::Generator()() & 1) * 2 - 1;
 			float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
 			Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
-			float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 30.0f) * 0.1f;
+			float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
 			newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
 			--Event::CameraShakingTimer;
 		}
@@ -411,6 +411,171 @@ namespace Game::Scene::Impl {
 			break;
 		}
 		#endif
+
+		ImGui::Begin("Manual");
+
+		auto const& pad = inputMngr.Pad();
+		auto textColor = [](bool cond_) -> ImVec4 {
+			if (cond_) {
+				return ImVec4{ 1.0f, 0.3f, 0.3f, 1.0f };
+			}
+			else {
+				return ImVec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+			}
+		};
+
+		auto const playerWeaponStance = Player_->GetWeaponStance();
+		auto const weaponState = Player_->GetUmbrella().top_->GetUmbrellaForm();
+		//auto const& playerInput = Player_->GetInput();
+		// 納刀
+		if (playerWeaponStance == WeaponStance::Sheathed) {
+			ImGui::SeparatorText("Sheathed (Noutou)");
+			
+			ImGui::TextColored(
+				textColor(pad.GetLeftStickX() != 0.0f || pad.GetLeftStickY() != 0.0f),
+				"Left Stick : Move"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x8000)),
+				"Y : Battou"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x1000)),
+				"B"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x1000)),
+				"A : Jump"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x4000)),
+				"X : Repair Umbrella"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0100)),
+				"L Button : Use Mana"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0200)),
+				"R Button"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0040)),
+				"L2 Button"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0080)),
+				"R2 Button"
+			);
+		}
+		// 抜刀
+		else {
+			ImGui::SeparatorText("Drawn (Battou)");
+			ImGui::TextColored(
+				textColor(pad.GetLeftStickX() != 0.0f || pad.GetLeftStickY() != 0.0f),
+				"Left Stick : Move"
+			);
+
+			switch (weaponState) {
+				case UmbrellaForm::Closed:
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x8000)),
+						"Y : Attack"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"B"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"A : Jump"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x4000)),
+						"X : Noutou"
+					);
+					break;
+				case UmbrellaForm::Opened:
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x8000)),
+						"Y"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"B : Reverse Umbrella"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"A : Jump"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x4000)),
+						"X : Close Umbrella"
+					);
+					break;
+				case UmbrellaForm::Reverse:
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x8000)),
+						"Y (Nagaoshi) : Charge Attack"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"B"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x1000)),
+						"A : Jump"
+					);
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x4000)),
+						"X : Reverse Umbrella Again"
+					);
+					break;
+			}
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0100)),
+				"L Button (Nagaoshi) : Use Mana"
+			);
+			ImGui::TextColored(
+				textColor(pad.IsHold(0x0200)),
+				"R Button"
+			);
+			if (weaponState == UmbrellaForm::Flying || weaponState == UmbrellaForm::AirStop) {
+				ImGui::TextColored(
+					textColor(pad.IsHold(0x0040)),
+					"L2 Button : Recall Umbrella Top"
+				);
+			}
+			else {
+				ImGui::TextColored(
+					textColor(pad.IsHold(0x0040)),
+					"L2 Button : Aim"
+				);
+			}
+
+			if (weaponState == UmbrellaForm::Closed) {
+				ImGui::TextColored(
+					textColor(pad.IsHold(0x0080)),
+					"R2 Button: Open Umbrella"
+				);
+				
+			}
+			else if (weaponState == UmbrellaForm::Opened) {
+				if (pad.IsHold(0x0040)) {
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x0080)),
+						"R2 Button: Shoot Umbrella Top"
+					);
+				}
+				else {
+					ImGui::TextColored(
+						textColor(pad.IsHold(0x0080)),
+						"R2 Button: Guard"
+					);
+				}
+			}
+		}
+		ImGui::End();
 	}
 }
 

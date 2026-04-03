@@ -5,6 +5,7 @@ import : Main;
 import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
+import Game.Events;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -104,6 +105,14 @@ namespace PlayerStates::Movement {
 		}
 
 		player_->Jump();// コヨーテタイムのため
+
+		const auto& input = player_->GetInput();
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	/*void Airborne::Exit() {
@@ -134,6 +143,13 @@ namespace PlayerStates::Movement {
 		float deceleration = 15.0f; // ブレーキの強さ
 		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
 		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
+
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	void Idle::Exit() {
