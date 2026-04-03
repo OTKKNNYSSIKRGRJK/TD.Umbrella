@@ -290,7 +290,7 @@ namespace Game::Scene::Impl {
 					if (pos.X >= conn.trigger.position.x && pos.X <= conn.trigger.position.x + conn.trigger.size.x &&
 						pos.Y >= conn.trigger.position.y && pos.Y <= conn.trigger.position.y + conn.trigger.size.y) {
 						
-						if (keyboard.IsJustPressed(KEY::W)) {
+						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
 							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
 							break;

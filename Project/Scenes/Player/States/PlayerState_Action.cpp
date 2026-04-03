@@ -212,12 +212,12 @@ namespace PlayerStates::Action {
 		if (comboCount_ == 1) { 
 			stepPower = 20.0f;
 			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(1.0f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(10.0f);
 		}
 		else if (comboCount_ == 2) { 
 			stepPower = 0.0f;
 			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(2.0f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(20.0f);
 		}
 		else if (comboCount_ == 3) { 
 			stepPower = 40.0f;
@@ -225,17 +225,17 @@ namespace PlayerStates::Action {
 				if (player_->GetManaComponent().HasEnoughMana(30.0f)) {
 					player_->GetManaComponent().ConsumeMana(30.0f);
 					motion_.Play("SwingMana", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(6.0f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(60.0f);
 					stepPower = 55.0f;
 				}
 				else {
 					motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
 				}
 			}
 			else {
 				motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
+				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
 			}
 		}
 
