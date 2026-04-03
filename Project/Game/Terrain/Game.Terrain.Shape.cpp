@@ -62,6 +62,52 @@ namespace Game{
 }
 
 namespace Game {
+	namespace {
+		struct ChainVertex {
+			int ID;
+			int PrevID;
+			int NextID;
+		};
+
+		/// ### Notes
+		/// A closed and simple polygonal curve as input is assumed.
+		/// ### References
+		/// 1. https://www.cs.umd.edu/class/spring2020/cmsc754/Lects/lect05-triangulate.pdf
+		/// 2. https://dev.to/nail_sharipov_5d810d8cf71/monotone-triangulation-practical-advice-1k4j
+		auto DivideSimplePolygon(
+			std::vector<Lumina::Math::F32x3>& out_,
+			std::vector<Polygon::Vertex> const& in_
+		) -> void {
+			/*out_.clear();
+			if (in_.size() < 3) { return; }
+			using Vec3 = Lumina::Math::F32x3;
+			Vec3 const& pos0{ in_[0].Pos };
+			Vec3 const& pos1{ in_[1].Pos };
+			Vec3 edge01{ pos1 - pos0 };
+
+			Lumina::F32 sum_CrossProd{ 0.0f };
+
+			for (size_t idx{ 2 }; idx < in_.size(); ++idx) {
+				Vec3 const& pos2{ in_[idx].Pos };
+				Vec3 const edge02{ pos2 - pos0 };
+				Vec3 const crossProd_E01_E02{ Vec3::Cross(edge01, edge02) };
+				sum_CrossProd += crossProd_E01_E02.Z;
+
+				edge01 = edge02;
+			}*/
+
+			//	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	//
+			//	::	Step 1. Monotone Subdivision							::	//
+			//	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	//
+
+			
+
+			//	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	//
+			//	::	Step 2. Triangulation of Monotones						::	//
+			//	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	::	//
+		}
+	}
+
 	template<>
 	void TerrainShapeCollection::Initialize(JSON const& serialized_) {
 		(Polygons_.size() == 0) ||
