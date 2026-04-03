@@ -110,6 +110,11 @@ void InputHandler::HandleInput() {
         playerInput.repair
 	);
 
+    // ================
+    // 【 デバッグ用 】
+    // ================
+    input.debugRevive = keyboard.IsJustPressed(KEY::ENTER) || pad.IsHold(0x0010);
+
     // Playerに入力情報を渡す！
     player_->SetInputData(input);
 }

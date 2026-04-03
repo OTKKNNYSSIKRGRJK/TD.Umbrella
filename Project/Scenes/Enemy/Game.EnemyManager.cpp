@@ -320,7 +320,7 @@ namespace Game {
 				else if (other->GetMyType() == COL_Player_Attack) {
 					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
 						this->recentlyDamagedThisFrame = true;
-						float knockbackX = 1.2f;
+						float knockbackX = 3.2f;
 						if (other->GetWorldPosition().X < this->position.X) {
 							this->velocity.X = knockbackX;
 						} else {

@@ -27,6 +27,14 @@ namespace PlayerStates::Action {
 
 	void Dead::Update([[maybe_unused]] float deltaTime) {
 		// 死亡中はなにもできない
+
+		auto const& input{ player_->GetInput() };
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	void Dead::Exit() {
@@ -179,6 +187,7 @@ namespace PlayerStates::Action {
 
 		if (input.shoot == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::AirStop) {
+				Game::Event::OnAttack();
 				player_->WarpToUmbrella();
 				return;
 			}
@@ -269,6 +278,7 @@ namespace PlayerStates::Action {
 		// 【 先行入力 】
 		// =================================
 		if (input.attack == ButtonState::Pressed && attackTimer_ > 0.1f) {
+			Game::Event::OnAttack();
 			isNextAttackReserved_ = true;
 		}
 
@@ -539,6 +549,8 @@ namespace PlayerStates::Action {
 	void DrawWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		if (input.attack == ButtonState::Pressed) {
+
+			Game::Event::OnAttack();
 			// 攻撃の予約を行う
 			player_->ReserveActionState(player_->attackState_.get());
 		}
@@ -648,6 +660,8 @@ namespace PlayerStates::Action {
 		player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (input.sheathe == ButtonState::Pressed) {
+
+			Game::Event::OnAttack();
 			// 行動の予約を行う
 			player_->ReserveActionState(player_->sheatheWeaponState_.get());
 		}
