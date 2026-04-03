@@ -57,13 +57,39 @@ namespace PlayerStates::Movement {
 	}*/
 
 	void Airborne::Update(float deltaTime) {
-		// 空気の抵抗（小さいのであまり減速しない）
-		float airResistance = 2.0f;
-		float gravity = 9.8f * 2.1f; // 重力加速度
+		float gravity = 25.2f; // 重力加速度
 
-		// 外部からの速度（X, Z軸）を少しだけ減衰させる
-		player_->externalVelocity_.X = std::lerp(player_->externalVelocity_.X, 0.0f, airResistance * deltaTime);
-		player_->externalVelocity_.Z = std::lerp(player_->externalVelocity_.Z, 0.0f, airResistance * deltaTime);
+		// --------------------------------------------------------
+		// 1. 空中制御のパラメータ（マジックナンバーは後で定数化推奨）
+		// --------------------------------------------------------
+		float airMaxSpeed = 8.0f;       // 空中での最高速度（抜刀時などと同じくらい）
+		float airAcceleration = 4.0f;   // ★ココが重要！地上が15.0fなら、かなり小さくする
+
+		// --------------------------------------------------------
+		// 2. 目標速度の計算とLerp
+		// --------------------------------------------------------
+		float targetVelocityX = player_->GetInput().moveDirection.X * airMaxSpeed;
+
+		// 現在の速度から、目標速度に向けてゆっくり加速（減速）させる
+		player_->myVelocity_.X = std::lerp(
+			player_->myVelocity_.X,
+			targetVelocityX,
+			airAcceleration * deltaTime
+		);
+
+		if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+			// 傘を開いている間は、空中での制御をさらに弱くする（ふわっとさせる）
+			airAcceleration = 2.0f; // さらに小さくする
+			if (player_->externalVelocity_.Y < 0.0f) {
+				// 落ちるときにふわふわする
+				gravity = 10.0f; // 落ちるのも遅くする
+			}
+		}
+
+		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
+			// チャージ量によって落ちるのを速くする
+			gravity = 25.2f + 15.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.4f));
+		}
 
 		// Y軸には常に重力をかけ続ける
 		player_->externalVelocity_.Y -= gravity * deltaTime;
@@ -144,6 +170,10 @@ namespace PlayerStates::Movement {
 		case WeaponStance::Drawn:
 			targetSpeed = 8.0f;
 			break;
+		}
+
+		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
+			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.6f));
 		}
 
 		float acceleration = 15.0f;

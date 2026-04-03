@@ -33,124 +33,157 @@ namespace PlayerStates::Action {
 
 	////////////////////////////
 	//
-	//  Normal
+	//  NormalSheathed
 	// 
 	////////////////////////////
-	void Normal::Enter() {
+	void NormalSheathed::Enter() {
 
 	}
 
-	void Normal::Update([[maybe_unused]] float deltaTime) {
+	void NormalSheathed::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		const auto& umbrella = player_->GetUmbrella();
+		const auto umbrellaForm = umbrella.top_->GetUmbrellaForm();
 
+		// 【 RightJointの位置決め 】
 		Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
 		handPos.Y += 1.0f; // 少し上へ
-
 		player_->GetRightHandJoint()->SetPos(handPos);
 
-		// 特になにもしていない時のState
-		if (input.isAttack) {
-			switch (player_->GetWeaponStance()) {
-			case WeaponStance::Sheathed:
-				// 納刀状態なら攻撃をする前に抜刀するようにする
+		if (input.attack == ButtonState::Pressed) {
+			// 納刀状態なら攻撃をする前に抜刀するようにする
 				// この時、攻撃をする意思があることを伝えるようにする
 				// ChangeState -> DrawWeapon -> Attack
-				player_->ChangeActionState(player_->drawWeaponState_.get());
-				break;
-			case WeaponStance::Drawn:
-				if (umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Closed) {
-					player_->ChangeActionState(player_->attackState_.get());
-					return;
-				}
-				if (input.isAttackHeld) {
-					if (umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Reverse) {
-						player_->ChangeActionState(player_->reverseChargeState_.get());
-						return;
-					}
-				}
-				break;
-				// その他の状態なら攻撃が出来ないのでどうなるか分からない
-				// ただ、残りの状態なら同じ処理になるのでBreakせず処理をまとめる
-			}
+			player_->ChangeActionState(player_->drawWeaponState_.get());
+			return;
 		}
-		else if (input.isSheathe) {
-			switch (player_->GetWeaponStance()) {
-			case WeaponStance::Sheathed:
-				// なにもない
-				break;
-			case WeaponStance::Drawn:
-				// 抜刀状態なら納刀のStateに遷移出来る
-				// ChangeState -> SheatheWeapon
-				if (umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Closed) {
-					player_->ChangeActionState(player_->sheatheWeaponState_.get());
-				}
-				else {
-					player_->ChangeActionState(player_->umbrellaCloseState_.get());
-				}
-				break;
-				// ほかもSheatheでいいかな
-			}
+
+		if (input.sheathe == ButtonState::Pressed) {
+			
 		}
-		else if (input.isGuard) {
-			switch (player_->GetWeaponStance()) {
-			case WeaponStance::Sheathed:
-				// 抜刀状態にしてガードする？一旦わからない
-				break;
-			case WeaponStance::Drawn:
-				// 抜刀状態なので傘は開いているか確認する
-				if ((umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Opened) || (umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Reverse)) {
-					player_->ChangeActionState(player_->guardState_.get());
-				}
-				else {
-					// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
-					player_->ChangeActionState(player_->umbrellaOpenState_.get());
-				}
-				break;
-			}
+
+		if (input.guard == ButtonState::Pressed) {
+			
 		}
-		else if (input.isReverse) {
-			switch (player_->GetWeaponStance()) {
-			case WeaponStance::Sheathed:
-				// 抜刀状態にしてガードする？一旦わからない
-				break;
-			case WeaponStance::Drawn:
-				// 抜刀状態なので傘は開いているか確認する
-				if ((umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Opened)) {
-					player_->ChangeActionState(player_->umbrellaReverseState_.get());
-				}
-				else {
-					// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
-					//player_->ChangeActionState(player_->umbrellaOpenState_.get());
-				}
-				break;
-			}
+
+		if (input.reverse == ButtonState::Pressed) {
+			
 		}
-		if (input.isRepair) {
-			switch (player_->GetWeaponStance()) {
-			case WeaponStance::Sheathed:
-				// 耐久値が減っている時（MAXじゃない時）だけ修理できるようにする
-				if (umbrella.top_->GetStatusComponent().GetHp() < umbrella.top_->GetStatusComponent().GetMaxHp()) {
-					player_->ChangeActionState(player_->repairUmbrellaState_.get());
-					return;
-				}
-				break;
-			case WeaponStance::Drawn:
-				
-				break;
+
+		if (input.repair == ButtonState::Pressed) {
+			// 耐久値が減っている時（MAXじゃない時）だけ修理できるようにする
+			if (umbrella.top_->GetStatusComponent().GetHp() < umbrella.top_->GetStatusComponent().GetMaxHp()) {
+				player_->ChangeActionState(player_->repairUmbrellaState_.get());
+				return;
 			}
 			
 		}
 
-		if (input.isShoot) {
-			if (umbrella.top_->GetUmbrellaForm() == UmbrellaForm::Flying) {
-				player_->WarpToUmbrella();
+		if (input.shoot == ButtonState::Pressed) {
+			if (umbrellaForm == UmbrellaForm::Flying) {
+				//player_->WarpToUmbrella();
 			}
 		}
 	}
 
-	void Normal::Exit() {
+	void NormalSheathed::Exit() {
+
+	}
+
+	///////////////////////
+	///
+	/// NormalDrawn
+	///
+	///////////////////////
+	void NormalDrawn::Enter() {
+
+	}
+
+	void NormalDrawn::Update([[maybe_unused]] float deltaTime) {
+		const auto& input = player_->GetInput();
+		const auto& umbrella = player_->GetUmbrella();
+		const auto umbrellaForm = umbrella.top_->GetUmbrellaForm();
+
+		// 【 RightJointの位置決め 】
+		Vector3 handPos = player_->GetPosition();
+		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.Y += 1.0f; // 少し上へ
+		player_->GetRightHandJoint()->SetPos(handPos);
+
+		// 特になにもしていない時のState
+		if (input.attack == ButtonState::Pressed) {
+			if (umbrellaForm == UmbrellaForm::Closed) {
+				player_->ChangeActionState(player_->attackState_.get());
+				return;
+			}
+		}
+		else if (input.attack == ButtonState::Held) {
+			if (umbrellaForm == UmbrellaForm::Reverse) {
+				player_->ChangeActionState(player_->reverseChargeState_.get());
+				return;
+			}
+		}
+
+		if (input.sheathe == ButtonState::Pressed) {
+			// 抜刀状態なら納刀のStateに遷移出来る
+				// ChangeState -> SheatheWeapon
+			if (umbrellaForm != UmbrellaForm::Flying && umbrellaForm != UmbrellaForm::AirStop) {
+				if (umbrellaForm == UmbrellaForm::Closed) {
+					player_->ChangeActionState(player_->sheatheWeaponState_.get());
+					return;
+				}
+				else if (umbrellaForm == UmbrellaForm::Reverse) {
+					player_->ChangeActionState(player_->umbrellaOpenState_.get());
+					return;
+				}
+				else {
+					player_->ChangeActionState(player_->umbrellaCloseState_.get());
+					return;
+				}
+			}
+		}
+
+		if (input.guard == ButtonState::Pressed) {
+			// 抜刀状態なので傘は開いているか確認する
+			if ((umbrellaForm == UmbrellaForm::Opened) || (umbrellaForm == UmbrellaForm::Reverse)) {
+				player_->ChangeActionState(player_->guardState_.get());
+				return;
+			}
+			else {
+				if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
+					// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
+					player_->ChangeActionState(player_->umbrellaOpenState_.get());
+					return;
+				}
+			}
+		}
+
+		if (input.reverse == ButtonState::Pressed) {
+			// 抜刀状態なので傘は開いているか確認する
+			if ((umbrellaForm == UmbrellaForm::Opened)) {
+				player_->ChangeActionState(player_->umbrellaReverseState_.get());
+				return;
+			}
+			else {
+				// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
+				//player_->ChangeActionState(player_->umbrellaOpenState_.get());
+			}
+		}
+
+		if (input.repair == ButtonState::Pressed) {
+			
+		}
+
+		if (input.shoot == ButtonState::Pressed) {
+			if (umbrellaForm == UmbrellaForm::AirStop) {
+				player_->WarpToUmbrella();
+				return;
+			}
+		}
+	}
+
+	void NormalDrawn::Exit() {
 
 	}
 
@@ -176,26 +209,31 @@ namespace PlayerStates::Action {
 		float stepPower = 0.0f;
 		if (comboCount_ == 1) { 
 			stepPower = 20.0f;
-			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.5f);
+			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.3f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(1.0f);
 		}
 		else if (comboCount_ == 2) { 
 			stepPower = 0.0f;
-			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.4f);
+			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.3f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(2.0f);
 		}
 		else if (comboCount_ == 3) { 
-			stepPower = 30.0f;
+			stepPower = 40.0f;
 			if (player_->GetInput().useMana) {
 				if (player_->GetManaComponent().HasEnoughMana(30.0f)) {
 					player_->GetManaComponent().ConsumeMana(30.0f);
 					motion_.Play("SwingMana", { 0.0f,0.0f,0.0f }, 0.4f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(6.0f);
 					stepPower = 55.0f;
 				}
 				else {
-					motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.3f);
+					motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
 				}
 			}
 			else {
-				motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.3f);
+				motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
+				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
 			}
 		}
 
@@ -228,7 +266,7 @@ namespace PlayerStates::Action {
 		// =================================
 		// 【 先行入力 】
 		// =================================
-		if (input.isAttack && attackTimer_ > 0.1f) {
+		if (input.attack == ButtonState::Pressed && attackTimer_ > 0.1f) {
 			isNextAttackReserved_ = true;
 		}
 
@@ -245,7 +283,7 @@ namespace PlayerStates::Action {
 			else {
 				// コンボ終了
 				comboCount_ = 1;
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalDrawnState_.get());
 
 				// 攻撃が終わったので、移動ステートを元に戻す（Idleにして入力を再開させる）
 				player_->ChangeMovementState(player_->idleState_.get());
@@ -283,11 +321,11 @@ namespace PlayerStates::Action {
 
 		if (true/*再生が終わったら*/) {
 			Vector3 throwVelocity = player_->GetTargetPos() - player_->GetPosition();
-			float throwSpeed = 25.0f; // 投げる速度の調整用の定数
+			float throwSpeed = 1.0f; // 投げる速度の調整用の定数
 			throwVelocity.X *= throwSpeed;
 			throwVelocity.Y *= throwSpeed;
 			player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Flying(throwVelocity));
-			player_->ChangeActionState(player_->normalState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
 		}
 
 	}
@@ -329,10 +367,16 @@ namespace PlayerStates::Action {
 			player_->GetUmbrella().top_->GetManaComponent().AddMana(chargeSpeed);
 
 			// ※ここで傘のモデルを少し膨張させたり、水のエフェクトを濃くする
+			player_->GetSmashCollider()->ClearVertices();
+			player_->GetSmashCollider()->SetVertices({
+				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
+				{0.0f,2.0f,0.0f},
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f}
+			});
 		}
 
 		// 攻撃ボタンを離したら、チャージ攻撃ステートへ移行！
-		if (player_->GetInput().isAttackReleased) {
+		if (player_->GetInput().attack == ButtonState::Released) {
 			player_->ChangeActionState(player_->reverseAttackState_.get());
 		}
 
@@ -364,6 +408,8 @@ namespace PlayerStates::Action {
 
 		// ※ プレイヤーの攻撃モーション（バシャーン！と水をぶちまける）を再生
 		motion_.Play("Swing", { 0.0f,0.0f,0.0f }, 0.5f);
+
+		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
 	}
 
 	void ReverseAttack::Update(float deltaTime) {
@@ -377,13 +423,18 @@ namespace PlayerStates::Action {
 			// 傘の攻撃ステートを解除して通常状態に戻す
 			player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
 			// プレイヤーの攻撃モーションも終了させる
-			player_->ChangeActionState(player_->normalState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
 		}
 	}
 
 	void ReverseAttack::Exit() {
 		// 傘の攻撃力を元に戻す
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(10.0f); // 基礎攻撃力にリセット
+		// 攻撃判定(Collider)をオフにする処理などもここに書く
+		player_->GetSmashCollider()->SetMyType(COL_None);
+
+		player_->GetSmashCollider()->ClearVertices();
+		player_->GetSmashCollider()->SetMyType(COL_None);
 	}
 
 	////////////////////////////
@@ -413,9 +464,9 @@ namespace PlayerStates::Action {
 		//player_->GetRightHandJoint()->SetRot(handRot);
 
 
-		if (input.isGuard == false) {
+		if (input.guard == ButtonState::Released) {
 			// ガードボタンを離したら終わる
-			player_->ChangeActionState(player_->normalState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
 		}
 	}
 
@@ -437,11 +488,11 @@ namespace PlayerStates::Action {
 
 	void SheatheWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
-		if (input.isAttack) {
+		if (input.attack == ButtonState::Pressed) {
 			// 攻撃の予約を行う
 			//player_->ReserveActionState(player_->attackState_.get());
 		}
-		else if (input.isEvasion) {
+		else if (input.evasion == ButtonState::Pressed) {
 			// 回避の予約を行う
 			//player_->ReserveActionState(player_->evasionState_.get());
 		}
@@ -464,7 +515,7 @@ namespace PlayerStates::Action {
 			else {
 				// 終わったので通常状態に戻す
 			// ※ もしなにか他にあるならこれより前に書く
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalSheathedState_.get());
 			}
 		}
 	}
@@ -485,7 +536,7 @@ namespace PlayerStates::Action {
 
 	void DrawWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
-		if (input.isAttack) {
+		if (input.attack == ButtonState::Pressed) {
 			// 攻撃の予約を行う
 			player_->ReserveActionState(player_->attackState_.get());
 		}
@@ -507,7 +558,7 @@ namespace PlayerStates::Action {
 			else {
 				// 終わったので通常状態に戻す
 			// ※ もしなにか他にあるならこれより前に書く
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalDrawnState_.get());
 			}
 		}
 	}
@@ -527,6 +578,13 @@ namespace PlayerStates::Action {
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Open());
 		// 予約の初期化
 		player_->ConsumeReservedAction();
+
+		// 空中で開いたら少し上昇する
+		if (player_->onGround_ == false) {
+			if (IsButtonUp(player_->GetInput().aim)) {
+				player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+			}
+		}
 	}
 	void UmbrellaOpen::Update([[maybe_unused]] float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
@@ -534,10 +592,9 @@ namespace PlayerStates::Action {
 		Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
 		handPos.Y += 1.0f; // 少し上へ
-
 		player_->GetRightHandJoint()->SetPos(handPos);
 
-		if (input.isGuard) {
+		if (input.guard == ButtonState::Pressed) {
 			// 行動の予約を行う
 			player_->ReserveActionState(player_->guardState_.get());
 		}
@@ -555,7 +612,7 @@ namespace PlayerStates::Action {
 			else {
 				// 終わったので通常状態に戻す
 			// ※ もしなにか他にあるならこれより前に書く
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalDrawnState_.get());
 			}
 		}
 	}
@@ -585,7 +642,7 @@ namespace PlayerStates::Action {
 
 		player_->GetRightHandJoint()->SetPos(handPos);
 
-		if (input.isSheathe) {
+		if (input.sheathe == ButtonState::Pressed) {
 			// 行動の予約を行う
 			player_->ReserveActionState(player_->sheatheWeaponState_.get());
 		}
@@ -603,7 +660,7 @@ namespace PlayerStates::Action {
 			else {
 				// 終わったので通常状態に戻す
 			// ※ もしなにか他にあるならこれより前に書く
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalDrawnState_.get());
 			}
 		}
 	}
@@ -651,7 +708,7 @@ namespace PlayerStates::Action {
 			else {
 				// 終わったので通常状態に戻す
 			// ※ もしなにか他にあるならこれより前に書く
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalDrawnState_.get());
 			}
 		}
 	}
@@ -691,7 +748,7 @@ namespace PlayerStates::Action {
 		//   =====================================================
 		// 【 回避（コロリン）によるキャンセル処理（いつでも可能）】
 		//   =====================================================
-		if (input.isEvasion) {
+		if (input.evasion == ButtonState::Pressed) {
 			// ※ここでエフェクトや音を止める処理を入れる
 			// 回避ステートへ強制移行して修理を中断！
 			// player_->ChangeActionState(player_->evasionState_.get());
@@ -733,7 +790,7 @@ namespace PlayerStates::Action {
 			finishTimer_ += deltaTime;
 			if (finishTimer_ >= FINISH_TIME) {
 				// 完了モーションが終わったら通常状態へ戻る
-				player_->ChangeActionState(player_->normalState_.get());
+				player_->ChangeActionState(player_->normalSheathedState_.get());
 			}
 			return; // 完了モーション中は回復ループの処理をしない
 		}

@@ -28,23 +28,66 @@ export enum class WeaponStance {
 	Drawn,   // 抜刀
 };
 
+// ボタンの入力状態を表す列挙型
+export enum class ButtonState {
+	None,     // 0,0 : 押されていない
+	Pressed,  // 0,1 : 押した瞬間 (Trigger)
+	Held,     // 1,1 : 押しっぱなし (Hold)
+	Released  // 1,0 : 離した瞬間 (Release)
+};
+
+inline bool IsButtonDown(ButtonState state) {
+	return state == ButtonState::Pressed || state == ButtonState::Held;
+}
+
+inline bool IsButtonUp(ButtonState state) {
+	return state == ButtonState::None || state == ButtonState::Released;
+}
+
+ButtonState UpdateButtonState(bool isPress, ButtonState previousState) {
+	if (isPress) {
+		// 今押されていて、前回押されていなかったら「押した瞬間」
+		if (previousState == ButtonState::None || previousState == ButtonState::Released) {
+			return ButtonState::Pressed;
+		}
+		// それ以外（前回も押されていた）なら「押しっぱなし」
+		return ButtonState::Held;
+	}
+	else {
+		// 今押されてなくて、前回押されていたら「離した瞬間」
+		if (previousState == ButtonState::Pressed || previousState == ButtonState::Held) {
+			return ButtonState::Released;
+		}
+		// それ以外（前回も押されてない）なら「何もなし」
+		return ButtonState::None;
+	}
+}
+
 export struct PlayerInputData {
-	Vector3 moveDirection;// 左スティックの入力方向
-	float aimingDirectionX;// 右スティックの左右入力
-	float aimingDirectionY;// 右スティックの上下入力
-	bool isAttack;        // 攻撃ボタンが押された瞬間か
-	bool isAttackHeld;
-	bool isAttackReleased;
-	bool isJump;		  // ジャンプボタンが押された瞬間か
-	bool isEvasion;		  // 回避ボタンが押された瞬間か
-	bool isSheathe;		  // 納刀ボタンが押されたか瞬間か
-	bool useMana;         // マナを使用するかどうか
-	bool isGuard;
-	bool isReverse;
-	bool isAiming;        // 照準を合わせているかどうか
-	bool isAimingHeld;
-	bool isShoot;         // 射撃したかどうか
-	bool isRepair;        // 修理ボタンを押したかどうか
+	// ---------------------------------
+	// アナログ入力（スティック類）
+	// ---------------------------------
+	Vector3 moveDirection = {0.0f,0.0f,0.0f};  // 左スティックの入力方向
+	float aimingDirectionX = 0.0f; // 右スティックの左右入力
+	float aimingDirectionY = 0.0f; // 右スティックの上下入力
+
+	// ---------------------------------
+	// デジタル入力（ボタン類）
+	// ---------------------------------
+	ButtonState attack = ButtonState::None;     // 攻撃ボタン (Pressed, Held, Releasedなど全てこれで判別)
+	ButtonState jump = ButtonState::None;       // ジャンプボタン
+	ButtonState evasion = ButtonState::None;    // 回避ボタン
+	ButtonState sheathe = ButtonState::None;    // 納刀ボタン
+	ButtonState guard = ButtonState::None;      // ガードボタン
+	ButtonState reverse = ButtonState::None;    // リバースボタン
+	ButtonState aim = ButtonState::None;        // 照準ボタン
+	ButtonState shoot = ButtonState::None;      // 射撃ボタン
+	ButtonState repair = ButtonState::None;     // 修理ボタン
+
+	// ---------------------------------
+	// 特殊なフラグ（トグルなど）
+	// ---------------------------------
+	bool useMana = false;
 };
 
 export class Player {
@@ -71,6 +114,8 @@ public:
 	void ChangeMovementState(PlayerStates::Base* newState);
 	void ChangeActionState(PlayerStates::Base* newState);
 	bool onGround_ = false;
+	PlayerStates::Base* GetCurrentMovementState() const { return currentMovementState_; }
+	PlayerStates::Base* GetCurrentActionState() const { return currentActionState_; }
 private:
 	WeaponStance currentStance_ = WeaponStance::Drawn;
 
@@ -92,7 +137,8 @@ public:
 	std::unique_ptr<PlayerStates::Action::Dead>deadState_;
 	std::unique_ptr<PlayerStates::Action::SheatheWeapon>sheatheWeaponState_;
 	std::unique_ptr<PlayerStates::Action::DrawWeapon>drawWeaponState_;
-	std::unique_ptr<PlayerStates::Action::Normal>normalState_;
+	std::unique_ptr<PlayerStates::Action::NormalSheathed>normalSheathedState_;
+	std::unique_ptr<PlayerStates::Action::NormalDrawn>normalDrawnState_;
 	std::unique_ptr<PlayerStates::Action::Attack>attackState_;
 	std::unique_ptr<PlayerStates::Action::Guard>guardState_;
 	std::unique_ptr<PlayerStates::Action::ReverseCharge>reverseChargeState_;
@@ -218,10 +264,10 @@ private:
 	//////////////////////////////
 public:
 	Collider* GetCollider()const { return collider_.get(); }
-
+	ConvexCollider* GetSmashCollider()const { return smashCollider_.get(); }
 private:
 	std::unique_ptr<ConvexCollider>collider_;
-
+	std::unique_ptr<ConvexCollider> smashCollider_;
 	//////////////////////////////
 	///
 	///   その他

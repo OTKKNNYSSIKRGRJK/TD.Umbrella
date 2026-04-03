@@ -222,8 +222,6 @@ namespace Game::Scene::Impl {
 #endif
 
 	void InGame::Update() {
-		MotionEditor::GetInstance()->NodeImGui();
-		//TerrainEditor_->Update();
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
@@ -241,6 +239,10 @@ namespace Game::Scene::Impl {
 		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
+		CollisionManager_->SetColliders(Player_->GetSmashCollider());
+		for (auto const& polygon : Terrain_->PolygonsData()) {
+			CollisionManager_->SetColliders(polygon.Col.get());
+		}
 		auto const& groundColliders = Terrain_->GroundData().Colliders;
 		for (auto const& col : groundColliders) {
 			CollisionManager_->SetColliders(col.get());
@@ -269,7 +271,7 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		TerrainEditor_->Update();
+		//TerrainEditor_->Update();
 
 		#if defined(_DEBUG)
 		// エリアの移動処理

@@ -137,6 +137,23 @@ namespace Game {
 			retGroundVert.Pos = Lumina::Math::F32x3{ worldPos.X(), worldPos.Y(), 0.0f };
 		}
 
+		// ジェネラルポリゴンコライダー生成
+		for (auto& outPolygon : out_.Polygons_) {
+			outPolygon.Col = std::make_unique<ConvexCollider>();
+			std::vector<Lumina::Math::F32x3> outVertPoses{};
+			for (auto const& outVert : outPolygon.Vertices) {
+				outVertPoses.emplace_back(outVert.Pos.X, outVert.Pos.Y, 0.0f);
+			}
+			outPolygon.Col->SetVertices(outVertPoses);
+
+			outPolygon.Col->SetMyType(COL_Ground);
+			outPolygon.Col->SetYourType(COL_Player | COL_Enemy | COL_Umbrella_Ground);
+			outPolygon.Col->SetWorldPosition({ 0.0f, 0.0f, 0.0f });
+
+			outPolygon.Col->UpdateAABB();
+		}
+
+		// 地面コライダー生成
 		auto const* retGroundVert0{ &(out_.Ground_.Vertices[0]) };
 		for (size_t i = 1; i < out_.Ground_.Vertices.size(); ++i) {
 			auto const* retGroundVert1{ &(out_.Ground_.Vertices[i]) };

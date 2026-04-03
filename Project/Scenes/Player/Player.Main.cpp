@@ -43,7 +43,7 @@ void Player::Initialize() {
 	umbrella_ = std::make_unique<Umbrella::Main>();
 	umbrella_->Initialize();
 
-	umbrella_->handle_->GetBaseJoint()->AttachTo(GetRightHandJoint());
+	umbrella_->handle_->GetBaseJoint()->AttachTo(GetBackJoint());
 
 	motionController_ = std::make_unique<MotionController>();
 
@@ -163,6 +163,11 @@ void Player::Initialize() {
 		}
 	};
 
+	smashCollider_ = std::make_unique<ConvexCollider>();
+	smashCollider_->SetMyType(COL_None);
+	smashCollider_->SetYourType(COL_Enemy);
+	smashCollider_->SetUserData(this);
+
 	WorldMatrix_ = std::make_unique<Matrix4x4>();
 }
 
@@ -184,6 +189,31 @@ void Player::Update(float deltaTime) {
 	if (mana_) {
 		mana_->Update(deltaTime);
 	}
+
+	ThrowUpdate(deltaTime);
+
+	if (IsButtonUp(inputData_.shoot)) {
+		umbrella_->top_->SetPlayerPos(GetPosition());
+		if (inputData_.aim == ButtonState::Held) {
+			umbrella_->top_->StartRecall();
+		}
+
+		if (umbrella_->top_->IsRecalling()) {
+			Vector3 toPlayer = GetPosition() - umbrella_->top_->GetRootJoint()->GetPos();
+
+			// 2. 距離を測っておく（回収判定用）
+			float distance = sqrt(toPlayer.X * toPlayer.X + toPlayer.Y * toPlayer.Y);
+
+			if (distance < 1.0f) {
+				umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
+				umbrella_->top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+				umbrella_->top_->ChangeState(new UmbrellaStates::Attached());
+				umbrella_->top_->ChangeForm(UmbrellaForm::Closed);
+			}
+		}
+	}
+
 	// ステートの更新
 	if (currentMovementState_) {
 		currentMovementState_->Update(deltaTime);
@@ -193,8 +223,6 @@ void Player::Update(float deltaTime) {
 	}
 
 	if (this->status_->IsDead())return;
-
-	ThrowUpdate(deltaTime);
 
 	// =========================
 	// 【 コヨーテタイムの処理 】
@@ -227,6 +255,10 @@ void Player::Update(float deltaTime) {
 
 	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
+
+	// 仮 SmashCollider
+	smashCollider_->SetWorldPosition(GetPosition());
+	smashCollider_->SetWorldMatrix(*WorldMatrix_);
 
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
@@ -331,7 +363,8 @@ void Player::InitializeStates() {
 	deadState_ = std::make_unique<Action::Dead>();deadState_->SetInfo(this);
 	sheatheWeaponState_ = std::make_unique<Action::SheatheWeapon>();sheatheWeaponState_->SetInfo(this);
 	drawWeaponState_ = std::make_unique<Action::DrawWeapon>();drawWeaponState_->SetInfo(this);
-	normalState_ = std::make_unique<Action::Normal>();normalState_->SetInfo(this);
+	normalSheathedState_ = std::make_unique<Action::NormalSheathed>();normalSheathedState_->SetInfo(this);
+	normalDrawnState_ = std::make_unique<Action::NormalDrawn>();normalDrawnState_->SetInfo(this);
 	attackState_ = std::make_unique<Action::Attack>();attackState_->SetInfo(this);
 	guardState_ = std::make_unique<Action::Guard>();guardState_->SetInfo(this);
 	reverseChargeState_ = std::make_unique<Action::ReverseCharge>();reverseChargeState_->SetInfo(this);
@@ -344,7 +377,7 @@ void Player::InitializeStates() {
 	repairUmbrellaState_ = std::make_unique<PlayerStates::Action::RepairUmbrella>();repairUmbrellaState_->SetInfo(this);
 
 	// 最初の設定
-	currentActionState_ = normalState_.get();
+	currentActionState_ = normalSheathedState_.get();
 }
 
 void Player::InitializeComponents() {
@@ -364,7 +397,7 @@ void Player::AddForce(const Vector3& force) {
 }
 
 void Player::Jump() {
-	if (inputData_.isJump) {
+	if (inputData_.jump == ButtonState::Pressed) {
 		if (this->onGround_ || this->jumpCoyoteTimer_ < JUMP_COYOTE_MAX_TIME) {
 			// Y軸に上向きの初速（ジャンプ力）を与える！
 			float jumpPower = 12.0f; // 調整
@@ -393,22 +426,24 @@ void Player::UmbrellaAttachRHand() {
 ///
 ///////////////////
 void Player::ThrowUpdate([[maybe_unused]]float deltaTime) {
-	// 照準を押しているときは飛ばす方向を決めれる。
-	// ただし、抜刀済みのみ
-	float scalar = 5.0f;
-	if (inputData_.isAiming) {
-		targetPos_.X = GetPosition().X + scalar;
-		targetPos_.Y = GetPosition().Y;
-	}
-	else if (inputData_.isAimingHeld == true) {
-		// ここは要改善
-		targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
-		targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
+	if (umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::Flying && umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::AirStop) {
+		// 照準を押しているときは飛ばす方向を決めれる。
+		// ただし、抜刀済みのみ
+		float scalar = 5.0f;
+		if (inputData_.aim == ButtonState::Pressed) {
+			targetPos_.X = GetPosition().X + scalar;
+			targetPos_.Y = GetPosition().Y;
+		}
+		else if (inputData_.aim == ButtonState::Held) {
+			// ここは要改善
+			targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
+			targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
 
-		// 照準のときのみ射撃する
-		if (inputData_.isShoot) {
-			// ここで投げる処理
-			ChangeActionState(throwUmbrellaState_.get());
+			// 照準のときのみ射撃する
+			if (inputData_.shoot == ButtonState::Pressed) {
+				// ここで投げる処理
+				ChangeActionState(throwUmbrellaState_.get());
+			}
 		}
 	}
 }
@@ -430,5 +465,5 @@ void Player::WarpToUmbrella() {
 
 	// 4. 空中状態にするなどの後処理
 	ChangeMovementState(airborneState_.get());
-	ChangeActionState(normalState_.get());
+	ChangeActionState(normalDrawnState_.get());
 }

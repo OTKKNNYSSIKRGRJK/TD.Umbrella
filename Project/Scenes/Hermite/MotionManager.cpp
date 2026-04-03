@@ -228,7 +228,7 @@ void MotionEditor::NodeImGui() {
     }
     ImGui::SameLine();
     if (ImGui::Button("ReLoad")) {
-		MotionManager::GetInstance()->LoadMotions("resources/Data/Motion/Hermite/");
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
     }
 
     // 保存システム ここまで↑↑↑
@@ -258,7 +258,7 @@ void MotionEditor::NodeImGui() {
 }
 
 void MotionEditor::SaveNode(const std::string& filename, const std::vector<Spline::Node<Vector3>>& nodes) {
-    std::string filePath = "resources/Data/Motion/Hermite/" + filename + ".json";
+    std::string filePath = "Assets/Data/Motion/" + filename + ".json";
     json j = MathUtils::Spline::SerializeNodes(nodes);
     std::ofstream file(filePath);
     if (file.is_open()) {

@@ -193,6 +193,13 @@ namespace Game {
 					if (isSelected) { break; }
 				}
 			}
+
+			if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && SelectedPoint_ != nullptr) {
+				auto const dragDelta{ ImGui::GetMouseDragDelta(ImGuiMouseButton_Left) };
+				SelectedPoint_->Pos.X += dragDelta.x / Zoom_;
+				SelectedPoint_->Pos.Y += dragDelta.y / Zoom_;
+				ImGui::ResetMouseDragDelta();
+			}
 		}
 	}
 
@@ -402,9 +409,23 @@ namespace Game {
 
 		ImGui::EndChild();
 
-		ImGui::DragFloat2("Map size (in screen coordinate)", &CanvasSize_.X, 1.0f, 0.0f);
-		CanvasSize_.X = std::max<float>(CanvasSize_MIN_.X, CanvasSize_.X);
-		CanvasSize_.Y = std::max<float>(CanvasSize_MIN_.Y, CanvasSize_.Y);
+		static float canvasSizeY = CanvasSize_.Y;
+		if (ImGui::DragFloat2("Map size (in screen coordinate)", &CanvasSize_.X, 1.0f, 0.0f)) {
+			CanvasSize_.X = std::max<float>(CanvasSize_MIN_.X, CanvasSize_.X);
+			CanvasSize_.Y = std::max<float>(CanvasSize_MIN_.Y, CanvasSize_.Y);
+			if (canvasSizeY != CanvasSize_.Y) {
+				auto const diffY{ canvasSizeY - CanvasSize_.Y };
+				for (auto& polygon : Polygons_) {
+					for (auto& vert : polygon.Vertices) {
+						vert.Pos.Y -= diffY;
+					}
+				}
+				for (auto& groundVert : Ground_.Vertices) {
+					groundVert.Pos.Y -= diffY;
+				}
+			}
+		}
+		canvasSizeY = CanvasSize_.Y;
 		ImGui::DragFloat("Zoom", &Zoom_, 0.01f, 0.1f);
 		Zoom_ = std::clamp<float>(Zoom_, 0.1f, 5.0f);
 
@@ -412,7 +433,7 @@ namespace Game {
 		ImGui::Text("CurrentPolygonID_LastestUnused = %d", CurrentPolygonID_LastestUnused_);
 
 		ImGui::DragFloat2("Ground offset (in screen coordinate)", &GroundOffset_.X, 1.0f, 0.0f);
-
+		
 		ImGui::End();
 	}
 

@@ -9,6 +9,8 @@ import <random>;
 
 import nlohmann.json;
 import Game.MathUtils;
+import Game.Player;
+import Game.Umbrella;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -267,7 +269,7 @@ namespace Game {
 		auto makeCollider = [&](const std::vector<Lumina::Math::F32x3>& verts3d) {
 			auto col = std::make_unique<ConvexCollider>();
 			col->SetMyType(COL_Enemy);
-			col->SetYourType(COL_Player | COL_Player_Attack | COL_Ground);
+			col->SetYourType(COL_Player | COL_Player_Attack | COL_Ground | COL_Player_Attack_Smash);
 			col->SetUserData(this);
 			col->SetVertices(verts3d);
 			col->SetWorldPosition(position);
@@ -319,11 +321,15 @@ namespace Game {
 						} else {
 							this->velocity.X = -knockbackX;
 						}
-						int damage = std::max(1, static_cast<int>(this->baseData.hp * 0.2f));
-						Game::EnemyManager::GetInstance()->DealDamage(this->id, damage);
+						Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
+					Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 					}
 				}
-				};
+				else if (other->GetMyType() == COL_Player_Attack_Smash) {
+					Player* player = static_cast<Player*>(other->GetUserData());
+					Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)(player->GetUmbrella().top_->GetStatusComponent().GetAttack()));
+				}
+			};
 
 			col->UpdateAABB();
 			colliders.push_back(std::move(col));
