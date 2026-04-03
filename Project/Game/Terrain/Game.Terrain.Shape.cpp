@@ -75,8 +75,8 @@ namespace Game {
 		/// 1. https://www.cs.umd.edu/class/spring2020/cmsc754/Lects/lect05-triangulate.pdf
 		/// 2. https://dev.to/nail_sharipov_5d810d8cf71/monotone-triangulation-practical-advice-1k4j
 		auto DivideSimplePolygon(
-			std::vector<Lumina::Math::F32x3>& out_,
-			std::vector<Polygon::Vertex> const& in_
+			[[maybe_unused]] std::vector<Lumina::Math::F32x3>& out_,
+			[[maybe_unused]] std::vector<Polygon::Vertex> const& in_
 		) -> void {
 			/*out_.clear();
 			if (in_.size() < 3) { return; }

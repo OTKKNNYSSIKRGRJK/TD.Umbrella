@@ -5,6 +5,7 @@ import : Main;
 import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
+import Game.Events;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -114,6 +115,7 @@ namespace PlayerStates::Action {
 		// 特になにもしていない時のState
 		if (input.attack == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::Closed) {
+				Game::Event::OnAttack();
 				player_->ChangeActionState(player_->attackState_.get());
 				return;
 			}

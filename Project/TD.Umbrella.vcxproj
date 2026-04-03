@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp" />
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx" />
+    <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp" />

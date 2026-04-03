@@ -12,6 +12,8 @@ import Game.MathUtils;
 import Game.Player;
 import Game.Umbrella;
 
+import Game.Events;
+
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 

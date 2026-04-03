@@ -18,6 +18,8 @@ import nlohmann.json;
 import Game.MotionManager;
 import Game.EnemyManager;
 
+import Game.Events;
+
 #if defined(_DEBUG)
 namespace {
 	constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
@@ -311,13 +313,23 @@ namespace Game::Scene::Impl {
 		ImGui::End();
 		#endif
 
-		auto const& cameraPos = Camera_Player_->WorldPosition();
+		Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
 		auto const& playerPos = Player_->GetPosition();
-		Lumina::Math::F32x3 const newCameraPos{
+		Lumina::Math::F32x3 newCameraPos{
 			cameraPos.X * 0.95f + playerPos.X * 0.05f,
 			cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
 			-30.0f
 		};
+		if (Event::CameraShakingTimer > 0) {
+			auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
+			angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
+			angleInDeg *= (Lumina::Math::Random::Generator()() & 1) * 2 - 1;
+			float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
+			Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
+			float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 30.0f) * 0.1f;
+			newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
+			--Event::CameraShakingTimer;
+		}
 		Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 
 		if (!isUsingDebugCamera) {
