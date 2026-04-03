@@ -120,6 +120,19 @@
     "collisionGroups": [],
     "connections": [
         {
+            "targetAreaIndex": 1,
+            "trigger": {
+                "position": {
+                    "x": 998.0,
+                    "y": 88.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
             "targetAreaIndex": 4,
             "trigger": {
                 "position": {
@@ -138,19 +151,6 @@
                 "position": {
                     "x": 44.0,
                     "y": 208.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
-        },
-        {
-            "targetAreaIndex": 1,
-            "trigger": {
-                "position": {
-                    "x": 998.0,
-                    "y": 88.0
                 },
                 "size": {
                     "x": 32.0,
