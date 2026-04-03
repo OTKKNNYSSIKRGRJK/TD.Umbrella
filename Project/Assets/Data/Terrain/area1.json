@@ -111,45 +111,40 @@
     "collisionGroups": [],
     "connections": [
         {
-            "targetAreaIndex": 2,
-            "trigger": {
-                "position": {
-                    "x": 1062.0,
-                    "y": 500.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
+            "position": {
+                "x": 62.0,
+                "y": 574.0
+            },
+            "targetAreaIndex": 0
         },
         {
-            "targetAreaIndex": 0,
-            "trigger": {
-                "position": {
-                    "x": 98.0,
-                    "y": 556.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
+            "position": {
+                "x": 1062.0,
+                "y": 500.0
+            },
+            "targetAreaIndex": 2
+        },
+        {
+            "position": {
+                "x": 682.0,
+                "y": 636.0
+            },
+            "targetAreaIndex": 4
         }
     ],
     "editorPos": {
-        "x": 0.0,
-        "y": -740.0
+        "x": -262.0,
+        "y": -440.0
     },
     "enemies": [
         {
             "enemyName": "Slime",
-            "facingRight": true,
+            "facingRight": false,
             "position": {
-                "x": 660.0,
-                "y": 602.0
+                "x": 648.0,
+                "y": 516.0
             },
-            "sizeCategory": 2
+            "sizeCategory": 1
         }
     ],
     "height": 720,

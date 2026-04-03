@@ -120,82 +120,25 @@
     "collisionGroups": [],
     "connections": [
         {
-            "targetAreaIndex": 0,
-            "trigger": {
-                "position": {
-                    "x": 196.0,
-                    "y": 214.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
+            "position": {
+                "x": 30.0,
+                "y": 226.0
+            },
+            "targetAreaIndex": 0
         },
         {
-            "targetAreaIndex": 3,
-            "trigger": {
-                "position": {
-                    "x": 534.0,
-                    "y": 116.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
-        },
-        {
-            "targetAreaIndex": 2,
-            "trigger": {
-                "position": {
-                    "x": 28.0,
-                    "y": 188.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
-        },
-        {
-            "targetAreaIndex": 1,
-            "trigger": {
-                "position": {
-                    "x": 998.0,
-                    "y": 88.0
-                },
-                "size": {
-                    "x": 32.0,
-                    "y": 32.0
-                }
-            }
+            "position": {
+                "x": 1048.0,
+                "y": 130.0
+            },
+            "targetAreaIndex": 1
         }
     ],
     "editorPos": {
-        "x": 22.0,
-        "y": -4.0
+        "x": -1394.0,
+        "y": 28.0
     },
-    "enemies": [
-        {
-            "enemyName": "Slime",
-            "facingRight": true,
-            "position": {
-                "x": 721.0,
-                "y": 132.0
-            },
-            "sizeCategory": 0
-        },
-        {
-            "enemyName": "Slime",
-            "facingRight": true,
-            "position": {
-                "x": 376.0,
-                "y": 290.0
-            },
-            "sizeCategory": 1
-        }
-    ],
+    "enemies": [],
     "height": 344,
     "index": 0,
     "name": 0,
