@@ -1,0 +1,159 @@
+{
+    "GroundPoints": [
+        {
+            "ID": 0,
+            "NextID": 1,
+            "Pos": [
+                35.0,
+                169.0
+            ],
+            "PrevID": -1
+        },
+        {
+            "ID": 1,
+            "NextID": 2,
+            "Pos": [
+                102.0,
+                195.0
+            ],
+            "PrevID": 0
+        },
+        {
+            "ID": 2,
+            "NextID": 3,
+            "Pos": [
+                177.0,
+                213.0
+            ],
+            "PrevID": 1
+        },
+        {
+            "ID": 3,
+            "NextID": 4,
+            "Pos": [
+                282.0,
+                218.0
+            ],
+            "PrevID": 2
+        },
+        {
+            "ID": 4,
+            "NextID": 5,
+            "Pos": [
+                494.0,
+                223.0
+            ],
+            "PrevID": 3
+        },
+        {
+            "ID": 5,
+            "NextID": 6,
+            "Pos": [
+                567.0,
+                230.0
+            ],
+            "PrevID": 4
+        },
+        {
+            "ID": 6,
+            "NextID": 7,
+            "Pos": [
+                672.0,
+                251.0
+            ],
+            "PrevID": 5
+        },
+        {
+            "ID": 7,
+            "NextID": 8,
+            "Pos": [
+                793.0,
+                261.0
+            ],
+            "PrevID": 6
+        },
+        {
+            "ID": 8,
+            "NextID": 9,
+            "Pos": [
+                912.0,
+                263.0
+            ],
+            "PrevID": 7
+        },
+        {
+            "ID": 9,
+            "NextID": 10,
+            "Pos": [
+                1029.0,
+                255.0
+            ],
+            "PrevID": 8
+        },
+        {
+            "ID": 10,
+            "NextID": -1,
+            "Pos": [
+                1110.0,
+                246.0
+            ],
+            "PrevID": 9
+        }
+    ],
+    "MapInfo": {
+        "Size": [
+            1280.0,
+            720.0
+        ]
+    },
+    "Polygons": [],
+    "backgroundMusic": "",
+    "collisionGroups": [],
+    "connections": [
+        {
+            "targetAreaIndex": 0,
+            "trigger": {
+                "position": {
+                    "x": 98.0,
+                    "y": 556.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        },
+        {
+            "targetAreaIndex": 2,
+            "trigger": {
+                "position": {
+                    "x": 1062.0,
+                    "y": 500.0
+                },
+                "size": {
+                    "x": 32.0,
+                    "y": 32.0
+                }
+            }
+        }
+    ],
+    "editorPos": {
+        "x": 0.0,
+        "y": -740.0
+    },
+    "enemies": [
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 660.0,
+                "y": 602.0
+            },
+            "sizeCategory": 2
+        }
+    ],
+    "height": 720,
+    "index": 1,
+    "name": 1,
+    "width": 1280
+}

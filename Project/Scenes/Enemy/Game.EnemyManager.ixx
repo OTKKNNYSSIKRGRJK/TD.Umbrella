@@ -5,6 +5,7 @@ import <memory>;
 import <unordered_map>;
 import <vector>;
 import <functional>;
+import <algorithm>;
 
 import Lumina;
 import Game.Editor.EnemyEditor;
@@ -30,7 +31,17 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+			, sizeTier(other.sizeTier)
+			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
+			, preAttackTimer(other.preAttackTimer)
+			, attackTimer(other.attackTimer)
+			, landingStunTimer(other.landingStunTimer)
+			, attackWindupDuration(other.attackWindupDuration)
+			, attackDuration(other.attackDuration)
+			, burstSpeedMultiplier(other.burstSpeedMultiplier)
+			, preferredCombatDistance(other.preferredCombatDistance)
+			, strafeDirection(other.strafeDirection)
 			, aiState(other.aiState)
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
@@ -50,7 +61,17 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+				sizeTier = other.sizeTier;
+				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
+				preAttackTimer = other.preAttackTimer;
+				attackTimer = other.attackTimer;
+				landingStunTimer = other.landingStunTimer;
+				attackWindupDuration = other.attackWindupDuration;
+				attackDuration = other.attackDuration;
+				burstSpeedMultiplier = other.burstSpeedMultiplier;
+				preferredCombatDistance = other.preferredCombatDistance;
+				strafeDirection = other.strafeDirection;
 				aiState = other.aiState;
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
@@ -72,7 +93,17 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+			, sizeTier(other.sizeTier)
+			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
+			, preAttackTimer(other.preAttackTimer)
+			, attackTimer(other.attackTimer)
+			, landingStunTimer(other.landingStunTimer)
+			, attackWindupDuration(other.attackWindupDuration)
+			, attackDuration(other.attackDuration)
+			, burstSpeedMultiplier(other.burstSpeedMultiplier)
+			, preferredCombatDistance(other.preferredCombatDistance)
+			, strafeDirection(other.strafeDirection)
 			, aiState(other.aiState)
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
@@ -93,7 +124,17 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+				sizeTier = other.sizeTier;
+				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
+				preAttackTimer = other.preAttackTimer;
+				attackTimer = other.attackTimer;
+				landingStunTimer = other.landingStunTimer;
+				attackWindupDuration = other.attackWindupDuration;
+				attackDuration = other.attackDuration;
+				burstSpeedMultiplier = other.burstSpeedMultiplier;
+				preferredCombatDistance = other.preferredCombatDistance;
+				strafeDirection = other.strafeDirection;
 				aiState = other.aiState;
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
@@ -116,10 +157,22 @@ export namespace Game {
 		int currentHP = 0;
 		bool isDead = false;
 		bool facingRight = true;
+		int sizeTier = 1;
+		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;
+		float preAttackTimer = 0.0f;
+		float attackTimer = 0.0f;
+		float landingStunTimer = 0.0f;
+		float attackWindupDuration = 0.4f;
+		float attackDuration = 0.25f;
+		float burstSpeedMultiplier = 1.0f;
+		float preferredCombatDistance = 2.0f;
+		float strafeDirection = 1.0f;
+		// ガード: 同一フレーム中の重複ダメージを防ぐ
+		bool recentlyDamagedThisFrame = false;
 
 		// --- AI 状態 ---
-		enum class AIState { Idle, Patrol, Chase, Attack, Retreat };
+		enum class AIState { Idle, Patrol, Chase, PreAttack, Attack, Retreat };
 		AIState aiState = AIState::Idle;
 		float attackCooldownTimer = 0.0f;
 		float stateTimer = 0.0f;                      // 現在の状態維持タイマー
@@ -134,13 +187,21 @@ export namespace Game {
 		/// baseData の値で初期化する
 		/// </summary>
 		void InitFromBase() {
-			currentHP = baseData.hp;
+			ApplySizeTier(sizeTier);
 			isDead = false;
 			hurtTimer = 0.0f;
+			preAttackTimer = 0.0f;
+			attackTimer = 0.0f;
+			landingStunTimer = 0.0f;
 			attackCooldownTimer = 0.0f;
 			stateTimer = 0.0f;
 			aiState = AIState::Idle;
 			currentAction = "Idle";
+			burstSpeedMultiplier = 1.0f;
+			preferredCombatDistance = baseData.attackRange;
+			attackWindupDuration = 0.4f;
+			attackDuration = 0.25f;
+			strafeDirection = 1.0f;
 		}
 
 		/// <summary>
@@ -155,6 +216,14 @@ export namespace Game {
 		/// 全コライダーのワールド座標を現在の position に更新する
 		/// </summary>
 		void UpdateCollider();
+
+		void ApplySizeTier(int tier) {
+			sizeTier = (std::max)(0, (std::min)(2, tier));
+			currentHP = baseData.sizeTiers[sizeTier].hp;
+			baseData.hp = currentHP;
+			baseData.power = baseData.sizeTiers[sizeTier].power;
+			modelScale = baseData.sizeTiers[sizeTier].scale;
+		}
 	};
 
 	/// <summary>
@@ -209,14 +278,14 @@ export namespace Game {
 		/// <returns>スポーンした EnemyInstance への参照（失敗時は nullptr）</returns>
 		EnemyInstance* Spawn(const std::string& templateName,
 			const Lumina::Math::F32x3& position,
-			bool facingRight = true);
+			bool facingRight = true, float scale = 1.0f);
 
 		/// <summary>
 		/// 既存の EnemyData を直接渡してスポーン
 		/// </summary>
 		EnemyInstance* SpawnFromData(const Editor::EnemyData& data,
 			const Lumina::Math::F32x3& position,
-			bool facingRight = true);
+			bool facingRight = true, float scale = 1.0f, int sizeTier = 1);
 
 		/// <summary>
 		/// ID で インスタンス取得

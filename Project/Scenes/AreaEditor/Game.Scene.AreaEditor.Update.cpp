@@ -433,8 +433,11 @@ namespace Game::Editor {
 					ImVec2 arrowHead2(arrowEnd.x - arrowDir * ms * 0.4f, arrowEnd.y + ms * 0.3f);
 					drawList->AddTriangleFilled(arrowEnd, arrowHead1, arrowHead2, MakeCol32(255, 255, 100, 255));
 
-					// 敵名ラベル
-					drawList->AddText(ImVec2(ecx2 - ms, ecy2 - ms - 15.0f), MakeCol32(255, 180, 180, 255), ep.enemyName.c_str());
+					// 敵名ラベル + サイズ
+					const char* szLabels[] = { "S", "M", "L" };
+					int szc = ep.sizeCategory;
+					std::string enemyLabel = ep.enemyName + " [" + ((szc >= 0 && szc < 3) ? szLabels[szc] : "?") + "]";
+					drawList->AddText(ImVec2(ecx2 - ms, ecy2 - ms - 15.0f), MakeCol32(255, 180, 180, 255), enemyLabel.c_str());
 
 					// 向きテキスト
 					const char* dirText = ep.facingRight ? "R" : "L";
@@ -488,8 +491,8 @@ namespace Game::Editor {
 		ImGui::BeginChild("AreaFileList", ImVec2(0, 0), false);
 
 		namespace fs2 = std::filesystem;
-		if (fs2::exists("./")) {
-			for (const auto& entry : fs2::directory_iterator("./")) {
+		if (fs2::exists("Assets/Data/Terrain/")) {
+			for (const auto& entry : fs2::directory_iterator("Assets/Data/Terrain/")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					bool isSelected = false;
@@ -570,8 +573,11 @@ namespace Game::Editor {
 
 			for (size_t i = 0; i < editingArea_.enemies.size(); ++i) {
 				ImGui::PushID(static_cast<int>(i) + 10000);
+				const char* sizeLabels[] = { "S", "M", "L" };
+				int sc = editingArea_.enemies[i].sizeCategory;
+				std::string sizeStr = (sc >= 0 && sc < 3) ? sizeLabels[sc] : "?";
 				std::string dirStr = editingArea_.enemies[i].facingRight ? "Right" : "Left";
-				std::string label = "Enemy " + std::to_string(i) + " (" + editingArea_.enemies[i].enemyName + ", " + dirStr + ")###EnemyNode";
+				std::string label = "Enemy " + std::to_string(i) + " (" + editingArea_.enemies[i].enemyName + ", " + sizeStr + ", " + dirStr + ")###EnemyNode";
 				if (ImGui::TreeNode(label.c_str())) {
 					// 敵名選択（コンボボックス）
 					if (!enemyFiles_.empty()) {
@@ -599,6 +605,10 @@ namespace Game::Editor {
 							editingArea_.enemies[i].enemyName = nameBuf;
 						}
 					}
+
+					// サイズ段階選択
+					const char* sizeNames[] = { "Small", "Medium", "Large" };
+					ImGui::Combo("Size", &editingArea_.enemies[i].sizeCategory, sizeNames, 3);
 
 					ImGui::DragFloat2("Position", &editingArea_.enemies[i].position.x, 1.0f);
 

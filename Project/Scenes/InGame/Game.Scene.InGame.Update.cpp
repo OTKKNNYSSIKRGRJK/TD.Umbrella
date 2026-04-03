@@ -36,7 +36,7 @@ namespace Game::Scene::Impl {
 			// Load Terrain (which reads "Polygons" and "GroundPoints" stored inside area json)
 			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
 			TerrainScreenData_->Initialize(
-				Lumina::Utils::LoadFromFile<nlohmann::json>(filename, "./")
+				Lumina::Utils::LoadFromFile<nlohmann::json>(filename, "Assets/Data/Terrain/")
 			);
 			
 			Terrain_ = std::make_unique<TerrainShapeCollection>();
@@ -52,29 +52,13 @@ namespace Game::Scene::Impl {
 			Terrain_ = std::make_unique<TerrainShapeCollection>();
 		}
 		
-		playState_.Enemies.clear();
-		Game::EnemyManager::GetInstance()->ClearInstances();
-
-		for (auto& ep : playState_.CurrentArea.enemies) {
-			PlayEnemy pe;
-			enemyEditor_.LoadEnemy(pe.BaseData, ep.enemyName + ".json");
-			pe.Position.X = ep.position.x;
-			pe.Position.Y = ep.position.y; 
-			pe.Position.Z = 0.0f;
-			pe.BaseData.hp = 50; // Force normal enemies to 50 HP
-			pe.CurrentHP = pe.BaseData.hp;
-			pe.IsDead = false;
-			pe.FacingRight = ep.facingRight;
-			playState_.Enemies.push_back(pe);
-
-			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight);
-		}
-		
 		// Reset player position when entering area
 		playState_.Player.Position.Y = 0.0f;
 		playState_.Player.Position.Z = 0.0f;
 		playState_.Player.Velocity = {0.f, 0.f, 0.f};
+
+		float playerScreenX = 100.0f;
+		float playerScreenY = 0.0f;
 
 		// Spawn location logic
 		bool spawnedAtConnection = false;
@@ -82,8 +66,8 @@ namespace Game::Scene::Impl {
 			for (const auto& conn : playState_.CurrentArea.connections) {
 				if (conn.targetAreaIndex == previousAreaIndex && !(areaIndex == 0 && previousAreaIndex == 0)) {
 					// Spawn at the center of the connection linking back to where we came from
-					playState_.Player.Position.X = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
-					playState_.Player.Position.Y = conn.trigger.position.y;
+					playerScreenX = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
+					playerScreenY = conn.trigger.position.y;
 					spawnedAtConnection = true;
 					break;
 				}
@@ -93,8 +77,8 @@ namespace Game::Scene::Impl {
 		if (!spawnedAtConnection && areaIndex == 0) {
 			for (const auto& conn : playState_.CurrentArea.connections) {
 				if (conn.targetAreaIndex == 0) {
-					playState_.Player.Position.X = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
-					playState_.Player.Position.Y = conn.trigger.position.y;
+					playerScreenX = conn.trigger.position.x + conn.trigger.size.x / 2.0f;
+					playerScreenY = conn.trigger.position.y;
 					spawnedAtConnection = true;
 					break;
 				}
@@ -102,13 +86,11 @@ namespace Game::Scene::Impl {
 		}
 
 		if (!spawnedAtConnection) {
-			playState_.Player.Position.X = 100.0f; // Fallback / Start location
+			playerScreenX = 100.0f; // Fallback / Start location
 		}
 
-		if (Player_ && Camera_) {
-			float start2DX = playState_.Player.Position.X;
-			float rawScreenY = playState_.CurrentArea.height - playState_.Player.Position.Y; 
-
+		// Convert Player, Enemies, and Connections to World Coordinates
+		if (Camera_) {
 			auto const worldToHomogeneous_c = Camera_->View() * Camera_->Projection();
 			auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
 			tmp /= tmp.W();
@@ -120,16 +102,101 @@ namespace Game::Scene::Impl {
 			auto const inv_Proj{ Camera_->Projection().Inverse() };
 			auto const ndcToWorld{ inv_Proj * inv_View };
 
-			Lumina::Math::F32x4 ndcPos{
-				(start2DX * inv_ViewportWidth) * 2.0f - 1.0f,
-				1.0f - (rawScreenY * inv_ViewportHeight) * 2.0f,
-				tmp.Z(),
-				1.0f
+			auto ScreenToWorld = [&](float sx, float sy) {
+				Lumina::Math::F32x4 ndcPos{
+					(sx * inv_ViewportWidth) * 2.0f - 1.0f,
+					1.0f - (sy * inv_ViewportHeight) * 2.0f,
+					tmp.Z(),
+					1.0f
+				};
+				auto worldPos = ndcPos * ndcToWorld;
+				worldPos /= worldPos.W();
+				return std::make_pair(worldPos.X(), worldPos.Y());
 			};
-			auto worldPos = ndcPos * ndcToWorld;
-			worldPos /= worldPos.W();
 
-			Player_->SetPosition({ worldPos.X(), worldPos.Y(), 0.0f });
+			// Apply Player Coordinates
+			auto pPos = ScreenToWorld(playerScreenX, playState_.CurrentArea.height - playerScreenY);
+			playState_.Player.Position.X = pPos.first;
+			playState_.Player.Position.Y = pPos.second;
+			playState_.Player.Position.Z = 0.0f;
+
+			// Apply Enemies Coordinates
+			for (auto& ep : playState_.CurrentArea.enemies) {
+				auto ePos = ScreenToWorld(ep.position.x, playState_.CurrentArea.height - ep.position.y);
+				ep.position.x = ePos.first;
+				ep.position.y = ePos.second;
+			}
+
+			// Apply Connections Coordinates
+			playState_.PortalColliders.clear();
+			for (auto& conn : playState_.CurrentArea.connections) {
+				float sMinX = conn.trigger.position.x;
+				float sMinY = playState_.CurrentArea.height - (conn.trigger.position.y + conn.trigger.size.y);
+				float sMaxX = conn.trigger.position.x + conn.trigger.size.x;
+				float sMaxY = playState_.CurrentArea.height - conn.trigger.position.y;
+
+				auto p0 = ScreenToWorld(sMinX, sMinY);
+				auto p1 = ScreenToWorld(sMaxX, sMaxY);
+
+				float wMinX = p0.first;
+				float wMaxY = p0.second;
+				float wMaxX = p1.first;
+				float wMinY = p1.second;
+
+				conn.trigger.position.x = wMinX;
+				conn.trigger.position.y = wMinY;
+				conn.trigger.size.x = (std::max)(0.0f, wMaxX - wMinX);
+				conn.trigger.size.y = (std::max)(0.0f, wMaxY - wMinY);
+				
+				auto col = std::make_shared<ConvexCollider>();
+				col->SetMyType(COL_None);
+				col->SetYourType(COL_None);
+				std::vector<Lumina::Math::F32x3> verts = {
+					{ wMinX, wMinY, -0.5f },
+					{ wMaxX, wMinY, -0.5f },
+					{ wMaxX, wMaxY, -0.5f },
+					{ wMinX, wMaxY, -0.5f },
+					{ wMinX, wMinY, 0.5f },
+					{ wMaxX, wMinY, 0.5f },
+					{ wMaxX, wMaxY, 0.5f },
+					{ wMinX, wMaxY, 0.5f }
+				};
+				col->SetVertices(verts);
+				col->UpdateAABB();
+				playState_.PortalColliders.push_back(col);
+			}
+		} else {
+			playState_.Player.Position.X = playerScreenX;
+			playState_.Player.Position.Y = playerScreenY;
+		}
+
+		playState_.Enemies.clear();
+		Game::EnemyManager::GetInstance()->ClearInstances();
+
+		for (auto& ep : playState_.CurrentArea.enemies) {
+			PlayEnemy pe;
+			enemyEditor_.LoadEnemy(pe.BaseData, ep.enemyName + ".json");
+			pe.Position.X = ep.position.x;
+			pe.Position.Y = ep.position.y; 
+			pe.Position.Z = 0.0f;
+
+			// サイズ段階に応じたステータスを適用
+			int tierIdx = (std::max)(0, (std::min)(2, ep.sizeCategory));
+			pe.BaseData.hp    = pe.BaseData.sizeTiers[tierIdx].hp;
+			pe.BaseData.power = pe.BaseData.sizeTiers[tierIdx].power;
+			pe.Scale          = pe.BaseData.sizeTiers[tierIdx].scale;
+
+			pe.CurrentHP = pe.BaseData.hp;
+			pe.IsDead = false;
+			pe.FacingRight = ep.facingRight;
+			playState_.Enemies.push_back(pe);
+
+			// EnemyManager側にも生成
+			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale);
+		}
+
+		if (Player_) {
+			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
@@ -156,6 +223,11 @@ namespace Game::Scene::Impl {
 
 	void InGame::Update() {
 		Player_->Update(1.0f / 60.0f);
+
+		playState_.Player.Position.X = Player_->GetPosition().X;
+		playState_.Player.Position.Y = Player_->GetPosition().Y;
+		playState_.Player.Position.Z = Player_->GetPosition().Z;
+
 		Game::EnemyManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
 
 		// Collision の更新処理↓↓↓
@@ -175,6 +247,12 @@ namespace Game::Scene::Impl {
 		for (auto const& col : groundColliders) {
 			CollisionManager_->SetColliders(col.get());
 		}
+		
+		for (auto const& pCol : playState_.PortalColliders) {
+			if (pCol) {
+				CollisionManager_->SetColliders(pCol.get());
+			}
+		}
 
 
 
@@ -188,6 +266,8 @@ namespace Game::Scene::Impl {
 			playState_.Enemies[i].IsDead = enemyInstances[i].isDead;
 			if (enemyInstances[i].isDead) { // 死亡していたら同期して表示を消すように
 				playState_.Enemies[i].CurrentHP = 0;
+			} else {
+				playState_.Enemies[i].CurrentHP = enemyInstances[i].currentHP;
 			}
 		}
 
@@ -199,29 +279,20 @@ namespace Game::Scene::Impl {
 			if (playState_.TransitionCooldownTimer > 0.0f) {
 				playState_.TransitionCooldownTimer -= 1.0f / 60.0f;
 			} else {
-				auto const& pos = Player_->GetPosition();
-				auto const worldToHomogeneous_c = Camera_->View() * Camera_->Projection();
-				auto ndcPos = Lumina::Math::F32x4{ pos.X, pos.Y, pos.Z, 1.0f } * worldToHomogeneous_c;
-				ndcPos /= ndcPos.W();
-
-				float rawScreenY = (1.0f - ndcPos.Y()) * 0.5f * 720.0f;
-				float px = (ndcPos.X() + 1.0f) * 0.5f * 1280.0f;
-				float py = playState_.CurrentArea.height - rawScreenY;
-
+				auto const& pos = playState_.Player.Position;
 				auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
 				auto const& keyboard{ inputMngr.Keyboard() };
 				using Lumina::OS::Windows::KEY;
 
 				for (const auto& conn : playState_.CurrentArea.connections) {
-					if (px >= conn.trigger.position.x && px <= conn.trigger.position.x + conn.trigger.size.x &&
-						py >= conn.trigger.position.y && py <= conn.trigger.position.y + conn.trigger.size.y) {
-						int prevAreaIndex = playState_.CurrentArea.index;
-						CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
-						if (keyboard.IsPressed(KEY::W)) {
-
-						}
-						break;
+					if (pos.X >= conn.trigger.position.x && pos.X <= conn.trigger.position.x + conn.trigger.size.x &&
+						pos.Y >= conn.trigger.position.y && pos.Y <= conn.trigger.position.y + conn.trigger.size.y) {
 						
+						if (keyboard.IsJustPressed(KEY::W)) {
+							int prevAreaIndex = playState_.CurrentArea.index;
+							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
+							break;
+						}
 					}
 				}
 			}
@@ -295,6 +366,18 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
+			ImGui::SetNextWindowPos(ImVec2(10, 140), ImGuiCond_FirstUseEver);
+			ImGui::SetNextWindowSize(ImVec2(320, 220), ImGuiCond_FirstUseEver);
+			ImGui::Begin("Enemy HP");
+			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
+				const auto& enemy = playState_.Enemies[i];
+				ImGui::Text("Enemy[%d] HP: %d / %d %s",
+					static_cast<int>(i),
+					enemy.CurrentHP,
+					enemy.BaseData.hp,
+					enemy.IsDead ? "(Dead)" : "");
+			}
+			ImGui::End();
 			break;
 		default:
 			break;

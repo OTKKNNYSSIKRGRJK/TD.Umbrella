@@ -25,6 +25,7 @@ import Lumina.Primitive;
 import Game.Player;
 import CollisionManager;
 import Game.ConvexColliderDebug;
+import Collider;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -50,6 +51,7 @@ namespace Game::Scene::Impl {
 		auto LoadImageTextures() -> void;
 		auto LoadMeshes() -> void;
 		auto InitializeMeshMaterials() -> void;
+		void SyncPlayEnemiesFromManager();
 
 	public:
 		void Initialize();
@@ -128,6 +130,8 @@ namespace Game::Scene::Impl {
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
 			bool FacingRight = true;
+			int SizeTier = 1;
+			float Scale = 1.0f;
 		};
 
 		struct PlayState {
@@ -147,6 +151,7 @@ namespace Game::Scene::Impl {
 			float PlayerAttackTimer = 0.0f;
 			
 			float TransitionCooldownTimer = 0.0f;
+			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
 		} playState_;
 
 #if defined(_DEBUG)

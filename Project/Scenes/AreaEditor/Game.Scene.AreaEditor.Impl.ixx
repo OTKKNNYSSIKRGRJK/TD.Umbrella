@@ -30,6 +30,7 @@ export namespace Game::Editor {
 		std::string enemyName = "NewEnemy";
 		Vector2 position{ 0.0f, 0.0f };
 		bool facingRight = true;
+		int sizeCategory = 1;  // 0=Small, 1=Medium, 2=Large
 	};
 
 	struct CollisionPoint {
