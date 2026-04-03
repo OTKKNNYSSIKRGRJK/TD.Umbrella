@@ -91,6 +91,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
 
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
+		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
 		std::unique_ptr<TerrainEditor> TerrainEditor_;

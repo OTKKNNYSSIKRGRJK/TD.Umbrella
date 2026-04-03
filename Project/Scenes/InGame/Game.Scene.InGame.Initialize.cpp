@@ -261,6 +261,11 @@ namespace Game::Scene::Impl {
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+
+		Camera_Player_ = std::make_unique<Lumina::Utils::Camera>();
+		Camera_Player_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+		Camera_Player_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+		
 		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);

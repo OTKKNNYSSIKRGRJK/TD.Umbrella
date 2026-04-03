@@ -301,6 +301,8 @@ namespace Game::Scene::Impl {
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
+		static bool isUsingDebugCamera = false;
+		ImGui::Checkbox("Use Debug Camera", &isUsingDebugCamera);
 		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
 		[[maybe_unused]] auto const& mouse{ inputMngr.Mouse() };
 		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
@@ -309,7 +311,21 @@ namespace Game::Scene::Impl {
 		ImGui::End();
 		#endif
 
-		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		auto const& cameraPos = Camera_Player_->WorldPosition();
+		auto const& playerPos = Player_->GetPosition();
+		Lumina::Math::F32x3 const newCameraPos{
+			cameraPos.X * 0.95f + playerPos.X * 0.05f,
+			cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
+			-30.0f
+		};
+		Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
+
+		if (!isUsingDebugCamera) {
+			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
+		}
+		else {
+			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		}
 
 		#if defined(_DEBUG)
 		// メインメニューバー: エディタ切り替え
