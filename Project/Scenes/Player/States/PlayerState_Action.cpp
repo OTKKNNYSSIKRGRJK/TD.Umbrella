@@ -267,7 +267,8 @@ namespace PlayerStates::Action {
 		// =================================
 		Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
+		float shiftAmount = input.moveDirection.Y * 0.5f;
+		handPos.Y += 1.0f + shiftAmount;
 		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
 		/*if (!motion_.IsPlaying()) {

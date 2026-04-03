@@ -29,7 +29,7 @@ void InputHandler::HandleInput() {
     float stickX = pad.GetLeftStickX();
     float stickY = pad.GetLeftStickY();
     if (std::abs(stickX) > 0.15f) { input.moveDirection.X = stickX; }
-    if (std::abs(stickY) > 0.15f) input.moveDirection.Z = stickY;
+    if (std::abs(stickY) > 0.15f) input.moveDirection.Y = stickY;
 
     if (keyboard.IsPressed(KEY::W)) { input.moveDirection.Z += 1.0f; }
     if (keyboard.IsPressed(KEY::S)) { input.moveDirection.Z -= 1.0f; }
