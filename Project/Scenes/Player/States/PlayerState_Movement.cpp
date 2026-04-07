@@ -5,6 +5,7 @@ import : Main;
 import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
+import Game.Events;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -21,6 +22,12 @@ namespace PlayerStates::Movement {
 	////////////////////////////
 	void Grounded::Update(float deltaTime) {
 		//// 地上にいる際の処理 ////
+
+		// もし接地していない（崖から落ちた）なら、強制的に空中ステートへ
+		if (!player_->onGround_) {
+			player_->ChangeMovementState(player_->airborneState_.get());
+			return;
+		}
 
 		// 地上の摩擦係数(大きいほどすぐ止まる)
 		float groundFriction = 10.0f;
@@ -104,6 +111,14 @@ namespace PlayerStates::Movement {
 		}
 
 		player_->Jump();// コヨーテタイムのため
+
+		const auto& input = player_->GetInput();
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	/*void Airborne::Exit() {
@@ -122,6 +137,10 @@ namespace PlayerStates::Movement {
 		if (parentState_) {
 			parentState_->Update(deltaTime);
 		}
+
+		// 【追加】Grounded内でジャンプして空中に移行したなら、以降の処理をキャンセル！
+		if (!player_->onGround_) return;
+
 		const auto& input = player_->GetInput();
 
 		// 入力方向がゼロじゃない（スティックが倒された）なら、Walkingへ遷移
@@ -134,6 +153,13 @@ namespace PlayerStates::Movement {
 		float deceleration = 15.0f; // ブレーキの強さ
 		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
 		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
+
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	void Idle::Exit() {
@@ -152,6 +178,7 @@ namespace PlayerStates::Movement {
 		if (parentState_) {
 			parentState_->Update(deltaTime);
 		}
+
 		const auto& input = player_->GetInput();
 
 		// スティックが離されたら、Idleへ遷移！

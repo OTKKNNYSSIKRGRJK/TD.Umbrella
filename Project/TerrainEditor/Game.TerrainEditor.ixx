@@ -67,6 +67,8 @@ namespace Game {
 
 		Lumina::I32 PreviousGroundPointID_;
 
+		nlohmann::ordered_json OriginalData_;
+
 		Polygon::Vertex* SelectedPoint_;
 		Ground::Vertex* SelectedGroundPoint_;
 		Lumina::I32 IsEditingGround_;

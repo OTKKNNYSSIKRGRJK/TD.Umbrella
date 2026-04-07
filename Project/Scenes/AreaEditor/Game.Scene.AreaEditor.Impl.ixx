@@ -23,13 +23,14 @@ export namespace Game::Editor {
 
 	struct AreaConnection {
 		int targetAreaIndex = 0;
-		RectCollision trigger{};
+		Vector2 position{ 0.0f, 0.0f };
 	};
 
 	struct EnemyPlacement {
 		std::string enemyName = "NewEnemy";
 		Vector2 position{ 0.0f, 0.0f };
 		bool facingRight = true;
+		int sizeCategory = 1;  // 0=Small, 1=Medium, 2=Large
 	};
 
 	struct CollisionPoint {
@@ -73,6 +74,7 @@ export namespace Game::Editor {
 		void Initialize();
 		void Update();
 		void LoadArea(AreaData& area, const std::string& filename);
+		void DrawAreaMap(int currentAreaIndex);
 
 	private:
 		void DrawEditorUI();

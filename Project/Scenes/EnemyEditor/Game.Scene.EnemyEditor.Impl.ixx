@@ -16,11 +16,25 @@ export namespace Game::Editor {
 		float y = 0.0f;
 	};
 
+	// サイズ段階ごとのステータス（小・中・大）
+	struct SizeTier {
+		int hp = 100;
+		float power = 1.0f;
+		float scale = 0.5f;  // 3Dモデルのスケール倍率
+	};
+
 	struct EnemyData {
 		std::string name = "NewEnemy";
 		int hp = 100;
 		float power = 1.0f;
 		std::string gltfPath = "Models/Enemy/default.gltf";
+
+		// --- サイズ段階 (0=Small, 1=Medium, 2=Large) ---
+		std::array<SizeTier, 3> sizeTiers = {{
+			{  35, 0.8f, 0.3f },  // Small
+			{  70, 1.0f, 0.5f },  // Medium
+			{ 140, 1.8f, 0.7f },  // Large
+		}};
 
 		std::map<std::string, std::string> animationMap = {
 			{"Idle", ""}, {"Walk", ""}, {"Attack", ""}
@@ -49,6 +63,11 @@ export namespace Game::Editor {
 			hp = 100;
 			power = 1.0f;
 			gltfPath = "Models/Enemy/default.gltf";
+			sizeTiers = {{
+				{  35, 0.8f, 0.3f },
+				{  70, 1.0f, 0.5f },
+				{ 140, 1.8f, 0.7f },
+			}};
 			for (auto& [key, val] : animationMap) val = "";
 			motionMap = { {"Idle", ""}, {"Walk", ""}, {"Attack", ""} };
 			collisionVertices.clear();

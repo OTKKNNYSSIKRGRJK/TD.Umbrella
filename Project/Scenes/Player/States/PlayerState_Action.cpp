@@ -5,6 +5,7 @@ import : Main;
 import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
+import Game.Events;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -26,6 +27,14 @@ namespace PlayerStates::Action {
 
 	void Dead::Update([[maybe_unused]] float deltaTime) {
 		// 死亡中はなにもできない
+
+		auto const& input{ player_->GetInput() };
+		if (input.debugRevive) {
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->SetPosition(Game::Event::RespawnPos);
+			player_->GetStatusComponent().Heal(100.0f);
+		}
 	}
 
 	void Dead::Exit() {
@@ -114,6 +123,7 @@ namespace PlayerStates::Action {
 		// 特になにもしていない時のState
 		if (input.attack == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::Closed) {
+				Game::Event::OnAttack();
 				player_->ChangeActionState(player_->attackState_.get());
 				return;
 			}
@@ -177,6 +187,7 @@ namespace PlayerStates::Action {
 
 		if (input.shoot == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::AirStop) {
+				Game::Event::OnAttack();
 				player_->WarpToUmbrella();
 				return;
 			}
@@ -210,12 +221,12 @@ namespace PlayerStates::Action {
 		if (comboCount_ == 1) { 
 			stepPower = 20.0f;
 			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(1.0f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(10.0f);
 		}
 		else if (comboCount_ == 2) { 
 			stepPower = 0.0f;
 			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(2.0f);
+			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(20.0f);
 		}
 		else if (comboCount_ == 3) { 
 			stepPower = 40.0f;
@@ -223,17 +234,17 @@ namespace PlayerStates::Action {
 				if (player_->GetManaComponent().HasEnoughMana(30.0f)) {
 					player_->GetManaComponent().ConsumeMana(30.0f);
 					motion_.Play("SwingMana", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(6.0f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(60.0f);
 					stepPower = 55.0f;
 				}
 				else {
 					motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
+					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
 				}
 			}
 			else {
 				motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(3.0f);
+				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
 			}
 		}
 
@@ -256,7 +267,8 @@ namespace PlayerStates::Action {
 		// =================================
 		Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
+		float shiftAmount = input.moveDirection.Y * 0.5f;
+		handPos.Y += 1.0f + shiftAmount;
 		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
 		/*if (!motion_.IsPlaying()) {
@@ -267,6 +279,7 @@ namespace PlayerStates::Action {
 		// 【 先行入力 】
 		// =================================
 		if (input.attack == ButtonState::Pressed && attackTimer_ > 0.1f) {
+			Game::Event::OnAttack();
 			isNextAttackReserved_ = true;
 		}
 
@@ -537,6 +550,8 @@ namespace PlayerStates::Action {
 	void DrawWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 		if (input.attack == ButtonState::Pressed) {
+
+			Game::Event::OnAttack();
 			// 攻撃の予約を行う
 			player_->ReserveActionState(player_->attackState_.get());
 		}
@@ -582,7 +597,10 @@ namespace PlayerStates::Action {
 		// 空中で開いたら少し上昇する
 		if (player_->onGround_ == false) {
 			if (IsButtonUp(player_->GetInput().aim)) {
-				player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
+					player_->GetManaComponent().ConsumeMana(25.0f);
+					player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+				}
 			}
 		}
 	}
@@ -643,6 +661,8 @@ namespace PlayerStates::Action {
 		player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (input.sheathe == ButtonState::Pressed) {
+
+			Game::Event::OnAttack();
 			// 行動の予約を行う
 			player_->ReserveActionState(player_->sheatheWeaponState_.get());
 		}

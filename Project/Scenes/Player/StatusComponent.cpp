@@ -1,8 +1,8 @@
 module StatusComponent;
 
 void StatusComponent::TakeDamage(float incomingDamage) {
-    // 例: 攻撃力から防御力を引く（最低でも1ダメージは与える仕様）
-    float actualDamage = (std::max)(1.0f, incomingDamage - defense_);
+    // 例: 攻撃力から防御力を引く
+    float actualDamage = (std::max)(0.1f, incomingDamage - defense_);
 
     currentHp_ -= actualDamage;
 

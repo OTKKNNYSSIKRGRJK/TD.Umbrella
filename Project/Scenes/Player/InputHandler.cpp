@@ -29,7 +29,7 @@ void InputHandler::HandleInput() {
     float stickX = pad.GetLeftStickX();
     float stickY = pad.GetLeftStickY();
     if (std::abs(stickX) > 0.15f) { input.moveDirection.X = stickX; }
-    if (std::abs(stickY) > 0.15f) input.moveDirection.Z = stickY;
+    if (std::abs(stickY) > 0.15f) input.moveDirection.Y = stickY;
 
     if (keyboard.IsPressed(KEY::W)) { input.moveDirection.Z += 1.0f; }
     if (keyboard.IsPressed(KEY::S)) { input.moveDirection.Z -= 1.0f; }
@@ -109,6 +109,11 @@ void InputHandler::HandleInput() {
         keyboard.IsPressed(KEY::R) || pad.IsHold(0x4000),
         playerInput.repair
 	);
+
+    // ================
+    // 【 デバッグ用 】
+    // ================
+    input.debugRevive = keyboard.IsJustPressed(KEY::ENTER) || pad.IsHold(0x0010);
 
     // Playerに入力情報を渡す！
     player_->SetInputData(input);

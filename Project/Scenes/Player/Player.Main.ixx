@@ -88,6 +88,7 @@ export struct PlayerInputData {
 	// 特殊なフラグ（トグルなど）
 	// ---------------------------------
 	bool useMana = false;
+	bool debugRevive = false;
 };
 
 export class Player {

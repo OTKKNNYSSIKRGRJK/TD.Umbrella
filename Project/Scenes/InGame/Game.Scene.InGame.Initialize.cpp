@@ -2,6 +2,7 @@ module Game.Scene.InGame;
 
 import <vector>;
 import <filesystem>;
+import <random>;
 
 import nlohmann.json;
 
@@ -19,6 +20,31 @@ import Game.MotionManager;
 import Game.Player;
 
 namespace Game::Scene::Impl {
+	namespace {
+		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
+			if (!area.enemies.empty() || enemyNames.empty()) return;
+
+			std::random_device rd;
+			std::mt19937 mt(rd());
+			std::uniform_int_distribution<int> countDist(1, 5);
+			std::uniform_int_distribution<int> enemyDist(0, static_cast<int>(enemyNames.size()) - 1);
+			std::uniform_int_distribution<int> sizeDist(0, 2);
+			std::uniform_real_distribution<float> xDist(120.0f, (std::max)(121.0f, static_cast<float>(area.width) - 120.0f));
+			std::uniform_real_distribution<float> yDist(80.0f, (std::max)(81.0f, static_cast<float>(area.height) - 80.0f));
+			std::bernoulli_distribution faceDist(0.5);
+
+			int spawnCount = countDist(mt);
+			for (int i = 0; i < spawnCount; ++i) {
+				Game::Editor::EnemyPlacement ep;
+				ep.enemyName = enemyNames[enemyDist(mt)];
+				ep.sizeCategory = sizeDist(mt);
+				ep.facingRight = faceDist(mt);
+				ep.position.x = xDist(mt);
+				ep.position.y = yDist(mt);
+				area.enemies.push_back(ep);
+			}
+		}
+	}
 
 	// テクスチャ読み込み
 	auto InGame::LoadImageTextures() -> void {
@@ -235,6 +261,11 @@ namespace Game::Scene::Impl {
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+
+		Camera_Player_ = std::make_unique<Lumina::Utils::Camera>();
+		Camera_Player_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+		Camera_Player_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+		
 		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);

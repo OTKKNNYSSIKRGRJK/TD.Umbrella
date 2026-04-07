@@ -33,20 +33,25 @@ namespace Game::Editor {
 	}
 
 	void to_json(json& j, const AreaConnection& c) {
-		j = json{ {"targetAreaIndex", c.targetAreaIndex}, {"trigger", c.trigger} };
+		j = json{ {"targetAreaIndex", c.targetAreaIndex}, {"position", c.position} };
 	}
 	void from_json(const json& j, AreaConnection& c) {
 		j.at("targetAreaIndex").get_to(c.targetAreaIndex);
-		j.at("trigger").get_to(c.trigger);
+		if (j.contains("position")) {
+			j.at("position").get_to(c.position);
+		} else if (j.contains("trigger") && j.at("trigger").contains("position")) {
+			j.at("trigger").at("position").get_to(c.position);
+		}
 	}
 
 	void to_json(json& j, const EnemyPlacement& e) {
-		j = json{ {"enemyName", e.enemyName}, {"position", e.position}, {"facingRight", e.facingRight} };
+		j = json{ {"enemyName", e.enemyName}, {"position", e.position}, {"facingRight", e.facingRight}, {"sizeCategory", e.sizeCategory} };
 	}
 	void from_json(const json& j, EnemyPlacement& e) {
 		if (j.contains("enemyName")) j.at("enemyName").get_to(e.enemyName);
 		if (j.contains("position")) j.at("position").get_to(e.position);
 		if (j.contains("facingRight")) j.at("facingRight").get_to(e.facingRight);
+		if (j.contains("sizeCategory")) j.at("sizeCategory").get_to(e.sizeCategory);
 	}
 
 	void to_json(json& j, const CollisionPoint& p) {
@@ -102,8 +107,8 @@ namespace Game::Editor {
 
 		a.name = a.index;
 
-		j.at("width").get_to(a.width);
-		j.at("height").get_to(a.height);
+		if (j.contains("width")) j.at("width").get_to(a.width);
+		if (j.contains("height")) j.at("height").get_to(a.height);
 		if (j.contains("backgroundMusic")) j.at("backgroundMusic").get_to(a.backgroundMusic);
 		if (j.contains("connections")) j.at("connections").get_to(a.connections);
 		if (j.contains("enemies")) j.at("enemies").get_to(a.enemies);
@@ -113,8 +118,9 @@ namespace Game::Editor {
 
 	namespace {
 		void SaveAreaFile(const AreaData& area, std::vector<std::string>& recentFiles, std::vector<AreaData>& allAreas) {
+			fs::create_directories("Assets/Data/Terrain");
 			std::string filename = "area" + std::to_string(area.name) + ".json";
-			std::ofstream file(filename);
+			std::ofstream file("Assets/Data/Terrain/" + filename);
 			if (!file.is_open()) {
 				return;
 			}
@@ -150,8 +156,8 @@ namespace Game::Editor {
 		editingArea_.Reset();
 
 		bool firstLoaded = false;
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Terrain")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Terrain")) {
 				std::string fName = entry.path().filename().string();
 				if (entry.path().extension() == ".json" && fName.find("area") == 0) {
 					recentFiles_.push_back(fName);
@@ -246,7 +252,7 @@ namespace Game::Editor {
 				for (int i = static_cast<int>(reciprocalConnections.size()); i < expectedCount; ++i) {
 					AreaConnection newConn;
 					newConn.targetAreaIndex = area.index;
-					newConn.trigger.position = {
+					newConn.position = {
 						targetArea.width / 2.0f - 16.0f + static_cast<float>(i) * 32.0f,
 						targetArea.height / 2.0f - 16.0f
 					};
@@ -263,7 +269,8 @@ namespace Game::Editor {
 	}
 
 	void AreaEditor::LoadArea(AreaData& area, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string path = "Assets/Data/Terrain/" + filename;
+		std::ifstream file(path);
 		if (file.is_open()) {
 			json j;
 			file >> j;
@@ -273,8 +280,9 @@ namespace Game::Editor {
 
 	void AreaEditor::DeleteArea(int areaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
-		if (fs::exists(filename)) {
-			fs::remove(filename);
+		std::string path = "Assets/Data/Terrain/" + filename;
+		if (fs::exists(path)) {
+			fs::remove(path);
 		}
 
 		auto it = std::remove(recentFiles_.begin(), recentFiles_.end(), filename);

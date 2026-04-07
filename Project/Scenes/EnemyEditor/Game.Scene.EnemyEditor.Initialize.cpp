@@ -22,11 +22,22 @@ namespace Game::Editor {
 		if (j.contains("y")) j.at("y").get_to(v.y);
 	}
 
+	void to_json(json& j, const SizeTier& t) {
+		j = json{ {"hp", t.hp}, {"power", t.power}, {"scale", t.scale} };
+	}
+	void from_json(const json& j, SizeTier& t) {
+		if (j.contains("hp")) j.at("hp").get_to(t.hp);
+		if (j.contains("power")) j.at("power").get_to(t.power);
+		if (j.contains("scale")) j.at("scale").get_to(t.scale);
+	}
+
 	// JSON シリアライズ定義
 	void to_json(json& j, const EnemyData& e) {
 		j = json{
 			{"name", e.name}, {"hp", e.hp}, {"power", e.power},
-			{"gltfPath", e.gltfPath}, {"animationMap", e.animationMap},
+			{"gltfPath", e.gltfPath},
+			{"sizeTiers", e.sizeTiers},
+			{"animationMap", e.animationMap},
 			{"motionMap", e.motionMap},
 			{"collisionVertices", e.collisionVertices},
 			{"aggroRadius", e.aggroRadius}, {"attackRange", e.attackRange},
@@ -40,6 +51,9 @@ namespace Game::Editor {
 		if (j.contains("hp")) j.at("hp").get_to(e.hp);
 		if (j.contains("power")) j.at("power").get_to(e.power);
 		if (j.contains("gltfPath")) j.at("gltfPath").get_to(e.gltfPath);
+		if (j.contains("sizeTiers") && j["sizeTiers"].is_array() && j["sizeTiers"].size() == 3) {
+			j.at("sizeTiers").get_to(e.sizeTiers);
+		}
 		if (j.contains("animationMap")) j.at("animationMap").get_to(e.animationMap);
 		if (j.contains("motionMap")) j.at("motionMap").get_to(e.motionMap);
 		if (j.contains("collisionVertices")) j.at("collisionVertices").get_to(e.collisionVertices);

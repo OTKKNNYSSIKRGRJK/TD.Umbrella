@@ -183,6 +183,33 @@ namespace Game::Editor {
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("0 = passive, 1 = always attacks on sight");
 		}
 
+		if (ImGui::CollapsingHeader("Size Tiers (S / M / L)", ImGuiTreeNodeFlags_DefaultOpen)) {
+			ImGui::TextDisabled("Configure stats for each size variant");
+			const char* tierNames[] = { "Small", "Medium", "Large" };
+			const ImVec4 tierColors[] = {
+				ImVec4(0.4f, 0.8f, 1.0f, 1.0f),  // Small: cyan
+				ImVec4(1.0f, 0.9f, 0.3f, 1.0f),   // Medium: yellow
+				ImVec4(1.0f, 0.4f, 0.3f, 1.0f),    // Large: red
+			};
+
+			for (int t = 0; t < 3; ++t) {
+				ImGui::PushID(t);
+				ImGui::TextColored(tierColors[t], "[%s]", tierNames[t]);
+				ImGui::SameLine();
+				ImGui::Text("  HP / Power / Scale");
+
+				auto& tier = editingEnemy_.sizeTiers[t];
+				ImGui::Indent(10.0f);
+				ImGui::DragInt("HP##tier", &tier.hp, 1, 1, 9999);
+				ImGui::DragFloat("Power##tier", &tier.power, 0.05f, 0.0f, 50.0f, "%.2f");
+				ImGui::DragFloat("Scale##tier", &tier.scale, 0.01f, 0.05f, 5.0f, "%.2f");
+				ImGui::Unindent(10.0f);
+
+				if (t < 2) ImGui::Separator();
+				ImGui::PopID();
+			}
+		}
+
 		if (ImGui::CollapsingHeader("Animation Mapping", ImGuiTreeNodeFlags_DefaultOpen)) {
 			// gltfPathが変わったらアニメーション名を再抽出
 			if (cachedGltfPath_ != editingEnemy_.gltfPath) {

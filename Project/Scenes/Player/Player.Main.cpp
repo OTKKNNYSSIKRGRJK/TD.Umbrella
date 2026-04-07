@@ -426,23 +426,25 @@ void Player::UmbrellaAttachRHand() {
 ///
 ///////////////////
 void Player::ThrowUpdate([[maybe_unused]]float deltaTime) {
-	if (umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::Flying && umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::AirStop) {
-		// 照準を押しているときは飛ばす方向を決めれる。
-		// ただし、抜刀済みのみ
-		float scalar = 5.0f;
-		if (inputData_.aim == ButtonState::Pressed) {
-			targetPos_.X = GetPosition().X + scalar;
-			targetPos_.Y = GetPosition().Y;
-		}
-		else if (inputData_.aim == ButtonState::Held) {
-			// ここは要改善
-			targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
-			targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
+	if (normalDrawnState_.get() == currentActionState_) {
+		if (umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::Flying && umbrella_->top_->GetUmbrellaForm() != UmbrellaForm::AirStop) {
+			// 照準を押しているときは飛ばす方向を決めれる。
+			// ただし、抜刀済みのみ
+			float scalar = 5.0f;
+			if (inputData_.aim == ButtonState::Pressed) {
+				targetPos_.X = GetPosition().X + scalar;
+				targetPos_.Y = GetPosition().Y;
+			}
+			else if (inputData_.aim == ButtonState::Held) {
+				// ここは要改善
+				targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
+				targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
 
-			// 照準のときのみ射撃する
-			if (inputData_.shoot == ButtonState::Pressed) {
-				// ここで投げる処理
-				ChangeActionState(throwUmbrellaState_.get());
+				// 照準のときのみ射撃する
+				if (inputData_.shoot == ButtonState::Pressed) {
+					// ここで投げる処理
+					ChangeActionState(throwUmbrellaState_.get());
+				}
 			}
 		}
 	}

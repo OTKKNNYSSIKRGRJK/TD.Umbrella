@@ -185,7 +185,7 @@ namespace UmbrellaStates {
 				top_->GetRootJoint()->SetPos(umbrellaPos);
 			}
 
-			top_->GetCollider()->SetMyType(COL_None);
+			top_->GetCollider()->SetMyType(COL_Player_Attack);
 		}
 		else {
 			top_->GetCollider()->SetMyType(COL_Umbrella_Ground);

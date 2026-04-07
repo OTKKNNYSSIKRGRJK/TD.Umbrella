@@ -36,6 +36,9 @@ void CollisionManager::CheckAllCollisions() {
 
 			Collider* colB = colliders_[j];
 
+			// 【追加】万が一どちらかがnullptrならスキップ
+			if (!colA || !colB) continue;
+
 			// フィルターチェック (MyType と YourType のビット演算など)
 			if (!CheckFilter(colA, colB)) continue;
 
@@ -77,6 +80,9 @@ bool CollisionManager::CheckFilter(Collider* colliderA, Collider* colliderB) {
 
 bool CollisionManager::CheckNarrowPhase(Collider* a, Collider* b, Vector3& outPush) {
 	// ここで GetShapeType() を見て分岐する
+	if (!a)return false;
+	if (!b)return false;
+
 	if (a->GetShapeType() == ColliderShape::Convex &&
 		b->GetShapeType() == ColliderShape::Convex)
 	{

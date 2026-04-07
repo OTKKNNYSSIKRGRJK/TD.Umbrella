@@ -25,12 +25,6 @@ namespace Lumina {
 	using Pair = std::pair<T_First, T_Second>;
 }
 
-namespace Lumina {
-	export struct F32x2 { F32 X, Y; };
-	export struct F32x3 { F32 X, Y, Z; };
-	export struct F32x4 { F32 X, Y, Z, W; };
-}
-
 namespace Lumina::Bit {
 	export template<typename T>
 		requires (sizeof(T) == sizeof(U32))
@@ -47,4 +41,10 @@ namespace Lumina::Numeric {
 		constexpr typename T MinAbove0{ std::numeric_limits<T>::min() };
 	export template<typename T>
 		constexpr typename T Max{ std::numeric_limits<T>::max() };
+}
+
+namespace Lumina {
+	export struct F32x2 { F32 X, Y; };
+	export struct F32x3 { F32 X, Y, Z; };
+	export struct F32x4 { F32 X, Y, Z, W; };
 }
