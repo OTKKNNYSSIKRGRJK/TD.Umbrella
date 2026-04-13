@@ -7,6 +7,7 @@ import Lumina.D3D12;
 import Lumina.MeshManager;
 import Lumina.Primitive;
 import Game.MathUtils;
+import Game.ProjectileManager;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -75,6 +76,26 @@ namespace Game::Scene::Impl {
 					1U,
 					LocalHeap_Materials_.CPUHandle(0U), // とりあえず共通マテリアル0を使用
 					worldMat
+				);
+			}
+		}
+
+		// プロジェクタイルの描画（CubeMeshで表現）
+		const auto& projectiles = Game::ProjectileManager::GetInstance()->GetAll();
+		for (const auto& proj : projectiles) {
+			if (proj.isDead) continue;
+			if (CubeMeshIdx_ < MeshShaderAssets_.size()) {
+				float s = proj.data.scale;
+				auto projWorldMat = Game::MathUtils::SRT(
+					{ s, s, s },
+					{ 0.0f, 0.0f, 0.0f },
+					{ proj.position.X, proj.position.Y, proj.position.Z }
+				);
+				meshMngr.Batch(
+					MeshShaderAssets_[CubeMeshIdx_],
+					1U,
+					LocalHeap_Materials_.CPUHandle(0U),
+					projWorldMat
 				);
 			}
 		}

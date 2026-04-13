@@ -7,6 +7,7 @@ import <vector>;
 import <array>;
 
 import Lumina;
+import Game.ProjectileManager;
 
 export namespace Game::Editor {
 
@@ -58,6 +59,13 @@ export namespace Game::Editor {
 		float patrolRadius = 10.0f;      // 巡回範囲
 		float aggressiveness = 0.5f;     // 攻撃的傾向 (0.0 ~ 1.0)
 
+		// --- 攻撃タイプ ---
+		enum class AttackType { Melee, Ranged };
+		AttackType attackType = AttackType::Melee;
+
+		// --- 遠距離攻撃用プロジェクタイル設定 ---
+		Game::ProjectileData projectile;
+
 		void Reset() {
 			name = "NewEnemy";
 			hp = 100;
@@ -78,6 +86,8 @@ export namespace Game::Editor {
 			retreatThreshold = 0.2f;
 			patrolRadius = 10.0f;
 			aggressiveness = 0.5f;
+			attackType = AttackType::Melee;
+			projectile = Game::ProjectileData{};
 		}
 	};
 

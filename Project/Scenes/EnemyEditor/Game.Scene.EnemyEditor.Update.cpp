@@ -181,6 +181,54 @@ namespace Game::Editor {
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("HP ratio at which enemy will retreat (0 = never)");
 			ImGui::SliderFloat("Aggressiveness", &editingEnemy_.aggressiveness, 0.0f, 1.0f, "%.2f", ImGuiSliderFlags_AlwaysClamp);
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("0 = passive, 1 = always attacks on sight");
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Attack Type");
+			const char* attackTypeNames[] = { "Melee", "Ranged" };
+			int currentAttackType = (editingEnemy_.attackType == EnemyData::AttackType::Ranged) ? 1 : 0;
+			if (ImGui::Combo("Attack Type", &currentAttackType, attackTypeNames, 2)) {
+				editingEnemy_.attackType = (currentAttackType == 1)
+					? EnemyData::AttackType::Ranged
+					: EnemyData::AttackType::Melee;
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Melee = rush attack, Ranged = fire projectile");
+		}
+
+		if (editingEnemy_.attackType == EnemyData::AttackType::Ranged) {
+			if (ImGui::CollapsingHeader("Projectile Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+				ImGui::TextDisabled("Configure the projectile fired during ranged attacks");
+
+				const char* trajNames[] = { "Straight", "Parabola", "Homing" };
+				int currentTraj = static_cast<int>(editingEnemy_.projectile.trajectory);
+				if (ImGui::Combo("Trajectory", &currentTraj, trajNames, 3)) {
+					editingEnemy_.projectile.trajectory = static_cast<Game::TrajectoryType>(currentTraj);
+				}
+
+				ImGui::DragFloat("Speed##proj", &editingEnemy_.projectile.speed, 0.1f, 0.1f, 50.0f, "%.1f");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Projectile speed");
+
+				ImGui::DragInt("Damage##proj", &editingEnemy_.projectile.damage, 1, 1, 9999);
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Damage dealt on hit");
+
+				ImGui::DragFloat("Lifetime##proj", &editingEnemy_.projectile.lifetime, 0.1f, 0.1f, 30.0f, "%.1f s");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Time before projectile despawns");
+
+				ImGui::DragFloat("Scale##proj", &editingEnemy_.projectile.scale, 0.01f, 0.01f, 2.0f, "%.2f");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visual size of the projectile");
+
+				ImGui::DragFloat("Collider Radius##proj", &editingEnemy_.projectile.colliderRadius, 0.01f, 0.01f, 2.0f, "%.2f");
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Hit detection radius");
+
+				if (editingEnemy_.projectile.trajectory == Game::TrajectoryType::Parabola) {
+					ImGui::DragFloat("Gravity##proj", &editingEnemy_.projectile.gravity, 0.1f, 0.0f, 50.0f, "%.1f");
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Downward gravity for parabolic arc");
+				}
+
+				if (editingEnemy_.projectile.trajectory == Game::TrajectoryType::Homing) {
+					ImGui::DragFloat("Homing Strength##proj", &editingEnemy_.projectile.homingStrength, 0.1f, 0.0f, 20.0f, "%.1f");
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("How aggressively the projectile tracks the player");
+				}
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Size Tiers (S / M / L)", ImGuiTreeNodeFlags_DefaultOpen)) {

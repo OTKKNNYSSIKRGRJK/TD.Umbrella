@@ -17,6 +17,7 @@ import nlohmann.json;
 
 import Game.MotionManager;
 import Game.EnemyManager;
+import Game.ProjectileManager;
 
 import Game.Events;
 
@@ -162,6 +163,7 @@ namespace Game::Scene::Impl {
 
 		playState_.Enemies.clear();
 		Game::EnemyManager::GetInstance()->ClearInstances();
+		Game::ProjectileManager::GetInstance()->ClearAll();
 
 		for (auto& ep : playState_.CurrentArea.enemies) {
 			PlayEnemy pe;
@@ -222,16 +224,20 @@ namespace Game::Scene::Impl {
 
 		Game::EnemyManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
 
+		// プロジェクタイル更新
+		Game::ProjectileManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
+
 		// Collision の更新処理↓↓↓
 		
 		// 中身をclear
 		CollisionManager_->Begin();
 
 		// ここからColliderを設定
+		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
+		Game::ProjectileManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetSmashCollider());
-		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		for (auto const& polygon : Terrain_->PolygonsData()) {
 			CollisionManager_->SetColliders(polygon.Col.get());
 		}
@@ -250,6 +256,9 @@ namespace Game::Scene::Impl {
 
 		// Check!
 		CollisionManager_->CheckAllCollisions();
+
+		// 死亡済みプロジェクタイルを除去
+		Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
 		playState_.Enemies.clear();

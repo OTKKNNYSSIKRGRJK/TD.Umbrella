@@ -11,6 +11,7 @@ import nlohmann.json;
 import Game.MathUtils;
 import Game.Player;
 import Game.Umbrella;
+import Game.ProjectileManager;
 
 import Game.Events;
 
@@ -219,6 +220,35 @@ namespace {
 		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
 		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
 		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
+
+		// --- 攻撃タイプ ---
+		if (j.contains("attackType")) {
+			std::string atype = j["attackType"].get<std::string>();
+			if (atype == "Ranged") {
+				e.attackType = Game::Editor::EnemyData::AttackType::Ranged;
+			} else {
+				e.attackType = Game::Editor::EnemyData::AttackType::Melee;
+			}
+		}
+
+		// --- プロジェクタイル設定 ---
+		if (j.contains("projectile") && j["projectile"].is_object()) {
+			const auto& pj = j["projectile"];
+			if (pj.contains("meshName")) pj.at("meshName").get_to(e.projectile.meshName);
+			if (pj.contains("scale")) pj.at("scale").get_to(e.projectile.scale);
+			if (pj.contains("trajectory")) {
+				std::string traj = pj["trajectory"].get<std::string>();
+				if (traj == "Parabola") e.projectile.trajectory = Game::TrajectoryType::Parabola;
+				else if (traj == "Homing") e.projectile.trajectory = Game::TrajectoryType::Homing;
+				else e.projectile.trajectory = Game::TrajectoryType::Straight;
+			}
+			if (pj.contains("speed")) pj.at("speed").get_to(e.projectile.speed);
+			if (pj.contains("gravity")) pj.at("gravity").get_to(e.projectile.gravity);
+			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
+			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
+			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
+			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
+		}
 	}
 
 	void SpawnSplitChildren(
@@ -666,9 +696,23 @@ namespace Game {
 				else if (enemy.preAttackTimer <= 0.0f) {
 					enemy.aiState = EnemyInstance::AIState::Attack;
 					enemy.attackTimer = enemy.attackDuration;
-					float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
-					enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
-					enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
+
+					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+						// 遠距離攻撃: プロジェクタイルを発射
+						ProjectileManager::GetInstance()->Fire(
+							enemy.position,
+							playerPosition,
+							enemy.baseData.projectile,
+							enemy.id
+						);
+						// 遠距離攻撃時は突進しない
+						enemy.velocity.X *= 0.3f;
+					} else {
+						// 近接攻撃: 従来の突進
+						float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
+						enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
+					}
 				}
 				break;
 

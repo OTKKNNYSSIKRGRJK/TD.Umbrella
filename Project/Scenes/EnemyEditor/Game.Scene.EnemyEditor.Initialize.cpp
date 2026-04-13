@@ -43,7 +43,25 @@ namespace Game::Editor {
 			{"aggroRadius", e.aggroRadius}, {"attackRange", e.attackRange},
 			{"moveSpeed", e.moveSpeed}, {"attackCooldown", e.attackCooldown},
 			{"retreatThreshold", e.retreatThreshold},
-			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness}
+			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness},
+			{"attackType", (e.attackType == EnemyData::AttackType::Ranged) ? "Ranged" : "Melee"},
+		};
+
+		// プロジェクタイル設定（遠距離攻撃時のみ有効だが常に保存）
+		std::string trajStr = "Straight";
+		if (e.projectile.trajectory == Game::TrajectoryType::Parabola) trajStr = "Parabola";
+		else if (e.projectile.trajectory == Game::TrajectoryType::Homing) trajStr = "Homing";
+
+		j["projectile"] = json{
+			{"meshName", e.projectile.meshName},
+			{"scale", e.projectile.scale},
+			{"trajectory", trajStr},
+			{"speed", e.projectile.speed},
+			{"gravity", e.projectile.gravity},
+			{"homingStrength", e.projectile.homingStrength},
+			{"damage", e.projectile.damage},
+			{"lifetime", e.projectile.lifetime},
+			{"colliderRadius", e.projectile.colliderRadius},
 		};
 	}
 	void from_json(const json& j, EnemyData& e) {
@@ -64,6 +82,29 @@ namespace Game::Editor {
 		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
 		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
 		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
+
+		if (j.contains("attackType")) {
+			std::string atype = j["attackType"].get<std::string>();
+			e.attackType = (atype == "Ranged") ? EnemyData::AttackType::Ranged : EnemyData::AttackType::Melee;
+		}
+
+		if (j.contains("projectile") && j["projectile"].is_object()) {
+			const auto& pj = j["projectile"];
+			if (pj.contains("meshName")) pj.at("meshName").get_to(e.projectile.meshName);
+			if (pj.contains("scale")) pj.at("scale").get_to(e.projectile.scale);
+			if (pj.contains("trajectory")) {
+				std::string traj = pj["trajectory"].get<std::string>();
+				if (traj == "Parabola") e.projectile.trajectory = Game::TrajectoryType::Parabola;
+				else if (traj == "Homing") e.projectile.trajectory = Game::TrajectoryType::Homing;
+				else e.projectile.trajectory = Game::TrajectoryType::Straight;
+			}
+			if (pj.contains("speed")) pj.at("speed").get_to(e.projectile.speed);
+			if (pj.contains("gravity")) pj.at("gravity").get_to(e.projectile.gravity);
+			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
+			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
+			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
+			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
+		}
 	}
 
 	void EnemyEditor::Initialize() {
