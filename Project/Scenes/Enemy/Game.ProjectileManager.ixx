@@ -9,6 +9,7 @@ import Lumina;
 import Collider;
 import CollisionManager;
 import Game.Editor.ActorEditor;
+import Game.MotionManager;
 
 export namespace Game {
 
@@ -51,6 +52,7 @@ export namespace Game {
 
 		// Spline 用: 発射位置（スプライン原点オフセット）
 		Lumina::Math::F32x3 splineOrigin{ 0.0f, 0.0f, 0.0f };
+		MotionController motionController;
 
 		// 当たり判定
 		std::unique_ptr<ConvexCollider> collider;
