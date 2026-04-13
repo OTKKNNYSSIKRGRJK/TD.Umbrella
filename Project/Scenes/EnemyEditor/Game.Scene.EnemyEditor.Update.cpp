@@ -198,14 +198,58 @@ namespace Game::Editor {
 			if (ImGui::CollapsingHeader("Projectile Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
 				ImGui::TextDisabled("Configure the projectile fired during ranged attacks");
 
-				const char* trajNames[] = { "Straight", "Parabola", "Homing" };
-				int currentTraj = static_cast<int>(editingEnemy_.projectile.trajectory);
-				if (ImGui::Combo("Trajectory", &currentTraj, trajNames, 3)) {
-					editingEnemy_.projectile.trajectory = static_cast<Game::TrajectoryType>(currentTraj);
+				// Actor アセット選択コンボ
+				ImGui::TextDisabled("Actor Asset (actor_*.json)");
+				// actor_*.json ファイルを検索
+				std::vector<std::string> actorNames;
+				actorNames.push_back(""); // (none)
+				if (fs::exists("./")) {
+					for (const auto& entry : fs::directory_iterator("./")) {
+						if (entry.is_regular_file() && entry.path().extension() == ".json") {
+							std::string fName = entry.path().filename().string();
+							if (fName.find("actor_") == 0 && fName.size() > 11) {
+								// "actor_XXX.json" → "XXX"
+								std::string name = fName.substr(6, fName.size() - 11);
+								actorNames.push_back(name);
+							}
+						}
+					}
+				}
+				int currentActorIdx = 0;
+				for (int k = 0; k < static_cast<int>(actorNames.size()); ++k) {
+					if (actorNames[k] == editingEnemy_.projectile.actorName) {
+						currentActorIdx = k;
+						break;
+					}
+				}
+				std::string actorPreview = editingEnemy_.projectile.actorName.empty()
+					? "(none)" : editingEnemy_.projectile.actorName;
+				if (ImGui::BeginCombo("Actor##proj", actorPreview.c_str())) {
+					for (int k = 0; k < static_cast<int>(actorNames.size()); ++k) {
+						bool isSelected = (currentActorIdx == k);
+						std::string label = actorNames[k].empty() ? "(none)" : actorNames[k];
+						if (ImGui::Selectable(label.c_str(), isSelected)) {
+							editingEnemy_.projectile.actorName = actorNames[k];
+						}
+						if (isSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Select an Actor asset for projectile appearance and trajectory");
+
+				ImGui::Spacing();
+
+				// ホーミングオーバーライド
+				ImGui::Checkbox("Homing Override##proj", &editingEnemy_.projectile.isHoming);
+				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Override Actor movement with player-tracking homing behavior");
+
+				if (editingEnemy_.projectile.isHoming) {
+					ImGui::DragFloat("Homing Strength##proj", &editingEnemy_.projectile.homingStrength, 0.1f, 0.0f, 20.0f, "%.1f");
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("How aggressively the projectile tracks the player");
 				}
 
-				ImGui::DragFloat("Speed##proj", &editingEnemy_.projectile.speed, 0.1f, 0.1f, 50.0f, "%.1f");
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Projectile speed");
+				ImGui::Spacing();
+				ImGui::TextDisabled("Combat Parameters");
 
 				ImGui::DragInt("Damage##proj", &editingEnemy_.projectile.damage, 1, 1, 9999);
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Damage dealt on hit");
@@ -213,21 +257,8 @@ namespace Game::Editor {
 				ImGui::DragFloat("Lifetime##proj", &editingEnemy_.projectile.lifetime, 0.1f, 0.1f, 30.0f, "%.1f s");
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Time before projectile despawns");
 
-				ImGui::DragFloat("Scale##proj", &editingEnemy_.projectile.scale, 0.01f, 0.01f, 2.0f, "%.2f");
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Visual size of the projectile");
-
 				ImGui::DragFloat("Collider Radius##proj", &editingEnemy_.projectile.colliderRadius, 0.01f, 0.01f, 2.0f, "%.2f");
 				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Hit detection radius");
-
-				if (editingEnemy_.projectile.trajectory == Game::TrajectoryType::Parabola) {
-					ImGui::DragFloat("Gravity##proj", &editingEnemy_.projectile.gravity, 0.1f, 0.0f, 50.0f, "%.1f");
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Downward gravity for parabolic arc");
-				}
-
-				if (editingEnemy_.projectile.trajectory == Game::TrajectoryType::Homing) {
-					ImGui::DragFloat("Homing Strength##proj", &editingEnemy_.projectile.homingStrength, 0.1f, 0.0f, 20.0f, "%.1f");
-					if (ImGui::IsItemHovered()) ImGui::SetTooltip("How aggressively the projectile tracks the player");
-				}
 			}
 		}
 

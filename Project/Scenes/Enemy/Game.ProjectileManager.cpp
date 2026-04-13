@@ -2,9 +2,79 @@ module Game.ProjectileManager;
 
 import <cmath>;
 import <algorithm>;
+import <fstream>;
+import <filesystem>;
 
+import nlohmann.json;
 import Game.MathUtils;
 import Game.Player;
+
+namespace fs = std::filesystem;
+
+namespace {
+	// Actor JSON をロードするローカル関数
+	// (ActorEditor の from_json は別モジュール実装部なので直接呼べないため手動パース)
+	bool LoadActorDataFromFile(const std::string& actorName, Game::Editor::ActorData& out) {
+		std::string filename = "actor_" + actorName + ".json";
+		if (!fs::exists(filename)) return false;
+
+		std::ifstream file(filename);
+		if (!file.is_open()) return false;
+
+		try {
+			nlohmann::json j;
+			file >> j;
+
+			if (j.contains("name")) j.at("name").get_to(out.name);
+
+			// Transform
+			if (j.contains("transform") && j["transform"].is_object()) {
+				const auto& t = j["transform"];
+				if (t.contains("posX")) t.at("posX").get_to(out.transform.posX);
+				if (t.contains("posY")) t.at("posY").get_to(out.transform.posY);
+				if (t.contains("posZ")) t.at("posZ").get_to(out.transform.posZ);
+				if (t.contains("rotX")) t.at("rotX").get_to(out.transform.rotX);
+				if (t.contains("rotY")) t.at("rotY").get_to(out.transform.rotY);
+				if (t.contains("rotZ")) t.at("rotZ").get_to(out.transform.rotZ);
+				if (t.contains("scaleX")) t.at("scaleX").get_to(out.transform.scaleX);
+				if (t.contains("scaleY")) t.at("scaleY").get_to(out.transform.scaleY);
+				if (t.contains("scaleZ")) t.at("scaleZ").get_to(out.transform.scaleZ);
+			}
+
+			// Visual
+			if (j.contains("visual") && j["visual"].is_object()) {
+				const auto& v = j["visual"];
+				if (v.contains("meshPath")) v.at("meshPath").get_to(out.visual.meshPath);
+				if (v.contains("materialIndex")) v.at("materialIndex").get_to(out.visual.materialIndex);
+			}
+
+			// Movement
+			if (j.contains("movement") && j["movement"].is_object()) {
+				const auto& m = j["movement"];
+				if (m.contains("type")) out.movement.type = static_cast<Game::Editor::MovementType>(m.at("type").get<int>());
+				if (m.contains("speed")) m.at("speed").get_to(out.movement.speed);
+				if (m.contains("dirX")) m.at("dirX").get_to(out.movement.dirX);
+				if (m.contains("dirY")) m.at("dirY").get_to(out.movement.dirY);
+				if (m.contains("dirZ")) m.at("dirZ").get_to(out.movement.dirZ);
+				if (m.contains("range")) m.at("range").get_to(out.movement.range);
+				if (m.contains("easing")) out.movement.easing = static_cast<Game::Editor::EasingType>(m.at("easing").get<int>());
+				if (m.contains("splineMotionName")) m.at("splineMotionName").get_to(out.movement.splineMotionName);
+				if (m.contains("totalDuration")) m.at("totalDuration").get_to(out.movement.totalDuration);
+				if (m.contains("loopSpline")) m.at("loopSpline").get_to(out.movement.loopSpline);
+			}
+
+			// Lifecycle (lifetime)
+			if (j.contains("lifecycle") && j["lifecycle"].is_object()) {
+				const auto& l = j["lifecycle"];
+				if (l.contains("lifetime")) l.at("lifetime").get_to(out.lifecycle.lifetime);
+			}
+
+			return true;
+		} catch (...) {
+			return false;
+		}
+	}
+}
 
 namespace Game {
 
@@ -80,8 +150,14 @@ namespace Game {
 		proj.ownerEnemyId = ownerEnemyId;
 		proj.aliveTime = 0.0f;
 		proj.isDead = false;
+		proj.splineOrigin = origin;
 
-		// 方向ベクトルの計算
+		// Actor データをロード
+		if (!data.actorName.empty()) {
+			LoadActorDataFromFile(data.actorName, proj.actorData);
+		}
+
+		// 方向ベクトルの計算（ターゲット方向）
 		float dx = target.X - origin.X;
 		float dy = target.Y - origin.Y;
 		float dz = target.Z - origin.Z;
@@ -92,27 +168,35 @@ namespace Game {
 		float ny = dy / dist;
 		float nz = dz / dist;
 
-		switch (data.trajectory) {
-		case TrajectoryType::Straight:
-			// 直線 : そのまま方向 × 速度
-			proj.velocity = { nx * data.speed, ny * data.speed, nz * data.speed };
-			break;
+		// Actor の MovementModule から速度を取得（デフォルト 5.0f）
+		float speed = (std::max)(1.0f, proj.actorData.movement.speed);
 
-		case TrajectoryType::Parabola: {
-			// 放物線 : X方向は水平速度、Y方向は到達に必要な初速を計算
-			float horizontalDist = std::abs(dx);
-			float flightTime = horizontalDist / (std::max)(data.speed, 0.1f);
-			float vx = (dx > 0.0f ? 1.0f : -1.0f) * data.speed;
-			// 必要な初速 vy = (dy + 0.5 * g * t^2) / t
-			float vy = (dy + 0.5f * data.gravity * flightTime * flightTime) / (std::max)(flightTime, 0.01f);
-			proj.velocity = { vx, vy, 0.0f };
-			break;
-		}
+		if (data.isHoming) {
+			// ホーミング: 初期方向はターゲット方向、速度は Actor から
+			proj.velocity = { nx * speed, ny * speed, nz * speed };
+		} else {
+			// Actor の MovementModule に基づく
+			switch (proj.actorData.movement.type) {
+			case Editor::MovementType::Linear:
+			case Editor::MovementType::None:
+			default:
+				// 直線: ターゲット方向 × Actor の speed
+				proj.velocity = { nx * speed, ny * speed, nz * speed };
+				break;
 
-		case TrajectoryType::Homing:
-			// ホーミング : 初期方向はターゲット方向
-			proj.velocity = { nx * data.speed, ny * data.speed, nz * data.speed };
-			break;
+			case Editor::MovementType::PingPong:
+				// PingPong: ターゲット方向に飛ぶが、range で折り返す
+				proj.velocity = { nx * speed, ny * speed, nz * speed };
+				proj.traveledDistance = 0.0f;
+				proj.pingPongDirection = 1.0f;
+				break;
+
+			case Editor::MovementType::Spline:
+				// Spline: とりあえず直線（将来 MotionManager スプライン評価に拡張）
+				// TODO: MotionManager からスプライン曲線をロードして毎フレーム位置を評価
+				proj.velocity = { nx * speed, ny * speed, nz * speed };
+				break;
+			}
 		}
 
 		proj.InitCollider();
@@ -159,19 +243,9 @@ namespace Game {
 				continue;
 			}
 
-			// 弾道による挙動更新
-			switch (proj.data.trajectory) {
-			case TrajectoryType::Straight:
-				// 直線: そのまま等速直線運動
-				break;
-
-			case TrajectoryType::Parabola:
-				// 放物線: 重力を加える
-				proj.velocity.Y -= proj.data.gravity * deltaTime;
-				break;
-
-			case TrajectoryType::Homing: {
-				// ホーミング: プレイヤー方向に velocity をゆっくり向ける
+			// ホーミングの場合
+			if (proj.data.isHoming) {
+				float speed = (std::max)(1.0f, proj.actorData.movement.speed);
 				float dx = playerPosition.X - proj.position.X;
 				float dy = playerPosition.Y - proj.position.Y;
 				float dz = playerPosition.Z - proj.position.Z;
@@ -182,25 +256,51 @@ namespace Game {
 					float nz = dz / dist;
 
 					float str = proj.data.homingStrength * deltaTime;
-					proj.velocity.X += (nx * proj.data.speed - proj.velocity.X) * str;
-					proj.velocity.Y += (ny * proj.data.speed - proj.velocity.Y) * str;
-					proj.velocity.Z += (nz * proj.data.speed - proj.velocity.Z) * str;
+					proj.velocity.X += (nx * speed - proj.velocity.X) * str;
+					proj.velocity.Y += (ny * speed - proj.velocity.Y) * str;
+					proj.velocity.Z += (nz * speed - proj.velocity.Z) * str;
 
-					// 速度を一定に保つ（減速・加速しすぎないように）
+					// 速度を一定に保つ
 					float spd = std::sqrt(
 						proj.velocity.X * proj.velocity.X +
 						proj.velocity.Y * proj.velocity.Y +
 						proj.velocity.Z * proj.velocity.Z
 					);
 					if (spd > 0.01f) {
-						float ratio = proj.data.speed / spd;
+						float ratio = speed / spd;
 						proj.velocity.X *= ratio;
 						proj.velocity.Y *= ratio;
 						proj.velocity.Z *= ratio;
 					}
 				}
-				break;
-			}
+			} else {
+				// Actor MovementType に基づく挙動更新
+				switch (proj.actorData.movement.type) {
+				case Editor::MovementType::Linear:
+				case Editor::MovementType::None:
+				case Editor::MovementType::Spline: // TODO: スプライン評価
+				default:
+					// 等速直線運動（velocity 変更なし）
+					break;
+
+				case Editor::MovementType::PingPong: {
+					// PingPong: range を超えたら方向反転
+					float speed = std::sqrt(
+						proj.velocity.X * proj.velocity.X +
+						proj.velocity.Y * proj.velocity.Y +
+						proj.velocity.Z * proj.velocity.Z
+					);
+					proj.traveledDistance += speed * deltaTime;
+					if (proj.traveledDistance >= proj.actorData.movement.range) {
+						proj.traveledDistance = 0.0f;
+						proj.pingPongDirection *= -1.0f;
+						proj.velocity.X *= -1.0f;
+						proj.velocity.Y *= -1.0f;
+						proj.velocity.Z *= -1.0f;
+					}
+					break;
+				}
+				}
 			}
 
 			// 位置更新

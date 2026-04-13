@@ -1,0 +1,51 @@
+{
+    "collider": {
+        "collisionVertices": [],
+        "sizeX": 0.25999999046325684,
+        "sizeY": 0.30000001192092896,
+        "sizeZ": 1.0,
+        "type": 1
+    },
+    "interaction": {
+        "activationTriggerID": "",
+        "damageValue": 10.0,
+        "pushForce": 5.0,
+        "type": 0
+    },
+    "lifecycle": {
+        "autoDestroyOffscreen": true,
+        "lifetime": 10.0,
+        "spawnEventID": "",
+        "spawnTrigger": 2,
+        "spawnValue": 0.0
+    },
+    "movement": {
+        "dirX": 1.0,
+        "dirY": 0.0,
+        "dirZ": 0.0,
+        "easing": 0,
+        "loopSpline": false,
+        "nodeTimings": [],
+        "range": 5.599999904632568,
+        "speed": 1.0,
+        "splineMotionName": "",
+        "totalDuration": 3.0,
+        "type": 1
+    },
+    "name": "kariAttack",
+    "transform": {
+        "posX": 0.0,
+        "posY": 0.0,
+        "posZ": 0.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 0.30000001192092896,
+        "scaleY": 0.30000001192092896,
+        "scaleZ": 0.30000001192092896
+    },
+    "visual": {
+        "materialIndex": 0,
+        "meshPath": "Assets\\cube.obj"
+    }
+}

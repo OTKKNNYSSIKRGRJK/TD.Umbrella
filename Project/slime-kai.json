@@ -1,0 +1,46 @@
+{
+    "aggressiveness": 0.5,
+    "aggroRadius": 15.0,
+    "animationMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "attackCooldown": 1.5,
+    "attackRange": 12.0,
+    "attackType": "Ranged",
+    "collisionVertices": [
+        {
+            "x": 1.1888889074325562,
+            "y": -0.5888888835906982
+        },
+        {
+            "x": -1.1666666269302368,
+            "y": -0.6333333253860474
+        },
+        {
+            "x": 0.0555555559694767,
+            "y": 1.6111111640930176
+        }
+    ],
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
+    "hp": 100,
+    "motionMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "moveSpeed": 3.0,
+    "name": "slime-kai",
+    "patrolRadius": 10.0,
+    "power": 1.0,
+    "projectile": {
+        "actorName": "kariAttack",
+        "colliderRadius": 0.5,
+        "damage": 10.0,
+        "homingStrength": 1.5,
+        "isHoming": false,
+        "lifetime": 5.0
+    },
+    "retreatThreshold": 0.2
+}

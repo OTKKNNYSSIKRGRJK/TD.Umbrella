@@ -84,6 +84,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
 		std::map<std::string, size_t> EnemyMeshIndices_;
+		std::map<std::string, size_t> ActorMeshIndices_;  // actor名 → メッシュインデックス
 		size_t CubeMeshIdx_{ 0 };
 
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
