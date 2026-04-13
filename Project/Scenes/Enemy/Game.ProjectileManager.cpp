@@ -88,18 +88,43 @@ namespace Game {
 		collider->SetYourType(COL_Player | COL_Ground);
 		collider->SetUserData(this);
 
-		// data.colliderRadius を一辺とする小さな立方体
-		float r = data.colliderRadius;
-		std::vector<Lumina::Math::F32x3> verts = {
-			{ -r, -r, -r },
-			{  r, -r, -r },
-			{  r,  r, -r },
-			{ -r,  r, -r },
-			{ -r, -r,  r },
-			{  r, -r,  r },
-			{  r,  r,  r },
-			{ -r,  r,  r },
-		};
+		std::vector<Lumina::Math::F32x3> verts;
+
+		// 1. スケールの取得
+		float sx = (actorData.transform.scaleX > 0.0f) ? actorData.transform.scaleX : 1.0f;
+		float sy = (actorData.transform.scaleY > 0.0f) ? actorData.transform.scaleY : 1.0f;
+		float sz = (actorData.transform.scaleZ > 0.0f) ? actorData.transform.scaleZ : 1.0f;
+
+		if (actorData.collider.type == Game::Editor::ColliderType::Polygon && !actorData.collider.collisionVertices.empty()) {
+			// ActorEditorで描いたポリゴンを使用
+			float depthZ = (actorData.collider.sizeZ > 0.0f) ? actorData.collider.sizeZ : 0.5f;
+			for (const auto& v : actorData.collider.collisionVertices) {
+				// 既に ActorEditor 内でスケール込みで描かれた点は、ここではそのまま使用する
+				// (ActorEditorのCanvasがスケール適用後のメッシュに対して点を打つようになっているため)
+				verts.push_back({ v.x, v.y, depthZ });
+				verts.push_back({ v.x, v.y, -depthZ });
+			}
+		} else if (actorData.collider.type == Game::Editor::ColliderType::Box) {
+			// Actorの Box サイズそのものを使用し、全体の Scale も適用
+			float hw = (actorData.collider.sizeX > 0.0f ? actorData.collider.sizeX : 1.0f) * sx;
+			float hh = (actorData.collider.sizeY > 0.0f ? actorData.collider.sizeY : 1.0f) * sy;
+			float hd = (actorData.collider.sizeZ > 0.0f ? actorData.collider.sizeZ : 1.0f) * sz;
+			verts = {
+				{ -hw, -hh, -hd }, {  hw, -hh, -hd }, {  hw,  hh, -hd }, { -hw,  hh, -hd },
+				{ -hw, -hh,  hd }, {  hw, -hh,  hd }, {  hw,  hh,  hd }, { -hw,  hh,  hd },
+			};
+		} else {
+			// フォールバック（未設定時のデフォルトの立方体）
+			// メッシュのTransform Scaleを考慮して自動で縮小する
+			float rX = 1.0f * sx;
+			float rY = 1.0f * sy;
+			float rZ = 1.0f * sz;
+			verts = {
+				{ -rX, -rY, -rZ }, {  rX, -rY, -rZ }, {  rX,  rY, -rZ }, { -rX,  rY, -rZ },
+				{ -rX, -rY,  rZ }, {  rX, -rY,  rZ }, {  rX,  rY,  rZ }, { -rX,  rY,  rZ },
+			};
+		}
+		
 		collider->SetVertices(verts);
 		collider->SetWorldPosition(position);
 
@@ -155,6 +180,11 @@ namespace Game {
 		// Actor データをロード
 		if (!data.actorName.empty()) {
 			LoadActorDataFromFile(data.actorName, proj.actorData);
+
+			// ActorEditorで設定されたパラメータでEnemyData側の設定（デフォルト値）を上書き
+			proj.data.lifetime = proj.actorData.lifecycle.lifetime;
+			proj.data.damage = static_cast<int>(proj.actorData.interaction.damageValue);
+			proj.data.colliderRadius = proj.actorData.collider.sizeX;
 		}
 
 		// 方向ベクトルの計算（ターゲット方向）

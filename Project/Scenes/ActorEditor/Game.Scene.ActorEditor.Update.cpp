@@ -911,20 +911,60 @@ namespace Game::Editor {
 
 		// --- メッシュワイヤーフレーム描画 ---
 		if (showMeshWireframe_ && !cachedMeshEdges_.empty()) {
-			// 3D→ 2D投影 (ビューモードに応じた座標選択)
+			// Actor Transform のスケールを適用
+			float sx = editingActor_.transform.scaleX;
+			float sy = editingActor_.transform.scaleY;
+			float sz = editingActor_.transform.scaleZ;
+			if (sx == 0.0f) sx = 1.0f;
+			if (sy == 0.0f) sy = 1.0f;
+			if (sz == 0.0f) sz = 1.0f;
+
+			float rx = editingActor_.transform.rotX * 3.14159265f / 180.0f;
+			float ry = editingActor_.transform.rotY * 3.14159265f / 180.0f;
+			float rz = editingActor_.transform.rotZ * 3.14159265f / 180.0f;
+			
+			float ox = editingActor_.transform.posX;
+			float oy = editingActor_.transform.posY;
+			float oz = editingActor_.transform.posZ;
+
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
-				float px, py;
+				// 1. Scale
+				float x1 = pos[0] * sx;
+				float y1 = pos[1] * sy;
+				float z1 = pos[2] * sz;
+
+				// 2. Rotate X
+				float x2 = x1;
+				float y2 = y1 * std::cos(rx) - z1 * std::sin(rx);
+				float z2 = y1 * std::sin(rx) + z1 * std::cos(rx);
+
+				// 3. Rotate Y
+				float x3 = x2 * std::cos(ry) + z2 * std::sin(ry);
+				float y3 = y2;
+				float z3 = -x2 * std::sin(ry) + z2 * std::cos(ry);
+
+				// 4. Rotate Z
+				float px = x3 * std::cos(rz) - y3 * std::sin(rz);
+				float py = x3 * std::sin(rz) + y3 * std::cos(rz);
+				float pz = z3;
+
+				// 5. Offset
+				px += ox;
+				py += oy;
+				pz += oz;
+
+				float outX, outY;
 				switch (meshViewMode_) {
 				case 0: // Front (XY)
-					px = pos[0]; py = pos[1]; break;
+					outX = px; outY = py; break;
 				case 1: // Side (ZY)
-					px = pos[2]; py = pos[1]; break;
+					outX = pz; outY = py; break;
 				case 2: // Top (XZ)
-					px = pos[0]; py = pos[2]; break;
+					outX = px; outY = pz; break;
 				default:
-					px = pos[0]; py = pos[1]; break;
+					outX = px; outY = py; break;
 				}
-				return ImVec2(center.x + px * scale, center.y - py * scale);
+				return ImVec2(center.x + outX * scale, center.y - outY * scale);
 			};
 
 			// クリッピング付きでエッジ描画

@@ -101,11 +101,26 @@ namespace Game::Scene::Impl {
 				if (sy <= 0.0f) sy = 0.15f;
 				if (sz <= 0.0f) sz = 0.15f;
 
-				auto projWorldMat = Game::MathUtils::SRT(
+				float ox = proj.actorData.transform.posX;
+				float oy = proj.actorData.transform.posY;
+				float oz = proj.actorData.transform.posZ;
+				
+				float rx = proj.actorData.transform.rotX * 3.14159265f / 180.0f;
+				float ry = proj.actorData.transform.rotY * 3.14159265f / 180.0f;
+				float rz = proj.actorData.transform.rotZ * 3.14159265f / 180.0f;
+
+				// Mesh local transform (Scale -> Rotate -> Offset)
+				auto localMat = Game::MathUtils::SRT(
 					{ sx, sy, sz },
-					{ 0.0f, 0.0f, 0.0f },
-					{ proj.position.X, proj.position.Y, proj.position.Z }
+					{ rx, ry, rz },
+					{ ox, oy, oz }
 				);
+
+				// Projectile world position
+				auto worldPosMat = Game::MathUtils::Translate(proj.position);
+
+				// Combine: mesh is locally transformed, then moved to projectile's world position
+				auto projWorldMat = localMat * worldPosMat;
 				meshMngr.Batch(
 					MeshShaderAssets_[meshIdx],
 					1U,

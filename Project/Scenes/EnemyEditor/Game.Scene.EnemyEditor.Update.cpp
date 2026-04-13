@@ -250,15 +250,7 @@ namespace Game::Editor {
 
 				ImGui::Spacing();
 				ImGui::TextDisabled("Combat Parameters");
-
-				ImGui::DragInt("Damage##proj", &editingEnemy_.projectile.damage, 1, 1, 9999);
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Damage dealt on hit");
-
-				ImGui::DragFloat("Lifetime##proj", &editingEnemy_.projectile.lifetime, 0.1f, 0.1f, 30.0f, "%.1f s");
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Time before projectile despawns");
-
-				ImGui::DragFloat("Collider Radius##proj", &editingEnemy_.projectile.colliderRadius, 0.01f, 0.01f, 2.0f, "%.2f");
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Hit detection radius");
+				ImGui::TextDisabled("(Damage, Lifetime, and Collision Radius are now\ngoverned by the selected Actor asset.)");
 			}
 		}
 

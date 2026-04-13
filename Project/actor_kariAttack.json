@@ -1,10 +1,27 @@
 {
     "collider": {
-        "collisionVertices": [],
+        "collisionVertices": [
+            {
+                "x": -0.4888888895511627,
+                "y": 0.5
+            },
+            {
+                "x": -0.5,
+                "y": -0.5
+            },
+            {
+                "x": 0.4888888895511627,
+                "y": -0.5
+            },
+            {
+                "x": 0.5,
+                "y": 0.5
+            }
+        ],
         "sizeX": 0.25999999046325684,
         "sizeY": 0.30000001192092896,
         "sizeZ": 1.0,
-        "type": 1
+        "type": 3
     },
     "interaction": {
         "activationTriggerID": "",
@@ -14,7 +31,7 @@
     },
     "lifecycle": {
         "autoDestroyOffscreen": true,
-        "lifetime": 10.0,
+        "lifetime": 2.0999999046325684,
         "spawnEventID": "",
         "spawnTrigger": 2,
         "spawnValue": 0.0
@@ -25,12 +42,25 @@
         "dirZ": 0.0,
         "easing": 0,
         "loopSpline": false,
-        "nodeTimings": [],
-        "range": 5.599999904632568,
-        "speed": 1.0,
-        "splineMotionName": "",
+        "nodeTimings": [
+            {
+                "arrivalTime": 0.0,
+                "easing": 0
+            },
+            {
+                "arrivalTime": 1.5,
+                "easing": 0
+            },
+            {
+                "arrivalTime": 3.0,
+                "easing": 0
+            }
+        ],
+        "range": 4.699999809265137,
+        "speed": 7.800000190734863,
+        "splineMotionName": "Test",
         "totalDuration": 3.0,
-        "type": 1
+        "type": 3
     },
     "name": "kariAttack",
     "transform": {
@@ -40,9 +70,9 @@
         "rotX": 0.0,
         "rotY": 0.0,
         "rotZ": 0.0,
-        "scaleX": 0.30000001192092896,
-        "scaleY": 0.30000001192092896,
-        "scaleZ": 0.30000001192092896
+        "scaleX": 0.5,
+        "scaleY": 0.5,
+        "scaleZ": 0.5
     },
     "visual": {
         "materialIndex": 0,
