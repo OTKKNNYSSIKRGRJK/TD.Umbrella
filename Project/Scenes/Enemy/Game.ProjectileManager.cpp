@@ -222,9 +222,9 @@ namespace Game {
 				break;
 
 			case Editor::MovementType::Spline:
-				// Spline: とりあえず直線（将来 MotionManager スプライン評価に拡張）
-				// TODO: MotionManager からスプライン曲線をロードして毎フレーム位置を評価
-				proj.velocity = { nx * speed, ny * speed, nz * speed };
+				// Spline: MotionManagerを使ってスプライン軌道を再生する
+				proj.velocity = { nx * speed, ny * speed, nz * speed }; // 向き(左右反転判定)用に保持
+				proj.motionController.Play(proj.actorData.movement.splineMotionName, origin, proj.actorData.movement.totalDuration);
 				break;
 			}
 		}
@@ -234,8 +234,6 @@ namespace Game {
 		// コリジョンコールバック: プレイヤーに当たったら消える、地面に当たったら消える
 		proj.collider->onCollisionCallback = [id = proj.id](Collider* other, [[maybe_unused]] const Lumina::Math::F32x3& pushOut) {
 			if (other->GetMyType() == COL_Player) {
-				// プレイヤーにダメージを与える処理は Player 側の onCollision で行う
-				// ここではプロジェクタイル側を死亡フラグセット
 				auto* mgr = ProjectileManager::GetInstance();
 				for (auto& p : const_cast<std::vector<Projectile>&>(mgr->GetAll())) {
 					if (p.id == id) {
@@ -273,6 +271,9 @@ namespace Game {
 				continue;
 			}
 
+			// 移動処理（位置の更新フラグ）
+			bool manuallyUpdatePosition = true;
+
 			// ホーミングの場合
 			if (proj.data.isHoming) {
 				float speed = (std::max)(1.0f, proj.actorData.movement.speed);
@@ -308,9 +309,20 @@ namespace Game {
 				switch (proj.actorData.movement.type) {
 				case Editor::MovementType::Linear:
 				case Editor::MovementType::None:
-				case Editor::MovementType::Spline: // TODO: スプライン評価
 				default:
 					// 等速直線運動（velocity 変更なし）
+					break;
+
+				case Editor::MovementType::Spline:
+					// スプライン再生中なら絶対座標を更新
+					if (proj.motionController.IsPlaying()) {
+						proj.position = proj.motionController.Update(deltaTime, proj.velocity);
+						manuallyUpdatePosition = false; // 位置はMotionControllerによって制御される
+					} else {
+						// 再生が終了したら現在の位置で止まる、あるいは死ぬ
+						// とりあえず止まる
+						proj.velocity = { 0.0f, 0.0f, 0.0f };
+					}
 					break;
 
 				case Editor::MovementType::PingPong: {
@@ -333,10 +345,12 @@ namespace Game {
 				}
 			}
 
-			// 位置更新
-			proj.position.X += proj.velocity.X * deltaTime;
-			proj.position.Y += proj.velocity.Y * deltaTime;
-			proj.position.Z += proj.velocity.Z * deltaTime;
+			// 位置更新（スプライン以外の場合）
+			if (manuallyUpdatePosition) {
+				proj.position.X += proj.velocity.X * deltaTime;
+				proj.position.Y += proj.velocity.Y * deltaTime;
+				proj.position.Z += proj.velocity.Z * deltaTime;
+			}
 
 			// Z軸を常に0にする（2Dゲームなので）
 			proj.position.Z = 0.0f;

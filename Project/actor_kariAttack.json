@@ -60,7 +60,7 @@
         "speed": 7.800000190734863,
         "splineMotionName": "Test",
         "totalDuration": 3.0,
-        "type": 3
+        "type": 1
     },
     "name": "kariAttack",
     "transform": {
