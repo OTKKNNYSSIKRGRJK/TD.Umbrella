@@ -199,6 +199,12 @@
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp">
       <Filter>Scenes\Enemy</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.ixx">
+      <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.cpp">
+      <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
     <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx">
       <Filter>Scenes\ActorEditor</Filter>
     </ClCompile>
