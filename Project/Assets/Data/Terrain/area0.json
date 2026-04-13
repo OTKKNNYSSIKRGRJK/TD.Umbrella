@@ -178,7 +178,7 @@
     },
     "enemies": [
         {
-            "enemyName": "Slime",
+            "enemyName": "slime-kai",
             "facingRight": true,
             "position": {
                 "x": 721.0,
@@ -187,7 +187,7 @@
             "sizeCategory": 0
         },
         {
-            "enemyName": "Slime",
+            "enemyName": "slime-kai",
             "facingRight": true,
             "position": {
                 "x": 376.0,

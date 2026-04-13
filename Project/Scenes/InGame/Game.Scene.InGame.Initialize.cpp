@@ -3,6 +3,7 @@ module Game.Scene.InGame;
 import <vector>;
 import <filesystem>;
 import <random>;
+import <fstream>;
 
 import nlohmann.json;
 
@@ -190,6 +191,61 @@ namespace Game::Scene::Impl {
 							// 読み込み失敗時はスキップ
 						}
 					}
+				}
+			}
+		}
+
+		// Actor用メッシュ（プロジェクタイル描画用）
+		ActorMeshIndices_.clear();
+		if (fs::exists("./")) {
+			for (const auto& entry : fs::directory_iterator("./")) {
+				if (!entry.is_regular_file() || entry.path().extension() != ".json") continue;
+				std::string fName = entry.path().filename().string();
+				if (fName.find("actor_") != 0 || fName.size() <= 11) continue;
+
+				std::string actorName = fName.substr(6, fName.size() - 11);
+
+				// Actor JSON からメッシュパスを読み取る
+				try {
+					std::ifstream actorFile(fName);
+					if (!actorFile.is_open()) continue;
+					nlohmann::json aj;
+					actorFile >> aj;
+
+					std::string meshPath;
+					if (aj.contains("visual") && aj["visual"].is_object()) {
+						if (aj["visual"].contains("meshPath")) {
+							meshPath = aj["visual"]["meshPath"].get<std::string>();
+						}
+					}
+
+					if (meshPath.empty()) continue;
+					if (ActorMeshIndices_.contains(actorName)) continue;
+
+					// .obj メッシュをロード
+					std::string ext = fs::path(meshPath).extension().string();
+					for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+					if (ext == ".obj") {
+						auto&& actorMesh = Lumina::Utils::Mesh::Load(
+							Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(meshPath)
+						);
+
+						using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+						MeshCollection validMeshes;
+						for (auto& m : actorMesh) {
+							if (!m.Positions.empty() && !m.Vertices.empty()) {
+								validMeshes.push_back(std::move(m));
+							}
+						}
+
+						if (!validMeshes.empty()) {
+							ActorMeshIndices_[actorName] = meshesToBeUploaded.size();
+							addMeshesToBeUploaded(validMeshes);
+						}
+					}
+				} catch (...) {
+					// Actor メッシュ読み込み失敗時はスキップ
 				}
 			}
 		}

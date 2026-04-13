@@ -48,16 +48,9 @@ namespace Game::Editor {
 		};
 
 		// プロジェクタイル設定（遠距離攻撃時のみ有効だが常に保存）
-		std::string trajStr = "Straight";
-		if (e.projectile.trajectory == Game::TrajectoryType::Parabola) trajStr = "Parabola";
-		else if (e.projectile.trajectory == Game::TrajectoryType::Homing) trajStr = "Homing";
-
 		j["projectile"] = json{
-			{"meshName", e.projectile.meshName},
-			{"scale", e.projectile.scale},
-			{"trajectory", trajStr},
-			{"speed", e.projectile.speed},
-			{"gravity", e.projectile.gravity},
+			{"actorName", e.projectile.actorName},
+			{"isHoming", e.projectile.isHoming},
 			{"homingStrength", e.projectile.homingStrength},
 			{"damage", e.projectile.damage},
 			{"lifetime", e.projectile.lifetime},
@@ -90,16 +83,14 @@ namespace Game::Editor {
 
 		if (j.contains("projectile") && j["projectile"].is_object()) {
 			const auto& pj = j["projectile"];
-			if (pj.contains("meshName")) pj.at("meshName").get_to(e.projectile.meshName);
-			if (pj.contains("scale")) pj.at("scale").get_to(e.projectile.scale);
-			if (pj.contains("trajectory")) {
+			// 新形式: actorName ベース
+			if (pj.contains("actorName")) pj.at("actorName").get_to(e.projectile.actorName);
+			if (pj.contains("isHoming")) pj.at("isHoming").get_to(e.projectile.isHoming);
+			// 旧形式の後方互換: trajectory が "Homing" なら isHoming を true に
+			if (pj.contains("trajectory") && !pj.contains("isHoming")) {
 				std::string traj = pj["trajectory"].get<std::string>();
-				if (traj == "Parabola") e.projectile.trajectory = Game::TrajectoryType::Parabola;
-				else if (traj == "Homing") e.projectile.trajectory = Game::TrajectoryType::Homing;
-				else e.projectile.trajectory = Game::TrajectoryType::Straight;
+				e.projectile.isHoming = (traj == "Homing");
 			}
-			if (pj.contains("speed")) pj.at("speed").get_to(e.projectile.speed);
-			if (pj.contains("gravity")) pj.at("gravity").get_to(e.projectile.gravity);
 			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
 			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
 			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);

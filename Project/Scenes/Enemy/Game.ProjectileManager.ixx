@@ -8,34 +8,24 @@ import <functional>;
 import Lumina;
 import Collider;
 import CollisionManager;
+import Game.Editor.ActorEditor;
 
 export namespace Game {
 
 	/// <summary>
-	/// 弾道タイプ
-	/// </summary>
-	enum class TrajectoryType {
-		Straight,   // 直線
-		Parabola,   // 放物線（重力あり）
-		Homing,     // ホーミング（プレイヤー追尾）
-	};
-
-	/// <summary>
 	/// プロジェクタイル（弾）のテンプレートデータ
 	/// EnemyData から参照される
+	/// 見た目と軌道（ホーミング以外）は ActorEditor で作成した Actor から取得
 	/// </summary>
 	struct ProjectileData {
-		// 見た目
-		std::string meshName = "cube";   // 使用するメッシュ名（将来拡張）
-		float scale = 0.15f;             // 弾のスケール
+		// Actorアセット名（actor_<name>.json の <name> 部分）
+		std::string actorName = "";
 
-		// 弾道
-		TrajectoryType trajectory = TrajectoryType::Straight;
-
-		// パラメータ
-		float speed = 8.0f;              // 初速
-		float gravity = 9.8f;            // Parabola 用 下向き重力
+		// ホーミングオーバーライド（Actor の MovementModule を無視して追尾する）
+		bool isHoming = false;
 		float homingStrength = 3.0f;     // Homing 用 追尾の強さ
+
+		// パラメータ（Actor とは独立）
 		int   damage = 10;               // ダメージ
 		float lifetime = 5.0f;           // 弾の生存時間（秒）
 		float colliderRadius = 0.15f;    // 当たり判定の半径（立方体で近似）
@@ -46,12 +36,21 @@ export namespace Game {
 	/// </summary>
 	struct Projectile {
 		ProjectileData data;
+		Editor::ActorData actorData;     // ロードされた Actor データ（見た目・軌道）
+
 		uint32_t id = 0;
 		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
 		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };
 		float aliveTime = 0.0f;
 		bool isDead = false;
 		uint32_t ownerEnemyId = 0;   // 発射した敵のID（自分に当たらないように）
+
+		// PingPong 用: 移動距離トラッキング
+		float traveledDistance = 0.0f;
+		float pingPongDirection = 1.0f;
+
+		// Spline 用: 発射位置（スプライン原点オフセット）
+		Lumina::Math::F32x3 splineOrigin{ 0.0f, 0.0f, 0.0f };
 
 		// 当たり判定
 		std::unique_ptr<ConvexCollider> collider;

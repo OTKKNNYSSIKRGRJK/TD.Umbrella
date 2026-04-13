@@ -1,0 +1,51 @@
+{
+    "collider": {
+        "collisionVertices": [],
+        "sizeX": 1.0,
+        "sizeY": 1.0,
+        "sizeZ": 1.0,
+        "type": 0
+    },
+    "interaction": {
+        "activationTriggerID": "",
+        "damageValue": 10.0,
+        "pushForce": 5.0,
+        "type": 0
+    },
+    "lifecycle": {
+        "autoDestroyOffscreen": true,
+        "lifetime": 10.0,
+        "spawnEventID": "",
+        "spawnTrigger": 0,
+        "spawnValue": 0.0
+    },
+    "movement": {
+        "dirX": 1.0,
+        "dirY": 0.0,
+        "dirZ": 0.0,
+        "easing": 0,
+        "loopSpline": false,
+        "nodeTimings": [],
+        "range": 5.0,
+        "speed": 1.0,
+        "splineMotionName": "",
+        "totalDuration": 3.0,
+        "type": 0
+    },
+    "name": "NewActor",
+    "transform": {
+        "posX": 0.0,
+        "posY": 0.0,
+        "posZ": 0.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 1.0,
+        "scaleY": 1.0,
+        "scaleZ": 1.0
+    },
+    "visual": {
+        "materialIndex": 0,
+        "meshPath": ""
+    }
+}

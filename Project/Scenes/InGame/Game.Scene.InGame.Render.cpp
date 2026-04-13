@@ -80,19 +80,34 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		// プロジェクタイルの描画（CubeMeshで表現）
+		// プロジェクタイルの描画（Actor メッシュで表現）
 		const auto& projectiles = Game::ProjectileManager::GetInstance()->GetAll();
 		for (const auto& proj : projectiles) {
 			if (proj.isDead) continue;
-			if (CubeMeshIdx_ < MeshShaderAssets_.size()) {
-				float s = proj.data.scale;
+
+			// Actor のメッシュを使用、なければ CubeMesh にフォールバック
+			size_t meshIdx = CubeMeshIdx_;
+			if (!proj.data.actorName.empty() && ActorMeshIndices_.contains(proj.data.actorName)) {
+				meshIdx = ActorMeshIndices_.at(proj.data.actorName);
+			}
+
+			if (meshIdx < MeshShaderAssets_.size()) {
+				// Actor Transform のスケールを使用
+				float sx = proj.actorData.transform.scaleX;
+				float sy = proj.actorData.transform.scaleY;
+				float sz = proj.actorData.transform.scaleZ;
+				// スケールが未設定（0）の場合はデフォルト
+				if (sx <= 0.0f) sx = 0.15f;
+				if (sy <= 0.0f) sy = 0.15f;
+				if (sz <= 0.0f) sz = 0.15f;
+
 				auto projWorldMat = Game::MathUtils::SRT(
-					{ s, s, s },
+					{ sx, sy, sz },
 					{ 0.0f, 0.0f, 0.0f },
 					{ proj.position.X, proj.position.Y, proj.position.Z }
 				);
 				meshMngr.Batch(
-					MeshShaderAssets_[CubeMeshIdx_],
+					MeshShaderAssets_[meshIdx],
 					1U,
 					LocalHeap_Materials_.CPUHandle(0U),
 					projWorldMat

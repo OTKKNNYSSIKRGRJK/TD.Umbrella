@@ -216,12 +216,57 @@ namespace Game::Editor {
 	void ActorEditor::ExtractMeshWireframe(const std::string& meshPath) {
 		cachedMeshPositions_.clear();
 		cachedMeshEdges_.clear();
+		cachedMeshFaces_.clear();
 		cachedMeshPath_ = meshPath;
 
 		if (meshPath.empty() || !fs::exists(meshPath)) return;
 
 		std::string ext = fs::path(meshPath).extension().string();
 		for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		if (ext == ".obj") {
+			std::ifstream objFile(meshPath);
+			if (objFile.is_open()) {
+				std::string line;
+				std::vector<std::array<float, 3>> localVerts;
+				while (std::getline(objFile, line)) {
+					if (line.substr(0, 2) == "v ") {
+						float x, y, z;
+						if (sscanf_s(line.c_str(), "v %f %f %f", &x, &y, &z) == 3) {
+							localVerts.push_back({ x, y, z });
+						}
+					} else if (line.substr(0, 2) == "f ") {
+						std::vector<int> faceInd;
+						char* next_token = nullptr;
+						char lineBuf[256];
+						strncpy_s(lineBuf, line.c_str(), sizeof(lineBuf));
+						char* token = strtok_s(lineBuf + 2, " ", &next_token);
+						while (token) {
+							int vIdx;
+							if (sscanf_s(token, "%d", &vIdx) == 1) {
+								faceInd.push_back(vIdx < 0 ? static_cast<int>(localVerts.size()) + vIdx : vIdx - 1);
+							}
+							token = strtok_s(nullptr, " ", &next_token);
+						}
+						if (faceInd.size() >= 3) {
+							int v0 = static_cast<int>(cachedMeshPositions_.size()) + faceInd[0];
+							for (size_t i = 1; i + 1 < faceInd.size(); ++i) {
+								int v1 = static_cast<int>(cachedMeshPositions_.size()) + faceInd[i];
+								int v2 = static_cast<int>(cachedMeshPositions_.size()) + faceInd[i + 1];
+								cachedMeshEdges_.push_back({ v0, v1 });
+								cachedMeshEdges_.push_back({ v1, v2 });
+								cachedMeshEdges_.push_back({ v2, v0 });
+								cachedMeshFaces_.push_back({ v0, v1, v2 });
+							}
+						}
+					}
+				}
+				for (const auto& v : localVerts) {
+					cachedMeshPositions_.push_back(v);
+				}
+			}
+			return;
+		}
 
 		json gltfJson;
 		std::vector<uint8_t> binData;
@@ -483,7 +528,7 @@ namespace Game::Editor {
 					return (static_cast<int64_t>(a) << 32) | static_cast<int64_t>(b);
 				};
 
-				// 三角形からエッジを抽出
+				// 三角形からエッジ・面を抽出
 				for (size_t i = 0; i + 2 < indices.size(); i += 3) {
 					int v0 = baseVertex + static_cast<int>(indices[i]);
 					int v1 = baseVertex + static_cast<int>(indices[i+1]);
@@ -499,6 +544,8 @@ namespace Game::Editor {
 					addEdge(v0, v1);
 					addEdge(v1, v2);
 					addEdge(v2, v0);
+
+					cachedMeshFaces_.push_back({ v0, v1, v2 });
 				}
 			}
 		}

@@ -133,11 +133,11 @@
             }
         },
         {
-            "targetAreaIndex": 0,
+            "targetAreaIndex": 1,
             "trigger": {
                 "position": {
-                    "x": 44.0,
-                    "y": 208.0
+                    "x": 998.0,
+                    "y": 88.0
                 },
                 "size": {
                     "x": 32.0,
@@ -146,11 +146,11 @@
             }
         },
         {
-            "targetAreaIndex": 1,
+            "targetAreaIndex": 0,
             "trigger": {
                 "position": {
-                    "x": 998.0,
-                    "y": 88.0
+                    "x": 44.0,
+                    "y": 208.0
                 },
                 "size": {
                     "x": 32.0,
