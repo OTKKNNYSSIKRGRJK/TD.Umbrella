@@ -76,6 +76,12 @@
     <ClCompile Include="Game\ParticleSystem.ixx">
       <Filter>Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\EventSystem.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\EventSystem.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

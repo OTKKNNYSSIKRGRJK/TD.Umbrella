@@ -79,6 +79,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Game\EventSystem.cpp" />
+    <ClCompile Include="Game\EventSystem.ixx" />
     <ClCompile Include="Game\MeshManager.cpp" />
     <ClCompile Include="Game\MeshManager.ixx" />
     <ClCompile Include="Game\ParticleSystem.ixx" />
