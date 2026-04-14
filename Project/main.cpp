@@ -8,8 +8,8 @@ Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
 	context.Initialize();
 
 	auto& sceneMngr{ Lumina::SceneManager::Instance() };
-	sceneMngr.Load<"InGame">();
-	sceneMngr.Activate("InGame");
+	sceneMngr.Load<"Title">();
+	sceneMngr.Activate("Title");
 
 	while (context.Run());
 

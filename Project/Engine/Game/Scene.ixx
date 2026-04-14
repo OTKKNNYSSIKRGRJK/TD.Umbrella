@@ -5,12 +5,14 @@ import <cstdint>;
 import <vector>;
 import <list>;
 import <unordered_map>;
+import <queue>;
 
 import <string>;
 import <format>;
 
 import Lumina.Core.Common;
 import Lumina.Core.String;
+import Lumina.Core.Debug;
 
 namespace Lumina {
 	class Scene;
@@ -59,8 +61,11 @@ namespace Lumina {
 	public:
 		template<Concept::Scene _Scene, typename..._ARGs>
 		void Load(std::string_view name_, _ARGs&&...args_) {
-			if (LoadedScenes_.find(name_.data()) == LoadedScenes_.cend()) {
-				LoadedScenes_.emplace(
+			if (
+				(LoadedScenes_.find(name_.data()) == LoadedScenes_.cend()) &&
+				(NewlyLoadedScenes_.find(name_.data()) == NewlyLoadedScenes_.cend())
+			) {
+				NewlyLoadedScenes_.emplace(
 					name_,
 					SceneNode{
 						.Data{ std::make_unique<_Scene>(std::forward<_ARGs>(args_)...) },
@@ -74,33 +79,59 @@ namespace Lumina {
 		void Load();
 
 		void Unload(std::string_view name_) {
-			auto&& it_SceneNodeKV{ LoadedScenes_.find(name_.data()) };
-			if (it_SceneNodeKV != LoadedScenes_.cend()) {
-				it_SceneNodeKV->second.Data.reset(nullptr);
-				LoadedScenes_.erase(it_SceneNodeKV);
+			{
+				auto&& it_SceneNodeKV{ LoadedScenes_.find(name_.data()) };
+				if (it_SceneNodeKV != LoadedScenes_.cend()) {
+					it_SceneNodeKV->second.Data.reset(nullptr);
+					LoadedScenes_.erase(it_SceneNodeKV);
+				}
+			}
+			{
+				auto&& it_SceneNodeKV{ NewlyLoadedScenes_.find(name_.data()) };
+				if (it_SceneNodeKV != NewlyLoadedScenes_.cend()) {
+					it_SceneNodeKV->second.Data.reset(nullptr);
+					NewlyLoadedScenes_.erase(it_SceneNodeKV);
+				}
 			}
 		}
 
 		void Activate(std::string_view name_) {
 			ActivationQueue_.emplace_back(name_);
 		}
+		void Deactivate(std::string_view name_) {
+			DeactivationQueue_.emplace_back(name_);
+		}
 
 		void Update() {
 			for (auto const& name : ActivationQueue_) {
-				auto&& it_Scene{ LoadedScenes_.find(name) };
+				auto it_Scene{ LoadedScenes_.find(name) };
 				if (it_Scene != LoadedScenes_.cend()) {
+					it_Scene->second.IsActive = 1U;
+				}
+				it_Scene = NewlyLoadedScenes_.find(name);
+				if (it_Scene != NewlyLoadedScenes_.cend()) {
 					it_Scene->second.IsActive = 1U;
 				}
 			}
 			ActivationQueue_.clear();
 
 			for (auto const& name : DeactivationQueue_) {
-				auto&& it_Scene{ LoadedScenes_.find(name) };
+				auto it_Scene{ LoadedScenes_.find(name) };
 				if (it_Scene != LoadedScenes_.cend()) {
+					it_Scene->second.IsActive = 0U;
+				}
+				it_Scene = NewlyLoadedScenes_.find(name);
+				if (it_Scene != NewlyLoadedScenes_.cend()) {
 					it_Scene->second.IsActive = 0U;
 				}
 			}
 			DeactivationQueue_.clear();
+
+			if (!NewlyLoadedScenes_.empty()) {
+				LoadedScenes_.merge(NewlyLoadedScenes_);
+				(NewlyLoadedScenes_.empty()) ||
+				Debug::ThrowIfFalse{ "There should be no more newly loaded scenes!\n" };
+			}
 		}
 
 		void UpdateActive() {
@@ -137,6 +168,7 @@ namespace Lumina {
 
 	private:
 		std::unordered_map<std::string, SceneNode> LoadedScenes_{};
+		std::unordered_map<std::string, SceneNode> NewlyLoadedScenes_{};
 
 		std::vector<std::string> ActivationQueue_{};
 		std::vector<std::string> DeactivationQueue_{};

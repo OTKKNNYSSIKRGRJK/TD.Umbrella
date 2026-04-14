@@ -19,6 +19,10 @@ namespace Game::Scene::Impl {
 		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+
+		auto& sceneMngr{ Lumina::SceneManager::Instance() };
+		sceneMngr.Load<"InGame">();
+		sceneMngr.Activate("InGame");
 	}
 
 	Title2InGame::Title2InGame() = default;
