@@ -340,6 +340,13 @@ namespace Game {
 								this->velocity.X *= 0.2f;
 							}
 						}
+					} else if (std::abs(normal.X) > 0.3f && normal.Y > -0.2f) {
+						// 壁や急な斜面に直面している場合、ジャンプして凹みを乗り越える
+						bool isBlockedForward = (this->facingRight && normal.X < 0.0f) || (!this->facingRight && normal.X > 0.0f);
+						// 大幅に落下中でなければジャンプ（穴から抜け出す）
+						if (isBlockedForward && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
+							this->velocity.Y = 6.5f; // 脱出用ジャンプ
+						}
 					}
 				}
 				else if (other->GetMyType() == COL_Player_Attack) {
@@ -656,8 +663,15 @@ namespace Game {
 
 			case EnemyInstance::AIState::Chase:
 				enemy.currentAction = "Walk";
+				
+				// 遠距離タイプの敵で、プレイヤーに近づきすぎた場合は攻撃よりも後退を優先する
+				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged && dist < enemy.preferredCombatDistance * 0.5f) {
+					float moveDir = (dx > 0.0f) ? -1.0f : 1.0f;
+					enemy.position.X += moveDir * enemy.baseData.moveSpeed * deltaTime;
+					enemy.facingRight = (dx > 0.0f);
+				}
 				// 攻撃範囲に入ったら攻撃前アクションへ
-				if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
+				else if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
 					enemy.aiState = EnemyInstance::AIState::PreAttack;
 					enemy.preAttackTimer = enemy.attackWindupDuration;
 					enemy.velocity.X = 0.0f;
@@ -666,16 +680,26 @@ namespace Game {
 				else if (dist > enemy.baseData.aggroRadius * 1.5f) {
 					enemy.aiState = EnemyInstance::AIState::Idle;
 				}
-				// 追跡移動
+				// 追跡移動または距離調整
 				else {
 					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
 					float moveSpeed = enemy.baseData.moveSpeed;
-					if (enemy.sizeTier == kMinEnemySizeTier) {
+					
+					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+						// 遠距離タイプは適正距離の範囲内で姿勢を保つ
+						float keepDistanceMin = enemy.preferredCombatDistance * 0.8f;
+						if (dist < keepDistanceMin) {
+							moveDir = (dx > 0.0f) ? -1.0f : 1.0f; // 少し近いので離れる
+						} else if (dist <= enemy.preferredCombatDistance) {
+							moveSpeed = 0.0f; // 適正距離に入っているので止まって待機
+						}
+					} else if (enemy.sizeTier == kMinEnemySizeTier) {
 						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
 						float desiredX = playerPosition.X - moveDir * enemy.preferredCombatDistance + orbitOffset;
 						moveDir = (desiredX > enemy.position.X) ? 1.0f : -1.0f;
 						moveSpeed *= 1.35f;
 					}
+					
 					enemy.position.X += moveDir * moveSpeed * deltaTime;
 					enemy.facingRight = (dx > 0.0f);
 				}
