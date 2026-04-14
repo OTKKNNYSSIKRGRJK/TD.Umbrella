@@ -81,6 +81,7 @@
     </ClCompile>
     <ClCompile Include="Game\MeshManager.cpp" />
     <ClCompile Include="Game\MeshManager.ixx" />
+    <ClCompile Include="Game\ParticleSystem.ixx" />
     <ClCompile Include="Game\Primitive.cpp" />
     <ClCompile Include="Game\Primitive.ixx" />
     <ClCompile Include="Game\ResourceManager.Audio.ixx" />

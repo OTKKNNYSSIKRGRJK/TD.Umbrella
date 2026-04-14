@@ -411,6 +411,8 @@ namespace Game::Scene::Impl {
 
 		ImGui::Begin("Manual");
 
+		ImGui::Text("Enter Key or GamePad Start : Player Respawn");
+
 		auto const& pad = inputMngr.Pad();
 		auto textColor = [](bool cond_) -> ImVec4 {
 			if (cond_) {

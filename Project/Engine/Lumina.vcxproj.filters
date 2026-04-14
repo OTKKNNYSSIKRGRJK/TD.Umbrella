@@ -73,6 +73,9 @@
     <ClCompile Include="Game\Primitive.cpp">
       <Filter>Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\ParticleSystem.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
