@@ -40,7 +40,8 @@ namespace Lumina {
 
 	private:
 		struct SceneNode {
-			std::unique_ptr<Scene> Data{ nullptr };
+			std::unique_ptr<Scene> Data;
+			U32 IsActive;
 		};
 
 	public:
@@ -50,13 +51,20 @@ namespace Lumina {
 		}
 
 	public:
-		template<Concept::Scene SceneType, typename...ParameterTypes>
-		void Load(std::string_view name_, ParameterTypes&&...params_) {
+		bool IsActive(std::string_view name_) {
+			auto&& it{ LoadedScenes_.find(name_.data()) };
+			return { (it != LoadedScenes_.cend()) && (it->second.IsActive) };
+		}
+
+	public:
+		template<Concept::Scene _Scene, typename..._ARGs>
+		void Load(std::string_view name_, _ARGs&&...args_) {
 			if (LoadedScenes_.find(name_.data()) == LoadedScenes_.cend()) {
 				LoadedScenes_.emplace(
 					name_,
 					SceneNode{
-						.Data{ new SceneType{ params_... } }
+						.Data{ std::make_unique<_Scene>(std::forward<_ARGs>(args_)...) },
+						.IsActive{ 0 }
 					}
 				);
 			}
@@ -74,21 +82,42 @@ namespace Lumina {
 		}
 
 		void Activate(std::string_view name_) {
-			auto&& it_Scene{ LoadedScenes_.find(name_.data()) };
-			if (it_Scene != LoadedScenes_.cend()) {
-				ActiveScene_ = &it_Scene->second;
-			}
+			ActivationQueue_.emplace_back(name_);
 		}
 
 		void Update() {
-			if (ActiveScene_ != nullptr) {
-				ActiveScene_->Data->Update();
+			for (auto const& name : ActivationQueue_) {
+				auto&& it_Scene{ LoadedScenes_.find(name) };
+				if (it_Scene != LoadedScenes_.cend()) {
+					it_Scene->second.IsActive = 1U;
+				}
+			}
+			ActivationQueue_.clear();
+
+			for (auto const& name : DeactivationQueue_) {
+				auto&& it_Scene{ LoadedScenes_.find(name) };
+				if (it_Scene != LoadedScenes_.cend()) {
+					it_Scene->second.IsActive = 0U;
+				}
+			}
+			DeactivationQueue_.clear();
+		}
+
+		void UpdateActive() {
+			for (auto& kv : LoadedScenes_) {
+				auto& sceneNode{ kv.second };
+				if (sceneNode.IsActive) {
+					sceneNode.Data->Update();
+				}
 			}
 		}
 
-		void Render() {
-			if (ActiveScene_ != nullptr) {
-				ActiveScene_->Data->Render();
+		void RenderActive() {
+			for (auto& kv : LoadedScenes_) {
+				auto& sceneNode{ kv.second };
+				if (sceneNode.IsActive) {
+					sceneNode.Data->Render();
+				}
 			}
 		}
 
@@ -108,6 +137,8 @@ namespace Lumina {
 
 	private:
 		std::unordered_map<std::string, SceneNode> LoadedScenes_{};
-		SceneNode* ActiveScene_{ nullptr };
+
+		std::vector<std::string> ActivationQueue_{};
+		std::vector<std::string> DeactivationQueue_{};
 	};
 }
