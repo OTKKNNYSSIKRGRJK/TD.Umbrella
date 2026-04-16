@@ -363,6 +363,10 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Enemy;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Enemy Action Editor", nullptr, activeEditor_ == EditorTab::EnemyAction)) {
+					activeEditor_ = EditorTab::EnemyAction;
+					playState_.IsPlaying = false;
+				}
 				if (ImGui::MenuItem("Actor Editor", nullptr, activeEditor_ == EditorTab::Actor)) {
 					activeEditor_ = EditorTab::Actor;
 					playState_.IsPlaying = false;
@@ -390,6 +394,9 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Enemy:
 			enemyEditor_.Update();
+			break;
+		case EditorTab::EnemyAction:
+			enemyActionEditor_.Update();
 			break;
 		case EditorTab::Actor:
 			actorEditor_.Update();

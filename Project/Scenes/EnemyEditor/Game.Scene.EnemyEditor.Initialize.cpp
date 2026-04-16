@@ -31,6 +31,27 @@ namespace Game::Editor {
 		if (j.contains("scale")) j.at("scale").get_to(t.scale);
 	}
 
+	void to_json(json& j, const Node& n) {
+		j = json{ {"id", n.id}, {"name", n.name}, {"state", n.state}, {"x", n.x}, {"y", n.y}, {"animationName", n.animationName} };
+	}
+	void from_json(const json& j, Node& n) {
+		if (j.contains("id")) j.at("id").get_to(n.id);
+		if (j.contains("name")) j.at("name").get_to(n.name);
+		if (j.contains("state")) j.at("state").get_to(n.state);
+		if (j.contains("x")) j.at("x").get_to(n.x);
+		if (j.contains("y")) j.at("y").get_to(n.y);
+		if (j.contains("animationName")) j.at("animationName").get_to(n.animationName);
+	}
+	
+	void to_json(json& j, const Link& l) {
+		j = json{ {"from", l.from}, {"to", l.to}, {"condition", l.condition} };
+	}
+	void from_json(const json& j, Link& l) {
+		if (j.contains("from")) j.at("from").get_to(l.from);
+		if (j.contains("to")) j.at("to").get_to(l.to);
+		if (j.contains("condition")) j.at("condition").get_to(l.condition);
+	}
+
 	// JSON シリアライズ定義
 	void to_json(json& j, const EnemyData& e) {
 		j = json{
@@ -45,6 +66,8 @@ namespace Game::Editor {
 			{"retreatThreshold", e.retreatThreshold},
 			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness},
 			{"attackType", (e.attackType == EnemyData::AttackType::Ranged) ? "Ranged" : "Melee"},
+			{"nodes", e.nodes},
+			{"links", e.links},
 		};
 
 		// プロジェクタイル設定（遠距離攻撃時のみ有効だが常に保存）
@@ -96,9 +119,15 @@ namespace Game::Editor {
 			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
 			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
 		}
+
+		if (j.contains("nodes")) j.at("nodes").get_to(e.nodes);
+		if (j.contains("links")) j.at("links").get_to(e.links);
 	}
 
 	void EnemyEditor::Initialize() {
+	}
+
+	void EnemyActionEditor::Initialize() {
 	}
 
 	void EnemyEditor::SaveEnemy(const EnemyData& enemy) {
@@ -175,6 +204,89 @@ namespace Game::Editor {
 		}
 
 		//"animations" 配列内の各要素の "name" を取得
+		if (gltfJson.contains("animations") && gltfJson["animations"].is_array()) {
+			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
+				const auto& anim = gltfJson["animations"][i];
+				if (anim.contains("name") && anim["name"].is_string()) {
+					names.push_back(anim["name"].get<std::string>());
+				} else {
+					names.push_back("Animation_" + std::to_string(i));
+				}
+			}
+		}
+
+		return names;
+	}
+
+	void EnemyActionEditor::SaveEnemy(const EnemyData& enemy) {
+		std::string filename = enemy.name + ".json";
+		std::ofstream file(filename);
+		if (file.is_open()) {
+			json j = enemy;
+			file << j.dump(4);
+		}
+	}
+
+	void EnemyActionEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
+		std::ifstream file(filename);
+		if (file.is_open()) {
+			try {
+				json j;
+				file >> j;
+				enemy = j.get<EnemyData>();
+			} catch (...) {
+			}
+		}
+	}
+
+	std::vector<std::string> EnemyActionEditor::ExtractAnimationNames(const std::string& gltfPath) {
+		std::vector<std::string> names;
+		if (gltfPath.empty()) return names;
+
+		if (!fs::exists(gltfPath)) return names;
+
+		std::string ext = fs::path(gltfPath).extension().string();
+		for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		json gltfJson;
+
+		if (ext == ".gltf") {
+			std::ifstream ifs(gltfPath);
+			if (!ifs.is_open()) return names;
+			try {
+				ifs >> gltfJson;
+			} catch (...) {
+				return names;
+			}
+		} else if (ext == ".glb") {
+			std::ifstream ifs(gltfPath, std::ios::binary);
+			if (!ifs.is_open()) return names;
+
+			uint32_t magic = 0, version = 0, totalLength = 0;
+			ifs.read(reinterpret_cast<char*>(&magic), 4);
+			ifs.read(reinterpret_cast<char*>(&version), 4);
+			ifs.read(reinterpret_cast<char*>(&totalLength), 4);
+
+			if (magic != 0x46546C67) return names; // "glTF"
+
+			uint32_t chunkLength = 0, chunkType = 0;
+			ifs.read(reinterpret_cast<char*>(&chunkLength), 4);
+			ifs.read(reinterpret_cast<char*>(&chunkType), 4);
+
+			if (chunkType != 0x4E4F534A) return names;
+
+			std::string jsonStr(chunkLength, '\0');
+			ifs.read(jsonStr.data(), chunkLength);
+
+			try {
+				gltfJson = json::parse(jsonStr);
+			} catch (...) {
+				return names;
+			}
+		} else {
+			return names;
+		}
+
 		if (gltfJson.contains("animations") && gltfJson["animations"].is_array()) {
 			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
 				const auto& anim = gltfJson["animations"][i];

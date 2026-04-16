@@ -109,10 +109,11 @@ namespace Game::Scene::Impl {
 
 	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Audio, Play };
+		enum class EditorTab { None, Motion, Area, Enemy, EnemyAction, Actor, Terrain, Audio, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
+		Game::Editor::EnemyActionEditor enemyActionEditor_;
 		Game::Editor::ActorEditor actorEditor_;
 		Game::Editor::AudioEditor audioEditor_;
 

@@ -8,6 +8,7 @@ import <string>;
 import <filesystem>;
 import <array>;
 import <vector>;
+import <algorithm>;
 
 namespace fs = std::filesystem;
 
@@ -802,6 +803,274 @@ namespace Game::Editor {
 			char coordBuf[64];
 			snprintf(coordBuf, sizeof(coordBuf), "(%.2f, %.2f)", lx, ly);
 			drawList->AddText(ImVec2(mousePos.x + 15, mousePos.y - 5), MakeCol32(200, 200, 200, 220), coordBuf);
+		}
+
+		ImGui::End();
+	}
+
+	void EnemyActionEditor::Update() {
+#if defined(_DEBUG)
+		DrawEditorUI();
+#endif
+	}
+
+	void EnemyActionEditor::DrawEditorUI() {
+		ImGui::SetNextWindowPos(ImVec2(10.0f, 10.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300.0f, 400.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Enemy Action Editor", nullptr, ImGuiWindowFlags_MenuBar);
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("File")) {
+				if (ImGui::MenuItem("Save")) {
+					SaveEnemy(editingEnemy_);
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMenuBar();
+		}
+
+		ImGui::Text("Editing JSON:");
+		static char filenameBuf[64] = "enemy_data";
+		ImGui::InputText(".json##action", filenameBuf, sizeof(filenameBuf));
+
+		if (ImGui::Button("Load Enemy##action")) {
+			std::string fname = std::string(filenameBuf) + ".json";
+			LoadEnemy(editingEnemy_, fname);
+			if (!editingEnemy_.gltfPath.empty()) {
+				cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Save Enemy##action")) {
+			editingEnemy_.name = filenameBuf;
+			SaveEnemy(editingEnemy_);
+		}
+
+		ImGui::End();
+
+		DrawNodeEditor();
+	}
+
+	void EnemyActionEditor::DrawNodeEditor() {
+		ImGui::SetNextWindowPos(ImVec2(255.0f, 720.0f), ImGuiCond_FirstUseEver); // Positioning below the existing canvas
+		ImGui::SetNextWindowSize(ImVec2(1280.0f - 350.0f - 255.0f, 250.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("State Machine Node Editor", nullptr, ImGuiWindowFlags_NoCollapse);
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+
+		if (ImGui::Button("Add Node")) {
+			int newId = 1;
+			for (const auto& n : editingEnemy_.nodes) {
+				if (n.id >= newId) newId = n.id + 1;
+			}
+			Node node;
+			node.id = newId;
+			node.name = "State" + std::to_string(newId);
+			node.state = "Idle";
+			node.x = 40.0f + static_cast<float>((editingEnemy_.nodes.size() % 6) * 190);
+			node.y = 40.0f + static_cast<float>((editingEnemy_.nodes.size() / 6) * 110);
+			editingEnemy_.nodes.push_back(node);
+		}
+
+		ImGui::SameLine();
+		ImGui::TextDisabled("Connect: drag from Out port to a node. Right click node/link to delete.");
+
+		ImGui::Separator();
+
+		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
+		ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+		if (canvasSize.x < 100) canvasSize.x = 100;
+		if (canvasSize.y < 100) canvasSize.y = 100;
+		nodeCanvasWidth_ = canvasSize.x;
+		nodeCanvasHeight_ = canvasSize.y;
+
+		ImGui::InvisibleButton("node_canvas", canvasSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+		ImVec2 origin = canvasPos;
+
+		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
+		drawList->AddRect(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(80, 80, 90, 255));
+
+		if (nodeDragActive_) {
+			auto selectedIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& node) {
+				return node.id == nodeEditor_selectedNodeId_;
+			});
+			if (selectedIt != editingEnemy_.nodes.end() && ImGui::IsMouseDown(ImGuiMouseButton_Left) && !nodeLinkDragActive_) {
+				selectedIt->x = mousePos.x - origin.x - nodeDragOffsetX_;
+				selectedIt->y = mousePos.y - origin.y - nodeDragOffsetY_;
+				if (selectedIt->x < 0.0f) selectedIt->x = 0.0f;
+				if (selectedIt->y < 0.0f) selectedIt->y = 0.0f;
+			} else {
+				nodeDragActive_ = false;
+			}
+		}
+
+		// Draw Nodes
+		for (auto& n : editingEnemy_.nodes) {
+			ImVec2 a = ImVec2(origin.x + n.x, origin.y + n.y);
+			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 110.0f);
+
+			ImU32 col = MakeCol32(60, 60, 70, 220);
+			if (nodeEditor_selectedNodeId_ == n.id) {
+				col = MakeCol32(100, 80, 80, 255);
+			}
+
+			drawList->AddRectFilled(a, b, col, 6.0f);
+			drawList->AddRect(a, b, MakeCol32(200, 200, 200, 220), 6.0f, 0, 2.0f);
+
+			// inline UI
+			ImVec2 prevScreenPos = ImGui::GetCursorScreenPos();
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 6.0f));
+			ImGui::PushID(n.id);
+			
+			char nameBufFB[128]; strncpy_s(nameBufFB, n.name.c_str(), sizeof(nameBufFB));
+			ImGui::SetNextItemWidth(150.0f);
+			if (ImGui::InputText("##node_name_fb", nameBufFB, sizeof(nameBufFB))) n.name = nameBufFB;
+			if (ImGui::IsItemActive()) nodeEditor_selectedNodeId_ = n.id;
+
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 36.0f));
+			char stateBufFB[128]; strncpy_s(stateBufFB, n.state.c_str(), sizeof(stateBufFB));
+			ImGui::SetNextItemWidth(150.0f);
+			if (ImGui::InputText("##node_state_fb", stateBufFB, sizeof(stateBufFB))) n.state = stateBufFB;
+
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 66.0f));
+			ImGui::SetNextItemWidth(150.0f);
+			if (ImGui::BeginCombo("##node_anim_inline", n.animationName.empty() ? "(None)" : n.animationName.c_str())) {
+				if (ImGui::Selectable("(None)", n.animationName.empty())) n.animationName.clear();
+				for (const auto& avail : cachedAnimationNames_) {
+					bool isSel = (n.animationName == avail);
+					if (ImGui::Selectable(avail.c_str(), isSel)) n.animationName = avail;
+					if (isSel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::PopID();
+			ImGui::SetCursorScreenPos(prevScreenPos);
+
+			bool hovered = (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y);
+			bool overInlineControls = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 90.0f);
+			
+			if (!nodeDragActive_ && hovered && !overInlineControls && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				nodeDragActive_ = true;
+				nodeEditor_selectedNodeId_ = n.id;
+				nodeDragOffsetX_ = mousePos.x - a.x;
+				nodeDragOffsetY_ = mousePos.y - a.y;
+			}
+
+			if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+				nodeEditor_contextNodeId_ = n.id;
+				ImGui::OpenPopup("NodeContextMenu");
+			}
+
+			// Ports
+			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 96.0f);
+			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 96.0f);
+			
+			drawList->AddCircleFilled(inputPortPos, 8.0f, MakeCol32(120, 220, 140, 220));
+			drawList->AddCircleFilled(portPos, 8.0f, MakeCol32(120, 160, 255, 220));
+			drawList->AddText(ImVec2(inputPortPos.x - 5.0f, inputPortPos.y - 22.0f), MakeCol32(180, 220, 180, 255), "In");
+			drawList->AddText(ImVec2(portPos.x - 8.0f, portPos.y - 22.0f), MakeCol32(180, 200, 255, 255), "Out");
+
+			bool mouseOverPort = (mousePos.x >= portPos.x - 10.0f && mousePos.x <= portPos.x + 10.0f && mousePos.y >= portPos.y - 10.0f && mousePos.y <= portPos.y + 10.0f);
+			if (!nodeLinkDragActive_ && mouseOverPort && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				nodeLinkDragActive_ = true;
+				nodeEditor_linkStartId_ = n.id;
+				pendingNewNodeScreenX_ = portPos.x;
+				pendingNewNodeScreenY_ = portPos.y;
+			}
+		}
+
+		if (nodeDragActive_ && ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+			nodeDragActive_ = false;
+		}
+
+		// Draw Links
+		for (size_t i = 0; i < editingEnemy_.links.size(); ++i) {
+			const auto& l = editingEnemy_.links[i];
+			const Node* from = nullptr;
+			const Node* to = nullptr;
+			for (const auto& n : editingEnemy_.nodes) {
+				if (n.id == l.from) from = &n;
+				if (n.id == l.to) to = &n;
+			}
+			if (from && to) {
+				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 96.0f);
+				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 96.0f);
+				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
+				
+				// Click to context-menu / link logic
+				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+					float d1 = (mousePos.x - pa.x) * (mousePos.x - pa.x) + (mousePos.y - pa.y) * (mousePos.y - pa.y);
+					float d2 = (mousePos.x - pb.x) * (mousePos.x - pb.x) + (mousePos.y - pb.y) * (mousePos.y - pb.y);
+					if (d1 < 100.0f || d2 < 100.0f) {
+						linkEditor_contextLinkIndex_ = static_cast<int>(i);
+						ImGui::OpenPopup("LinkContextMenu");
+					}
+				}
+			}
+		}
+
+		if (nodeLinkDragActive_) {
+			ImVec2 start = ImVec2(pendingNewNodeScreenX_, pendingNewNodeScreenY_);
+			drawList->AddLine(start, mousePos, MakeCol32(255, 255, 150, 220), 3.0f);
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
+				int targetId = -1;
+				for (const auto& n : editingEnemy_.nodes) {
+					ImVec2 na = ImVec2(origin.x + n.x, origin.y + n.y);
+					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 110.0f);
+					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) {
+						targetId = n.id; break;
+					}
+				}
+				if (targetId != -1 && targetId != nodeEditor_linkStartId_) {
+					bool exists = false;
+					for (const auto& l : editingEnemy_.links) {
+						if (l.from == nodeEditor_linkStartId_ && l.to == targetId) exists = true;
+					}
+					if (!exists) {
+						Link link; link.from = nodeEditor_linkStartId_; link.to = targetId; link.condition = "Always";
+						editingEnemy_.links.push_back(link);
+					}
+				}
+				nodeLinkDragActive_ = false;
+				nodeEditor_linkStartId_ = -1;
+			}
+		}
+
+		if (ImGui::BeginPopup("NodeContextMenu")) {
+			if (nodeEditor_contextNodeId_ != -1) {
+				if (ImGui::MenuItem("Delete Node")) {
+					int id = nodeEditor_contextNodeId_;
+					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& lk) {
+						return lk.from == id || lk.to == id;
+					}), editingEnemy_.links.end());
+					editingEnemy_.nodes.erase(std::remove_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) {
+						return nd.id == id;
+					}), editingEnemy_.nodes.end());
+					if (nodeEditor_selectedNodeId_ == id) nodeEditor_selectedNodeId_ = -1;
+				}
+			}
+			ImGui::EndPopup();
+		}
+
+		if (ImGui::BeginPopup("LinkContextMenu")) {
+			if (linkEditor_contextLinkIndex_ != -1) {
+			    auto& linkRef = editingEnemy_.links[linkEditor_contextLinkIndex_];
+			    ImGui::Text("Link %d -> %d", linkRef.from, linkRef.to);
+			    ImGui::Separator();
+			    
+			    char condBuf[256];
+			    strncpy_s(condBuf, linkRef.condition.c_str(), sizeof(condBuf));
+			    if (ImGui::InputText("Condition", condBuf, sizeof(condBuf))) {
+			        linkRef.condition = condBuf;
+			    }
+
+				if (ImGui::MenuItem("Delete Link")) {
+					editingEnemy_.links.erase(editingEnemy_.links.begin() + linkEditor_contextLinkIndex_);
+					linkEditor_contextLinkIndex_ = -1;
+				}
+			}
+			ImGui::EndPopup();
 		}
 
 		ImGui::End();

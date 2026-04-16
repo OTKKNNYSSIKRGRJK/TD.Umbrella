@@ -17,6 +17,21 @@ export namespace Game::Editor {
 		float y = 0.0f;
 	};
 
+	struct Node {
+		int id = 0;
+		std::string name = "State";
+		std::string state = "Idle";
+		float x = 0.0f;
+		float y = 0.0f;
+		std::string animationName = "";
+	};
+
+	struct Link {
+		int from = 0;
+		int to = 0;
+		std::string condition = "Always";
+	};
+
 	// サイズ段階ごとのステータス（小・中・大）
 	struct SizeTier {
 		int hp = 100;
@@ -66,6 +81,9 @@ export namespace Game::Editor {
 		// --- 遠距離攻撃用プロジェクタイル設定 ---
 		Game::ProjectileData projectile;
 
+		std::vector<Node> nodes;
+		std::vector<Link> links;
+
 		void Reset() {
 			name = "NewEnemy";
 			hp = 100;
@@ -88,6 +106,8 @@ export namespace Game::Editor {
 			aggressiveness = 0.5f;
 			attackType = AttackType::Melee;
 			projectile = Game::ProjectileData{};
+			nodes.clear();
+			links.clear();
 		}
 	};
 
@@ -134,5 +154,49 @@ export namespace Game::Editor {
 		// キャンバス移動オフセット
 		float canvasOffsetX_ = 0.0f;
 		float canvasOffsetY_ = 0.0f;
+	};
+
+	export class EnemyActionEditor {
+	public:
+		void Initialize();
+		void Update();
+		void LoadEnemy(EnemyData& enemy, const std::string& filename);
+
+	private:
+		void DrawEditorUI();
+		void DrawNodeEditor();
+		void SaveEnemy(const EnemyData& enemy);
+		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
+
+	private:
+		EnemyData editingEnemy_{};
+		std::string cachedGltfPath_;
+		std::vector<std::string> cachedAnimationNames_;
+
+		float canvasOffsetX_ = 0.0f;
+		float canvasOffsetY_ = 0.0f;
+
+		// --- Node Editor Status ---
+		int currentStateId_ = -1;
+		float currentStateElapsedTime_ = 0.0f;
+		int nodeEditor_selectedNodeId_ = -1;
+		int nodeEditor_linkStartId_ = -1;
+		int nodeEditor_contextNodeId_ = -1;
+		int nodeEditor_pendingDeleteNodeId_ = -1;
+		int linkEditor_contextLinkIndex_ = -1;
+		int linkEditor_pendingDeleteLinkIndex_ = -1;
+		bool nodeDragActive_ = false;
+		float nodeDragOffsetX_ = 0.0f;
+		float nodeDragOffsetY_ = 0.0f;
+		bool nodeLinkDragActive_ = false;
+		float nodeCanvasWidth_ = 1220.0f;
+		float nodeCanvasHeight_ = 180.0f;
+		bool nodeCanvasResizing_ = false;
+		float nodeCanvasResizeStartMouseX_ = 0.0f;
+		float nodeCanvasResizeStartMouseY_ = 0.0f;
+		float nodeCanvasStartWidth_ = 0.0f;
+		float nodeCanvasStartHeight_ = 0.0f;
+		float pendingNewNodeScreenX_ = 0.0f;
+		float pendingNewNodeScreenY_ = 0.0f;
 	};
 }
