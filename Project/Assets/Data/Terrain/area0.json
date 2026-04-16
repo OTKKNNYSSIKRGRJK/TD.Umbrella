@@ -132,6 +132,13 @@
                 "y": 130.0
             },
             "targetAreaIndex": 1
+        },
+        {
+            "position": {
+                "x": 412.0,
+                "y": 160.0
+            },
+            "targetAreaIndex": 5
         }
     ],
     "editorPos": {

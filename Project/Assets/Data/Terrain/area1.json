@@ -112,13 +112,6 @@
     "connections": [
         {
             "position": {
-                "x": 62.0,
-                "y": 574.0
-            },
-            "targetAreaIndex": 0
-        },
-        {
-            "position": {
                 "x": 1062.0,
                 "y": 500.0
             },
@@ -130,6 +123,13 @@
                 "y": 636.0
             },
             "targetAreaIndex": 4
+        },
+        {
+            "position": {
+                "x": 62.0,
+                "y": 574.0
+            },
+            "targetAreaIndex": 0
         }
     ],
     "editorPos": {
