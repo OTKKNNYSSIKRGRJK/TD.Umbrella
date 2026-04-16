@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp" />
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx" />
+    <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
@@ -26,6 +27,9 @@
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Update.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
@@ -121,6 +125,9 @@
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Game\Game.BGMManager.ixx">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>

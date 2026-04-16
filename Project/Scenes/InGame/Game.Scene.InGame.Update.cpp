@@ -371,6 +371,10 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Terrain;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Audio Editor", nullptr, activeEditor_ == EditorTab::Audio)) {
+					activeEditor_ = EditorTab::Audio;
+					playState_.IsPlaying = false;
+				}
 				ImGui::EndMenu();
 			}
 			ImGui::EndMainMenuBar();
@@ -392,6 +396,9 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Terrain:
 			if (TerrainEditor_) TerrainEditor_->Update();
+			break;
+		case EditorTab::Audio:
+			audioEditor_.Update();
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();

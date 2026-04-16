@@ -11,6 +11,7 @@ import Game.TerrainEditor;
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
+import Game.Editor.AudioEditor;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -108,11 +109,12 @@ namespace Game::Scene::Impl {
 
 	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Play };
+		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Audio, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
 		Game::Editor::ActorEditor actorEditor_;
+		Game::Editor::AudioEditor audioEditor_;
 
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
