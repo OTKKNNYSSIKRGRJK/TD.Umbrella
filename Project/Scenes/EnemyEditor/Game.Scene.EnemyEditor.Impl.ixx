@@ -162,11 +162,36 @@ export namespace Game::Editor {
 		void Update();
 		void LoadEnemy(EnemyData& enemy, const std::string& filename);
 
+		// --- Public accessors for Inspector ---
+		int GetSelectedNodeId() const { return nodeEditor_selectedNodeId_; }
+		Node* FindNodeById(int id) {
+			for (auto& n : editingEnemy_.nodes) {
+				if (n.id == id) return &n;
+			}
+			return nullptr;
+		}
 	private:
 		void DrawEditorUI();
 		void DrawNodeEditor();
 		void SaveEnemy(const EnemyData& enemy);
 		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
+
+		// --- State Machine Runtime ---
+		void EvaluateStateMachine();
+		bool CheckLinkCondition(const Link& link);
+		bool HasOutgoingTransition(int nodeId) const;
+		bool HasTimeDrivenTransition(int nodeId) const;
+		void DrawStateMachineControlUI();
+		void DrawLinkConditionList();
+		void DrawEditorLogUI();
+
+		// --- Undo ---
+		void PushUndoState();
+		void Undo();
+		bool CanUndo() const { return !undoStack_.empty(); }
+
+		// --- Log ---
+		void AddLog(const std::string& msg);
 
 	private:
 		EnemyData editingEnemy_{};
@@ -198,5 +223,23 @@ export namespace Game::Editor {
 		float nodeCanvasStartHeight_ = 0.0f;
 		float pendingNewNodeScreenX_ = 0.0f;
 		float pendingNewNodeScreenY_ = 0.0f;
+
+		// --- State Machine Runtime ---
+		int previousStateId_ = -1;
+		float transitionFlashTimer_ = 0.0f;
+
+		// --- Manual Start ---
+		bool requireManualStart_ = true;
+		bool firstNodeStarted_ = false;
+		bool lockStateMachineAfterStartFirstNode_ = false;
+		bool userRequestedStart_ = false;
+
+		// --- Undo ---
+		std::vector<EnemyData> undoStack_;
+		size_t undoStackMax_ = 64;
+
+		// --- Editor Log ---
+		std::vector<std::string> editorLog_;
+		size_t editorLogMax_ = 512;
 	};
 }

@@ -808,9 +808,28 @@ namespace Game::Editor {
 		ImGui::End();
 	}
 
+	// --- Helper: point-to-segment distance squared ---
+	float DistPtSegSq(float px, float py, float ax, float ay, float bx, float by) {
+		float abx = bx - ax, aby = by - ay;
+		float apx = px - ax, apy = py - ay;
+		float len2 = abx * abx + aby * aby;
+		if (len2 <= 0.0001f) return apx * apx + apy * apy;
+		float t = (apx * abx + apy * aby) / len2;
+		if (t < 0.0f) t = 0.0f;
+		if (t > 1.0f) t = 1.0f;
+		float cx = ax + abx * t, cy = ay + aby * t;
+		float dx = px - cx, dy = py - cy;
+		return dx * dx + dy * dy;
+	}
+
 	void EnemyActionEditor::Update() {
 #if defined(_DEBUG)
+		float dt = ImGui::GetIO().DeltaTime;
+		currentStateElapsedTime_ += dt;
+		if (transitionFlashTimer_ > 0.0f) transitionFlashTimer_ -= dt;
+		EvaluateStateMachine();
 		DrawEditorUI();
+		DrawEditorLogUI();
 #endif
 	}
 
@@ -821,9 +840,7 @@ namespace Game::Editor {
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("File")) {
-				if (ImGui::MenuItem("Save")) {
-					SaveEnemy(editingEnemy_);
-				}
+				if (ImGui::MenuItem("Save")) { SaveEnemy(editingEnemy_); }
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
@@ -839,45 +856,167 @@ namespace Game::Editor {
 			if (!editingEnemy_.gltfPath.empty()) {
 				cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
 			}
+			if (!editingEnemy_.nodes.empty()) {
+				if (requireManualStart_) { currentStateId_ = -1; firstNodeStarted_ = false; }
+				else { currentStateId_ = editingEnemy_.nodes.front().id; }
+			}
+			currentStateElapsedTime_ = 0.0f;
+			previousStateId_ = -1;
+			AddLog("[EnemyEditor] Loaded: " + fname);
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Save Enemy##action")) {
 			editingEnemy_.name = filenameBuf;
 			SaveEnemy(editingEnemy_);
+			AddLog("[EnemyEditor] Saved: " + editingEnemy_.name);
 		}
 
 		ImGui::End();
-
 		DrawNodeEditor();
 	}
 
 	void EnemyActionEditor::DrawNodeEditor() {
-		ImGui::SetNextWindowPos(ImVec2(255.0f, 720.0f), ImGuiCond_FirstUseEver); // Positioning below the existing canvas
-		ImGui::SetNextWindowSize(ImVec2(1280.0f - 350.0f - 255.0f, 250.0f), ImGuiCond_FirstUseEver);
-		ImGui::Begin("State Machine Node Editor", nullptr, ImGuiWindowFlags_NoCollapse);
+		// Window: "State Machine" matching original
+		ImGui::SetNextWindowPos(ImVec2(10.0f, 420.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(1260.0f, 300.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("State Machine", nullptr, ImGuiWindowFlags_NoCollapse);
 
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 
+		// --- Control bar ---
 		if (ImGui::Button("Add Node")) {
+			PushUndoState();
 			int newId = 1;
-			for (const auto& n : editingEnemy_.nodes) {
-				if (n.id >= newId) newId = n.id + 1;
-			}
+			for (const auto& n : editingEnemy_.nodes) { if (n.id >= newId) newId = n.id + 1; }
 			Node node;
 			node.id = newId;
 			node.name = "State" + std::to_string(newId);
 			node.state = "Idle";
 			node.x = 40.0f + static_cast<float>((editingEnemy_.nodes.size() % 6) * 190);
-			node.y = 40.0f + static_cast<float>((editingEnemy_.nodes.size() / 6) * 110);
+			node.y = 40.0f + static_cast<float>((editingEnemy_.nodes.size() / 6) * 120);
 			editingEnemy_.nodes.push_back(node);
+			char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Added node %d", newId); AddLog(dbg);
 		}
 
 		ImGui::SameLine();
-		ImGui::TextDisabled("Connect: drag from Out port to a node. Right click node/link to delete.");
+		if (ImGui::Button("Start First Node")) {
+			if (!editingEnemy_.nodes.empty()) {
+				previousStateId_ = currentStateId_;
+				currentStateId_ = editingEnemy_.nodes.front().id;
+				currentStateElapsedTime_ = 0.0f;
+				transitionFlashTimer_ = 1.0f;
+				userRequestedStart_ = true;
+				firstNodeStarted_ = true;
+				lockStateMachineAfterStartFirstNode_ = false;
+				AddLog("[EnemyEditor] Started first node");
+			}
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Reset State Timer")) {
+			currentStateElapsedTime_ = 0.0f;
+			AddLog("[EnemyEditor] Timer reset");
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Restart State")) {
+			if (currentStateId_ != -1) {
+				currentStateElapsedTime_ = 0.0f;
+				transitionFlashTimer_ = 0.5f;
+				AddLog("[EnemyEditor] State restarted");
+			}
+		}
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(80.0f);
+		static int jumpNodeIdx = 0;
+		if (!editingEnemy_.nodes.empty()) {
+			if (jumpNodeIdx >= static_cast<int>(editingEnemy_.nodes.size())) jumpNodeIdx = 0;
+			std::string jumpPreview = editingEnemy_.nodes[jumpNodeIdx].name;
+			if (ImGui::BeginCombo("##jump_state", jumpPreview.c_str())) {
+				for (int i = 0; i < static_cast<int>(editingEnemy_.nodes.size()); ++i) {
+					bool isSel = (i == jumpNodeIdx);
+					if (ImGui::Selectable(editingEnemy_.nodes[i].name.c_str(), isSel)) jumpNodeIdx = i;
+					if (isSel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Jump To Node")) {
+			if (!editingEnemy_.nodes.empty() && jumpNodeIdx < static_cast<int>(editingEnemy_.nodes.size())) {
+				previousStateId_ = currentStateId_;
+				currentStateId_ = editingEnemy_.nodes[jumpNodeIdx].id;
+				currentStateElapsedTime_ = 0.0f;
+				transitionFlashTimer_ = 1.0f;
+				firstNodeStarted_ = true;
+				char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Jumped to node %d", currentStateId_); AddLog(dbg);
+			}
+		}
+
+		ImGui::SameLine();
+		ImGui::Checkbox("Require Manual Start (first node)", &requireManualStart_);
+		if (requireManualStart_ != requireManualStart_) {
+			if (!requireManualStart_) {
+				firstNodeStarted_ = true;
+				lockStateMachineAfterStartFirstNode_ = false;
+			} else {
+				firstNodeStarted_ = false;
+			}
+		}
+
+		// --- State info bar ---
+		if (currentStateId_ != -1) {
+			auto cit = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& n) { return n.id == currentStateId_; });
+			if (cit != editingEnemy_.nodes.end()) {
+				ImGui::Text("Active: %s (id=%d)  Timer: %.2f s", cit->name.c_str(), cit->id, currentStateElapsedTime_);
+			}
+		} else {
+			ImGui::TextDisabled("No active state");
+		}
+
+		// Transition flash indicator
+		if (transitionFlashTimer_ > 0.0f && previousStateId_ != -1) {
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.3f, transitionFlashTimer_), "TRANSITION: %d -> %d", previousStateId_, currentStateId_);
+		}
+
+		// --- Transition status ---
+		if (currentStateId_ != -1) {
+			bool foundOut = false, anyReady = false;
+			float soonestTime = 1e9f; int soonestTo = -1; std::string soonestCond;
+			for (const auto& link : editingEnemy_.links) {
+				if (link.from != currentStateId_ || link.to == currentStateId_) continue;
+				foundOut = true;
+				std::string cond = link.condition;
+				while (!cond.empty() && cond.front() == ' ') cond.erase(cond.begin());
+				while (!cond.empty() && cond.back() == ' ') cond.pop_back();
+				bool isTimeD = (cond.rfind("Time>=", 0) == 0) || (cond.rfind("Time>", 0) == 0);
+				bool condMet = CheckLinkCondition(link);
+				if (condMet) { anyReady = true; soonestTo = link.to; soonestCond = cond.empty() ? "Always" : cond; break; }
+				if (isTimeD) {
+					float target = 0.0f;
+					try { if (cond.rfind("Time>=", 0) == 0) target = std::stof(cond.substr(6)); else if (cond.rfind("Time>", 0) == 0) target = std::stof(cond.substr(5)); } catch (...) {}
+					float remain = target - currentStateElapsedTime_;
+					if (remain < 0.0f) remain = 0.0f;
+					if (remain < soonestTime) { soonestTime = remain; soonestTo = link.to; soonestCond = cond; }
+				}
+			}
+			if (!foundOut) { ImGui::TextDisabled("No outgoing transitions."); }
+			else if (anyReady) { ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Transition ready -> id=%d (%s)", soonestTo, soonestCond.c_str()); }
+			else if (soonestTime < 1e8f) { ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.5f, 1.0f), "Next in %.2fs -> id=%d (%s)", soonestTime, soonestTo, soonestCond.c_str()); }
+			else { ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "No transitions satisfied."); }
+		}
+
+		ImGui::TextDisabled("Connect: drag from blue circle to another node");
+
+		// --- Link condition list ---
+		DrawLinkConditionList();
 
 		ImGui::Separator();
 
+		// --- Canvas ---
 		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
 		ImVec2 canvasSize = ImGui::GetContentRegionAvail();
 		if (canvasSize.x < 100) canvasSize.x = 100;
@@ -891,18 +1030,23 @@ namespace Game::Editor {
 		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
 		drawList->AddRect(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(80, 80, 90, 255));
 
+		// Nodes count overlay
+		{
+			char buf[64]; snprintf(buf, sizeof(buf), "Nodes: %zu", editingEnemy_.nodes.size());
+			drawList->AddText(ImVec2(origin.x + 6.0f, origin.y + 4.0f), MakeCol32(200, 200, 200, 180), buf);
+		}
+
+		// Node drag
 		if (nodeDragActive_) {
-			auto selectedIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& node) {
-				return node.id == nodeEditor_selectedNodeId_;
-			});
+			auto selectedIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& node) { return node.id == nodeEditor_selectedNodeId_; });
 			if (selectedIt != editingEnemy_.nodes.end() && ImGui::IsMouseDown(ImGuiMouseButton_Left) && !nodeLinkDragActive_) {
 				selectedIt->x = mousePos.x - origin.x - nodeDragOffsetX_;
 				selectedIt->y = mousePos.y - origin.y - nodeDragOffsetY_;
 				if (selectedIt->x < 0.0f) selectedIt->x = 0.0f;
 				if (selectedIt->y < 0.0f) selectedIt->y = 0.0f;
-			} else {
-				nodeDragActive_ = false;
-			}
+				if (selectedIt->x > canvasSize.x - 180.0f) selectedIt->x = canvasSize.x - 180.0f;
+				if (selectedIt->y > canvasSize.y - 110.0f) selectedIt->y = canvasSize.y - 110.0f;
+			} else { nodeDragActive_ = false; }
 		}
 
 		// Draw Nodes
@@ -911,25 +1055,33 @@ namespace Game::Editor {
 			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 110.0f);
 
 			ImU32 col = MakeCol32(60, 60, 70, 220);
-			if (nodeEditor_selectedNodeId_ == n.id) {
+			if (currentStateId_ == n.id) {
+				float pulse = 0.5f + 0.5f * std::sin(currentStateElapsedTime_ * 8.0f);
+				col = MakeCol32(60, static_cast<int>(180 + pulse * 50.0f), 90, 255);
+			} else if (nodeEditor_selectedNodeId_ == n.id) {
 				col = MakeCol32(100, 80, 80, 255);
 			}
 
 			drawList->AddRectFilled(a, b, col, 6.0f);
 			drawList->AddRect(a, b, MakeCol32(200, 200, 200, 220), 6.0f, 0, 2.0f);
 
+			// Active badge
+			if (currentStateId_ == n.id) {
+				drawList->AddText(ImVec2(a.x + 140.0f, a.y + 2.0f), MakeCol32(100, 255, 130, 255), "ACTIVE");
+			}
+
 			// inline UI
 			ImVec2 prevScreenPos = ImGui::GetCursorScreenPos();
 			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 6.0f));
 			ImGui::PushID(n.id);
-			
-			char nameBufFB[128]; strncpy_s(nameBufFB, n.name.c_str(), sizeof(nameBufFB));
+
+			char nameBufFB[128]; strncpy_s(nameBufFB, sizeof(nameBufFB), n.name.c_str(), _TRUNCATE);
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::InputText("##node_name_fb", nameBufFB, sizeof(nameBufFB))) n.name = nameBufFB;
 			if (ImGui::IsItemActive()) nodeEditor_selectedNodeId_ = n.id;
 
 			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 36.0f));
-			char stateBufFB[128]; strncpy_s(stateBufFB, n.state.c_str(), sizeof(stateBufFB));
+			char stateBufFB[128]; strncpy_s(stateBufFB, sizeof(stateBufFB), n.state.c_str(), _TRUNCATE);
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::InputText("##node_state_fb", stateBufFB, sizeof(stateBufFB))) n.state = stateBufFB;
 
@@ -948,9 +1100,9 @@ namespace Game::Editor {
 			ImGui::SetCursorScreenPos(prevScreenPos);
 
 			bool hovered = (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y);
-			bool overInlineControls = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 90.0f);
-			
-			if (!nodeDragActive_ && hovered && !overInlineControls && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 90.0f);
+
+			if (!nodeDragActive_ && hovered && !overInline && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				nodeDragActive_ = true;
 				nodeEditor_selectedNodeId_ = n.id;
 				nodeDragOffsetX_ = mousePos.x - a.x;
@@ -965,7 +1117,6 @@ namespace Game::Editor {
 			// Ports
 			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 96.0f);
 			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 96.0f);
-			
 			drawList->AddCircleFilled(inputPortPos, 8.0f, MakeCol32(120, 220, 140, 220));
 			drawList->AddCircleFilled(portPos, 8.0f, MakeCol32(120, 160, 255, 220));
 			drawList->AddText(ImVec2(inputPortPos.x - 5.0f, inputPortPos.y - 22.0f), MakeCol32(180, 220, 180, 255), "In");
@@ -987,8 +1138,7 @@ namespace Game::Editor {
 		// Draw Links
 		for (size_t i = 0; i < editingEnemy_.links.size(); ++i) {
 			const auto& l = editingEnemy_.links[i];
-			const Node* from = nullptr;
-			const Node* to = nullptr;
+			const Node* from = nullptr; const Node* to = nullptr;
 			for (const auto& n : editingEnemy_.nodes) {
 				if (n.id == l.from) from = &n;
 				if (n.id == l.to) to = &n;
@@ -997,12 +1147,10 @@ namespace Game::Editor {
 				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 96.0f);
 				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 96.0f);
 				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
-				
-				// Click to context-menu / link logic
+
+				// Improved link hit detection
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
-					float d1 = (mousePos.x - pa.x) * (mousePos.x - pa.x) + (mousePos.y - pa.y) * (mousePos.y - pa.y);
-					float d2 = (mousePos.x - pb.x) * (mousePos.x - pb.x) + (mousePos.y - pb.y) * (mousePos.y - pb.y);
-					if (d1 < 100.0f || d2 < 100.0f) {
+					if (DistPtSegSq(mousePos.x, mousePos.y, pa.x, pa.y, pb.x, pb.y) <= 144.0f) {
 						linkEditor_contextLinkIndex_ = static_cast<int>(i);
 						ImGui::OpenPopup("LinkContextMenu");
 					}
@@ -1010,6 +1158,7 @@ namespace Game::Editor {
 			}
 		}
 
+		// Link drag
 		if (nodeLinkDragActive_) {
 			ImVec2 start = ImVec2(pendingNewNodeScreenX_, pendingNewNodeScreenY_);
 			drawList->AddLine(start, mousePos, MakeCol32(255, 255, 150, 220), 3.0f);
@@ -1018,18 +1167,16 @@ namespace Game::Editor {
 				for (const auto& n : editingEnemy_.nodes) {
 					ImVec2 na = ImVec2(origin.x + n.x, origin.y + n.y);
 					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 110.0f);
-					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) {
-						targetId = n.id; break;
-					}
+					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) { targetId = n.id; break; }
 				}
 				if (targetId != -1 && targetId != nodeEditor_linkStartId_) {
 					bool exists = false;
-					for (const auto& l : editingEnemy_.links) {
-						if (l.from == nodeEditor_linkStartId_ && l.to == targetId) exists = true;
-					}
+					for (const auto& l : editingEnemy_.links) if (l.from == nodeEditor_linkStartId_ && l.to == targetId) exists = true;
 					if (!exists) {
+						PushUndoState();
 						Link link; link.from = nodeEditor_linkStartId_; link.to = targetId; link.condition = "Always";
 						editingEnemy_.links.push_back(link);
+						char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Link %d -> %d", link.from, link.to); AddLog(dbg);
 					}
 				}
 				nodeLinkDragActive_ = false;
@@ -1037,43 +1184,276 @@ namespace Game::Editor {
 			}
 		}
 
+		// Undo / Save buttons
+		{
+			ImGui::SetCursorScreenPos(ImVec2(origin.x + 6.0f, origin.y + canvasSize.y + 8.0f));
+			if (ImGui::Button("Undo", ImVec2(100, 0))) { if (CanUndo()) Undo(); }
+			ImGui::SameLine();
+			if (ImGui::Button("Save Nodes", ImVec2(120, 0))) { SaveEnemy(editingEnemy_); AddLog("[EnemyEditor] Saved nodes"); }
+			ImGui::Dummy(ImVec2(0.0f, 8.0f));
+		}
+
+		// --- Node Context Menu with confirmation ---
+		bool requestDeleteNode = false;
 		if (ImGui::BeginPopup("NodeContextMenu")) {
 			if (nodeEditor_contextNodeId_ != -1) {
-				if (ImGui::MenuItem("Delete Node")) {
-					int id = nodeEditor_contextNodeId_;
-					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& lk) {
-						return lk.from == id || lk.to == id;
-					}), editingEnemy_.links.end());
-					editingEnemy_.nodes.erase(std::remove_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) {
-						return nd.id == id;
-					}), editingEnemy_.nodes.end());
-					if (nodeEditor_selectedNodeId_ == id) nodeEditor_selectedNodeId_ = -1;
+				auto nit = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == nodeEditor_contextNodeId_; });
+				std::string nlabel = "Node";
+				if (nit != editingEnemy_.nodes.end()) nlabel = nit->name + " (id=" + std::to_string(nit->id) + ")";
+				ImGui::TextDisabled("%s", nlabel.c_str());
+				ImGui::Separator();
+				if (ImGui::MenuItem("Delete Node...")) {
+					nodeEditor_pendingDeleteNodeId_ = nodeEditor_contextNodeId_;
+					requestDeleteNode = true;
+					ImGui::CloseCurrentPopup();
 				}
 			}
 			ImGui::EndPopup();
 		}
+		if (requestDeleteNode) ImGui::OpenPopup("ConfirmDeleteNode");
 
-		if (ImGui::BeginPopup("LinkContextMenu")) {
-			if (linkEditor_contextLinkIndex_ != -1) {
-			    auto& linkRef = editingEnemy_.links[linkEditor_contextLinkIndex_];
-			    ImGui::Text("Link %d -> %d", linkRef.from, linkRef.to);
-			    ImGui::Separator();
-			    
-			    char condBuf[256];
-			    strncpy_s(condBuf, linkRef.condition.c_str(), sizeof(condBuf));
-			    if (ImGui::InputText("Condition", condBuf, sizeof(condBuf))) {
-			        linkRef.condition = condBuf;
-			    }
-
-				if (ImGui::MenuItem("Delete Link")) {
-					editingEnemy_.links.erase(editingEnemy_.links.begin() + linkEditor_contextLinkIndex_);
-					linkEditor_contextLinkIndex_ = -1;
+		if (ImGui::BeginPopupModal("ConfirmDeleteNode", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			int delId = nodeEditor_pendingDeleteNodeId_;
+			if (delId != -1) {
+				auto dit = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == delId; });
+				std::string dname = (dit != editingEnemy_.nodes.end()) ? dit->name : "<unknown>";
+				ImGui::Text("Delete node '%s' (id=%d)?", dname.c_str(), delId);
+				ImGui::Separator();
+				if (ImGui::Button("Delete", ImVec2(120, 0))) {
+					PushUndoState();
+					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& lk) { return lk.from == delId || lk.to == delId; }), editingEnemy_.links.end());
+					editingEnemy_.nodes.erase(std::remove_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == delId; }), editingEnemy_.nodes.end());
+					if (nodeEditor_selectedNodeId_ == delId) nodeEditor_selectedNodeId_ = -1;
+					if (currentStateId_ == delId) currentStateId_ = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
+					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted node %d", delId); AddLog(dbg);
+					SaveEnemy(editingEnemy_);
+					nodeEditor_pendingDeleteNodeId_ = -1;
+					ImGui::CloseCurrentPopup();
 				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) { nodeEditor_pendingDeleteNodeId_ = -1; ImGui::CloseCurrentPopup(); }
+			} else {
+				ImGui::Text("No node selected.");
+				if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+
+		// --- Link Context Menu with confirmation ---
+		bool requestDeleteLink = false;
+		if (ImGui::BeginPopup("LinkContextMenu")) {
+			if (linkEditor_contextLinkIndex_ >= 0 && linkEditor_contextLinkIndex_ < static_cast<int>(editingEnemy_.links.size())) {
+				auto& linkRef = editingEnemy_.links[linkEditor_contextLinkIndex_];
+				ImGui::TextDisabled("Link %d -> %d", linkRef.from, linkRef.to);
+				ImGui::Separator();
+				char condBuf[256]; strncpy_s(condBuf, sizeof(condBuf), linkRef.condition.c_str(), _TRUNCATE);
+				if (ImGui::InputText("Condition", condBuf, sizeof(condBuf))) linkRef.condition = condBuf;
+				if (ImGui::MenuItem("Delete Link...")) {
+					linkEditor_pendingDeleteLinkIndex_ = linkEditor_contextLinkIndex_;
+					requestDeleteLink = true;
+					ImGui::CloseCurrentPopup();
+				}
+			}
+			ImGui::EndPopup();
+		}
+		if (requestDeleteLink) ImGui::OpenPopup("ConfirmDeleteLink");
+
+		if (ImGui::BeginPopupModal("ConfirmDeleteLink", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+			int idx = linkEditor_pendingDeleteLinkIndex_;
+			if (idx >= 0 && idx < static_cast<int>(editingEnemy_.links.size())) {
+				auto lnk = editingEnemy_.links[idx];
+				ImGui::Text("Delete link '%d -> %d'?", lnk.from, lnk.to);
+				ImGui::Separator();
+				if (ImGui::Button("Delete", ImVec2(120, 0))) {
+					PushUndoState();
+					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& l) { return l.from == lnk.from && l.to == lnk.to && l.condition == lnk.condition; }), editingEnemy_.links.end());
+					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted link %d -> %d", lnk.from, lnk.to); AddLog(dbg);
+					SaveEnemy(editingEnemy_);
+					linkEditor_pendingDeleteLinkIndex_ = -1; linkEditor_contextLinkIndex_ = -1;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Cancel", ImVec2(120, 0))) { linkEditor_pendingDeleteLinkIndex_ = -1; ImGui::CloseCurrentPopup(); }
+			} else {
+				ImGui::Text("No link selected.");
+				if (ImGui::Button("Close")) ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
 		}
 
 		ImGui::End();
 	}
+
+	// ===== State Machine Runtime =====
+	void EnemyActionEditor::EvaluateStateMachine() {
+		if (currentStateId_ == -1) return;
+		if (lockStateMachineAfterStartFirstNode_ && !firstNodeStarted_) return;
+		const int firstId = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
+		if (requireManualStart_ && currentStateId_ == firstId && !firstNodeStarted_) return;
+
+		for (const auto& link : editingEnemy_.links) {
+			if (link.from != currentStateId_) continue;
+			if (CheckLinkCondition(link)) {
+				if (link.to != currentStateId_) {
+					int old = currentStateId_;
+					previousStateId_ = old;
+					currentStateId_ = link.to;
+					currentStateElapsedTime_ = 0.0f;
+					transitionFlashTimer_ = 1.0f;
+					char buf[256]; snprintf(buf, sizeof(buf), "[StateMachine] %d -> %d (%s)", old, currentStateId_, link.condition.c_str()); AddLog(buf);
+					if (requireManualStart_ && old == firstId) firstNodeStarted_ = false;
+				}
+				break;
+			}
+		}
+	}
+
+	bool EnemyActionEditor::CheckLinkCondition(const Link& link) {
+		if (link.condition.empty()) return true;
+		std::string c = link.condition;
+		while (!c.empty() && c.front() == ' ') c.erase(c.begin());
+		while (!c.empty() && c.back() == ' ') c.pop_back();
+		if (c == "Always") return true;
+
+		// Time conditions
+		if (c.rfind("Time>=", 0) == 0) { try { return currentStateElapsedTime_ >= std::stof(c.substr(6)); } catch (...) { return false; } }
+		if (c.rfind("Time>", 0) == 0) { try { return currentStateElapsedTime_ > std::stof(c.substr(5)); } catch (...) { return false; } }
+
+		// HP conditions
+		float hpRatio = (editingEnemy_.hp > 0) ? static_cast<float>(editingEnemy_.hp) / 100.0f : 0.0f;
+		if (c.rfind("HP<=", 0) == 0) { try { return hpRatio <= std::stof(c.substr(4)); } catch (...) { return false; } }
+		if (c.rfind("HP<", 0) == 0) { try { return hpRatio < std::stof(c.substr(3)); } catch (...) { return false; } }
+		if (c.rfind("HP>=", 0) == 0) { try { return hpRatio >= std::stof(c.substr(4)); } catch (...) { return false; } }
+		if (c.rfind("HP>", 0) == 0) { try { return hpRatio > std::stof(c.substr(3)); } catch (...) { return false; } }
+		if (c.rfind("HP==", 0) == 0) { try { return std::abs(hpRatio - std::stof(c.substr(4))) < 0.001f; } catch (...) { return false; } }
+
+		return false;
+	}
+
+	bool EnemyActionEditor::HasOutgoingTransition(int nodeId) const {
+		for (const auto& l : editingEnemy_.links) {
+			if (l.from == nodeId && l.to != nodeId) return true;
+		}
+		return false;
+	}
+
+	bool EnemyActionEditor::HasTimeDrivenTransition(int nodeId) const {
+		for (const auto& l : editingEnemy_.links) {
+			if (l.from != nodeId) continue;
+			std::string c = l.condition;
+			if (c.rfind("Time>=", 0) == 0 || c.rfind("Time>", 0) == 0) return true;
+		}
+		return false;
+	}
+
+	void EnemyActionEditor::DrawStateMachineControlUI() {
+		// Control UI is now inline in DrawNodeEditor
+	}
+
+	void EnemyActionEditor::DrawLinkConditionList() {
+		if (editingEnemy_.links.empty()) return;
+		if (ImGui::TreeNode("Link Conditions")) {
+			for (size_t i = 0; i < editingEnemy_.links.size(); ++i) {
+				auto& l = editingEnemy_.links[i];
+				ImGui::PushID(static_cast<int>(i));
+				// Find names
+				std::string fromName = "?", toName = "?";
+				for (const auto& n : editingEnemy_.nodes) {
+					if (n.id == l.from) fromName = n.name;
+					if (n.id == l.to) toName = n.name;
+				}
+				ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
+				ImGui::SameLine();
+
+				// Condition type combo
+				const char* condTypes[] = { "Always", "Time>=", "Time>", "HP<=", "HP<", "HP>=", "HP>", "HP==", "Custom" };
+				int currentType = 8; // default Custom
+				for (int ct = 0; ct < 8; ++ct) {
+					if (l.condition.rfind(condTypes[ct], 0) == 0) { currentType = ct; break; }
+				}
+				if (l.condition == "Always") currentType = 0;
+
+				ImGui::SetNextItemWidth(90.0f);
+				if (ImGui::BeginCombo("##cond_type", condTypes[currentType])) {
+					for (int ct = 0; ct < 9; ++ct) {
+						if (ImGui::Selectable(condTypes[ct], currentType == ct)) {
+							if (ct == 0) l.condition = "Always";
+							else if (ct < 8) l.condition = std::string(condTypes[ct]) + "1.0";
+							currentType = ct;
+						}
+					}
+					ImGui::EndCombo();
+				}
+
+				// Value editor for parameterized conditions
+				if (currentType >= 1 && currentType <= 7) {
+					ImGui::SameLine();
+					std::string prefix = condTypes[currentType];
+					float val = 0.0f;
+					if (l.condition.size() > prefix.size()) {
+						try { val = std::stof(l.condition.substr(prefix.size())); } catch (...) {}
+					}
+					ImGui::SetNextItemWidth(80.0f);
+					if (currentType <= 2) { // Time
+						if (ImGui::DragFloat("##val", &val, 0.1f, 0.0f, 60.0f, "%.1f s")) {
+							l.condition = prefix + std::to_string(val);
+						}
+					} else { // HP
+						if (ImGui::DragFloat("##val", &val, 0.01f, 0.0f, 1.0f, "%.2f")) {
+							l.condition = prefix + std::to_string(val);
+						}
+					}
+					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Condition value");
+				} else if (currentType == 8) {
+					ImGui::SameLine();
+					char cbuf[256]; strncpy_s(cbuf, sizeof(cbuf), l.condition.c_str(), _TRUNCATE);
+					ImGui::SetNextItemWidth(120.0f);
+					if (ImGui::InputText("##custom", cbuf, sizeof(cbuf))) l.condition = cbuf;
+				}
+
+				ImGui::PopID();
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	// ===== Undo =====
+	void EnemyActionEditor::PushUndoState() {
+		undoStack_.push_back(editingEnemy_);
+		if (undoStack_.size() > undoStackMax_) undoStack_.erase(undoStack_.begin());
+	}
+
+	void EnemyActionEditor::Undo() {
+		if (undoStack_.empty()) return;
+		editingEnemy_ = undoStack_.back();
+		undoStack_.pop_back();
+		if (!editingEnemy_.nodes.empty()) currentStateId_ = editingEnemy_.nodes.front().id;
+		else currentStateId_ = -1;
+		AddLog("[EnemyEditor] Undo performed");
+	}
+
+	// ===== Log =====
+	void EnemyActionEditor::AddLog(const std::string& msg) {
+		std::string line = msg;
+		if (!line.empty() && line.back() != '\n') line.push_back('\n');
+		editorLog_.push_back(line);
+		if (editorLog_.size() > editorLogMax_) editorLog_.erase(editorLog_.begin(), editorLog_.begin() + static_cast<long long>(editorLog_.size() - editorLogMax_));
+	}
+
+	void EnemyActionEditor::DrawEditorLogUI() {
+		ImGui::SetNextWindowPos(ImVec2(10.0f, 540.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(600.0f, 180.0f), ImGuiCond_FirstUseEver);
+		ImGui::Begin("Editor Log", nullptr, ImGuiWindowFlags_NoCollapse);
+		if (ImGui::Button("Clear")) editorLog_.clear();
+		ImGui::SameLine();
+		ImGui::Text("Lines: %zu", editorLog_.size());
+		ImGui::Separator();
+		ImGui::BeginChild("LogRegion", ImVec2(0, 0), ImGuiChildFlags_None);
+		for (const auto& line : editorLog_) ImGui::TextUnformatted(line.c_str());
+		ImGui::SetScrollHereY(1.0f);
+		ImGui::EndChild();
+		ImGui::End();
+	}
 #endif
 }
+
