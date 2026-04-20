@@ -134,6 +134,7 @@ namespace Lumina::Utils {
 		
 		constexpr auto Vertices() const noexcept -> std::vector<Vertex> const& { return Vertices_; }
 		constexpr auto Faces() const noexcept -> std::vector<Face> const& { return Faces_; }
+		constexpr auto MTLFileNames() const noexcept -> std::vector<std::string> const& { return MTLFileNames_; }
 
 		//////	//////	//////	//////	//////	//////
 
@@ -297,6 +298,10 @@ namespace Lumina::Utils {
 
 namespace Lumina::Utils {
 	class WavefrontMTL {
+	public:
+		constexpr auto TextureFileName() const noexcept -> std::string const& { return TextureFileName_; }
+		constexpr auto Directory() const noexcept -> std::string const& { return Directory_; }
+
 	protected:
 		std::string Directory_{};
 		std::string TextureFileName_{};

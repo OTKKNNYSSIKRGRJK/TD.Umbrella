@@ -64,6 +64,12 @@ namespace Game::Scene::Impl {
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
 				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
+				
+				uint32_t materialIdx = 0U;
+				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
+					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
+				}
+
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 				if (!e.FacingRight) {
@@ -74,7 +80,7 @@ namespace Game::Scene::Impl {
 				meshMngr.Batch(
 					MeshShaderAssets_[meshIdx],
 					1U,
-					LocalHeap_Materials_.CPUHandle(0U), // とりあえず共通マテリアル0を使用
+					LocalHeap_Materials_.CPUHandle(materialIdx),
 					worldMat
 				);
 			}
