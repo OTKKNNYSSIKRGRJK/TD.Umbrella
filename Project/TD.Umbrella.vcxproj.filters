@@ -190,6 +190,9 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Update.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />

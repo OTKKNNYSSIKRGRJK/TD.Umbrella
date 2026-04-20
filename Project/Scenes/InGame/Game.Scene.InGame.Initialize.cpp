@@ -558,6 +558,7 @@ namespace Game::Scene::Impl {
 
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
+		objMotionEditor_.Initialize();
 		
 #if defined(_DEBUG)
 		playState_.IsPlaying = true;

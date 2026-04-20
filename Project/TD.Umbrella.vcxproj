@@ -33,6 +33,9 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Update.cpp" />
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
     <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />

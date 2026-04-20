@@ -404,6 +404,10 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Motion;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Obj Motion Editor", nullptr, activeEditor_ == EditorTab::ObjMotion)) {
+					activeEditor_ = EditorTab::ObjMotion;
+					playState_.IsPlaying = false;
+				}
 				if (ImGui::MenuItem("Area Editor", nullptr, activeEditor_ == EditorTab::Area)) {
 					activeEditor_ = EditorTab::Area;
 					playState_.IsPlaying = false;
@@ -437,6 +441,9 @@ namespace Game::Scene::Impl {
 		switch (activeEditor_) {
 		case EditorTab::Motion:
 			MotionEditor::GetInstance()->NodeImGui();
+			break;
+		case EditorTab::ObjMotion:
+			objMotionEditor_.Update();
 			break;
 		case EditorTab::Area:
 			areaEditor_.Update();
