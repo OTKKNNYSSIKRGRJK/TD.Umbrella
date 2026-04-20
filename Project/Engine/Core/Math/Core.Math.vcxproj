@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Fundamental\Fundamental.Exponentiation.ixx" />
+    <ClCompile Include="Interpolation\Interpolation.Fundamental.ixx" />
     <ClCompile Include="Math.ixx" />
     <ClCompile Include="Fractal\Fractal.PerlinNoise.ixx" />
     <ClCompile Include="Fundamental\Fundamental.Constants.ixx" />

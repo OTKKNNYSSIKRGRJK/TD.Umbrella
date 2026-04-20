@@ -79,6 +79,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.Animation.ixx" />
+    <ClCompile Include="Game\CG3D\CG3D.ASSIMP.ixx" />
+    <ClCompile Include="Game\CG3D\CG3D.ixx" />
+    <ClCompile Include="Game\CG3D\CG3D.Struct.ixx" />
     <ClCompile Include="Game\EventSystem.cpp" />
     <ClCompile Include="Game\EventSystem.ixx" />
     <ClCompile Include="Game\MeshManager.cpp" />
@@ -214,7 +218,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <AdditionalOptions>/source-charset:utf-8 /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)External\ImGui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)External\ImGui\;$(ProjectDir)External\assimp\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -223,6 +227,8 @@
     </Link>
     <Lib>
       <OutputFile>$(OutDir)$(RootNamespace)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>assimp-vc143-mtd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\assimp\build\lib\Debug\</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -242,7 +248,7 @@
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <AssemblerOutput>AssemblyAndSourceCode</AssemblerOutput>
       <AdditionalOptions>/source-charset:utf-8 /execution-charset:utf-8 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)External\ImGui</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(ProjectDir)External\ImGui\;$(ProjectDir)External\assimp\include\</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -251,6 +257,8 @@
     </Link>
     <Lib>
       <OutputFile>$(OutDir)$(RootNamespace)$(TargetExt)</OutputFile>
+      <AdditionalDependencies>assimp-vc143-mt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)External\assimp\build\lib\Release\</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
