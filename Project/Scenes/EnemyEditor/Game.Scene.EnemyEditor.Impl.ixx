@@ -24,6 +24,10 @@ export namespace Game::Editor {
 		float x = 0.0f;
 		float y = 0.0f;
 		std::string animationName = "";
+		// Debug: bound motion and node index for runtime hooks (e.g. walk trigger)
+		std::string boundMotion = "";
+		int boundMotionNodeIndex = -1;
+		std::string boundBool = "";
 	};
 
 	struct Link {

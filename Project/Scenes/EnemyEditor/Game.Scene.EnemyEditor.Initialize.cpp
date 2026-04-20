@@ -32,7 +32,13 @@ namespace Game::Editor {
 	}
 
 	void to_json(json& j, const Node& n) {
-		j = json{ {"id", n.id}, {"name", n.name}, {"state", n.state}, {"x", n.x}, {"y", n.y}, {"animationName", n.animationName} };
+		j = json{
+			{"id", n.id}, {"name", n.name}, {"state", n.state}, {"x", n.x}, {"y", n.y},
+			{"animationName", n.animationName},
+			{"boundMotion", n.boundMotion},
+			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
+			{"boundBool", n.boundBool}
+		};
 	}
 	void from_json(const json& j, Node& n) {
 		if (j.contains("id")) j.at("id").get_to(n.id);
@@ -41,6 +47,9 @@ namespace Game::Editor {
 		if (j.contains("x")) j.at("x").get_to(n.x);
 		if (j.contains("y")) j.at("y").get_to(n.y);
 		if (j.contains("animationName")) j.at("animationName").get_to(n.animationName);
+		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
+		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
+		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
 	}
 	
 	void to_json(json& j, const Link& l) {

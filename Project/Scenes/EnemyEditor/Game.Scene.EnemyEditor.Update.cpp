@@ -6,6 +6,7 @@ import Lumina.Utils.ImGui;
 
 import <string>;
 import <filesystem>;
+import Game.MotionManager;
 import <array>;
 import <vector>;
 import <algorithm>;
@@ -238,9 +239,10 @@ namespace Game::Editor {
 					}
 					ImGui::EndCombo();
 				}
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("Select an Actor asset for projectile appearance and trajectory");
 
-				ImGui::Spacing();
+                if (ImGui::IsItemHovered()) ImGui::SetTooltip("Select an Actor asset for projectile appearance and trajectory");
+
+                ImGui::Spacing();
 
 				// ホーミングオーバーライド
 				ImGui::Checkbox("Homing Override##proj", &editingEnemy_.projectile.isHoming);
@@ -1092,6 +1094,93 @@ namespace Game::Editor {
 
 		// --- Link condition list ---
 		DrawLinkConditionList();
+
+		if (Node* selectedNode = FindNodeById(nodeEditor_selectedNodeId_)) {
+			ImGui::SeparatorText("Selected Node Binding");
+			ImGui::Text("Selected: %s (id=%d)", selectedNode->name.c_str(), selectedNode->id);
+
+			const char* boolOptions[] = { "(none)", "Walk" };
+			int boolIdx = (selectedNode->boundBool == "walk") ? 1 : 0;
+			ImGui::SetNextItemWidth(180.0f);
+			if (ImGui::Combo("Bool", &boolIdx, boolOptions, 2)) {
+				selectedNode->boundBool = (boolIdx == 1) ? "walk" : "";
+			}
+
+			std::vector<std::string> motionFiles;
+			motionFiles.push_back("");
+			const std::string motionDir = "Assets/Data/Motion/";
+			if (fs::exists(motionDir)) {
+				for (const auto& entry : fs::directory_iterator(motionDir)) {
+					if (entry.is_regular_file() && entry.path().extension() == ".json") {
+						motionFiles.push_back(entry.path().stem().string());
+					}
+				}
+			}
+
+			int currentMotionIdx = 0;
+			for (int i = 0; i < static_cast<int>(motionFiles.size()); ++i) {
+				if (motionFiles[i] == selectedNode->boundMotion) {
+					currentMotionIdx = i;
+					break;
+				}
+			}
+
+			std::string motionPreview = selectedNode->boundMotion.empty() ? "(none)" : selectedNode->boundMotion;
+			ImGui::SetNextItemWidth(220.0f);
+			if (ImGui::BeginCombo("Motion", motionPreview.c_str())) {
+				for (int i = 0; i < static_cast<int>(motionFiles.size()); ++i) {
+					std::string label = motionFiles[i].empty() ? "(none)" : motionFiles[i];
+					bool isSelected = (i == currentMotionIdx);
+					if (ImGui::Selectable(label.c_str(), isSelected)) {
+						selectedNode->boundMotion = motionFiles[i];
+						selectedNode->boundMotionNodeIndex = -1;
+					}
+					if (isSelected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+
+			std::string stateMappedMotion;
+			if (auto it = editingEnemy_.motionMap.find(selectedNode->state); it != editingEnemy_.motionMap.end()) {
+				stateMappedMotion = it->second;
+			}
+			if (!stateMappedMotion.empty()) {
+				ImGui::SameLine();
+				if (ImGui::Button("Use State Motion")) {
+					selectedNode->boundMotion = stateMappedMotion;
+					selectedNode->boundMotionNodeIndex = -1;
+				}
+			}
+
+			int motionNodeCount = 0;
+			if (!selectedNode->boundMotion.empty()) {
+				motionNodeCount = static_cast<int>(MotionManager::GetInstance()->GetMotion(selectedNode->boundMotion).size());
+			}
+
+			ImGui::BeginDisabled(motionNodeCount <= 0);
+			std::string nodePreview = (selectedNode->boundMotionNodeIndex >= 0)
+				? ("Node " + std::to_string(selectedNode->boundMotionNodeIndex))
+				: std::string("(select node)");
+			ImGui::SetNextItemWidth(220.0f);
+			if (ImGui::BeginCombo("Motion Node", nodePreview.c_str())) {
+				for (int i = 0; i < motionNodeCount; ++i) {
+					std::string label = "Node " + std::to_string(i);
+					bool isSelected = (selectedNode->boundMotionNodeIndex == i);
+					if (ImGui::Selectable(label.c_str(), isSelected)) {
+						selectedNode->boundMotionNodeIndex = i;
+					}
+					if (isSelected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::EndDisabled();
+
+			if (ImGui::Button("Clear Binding")) {
+				selectedNode->boundBool.clear();
+				selectedNode->boundMotion.clear();
+				selectedNode->boundMotionNodeIndex = -1;
+			}
+		}
 
 		ImGui::Separator();
 

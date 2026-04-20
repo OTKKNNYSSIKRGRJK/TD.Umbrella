@@ -141,6 +141,9 @@ namespace Game::Scene::Impl {
 			bool FacingRight = true;
 			int SizeTier = 1;
 			float Scale = 1.0f;
+			bool WalkActive = false; // debug flag from behavior
+			bool MotionPlaying = false;
+			int ActiveNodeIndex = -1;
 		};
 
 		struct PlayState {

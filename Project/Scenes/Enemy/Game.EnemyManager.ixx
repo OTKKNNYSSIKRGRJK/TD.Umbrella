@@ -9,10 +9,44 @@ import <algorithm>;
 
 import Lumina;
 import Game.Editor.EnemyEditor;
+import Game.MotionManager;
 import Collider;
 import CollisionManager;
 
 export namespace Game {
+	struct EnemyInstance;
+	class EnemyBehavior;
+	class KingSlimeBehavior;
+	std::unique_ptr<EnemyBehavior> CreateEnemyBehavior(const Editor::EnemyData& data);
+
+	class EnemyBehavior {
+	public:
+		virtual ~EnemyBehavior() = default;
+		virtual void OnSpawn(EnemyInstance& enemy) { (void)enemy; }
+		virtual void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+			(void)enemy;
+			(void)deltaTime;
+			(void)playerPosition;
+		}
+
+		// Debug helper: whether a 'walk' flag is active for this behavior
+		virtual bool IsWalkActive() const { return false; }
+		virtual bool IsMotionPlaying() const { return false; }
+		virtual int GetActiveNodeIndex() const { return -1; }
+	};
+
+	class KingSlimeBehavior final : public EnemyBehavior {
+	public:
+		~KingSlimeBehavior() override = default;
+		void OnSpawn(EnemyInstance& enemy) override;
+		void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) override;
+		bool IsWalkActive() const override;
+		bool IsMotionPlaying() const override;
+		int GetActiveNodeIndex() const override;
+	private:
+		MotionController motionController_{};
+		bool walk_ = false;
+	};
 
 	/// <summary>
 	/// ゲーム内で実際に動く敵インスタンス
@@ -25,6 +59,7 @@ export namespace Game {
 		// ムーブ時もコライダーを再生成して 'this' キャプチャを更新する
 		EnemyInstance(EnemyInstance&& other) noexcept
 			: baseData(std::move(other.baseData))
+			, behavior(std::move(other.behavior))
 			, id(other.id)
 			, position(other.position)
 			, velocity(other.velocity)
@@ -55,6 +90,7 @@ export namespace Game {
 		EnemyInstance& operator=(EnemyInstance&& other) noexcept {
 			if (this != &other) {
 				baseData = std::move(other.baseData);
+				behavior = std::move(other.behavior);
 				id = other.id;
 				position = other.position;
 				velocity = other.velocity;
@@ -87,6 +123,7 @@ export namespace Game {
 		// コピー時はコライダーを除いてコピーし、後で InitCollider() で再生成する
 		EnemyInstance(const EnemyInstance& other)
 			: baseData(other.baseData)
+			, behavior(CreateEnemyBehavior(other.baseData))
 			, id(other.id)
 			, position(other.position)
 			, velocity(other.velocity)
@@ -118,6 +155,7 @@ export namespace Game {
 		EnemyInstance& operator=(const EnemyInstance& other) {
 			if (this != &other) {
 				baseData = other.baseData;
+				behavior = CreateEnemyBehavior(other.baseData);
 				id = other.id;
 				position = other.position;
 				velocity = other.velocity;
@@ -149,6 +187,7 @@ export namespace Game {
 
 		// --- テンプレートデータ（EnemyEditorから読み込み） ---
 		Editor::EnemyData baseData;
+		std::unique_ptr<EnemyBehavior> behavior;
 
 		// --- ランタイム状態 ---
 		uint32_t id = 0;                              // ユニークID

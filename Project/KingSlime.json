@@ -29,18 +29,7 @@
     ],
     "gltfPath": "Scenes\\Enemy\\KingSlime\\KingSlime.obj",
     "hp": 300,
-    "links": [
-        {
-            "condition": "Time>=1.0",
-            "from": 1,
-            "to": 2
-        },
-        {
-            "condition": "Time>=0.5",
-            "from": 2,
-            "to": 1
-        }
-    ],
+    "links": [],
     "motionMap": {
         "Attack": "KingSlimeAttack",
         "Idle": "",
@@ -55,14 +44,6 @@
             "name": "Idle",
             "state": "Idle",
             "x": 40.0,
-            "y": 40.0
-        },
-        {
-            "animationName": "Attack",
-            "id": 2,
-            "name": "Attack",
-            "state": "Attack",
-            "x": 260.0,
             "y": 40.0
         }
     ],

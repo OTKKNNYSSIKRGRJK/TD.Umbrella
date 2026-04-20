@@ -188,65 +188,97 @@ namespace {
 	}
 
 	// EnemyData の JSON シリアライズ（EnemyEditor と同じ形式）
+	void from_json(const json& j, Game::Editor::Node& n) {
+		if (j.contains("id")) j.at("id").get_to(n.id);
+		if (j.contains("name")) j.at("name").get_to(n.name);
+		if (j.contains("state")) j.at("state").get_to(n.state);
+		if (j.contains("x")) j.at("x").get_to(n.x);
+		if (j.contains("y")) j.at("y").get_to(n.y);
+		if (j.contains("animationName")) j.at("animationName").get_to(n.animationName);
+		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
+		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
+		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+	}
+
+	void from_json(const json& j, Game::Editor::Link& l) {
+		if (j.contains("from")) j.at("from").get_to(l.from);
+		if (j.contains("to")) j.at("to").get_to(l.to);
+		if (j.contains("condition")) j.at("condition").get_to(l.condition);
+	}
+
 	void from_json(const json& j, Game::Editor::EnemyData& e) {
-    if (j.contains("name")) e.name = j.value("name", e.name);
-    if (j.contains("hp")) e.hp = j.value("hp", e.hp);
-    if (j.contains("power")) e.power = j.value("power", e.power);
-    if (j.contains("gltfPath")) e.gltfPath = j.value("gltfPath", e.gltfPath);
-    if (j.contains("sizeTiers") && j["sizeTiers"].is_array()) {
-        size_t count = (std::min)(e.sizeTiers.size(), j["sizeTiers"].size());
-        for (size_t i = 0; i < count; ++i) {
-            const auto& tj = j["sizeTiers"][i];
-            if (tj.contains("hp")) e.sizeTiers[i].hp = tj.value("hp", e.sizeTiers[i].hp);
-            if (tj.contains("power")) e.sizeTiers[i].power = tj.value("power", e.sizeTiers[i].power);
-            if (tj.contains("scale")) e.sizeTiers[i].scale = tj.value("scale", e.sizeTiers[i].scale);
-        }
-    }
-    if (j.contains("animationMap")) e.animationMap = j.value("animationMap", e.animationMap);
-    if (j.contains("motionMap")) e.motionMap = j.value("motionMap", e.motionMap);
-    if (j.contains("collisionVertices") && j["collisionVertices"].is_array()) {
-        e.collisionVertices.clear();
-        for (const auto& vj : j["collisionVertices"]) {
-            Game::Editor::CollisionVertex v;
-            v.x = vj.value("x", 0.0f);
-            v.y = vj.value("y", 0.0f);
-            e.collisionVertices.push_back(v);
-        }
-    }
-    if (j.contains("aggroRadius")) e.aggroRadius = j.value("aggroRadius", e.aggroRadius);
-    if (j.contains("attackRange")) e.attackRange = j.value("attackRange", e.attackRange);
-    if (j.contains("moveSpeed")) e.moveSpeed = j.value("moveSpeed", e.moveSpeed);
-    if (j.contains("attackCooldown")) e.attackCooldown = j.value("attackCooldown", e.attackCooldown);
-    if (j.contains("retreatThreshold")) e.retreatThreshold = j.value("retreatThreshold", e.retreatThreshold);
-    if (j.contains("patrolRadius")) e.patrolRadius = j.value("patrolRadius", e.patrolRadius);
-    if (j.contains("aggressiveness")) e.aggressiveness = j.value("aggressiveness", e.aggressiveness);
+		if (j.contains("name")) j.at("name").get_to(e.name);
+		if (j.contains("hp")) j.at("hp").get_to(e.hp);
+		if (j.contains("power")) j.at("power").get_to(e.power);
+		if (j.contains("gltfPath")) j.at("gltfPath").get_to(e.gltfPath);
+		if (j.contains("sizeTiers") && j["sizeTiers"].is_array()) {
+			size_t count = (std::min)(e.sizeTiers.size(), j["sizeTiers"].size());
+			for (size_t i = 0; i < count; ++i) {
+				const auto& tj = j["sizeTiers"][i];
+				if (tj.contains("hp")) tj.at("hp").get_to(e.sizeTiers[i].hp);
+				if (tj.contains("power")) tj.at("power").get_to(e.sizeTiers[i].power);
+				if (tj.contains("scale")) tj.at("scale").get_to(e.sizeTiers[i].scale);
+			}
+		}
+		if (j.contains("animationMap")) j.at("animationMap").get_to(e.animationMap);
+		if (j.contains("motionMap")) j.at("motionMap").get_to(e.motionMap);
+		if (j.contains("collisionVertices") && j["collisionVertices"].is_array()) {
+			e.collisionVertices.clear();
+			for (const auto& vj : j["collisionVertices"]) {
+				Game::Editor::CollisionVertex v;
+				if (vj.contains("x")) vj.at("x").get_to(v.x);
+				if (vj.contains("y")) vj.at("y").get_to(v.y);
+				e.collisionVertices.push_back(v);
+			}
+		}
+		if (j.contains("aggroRadius")) j.at("aggroRadius").get_to(e.aggroRadius);
+		if (j.contains("attackRange")) j.at("attackRange").get_to(e.attackRange);
+		if (j.contains("moveSpeed")) j.at("moveSpeed").get_to(e.moveSpeed);
+		if (j.contains("attackCooldown")) j.at("attackCooldown").get_to(e.attackCooldown);
+		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
+		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
+		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
 
-		// --- 攻撃タイプ ---
-        if (j.contains("attackType")) {
-            std::string atype = j.value("attackType", std::string());
-            if (atype == "Ranged") {
-                e.attackType = Game::Editor::EnemyData::AttackType::Ranged;
-            } else {
-                e.attackType = Game::Editor::EnemyData::AttackType::Melee;
-            }
-        }
+		if (j.contains("attackType")) {
+			std::string atype;
+			j.at("attackType").get_to(atype);
+			e.attackType = (atype == "Ranged")
+				? Game::Editor::EnemyData::AttackType::Ranged
+				: Game::Editor::EnemyData::AttackType::Melee;
+		}
 
-		// --- プロジェクタイル設定 ---
-        if (j.contains("projectile") && j["projectile"].is_object()) {
-            const auto& pj = j["projectile"];
-            // 新形式: actorName ベース
-            if (pj.contains("actorName")) e.projectile.actorName = pj.value("actorName", e.projectile.actorName);
-            if (pj.contains("isHoming")) e.projectile.isHoming = pj.value("isHoming", e.projectile.isHoming);
-            // 旧形式の後方互換: trajectory が "Homing" なら isHoming を true に
-            if (pj.contains("trajectory") && !pj.contains("isHoming")) {
-                std::string traj = pj.value("trajectory", std::string());
-                e.projectile.isHoming = (traj == "Homing");
-            }
-            if (pj.contains("homingStrength")) e.projectile.homingStrength = pj.value("homingStrength", e.projectile.homingStrength);
-            if (pj.contains("damage")) e.projectile.damage = pj.value("damage", e.projectile.damage);
-            if (pj.contains("lifetime")) e.projectile.lifetime = pj.value("lifetime", e.projectile.lifetime);
-            if (pj.contains("colliderRadius")) e.projectile.colliderRadius = pj.value("colliderRadius", e.projectile.colliderRadius);
-        }
+		if (j.contains("projectile") && j["projectile"].is_object()) {
+			const auto& pj = j["projectile"];
+			if (pj.contains("actorName")) pj.at("actorName").get_to(e.projectile.actorName);
+			if (pj.contains("isHoming")) pj.at("isHoming").get_to(e.projectile.isHoming);
+			if (pj.contains("trajectory") && !pj.contains("isHoming")) {
+				std::string traj;
+				pj.at("trajectory").get_to(traj);
+				e.projectile.isHoming = (traj == "Homing");
+			}
+			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
+			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
+			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
+			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
+		}
+
+		if (j.contains("nodes") && j["nodes"].is_array()) {
+			e.nodes.clear();
+			for (const auto& nodeJson : j["nodes"]) {
+				Game::Editor::Node node;
+				from_json(nodeJson, node);
+				e.nodes.push_back(std::move(node));
+			}
+		}
+
+		if (j.contains("links") && j["links"].is_array()) {
+			e.links.clear();
+			for (const auto& linkJson : j["links"]) {
+				Game::Editor::Link link;
+				from_json(linkJson, link);
+				e.links.push_back(std::move(link));
+			}
+		}
 	}
 
 	void SpawnSplitChildren(
@@ -288,6 +320,70 @@ namespace {
 }
 
 namespace Game {
+	std::unique_ptr<EnemyBehavior> CreateEnemyBehavior(const Editor::EnemyData& data) {
+		if (data.name == "KingSlime") {
+			return std::make_unique<KingSlimeBehavior>();
+		}
+		return std::make_unique<EnemyBehavior>();
+	}
+
+	void KingSlimeBehavior::OnSpawn(EnemyInstance& enemy) {
+		enemy.currentAction = "Idle";
+		walk_ = false;
+		motionController_.SetUseIntervalMode(true);
+    motionController_.SetNodeEventCallback([this, ePtr = &enemy](const std::string& motionName, int nodeIndex, const std::string&, bool isEntering) {
+            // Check per-node bindings on the enemy template: if any node is bound to this motion and node index,
+            // toggle the walk_ flag accordingly. This allows the editor to assign a specific motion/node as the "walk" trigger.
+            for (const auto& n : ePtr->baseData.nodes) {
+                if (n.boundBool == "walk" && !n.boundMotion.empty() && n.boundMotion == motionName && n.boundMotionNodeIndex == nodeIndex) {
+                    walk_ = isEntering;
+                    return;
+                }
+            }
+            // no binding matched: do nothing (leave previous state)
+        });
+	}
+
+	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+		(void)playerPosition;
+
+		auto motionIt = enemy.baseData.motionMap.find("Attack");
+		if (motionIt != enemy.baseData.motionMap.end() && !motionIt->second.empty() && enemy.aiState == EnemyInstance::AIState::Attack) {
+			if (!motionController_.IsPlaying()) {
+				motionController_.Play(motionIt->second, enemy.position, (std::max)(enemy.attackDuration, 0.01f));
+			}
+
+			Lumina::Math::F32x3 direction = enemy.facingRight
+				? Lumina::Math::F32x3{ 1.0f, 0.0f, 0.0f }
+				: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
+			(void)motionController_.Update(deltaTime, direction);
+
+			// debug: if MotionController reports active node, ensure WalkActive mirrors it
+			int nodeIdx = motionController_.GetActiveNodeIndex();
+			if (nodeIdx >= 0) {
+				// make sure walk_ is set according to our node event as well
+				// no-op here since nodeEventCallback already sets walk_
+			}
+
+			if (walk_) {
+				enemy.velocity.X = 0.0f;
+			}
+		} else {
+			walk_ = false;
+		}
+	}
+
+	bool KingSlimeBehavior::IsWalkActive() const {
+		return walk_;
+	}
+
+	bool KingSlimeBehavior::IsMotionPlaying() const {
+		return motionController_.IsPlaying();
+	}
+
+	int KingSlimeBehavior::GetActiveNodeIndex() const {
+		return motionController_.GetActiveNodeIndex();
+	}
 
 	// ============================
 	//  コライダー初期化（凸包分割対応）
@@ -510,6 +606,7 @@ namespace Game {
 		bool facingRight, float scale, int sizeTier) {
 		EnemyInstance inst;
 		inst.baseData = data;
+		inst.behavior = CreateEnemyBehavior(inst.baseData);
 		for (auto& tier : inst.baseData.sizeTiers) {
 			tier.hp = GetScaledEnemyHp(tier.hp);
 		}
@@ -522,6 +619,9 @@ namespace Game {
 		ConfigureEnemyBehaviorBySize(inst);
 		if (scale > 0.0f) {
 			inst.modelScale = scale;
+		}
+		if (inst.behavior) {
+			inst.behavior->OnSpawn(inst);
 		}
 		inst.InitCollider();
 
@@ -764,6 +864,10 @@ namespace Game {
 
 			// --- 状態タイマー更新 ---
 			enemy.stateTimer += deltaTime;
+
+			if (enemy.behavior) {
+				enemy.behavior->Update(enemy, deltaTime, playerPosition);
+			}
 
 			// --- コライダー位置更新 ---
 			enemy.UpdateCollider();

@@ -272,6 +272,14 @@ namespace Game::Scene::Impl {
 			pe.FacingRight = inst.facingRight;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
+			// pull debug flag from behavior if available
+			if (inst.behavior) {
+				pe.WalkActive = inst.behavior->IsWalkActive();
+				pe.MotionPlaying = inst.behavior->IsMotionPlaying();
+				pe.ActiveNodeIndex = inst.behavior->GetActiveNodeIndex();
+			} else {
+				pe.WalkActive = false;
+			}
 			playState_.Enemies.push_back(std::move(pe));
 		}
 
@@ -414,11 +422,14 @@ namespace Game::Scene::Impl {
 			ImGui::Begin("Enemy HP");
 			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
 				const auto& enemy = playState_.Enemies[i];
-				ImGui::Text("Enemy[%d] HP: %d / %d %s",
-					static_cast<int>(i),
-					enemy.CurrentHP,
-					enemy.BaseData.hp,
-					enemy.IsDead ? "(Dead)" : "");
+			ImGui::Text("Enemy[%d] HP: %d / %d %s  Walk:%s Motion:%s Node:%d",
+				static_cast<int>(i),
+				enemy.CurrentHP,
+				enemy.BaseData.hp,
+				enemy.IsDead ? "(Dead)" : "",
+				enemy.WalkActive ? "true" : "false",
+				enemy.MotionPlaying ? "playing" : "stopped",
+				enemy.ActiveNodeIndex);
 			}
 			ImGui::End();
 
