@@ -163,7 +163,7 @@ namespace Game::Editor {
 						bool isSelected = (currentActionName_ == action);
 						if (ImGui::Selectable(action.c_str(), isSelected)) {
 							currentActionName_ = action;
-							LoadMotion(editingMotion_, "Assets/Data/Motion/" + motionFile + ".json");
+							LoadMotion(editingMotion_, "Assets/Data/objMotion/" + motionFile + ".json");
 							// 念のためMotion Nameをファイルパスに合わせる
 							editingMotion_.name = motionFile;
 							selectedKeyframeIndex_ = -1;

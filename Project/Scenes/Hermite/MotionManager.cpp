@@ -43,12 +43,17 @@ void MotionManager::LoadActionData(const std::string& fileName, std::vector<Math
 
 void MotionManager::LoadMotions(const std::string& directoryPath) {
 	motions_.clear();
+	if (!std::filesystem::exists(directoryPath)) return;
 	for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
 		if (entry.is_regular_file() && entry.path().extension() == ".json") {
 			std::string motionName = entry.path().stem().string();
 			MotionData motionData;
-			LoadActionData(directoryPath + motionName, motionData);
-			motions_[motionName] = motionData;
+			try {
+				LoadActionData(directoryPath + motionName, motionData);
+				motions_[motionName] = motionData;
+			} catch (...) {
+				// JSON形式が異なるファイル（ObjMotionEditor等）はスキップ
+			}
 		}
 	}
 }
