@@ -123,7 +123,22 @@ namespace PlayerStates::Action {
 		// 特になにもしていない時のState
 		if (input.attack == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::Closed) {
-				Game::Event::OnAttack();
+				if (player_->onGround_ == false && player_->jumpCoyoteTimer_ >= player_->JUMP_COYOTE_MAX_TIME) {
+					// 空中にいるなら空中コンボにつながる
+					player_->attackState_->SetAttackID("AerialCombo1");
+					player_->ChangeActionState(player_->attackState_.get());
+					return;
+				}
+
+				if (std::abs(player_->myVelocity_.X) > 7.0f && (input.moveDirection.X * player_->eyesDirection_.X) > 0.0f) {
+					// 少し速めに移動しているかつ、移動方向がプレイヤーの正面方向と同じなら前方攻撃
+					player_->attackState_->SetAttackID("DashThrust");
+					player_->ChangeActionState(player_->attackState_.get());
+					return;
+				}
+
+				//Game::Event::OnAttack();
+				player_->attackState_->SetAttackID("NormalCombo1");
 				player_->ChangeActionState(player_->attackState_.get());
 				return;
 			}
@@ -187,7 +202,7 @@ namespace PlayerStates::Action {
 
 		if (input.shoot == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::AirStop) {
-				Game::Event::OnAttack();
+				//Game::Event::OnAttack();
 				player_->WarpToUmbrella();
 				return;
 			}
@@ -204,57 +219,39 @@ namespace PlayerStates::Action {
 	// 
 	////////////////////////////
 	void Attack::Enter() {
-		//Vector3 startPos = { player_->GetRightHandJoint()->GetMatrix().m[3][0],player_->GetRightHandJoint()->GetMatrix().m[3][1] ,player_->GetRightHandJoint()->GetMatrix().m[3][2] };
 		attackTimer_ = 0.0f;
-		isNextAttackReserved_ = false;
+		currentAttackID_ = nextAttackID_; // セットされた攻撃IDを現在のにする
 
-		// 移動ステートを「入力を受け付けない状態(Restricted)」に強制変更
+		// 1. データベースから攻撃データを引っ張ってくる
+		const auto& db = player_->GetAttackDataBase();
+		if (db.find(currentAttackID_) != db.end()) {
+			currentAttackData_ = db.at(currentAttackID_);
+		}
+		else {
+			// もしJSONにデータがなかったら安全のために抜刀状態に戻す
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			return;
+		}
+
+		// 2. 移動ステートを制限状態に強制変更
 		player_->ChangeMovementState(player_->restrictedState_.get());
 
-		// 進む方向の設定
-		Vector3 forward = player_->eyesDirection_;// プレイヤーが向いている方向に決定(順次変更点)
-
-		// ========================================================
-		// 【 コンボ段数に応じた踏み込みの強さとモーションの設定 】
-		// ========================================================
-		float stepPower = 0.0f;
-		if (comboCount_ == 1) { 
-			stepPower = 20.0f;
-			motion_.Play("SwingFirst", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(10.0f);
-		}
-		else if (comboCount_ == 2) { 
-			stepPower = 0.0f;
-			motion_.Play("SwingSecond", { 0.0f,0.0f,0.0f }, 0.3f);
-			player_->GetUmbrella().top_->GetStatusComponent().SetAttack(20.0f);
-		}
-		else if (comboCount_ == 3) { 
-			stepPower = 40.0f;
-			if (player_->GetInput().useMana) {
-				if (player_->GetManaComponent().HasEnoughMana(30.0f)) {
-					player_->GetManaComponent().ConsumeMana(30.0f);
-					motion_.Play("SwingMana", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(60.0f);
-					stepPower = 55.0f;
-				}
-				else {
-					motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-					player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
-				}
-			}
-			else {
-				motion_.Play("SwingLast", { 0.0f,0.0f,0.0f }, 0.4f);
-				player_->GetUmbrella().top_->GetStatusComponent().SetAttack(30.0f);
-			}
-		}
-
-		// 踏み込みの初速を与える（これがRestrictedステート内で徐々に減速していく）
+		// 3. JSONのデータ通りに踏み込みの初速を与える
+		Vector3 forward = player_->eyesDirection_;
+		float stepPower = currentAttackData_.physics.velocityX;
 		player_->myVelocity_.X = forward.X * stepPower;
 		player_->myVelocity_.Z = forward.Z * stepPower;
 
-		// =============
-		// 【 傘の設定 】
-		// =============
+		// もし縦（Y）への移動（浮き上がり等）が設定されていれば適用！
+		if (currentAttackData_.physics.velocityY != 0.0f) {
+			player_->myVelocity_.Y = currentAttackData_.physics.velocityY;
+		}
+
+		// 4. JSONのデータ通りにモーションと威力をセット
+		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
+		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
+
+		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
 	}
 
@@ -262,48 +259,86 @@ namespace PlayerStates::Action {
 		attackTimer_ += deltaTime;
 		const auto& input = player_->GetInput();
 
-		// =================================
-		// 【 手のJoint位置の設定 】
-		// =================================
+		// 【 手の位置の上下シフト 】
 		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		handPos.X += 1.0f * player_->eyesDirection_.X;
 		float shiftAmount = input.moveDirection.Y * 0.5f;
 		handPos.Y += 1.0f + shiftAmount;
 		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
-		/*if (!motion_.IsPlaying()) {
-			player_->ChangeActionState(player_->normalState_.get());
-		}*/
-
-		// =================================
-		// 【 先行入力 】
-		// =================================
-		if (input.attack == ButtonState::Pressed && attackTimer_ > 0.1f) {
-			Game::Event::OnAttack();
-			isNextAttackReserved_ = true;
+		//   ==================
+		// 【 特定の攻撃の処理 】
+		//   ==================
+		if (player_->attackState_->currentAttackID_ == "AerialComboFinal_Down") {
+			if (player_->onGround_) {
+				Game::Event::OnAttack();
+				// 強制終了して着地ステートへ
+				player_->ChangeActionState(player_->normalDrawnState_.get());
+				player_->ChangeMovementState(player_->idleState_.get());
+				player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
+				return;
+			}
 		}
 
-		float currentMotionDuration = motion_.GetMotionDuration();
+		// ===================
+		// 【 派生チェック 】
+		// ===================
+		for (const auto& branch : currentAttackData_.branches) {
+			// 現在の時間が、派生可能な時間（timeMin ~ timeMax）に入っているか？
+			if (attackTimer_ >= branch.timeMin && attackTimer_ <= branch.timeMax) {
+
+				bool canBranch = false;
+
+				// 1. 入力タイプが "Input" の場合（ボタンを押したか）
+				if (branch.type == "Input") {
+					if (branch.input == "Attack" && input.attack == ButtonState::Pressed) canBranch = true;
+					if (branch.input == "Evasion" && input.evasion == ButtonState::Pressed) canBranch = true;
+				}
+				// 2. 入力タイプが "Auto" の場合（時間が来たら自動で派生）
+				else if (branch.type == "Auto") {
+					canBranch = true;
+				}
+
+				// 3.マナ条件のチェック（JSONで minMana が設定されている場合）
+				if (canBranch && branch.condition.minMana > 0.0f) {
+					if (player_->GetManaComponent().GetCurrentMana() < branch.condition.minMana) {
+						canBranch = false; // マナが足りないから派生できない！
+					}
+					// そもそもマナを使おうとしているかチェック
+					if (input.useMana == false) {
+						canBranch = false;// 使う気がないので派生なし
+					}
+				}
+
+				// 条件を全てクリアして派生が決定した場合！
+				if (canBranch) {
+					// マナ消費が設定されていれば消費する
+					if (branch.consumeMana > 0.0f) {
+						player_->GetManaComponent().ConsumeMana(branch.consumeMana);
+					}
+
+					// 次のステートへ移行！
+					if (false/*branch.input == "Evasion"*/) {
+						// 回避でキャンセルした場合
+						//player_->ChangeActionState(player_->evasionState_.get());
+					}
+					else {
+						// 次の攻撃へ！
+						SetAttackID(branch.nextAttack);
+						Enter();
+					}
+					return; // 派生したのでUpdateはここで終わり
+				}
+			}
+		}
 
 		// =================================
-		// 【 次のモーションへの派生、または終了 】
+		// 【 どの派生もせず、モーションの寿命（duration）が終わった時 】
 		// =================================
-		if (attackTimer_ >= currentMotionDuration) {
-			if (isNextAttackReserved_ && comboCount_ < 3) {
-				comboCount_++;
-				Enter(); // 次の段へ
-			}
-			else {
-				// コンボ終了
-				comboCount_ = 1;
-				player_->ChangeActionState(player_->normalDrawnState_.get());
-
-				// 攻撃が終わったので、移動ステートを元に戻す（Idleにして入力を再開させる）
-				player_->ChangeMovementState(player_->idleState_.get());
-
-				// 傘の設定を戻す
-				player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
-			}
+		if (attackTimer_ >= currentAttackData_.duration) {
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+			player_->ChangeMovementState(player_->idleState_.get());
+			player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
 		}
 	}
 
@@ -311,8 +346,7 @@ namespace PlayerStates::Action {
 		// =================================
 		// 【 別のステート（回避や被ダメージなど）で強制終了させられた時のためのリセット 】
 		// =================================
-		comboCount_ = 1;
-		isNextAttackReserved_ = false;
+		
 		// 攻撃判定(Collider)をオフにする処理などもここに書く
 	}
 
@@ -549,9 +583,9 @@ namespace PlayerStates::Action {
 
 	void DrawWeapon::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
-		if (input.attack == ButtonState::Pressed) {
+		if (IsButtonDown(input.attack)) {
 
-			Game::Event::OnAttack();
+			//Game::Event::OnAttack();
 			// 攻撃の予約を行う
 			player_->ReserveActionState(player_->attackState_.get());
 		}
@@ -568,6 +602,13 @@ namespace PlayerStates::Action {
 
 			if (nextAction != nullptr) {
 				// 予約が存在すればそのまま送る
+				if (player_->myVelocity_.X > 7.0f) {
+					player_->attackState_->SetAttackID("DashThrust");
+				}
+				else {
+					player_->attackState_->SetAttackID("NormalCombo1");
+				}
+
 				player_->ChangeActionState(nextAction);
 			}
 			else {
@@ -599,7 +640,7 @@ namespace PlayerStates::Action {
 			if (IsButtonUp(player_->GetInput().aim)) {
 				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
 					player_->GetManaComponent().ConsumeMana(25.0f);
-					player_->externalVelocity_.Y += 9.0f; // 上昇の初速を与える（数値は調整用）
+					player_->externalVelocity_.Y = 9.0f; // 上昇の初速を与える（数値は調整用）
 				}
 			}
 		}

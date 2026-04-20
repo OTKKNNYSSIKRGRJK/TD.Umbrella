@@ -217,6 +217,7 @@
       <Filter>Game\Debug</Filter>
     </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Scenes\Player\PlayerAttackData.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

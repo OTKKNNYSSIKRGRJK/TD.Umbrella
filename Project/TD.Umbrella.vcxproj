@@ -48,6 +48,7 @@
     <ClCompile Include="Scenes\Player\Player.Common.ixx" />
     <ClCompile Include="Scenes\Player\Player.ixx" />
     <ClCompile Include="Scenes\Player\Player.Main.cpp" />
+    <ClCompile Include="Scenes\Player\PlayerAttackData.ixx" />
     <ClCompile Include="Scenes\Player\States\PlayerStates.ixx" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Action.cpp" />
     <ClCompile Include="Scenes\Player\States\PlayerState_Movement.cpp" />
