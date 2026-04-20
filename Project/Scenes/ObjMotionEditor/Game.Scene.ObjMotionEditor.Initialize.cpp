@@ -59,7 +59,7 @@ namespace Game::Editor {
 		// As enemy editor did `./`, let's just save to motion name + `.json`. Wait, EnemyEditor saves to `./name.json`.
 		// Data is saved in the working directory? Let's check EnemyEditor. update: it just saves to `filename.json`. Let's save `motion.name + ".json"`.
 		// But in EnemyEditor Update it scans `Assets/Data/Motion/` for motions! So we should save it there.
-		std::string dir = "Assets/Data/Motion/";
+		std::string dir = "Assets/Data/objMotion/";
 		if (!fs::exists(dir)) {
 			fs::create_directories(dir);
 		}
