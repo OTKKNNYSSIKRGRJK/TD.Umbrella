@@ -254,6 +254,9 @@ export namespace Game::Editor {
 		bool lockStateMachineAfterStartFirstNode_ = false;
 		bool userRequestedStart_ = false;
 
+		// --- Runtime Bool Flags (for BOOL: link conditions) ---
+		std::map<std::string, bool> runtimeBoolFlags_;
+
 		// --- Undo ---
 		std::vector<EnemyData> undoStack_;
 		size_t undoStackMax_ = 64;

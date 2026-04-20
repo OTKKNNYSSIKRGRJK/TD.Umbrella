@@ -20,7 +20,19 @@
     },
     "moveSpeed": 3.0,
     "name": "NewEnemy",
-    "nodes": [],
+    "nodes": [
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "JumpAttack",
+            "boundMotionNodeIndex": -1,
+            "id": 1,
+            "name": "State1",
+            "state": "Idle",
+            "x": 125.0,
+            "y": 0.0
+        }
+    ],
     "patrolRadius": 10.0,
     "power": 1.0,
     "projectile": {

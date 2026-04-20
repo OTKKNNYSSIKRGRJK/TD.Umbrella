@@ -990,6 +990,10 @@ namespace Game::Editor {
 				userRequestedStart_ = true;
 				firstNodeStarted_ = true;
 				lockStateMachineAfterStartFirstNode_ = false;
+				// Activate the first node's boundBool flag
+				if (!editingEnemy_.nodes.front().boundBool.empty()) {
+					runtimeBoolFlags_[editingEnemy_.nodes.front().boundBool] = true;
+				}
 				AddLog("[EnemyEditor] Started first node");
 			}
 		}
@@ -1032,6 +1036,10 @@ namespace Game::Editor {
 				currentStateElapsedTime_ = 0.0f;
 				transitionFlashTimer_ = 1.0f;
 				firstNodeStarted_ = true;
+				// Activate jumped-to node's boundBool flag
+				if (!editingEnemy_.nodes[jumpNodeIdx].boundBool.empty()) {
+					runtimeBoolFlags_[editingEnemy_.nodes[jumpNodeIdx].boundBool] = true;
+				}
 				char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Jumped to node %d", currentStateId_); AddLog(dbg);
 			}
 		}
@@ -1088,6 +1096,28 @@ namespace Game::Editor {
 			else if (anyReady) { ImGui::TextColored(ImVec4(0.4f, 1.0f, 0.4f, 1.0f), "Transition ready -> id=%d (%s)", soonestTo, soonestCond.c_str()); }
 			else if (soonestTime < 1e8f) { ImGui::TextColored(ImVec4(0.9f, 0.9f, 0.5f, 1.0f), "Next in %.2fs -> id=%d (%s)", soonestTime, soonestTo, soonestCond.c_str()); }
 			else { ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "No transitions satisfied."); }
+		}
+
+		// --- Runtime Bool Flags UI ---
+		{
+			// Auto-register boundBool names from all nodes
+			for (const auto& nd : editingEnemy_.nodes) {
+				if (!nd.boundBool.empty() && runtimeBoolFlags_.find(nd.boundBool) == runtimeBoolFlags_.end()) {
+					runtimeBoolFlags_[nd.boundBool] = false;
+				}
+			}
+			if (!runtimeBoolFlags_.empty()) {
+				ImGui::Separator();
+				ImGui::TextDisabled("Bool Flags (toggle to test BOOL: transitions):");
+				for (auto& [fname, fval] : runtimeBoolFlags_) {
+					ImGui::SameLine();
+					ImGui::Checkbox(fname.c_str(), &fval);
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Clear All")) {
+					for (auto& [fname, fval] : runtimeBoolFlags_) fval = false;
+				}
+			}
 		}
 
 		ImGui::TextDisabled("Connect: drag from blue circle to another node");
@@ -1469,6 +1499,13 @@ namespace Game::Editor {
 					currentStateElapsedTime_ = 0.0f;
 					transitionFlashTimer_ = 1.0f;
 					char buf[256]; snprintf(buf, sizeof(buf), "[StateMachine] %d -> %d (%s)", old, currentStateId_, link.condition.c_str()); AddLog(buf);
+					// Activate the new node's boundBool flag
+					{
+						auto newNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
+						if (newNodeIt != editingEnemy_.nodes.end() && !newNodeIt->boundBool.empty()) {
+							runtimeBoolFlags_[newNodeIt->boundBool] = true;
+						}
+					}
 					if (requireManualStart_ && old == firstId) firstNodeStarted_ = false;
 				}
 				break;
@@ -1482,6 +1519,16 @@ namespace Game::Editor {
 		while (!c.empty() && c.front() == ' ') c.erase(c.begin());
 		while (!c.empty() && c.back() == ' ') c.pop_back();
 		if (c == "Always") return true;
+
+		// BOOL: conditions - check runtime bool flags
+		if (c.rfind("BOOL:", 0) == 0) {
+			std::string flag = c.substr(5);
+			while (!flag.empty() && flag.front() == ' ') flag.erase(flag.begin());
+			while (!flag.empty() && flag.back() == ' ') flag.pop_back();
+			auto it = runtimeBoolFlags_.find(flag);
+			if (it != runtimeBoolFlags_.end()) return it->second;
+			return false;
+		}
 
 		// Time conditions
 		if (c.rfind("Time>=", 0) == 0) { try { return currentStateElapsedTime_ >= std::stof(c.substr(6)); } catch (...) { return false; } }
@@ -1534,19 +1581,20 @@ namespace Game::Editor {
 				ImGui::SameLine();
 
 				// Condition type combo
-				const char* condTypes[] = { "Always", "Time>=", "Time>", "HP<=", "HP<", "HP>=", "HP>", "HP==", "Custom" };
-				int currentType = 8; // default Custom
-				for (int ct = 0; ct < 8; ++ct) {
+				const char* condTypes[] = { "Always", "Time>=", "Time>", "HP<=", "HP<", "HP>=", "HP>", "HP==", "BOOL:", "Custom" };
+				int currentType = 9; // default Custom
+				for (int ct = 0; ct < 9; ++ct) {
 					if (l.condition.rfind(condTypes[ct], 0) == 0) { currentType = ct; break; }
 				}
 				if (l.condition == "Always") currentType = 0;
 
 				ImGui::SetNextItemWidth(90.0f);
 				if (ImGui::BeginCombo("##cond_type", condTypes[currentType])) {
-					for (int ct = 0; ct < 9; ++ct) {
+					for (int ct = 0; ct < 10; ++ct) {
 						if (ImGui::Selectable(condTypes[ct], currentType == ct)) {
 							if (ct == 0) l.condition = "Always";
 							else if (ct < 8) l.condition = std::string(condTypes[ct]) + "1.0";
+							else if (ct == 8) l.condition = "BOOL:";
 							currentType = ct;
 						}
 					}
@@ -1573,6 +1621,29 @@ namespace Game::Editor {
 					}
 					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Condition value");
 				} else if (currentType == 8) {
+					// BOOL: flag selector - show available boundBool names from nodes
+					ImGui::SameLine();
+					std::string flag;
+					if (l.condition.size() > 5) flag = l.condition.substr(5);
+					std::vector<std::string> availBools;
+					for (const auto& nd : editingEnemy_.nodes) {
+						if (!nd.boundBool.empty()) {
+							bool dup = false;
+							for (const auto& ab : availBools) { if (ab == nd.boundBool) { dup = true; break; } }
+							if (!dup) availBools.push_back(nd.boundBool);
+						}
+					}
+					std::string boolPreview = flag.empty() ? "(select flag)" : flag;
+					ImGui::SetNextItemWidth(120.0f);
+					if (ImGui::BeginCombo("##bool_flag", boolPreview.c_str())) {
+						for (const auto& bf : availBools) {
+							if (ImGui::Selectable(bf.c_str(), bf == flag)) {
+								l.condition = "BOOL:" + bf;
+							}
+						}
+						ImGui::EndCombo();
+					}
+				} else if (currentType == 9) {
 					ImGui::SameLine();
 					char cbuf[256]; strncpy_s(cbuf, sizeof(cbuf), l.condition.c_str(), _TRUNCATE);
 					ImGui::SetNextItemWidth(120.0f);
