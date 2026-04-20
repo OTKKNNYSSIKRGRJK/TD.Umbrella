@@ -316,8 +316,16 @@ namespace Game::Editor {
 
 				ImGui::SameLine();
 
-				// アニメーション名をコンボボックスで選択
-				if (!cachedAnimationNames_.empty()) {
+				std::string ext = "";
+				if (!editingEnemy_.gltfPath.empty()) {
+					ext = fs::path(editingEnemy_.gltfPath).extension().string();
+					for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+				}
+
+				if (ext == ".obj") {
+					// OBJの場合はアニメーション名自体が存在しないので表示しない
+				} else {
+					// GLTF / GLB の場合は必ずコンボボックス（選択式）にする
 					int currentIdx = -1;
 					for (int k = 0; k < static_cast<int>(cachedAnimationNames_.size()); ++k) {
 						if (cachedAnimationNames_[k] == anim) {
@@ -328,7 +336,6 @@ namespace Game::Editor {
 					std::string preview = anim.empty() ? "(none)" : anim;
 					ImGui::SetNextItemWidth(150.0f);
 					if (ImGui::BeginCombo("##anim", preview.c_str())) {
-						// 「なし」の選択肢
 						if (ImGui::Selectable("(none)", anim.empty())) {
 							anim = "";
 						}
@@ -340,14 +347,6 @@ namespace Game::Editor {
 							if (isSelected) ImGui::SetItemDefaultFocus();
 						}
 						ImGui::EndCombo();
-					}
-				} else {
-					// フォールバック: 手入力
-					char animBuf[256];
-					strncpy_s(animBuf, anim.c_str(), sizeof(animBuf));
-					ImGui::SetNextItemWidth(150.0f);
-					if (ImGui::InputText("##anim", animBuf, sizeof(animBuf))) {
-						anim = animBuf;
 					}
 				}
 
