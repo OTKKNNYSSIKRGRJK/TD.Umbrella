@@ -1,0 +1,186 @@
+{
+  "attacks": {
+    "NormalCombo1": {
+      "name": "通常コンボ1段目",
+      "motion": "SwingFirst",
+      "duration": 0.2,
+      "damage": 10.0,
+      "manaCost": 0.0,
+      "physics": {
+        "velocityX": 10.0,
+        "velocityY": 0.0,
+        "gravityScale": 1.0
+      },
+      "feel": {
+        "hitStop": 0.05,
+        "cameraShake": 0.1
+      },
+      "branches": [
+        {
+          "type": "Input",
+          "input": "Attack",
+          "timeMin": 0.15,
+          "timeMax": 0.5,
+          "nextAttack": "NormalCombo2"
+        },
+        {
+          "type": "Input",
+          "input": "Evasion",
+          "timeMin": 0.1,
+          "timeMax": 0.5,
+          "nextAttack": "Evasion"
+        }
+      ]
+    },
+    "NormalCombo2": {
+      "name": "通常コンボ2段目",
+      "motion": "SwingSecond",
+      "duration": 0.3,
+      "damage": 20.0,
+      "physics": {
+        "velocityX": 0.0,
+        "velocityY": 0.0,
+        "gravityScale": 1.0
+      },
+      "branches": [
+        {
+          "type": "Input",
+          "input": "Attack",
+          "timeMin": 0.1,
+          "timeMax": 0.5,
+          "condition": {
+            "minMana": 30.0
+          },
+          "consumeMana": 30.0,
+          "nextAttack": "ManaBurstStrike"
+        }
+      ]
+    },
+    "NormalCombo3": {
+      "name": "通常コンボ3段目（通常フィニッシュ）",
+      "motion": "SwingLast",
+      "duration": 0.6,
+      "damage": 30.0,
+      "physics": {
+        "velocityX": 40.0,
+        "velocityY": 0.0,
+        "gravityScale": 1.0
+      }
+    },
+    "ManaBurstStrike": {
+      "name": "マナ消費コンボ（超強化フィニッシュ）",
+      "motion": "SwingMana",
+      "duration": 0.6,
+      "damage": 60.0,
+      "physics": {
+        "velocityX": 55.0,
+        "velocityY": 0.0,
+        "gravityScale": 1.0
+      },
+      "feel": {
+        "hitStop": 0.15,
+        "cameraShake": 0.3
+      }
+    },
+    "DiveAttack_Rise": {
+      "name": "落下攻撃（上昇）",
+      "motion": "JumpRiseMotion",
+      "duration": 0.4,
+      "damage": 10.0,
+      "physics": {
+        "velocityX": 5.0,
+        "velocityY": 25.0,
+        "gravityScale": 0.3
+      },
+      "branches": [
+        {
+          "type": "Auto",
+          "timeMin": 0.4,
+          "timeMax": 0.4,
+          "nextAttack": "DiveAttack_Fall"
+        }
+      ]
+    },
+    "DiveAttack_Fall": {
+      "name": "落下攻撃（急降下）",
+      "motion": "DiveMotion",
+      "duration": 0.5,
+      "damage": 50.0,
+      "physics": {
+        "velocityX": 40.0,
+        "velocityY": -50.0,
+        "gravityScale": 0.0
+      }
+    },
+    "DashThrust": {
+      "name": "突進突き（スティンガー）",
+      "motion": "DashThrustMotion",
+      "duration": 0.5,
+      "damage": 15.0,
+      "physics": {
+        "velocityX": 70.0,
+        "velocityY": 0.0,
+        "gravityScale": 1.0
+      },
+      "feel": {
+        "hitStop": 0.1,
+        "cameraShake": 0.2
+      }
+    },
+    "AerialCombo1": {
+      "name": "空中コンボ1段目",
+      "motion": "SwingSecond",
+      "duration": 0.4,
+      "damage": 1.0,
+      "physics": {
+        "velocityX": 5.0,
+        "velocityY": 2.0, 
+        "gravityScale": 0.1
+      },
+      "branches": [
+        {
+          "type": "Input",
+          "input": "Attack",
+          "timeMin": 0.15,
+          "timeMax": 0.5,
+          "nextAttack": "AerialComboFinal_Down"
+        }
+      ]
+    },
+    "AerialCombo2": {
+      "name": "空中コンボ2段目",
+      "motion": "SwingMana",
+      "duration": 0.4,
+      "damage": 1.0,
+      "physics": {
+        "velocityX": 5.0,
+        "velocityY": 2.0,
+        "gravityScale": 0.1
+      },
+      "branches": [
+        {
+          "type": "Input",
+          "input": "Attack",
+          "timeMin": 0.15,
+          "timeMax": 0.5,
+          "nextAttack": "AerialComboFinal_Down"
+        }
+      ]
+    },
+    "AerialComboFinal_Down": {
+      "name": "空中叩きつけ",
+      "motion": "DiveAttack",
+      "duration": 0.3,
+      "damage": 30.0,
+      "physics": {
+        "velocityX": 0.0,
+        "velocityY": -60.0, 
+        "gravityScale": 0.0
+      },
+      "feel": {
+        "hitStop": 0.15,
+        "cameraShake": 0.4
+      }
+    }
+  }
+}

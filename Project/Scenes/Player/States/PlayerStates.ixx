@@ -3,6 +3,7 @@ export module Game.Player : States;
 import : Common;
 
 import Game.MotionManager;
+import AttackData;
 
 namespace PlayerStates {
 	class Base {
@@ -97,11 +98,17 @@ namespace PlayerStates {
 			void Enter() override;
 			void Update(float deltaTime) override;
 			void Exit() override;
+			// 外から「最初の攻撃」を指定するための関数
+			void SetAttackID(const std::string& attackID) { nextAttackID_ = attackID; }
+
 		private:
 			MotionController motion_;
-			int comboCount_ = 1;
 			float attackTimer_ = 0.0f;
-			bool isNextAttackReserved_ = false;
+			std::string currentAttackID_;
+			std::string nextAttackID_;
+
+			// 現在再生中の攻撃データ
+			AttackData::AttackData currentAttackData_;
 		};
 		class ReverseCharge : public Base {
 		public:

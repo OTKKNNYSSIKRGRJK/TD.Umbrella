@@ -8,6 +8,7 @@ import Game.Umbrella;
 import Game.MotionManager;
 import Game.Attachment;
 import Collider;
+import AttackData;
 
 import : States;
 
@@ -164,6 +165,16 @@ public:// Get・Set
 	}
 private:// 見る必要のない関数
 	void InitializeStates();
+
+	//////////////////////////////
+	///
+	///   攻撃のデータ
+	/// 
+	//////////////////////////////
+public:
+	const AttackData::Database& GetAttackDataBase() const { return attackDataBase_; }
+private:
+	AttackData::Database attackDataBase_;
 
 	//////////////////////////////
 	///

@@ -69,7 +69,7 @@ namespace PlayerStates::Movement {
 		// --------------------------------------------------------
 		// 1. 空中制御のパラメータ（マジックナンバーは後で定数化推奨）
 		// --------------------------------------------------------
-		float airMaxSpeed = 8.0f;       // 空中での最高速度（抜刀時などと同じくらい）
+		float airMaxSpeed = 9.0f;       // 空中での最高速度（抜刀時などと同じくらい）
 		float airAcceleration = 4.0f;   // ★ココが重要！地上が15.0fなら、かなり小さくする
 
 		// --------------------------------------------------------
@@ -152,6 +152,7 @@ namespace PlayerStates::Movement {
 		// スティックが倒されていないなら、自発的な速度(myVelocity_)を摩擦でゼロに近づける
 		float deceleration = 15.0f; // ブレーキの強さ
 		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
+		player_->myVelocity_.Y = std::lerp(player_->myVelocity_.Y, 0.0f, deceleration * deltaTime);
 		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
 
 		if (input.debugRevive) {
@@ -192,10 +193,10 @@ namespace PlayerStates::Movement {
 		// 武器の状態で切り替え
 		switch (player_->GetWeaponStance()) {
 		case WeaponStance::Sheathed:
-			targetSpeed = 11.0f;
+			targetSpeed = 12.0f;
 			break;
 		case WeaponStance::Drawn:
-			targetSpeed = 8.0f;
+			targetSpeed = 10.0f;
 			break;
 		}
 
