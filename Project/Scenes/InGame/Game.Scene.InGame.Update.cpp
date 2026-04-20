@@ -20,6 +20,8 @@ import Game.EnemyManager;
 import Game.ProjectileManager;
 
 import Game.Events;
+import Lumina.Scene;
+import Game.Scene.Result;
 
 #if defined(_DEBUG)
 namespace {
@@ -195,11 +197,7 @@ namespace Game::Scene::Impl {
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
 		
-		if (areaIndex == 1) {
-			playState_.IsGoalReached = true;
-		} else {
-			playState_.IsGoalReached = false;
-		}
+		playState_.IsGoalReached = false;
 	}
 
 
@@ -281,6 +279,49 @@ namespace Game::Scene::Impl {
 				pe.WalkActive = false;
 			}
 			playState_.Enemies.push_back(std::move(pe));
+		}
+
+		// ゴール到達判定（エリアにゴールが配置されている場合、プレイヤーが近づいたらリザルトへ遷移）
+		if (playState_.CurrentArea.hasGoal && !playState_.IsGoalReached) {
+			// ゴール位置をワールド座標に変換して判定
+			auto const& pos = playState_.Player.Position;
+			float goalWorldX = playState_.CurrentArea.goalPosition.x;
+			float goalWorldY = playState_.CurrentArea.goalPosition.y;
+
+			// ゴールのスクリーン座標をワールド座標に変換
+			if (Camera_) {
+				auto const worldToHomogeneous_c = Camera_->View() * Camera_->Projection();
+				auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
+				tmp /= tmp.W();
+
+				Lumina::F32 const inv_ViewportWidth{ 1.0f / 1280.0f };
+				Lumina::F32 const inv_ViewportHeight{ 1.0f / 720.0f };
+				auto const& inv_View{ Camera_->ViewInverse() };
+				auto const inv_Proj{ Camera_->Projection().Inverse() };
+				auto const ndcToWorld{ inv_Proj * inv_View };
+
+				// ScreenToWorld
+				float sx = goalWorldX;
+				float sy = static_cast<float>(playState_.CurrentArea.height) - goalWorldY;
+				Lumina::Math::F32x4 ndcPos{
+					(sx * inv_ViewportWidth) * 2.0f - 1.0f,
+					1.0f - (sy * inv_ViewportHeight) * 2.0f,
+					tmp.Z(),
+					1.0f
+				};
+				auto worldPos = ndcPos * ndcToWorld;
+				worldPos /= worldPos.W();
+				goalWorldX = worldPos.X();
+				goalWorldY = worldPos.Y();
+			}
+
+			if (std::abs(pos.X - goalWorldX) <= 2.0f &&
+				std::abs(pos.Y - goalWorldY) <= 2.0f) {
+				playState_.IsGoalReached = true;
+				auto& sceneMngr{ Lumina::SceneManager::Instance() };
+				sceneMngr.Activate("Result");
+				return;
+			}
 		}
 
 		//TerrainEditor_->Update();

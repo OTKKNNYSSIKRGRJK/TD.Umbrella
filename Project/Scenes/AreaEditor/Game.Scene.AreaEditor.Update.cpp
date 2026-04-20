@@ -166,6 +166,12 @@ namespace Game::Editor {
 			ep.position.y = (std::max)(0.0f, (std::min)(ep.position.y, static_cast<float>(editingArea_.height)));
 		}
 
+		// ゴールもエリア内に制限
+		if (editingArea_.hasGoal) {
+			editingArea_.goalPosition.x = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.x, static_cast<float>(editingArea_.width)));
+			editingArea_.goalPosition.y = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.y, static_cast<float>(editingArea_.height)));
+		}
+
 		// 当たり判定もエリア内に制限
 		for (auto& cg : editingArea_.collisionGroups) {
 			for (auto& p : cg.points) {
@@ -183,6 +189,7 @@ namespace Game::Editor {
 			draggingEnemyIndex_ = -1;
 			draggingCollisionGroupIndex_ = -1;
 			draggingCollisionPointIndex_ = -1;
+			draggingGoal_ = -1;
 
 			constexpr float connectionMarkerSize = 16.0f;
 			for (int i = 0; i < static_cast<int>(editingArea_.connections.size()); ++i) {
@@ -217,6 +224,22 @@ namespace Game::Editor {
 						dragOffset_ = { mousePos.x - ecx, mousePos.y - ecy };
 						break;
 					}
+				}
+			}
+
+			// ゴールのドラッグ判定
+			if (draggingConnectionIndex_ == -1 && draggingEnemyIndex_ == -1 && editingArea_.hasGoal) {
+				constexpr float goalMarkerSize = 20.0f;
+				float gcx = cx + (editingArea_.editorPos.x + editingArea_.goalPosition.x) * scale;
+				float gcy = cy - (editingArea_.editorPos.y + editingArea_.goalPosition.y) * scale;
+				float gxmin = gcx - goalMarkerSize * scale;
+				float gxmax = gcx + goalMarkerSize * scale;
+				float gymin = gcy - goalMarkerSize * scale;
+				float gymax = gcy + goalMarkerSize * scale;
+
+				if (mousePos.x >= gxmin && mousePos.x <= gxmax && mousePos.y >= gymin && mousePos.y <= gymax) {
+					draggingGoal_ = 0;
+					dragOffset_ = { mousePos.x - gcx, mousePos.y - gcy };
 				}
 			}
 
@@ -292,6 +315,14 @@ namespace Game::Editor {
 
 				ep.position.x = (std::max)(0.0f, (std::min)(ep.position.x, static_cast<float>(editingArea_.width)));
 				ep.position.y = (std::max)(0.0f, (std::min)(ep.position.y, static_cast<float>(editingArea_.height)));
+			} else if (draggingGoal_ != -1) {
+				float newGcx = mousePos.x - dragOffset_.x;
+				float newGcy = mousePos.y - dragOffset_.y;
+				editingArea_.goalPosition.x = (newGcx - cx) / scale - editingArea_.editorPos.x;
+				editingArea_.goalPosition.y = (cy - newGcy) / scale - editingArea_.editorPos.y;
+
+				editingArea_.goalPosition.x = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.x, static_cast<float>(editingArea_.width)));
+				editingArea_.goalPosition.y = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.y, static_cast<float>(editingArea_.height)));
 			} else if (draggingCollisionGroupIndex_ != -1) {
 				auto& cg = editingArea_.collisionGroups[draggingCollisionGroupIndex_];
 				if (draggingCollisionPointIndex_ != -1) {
@@ -314,7 +345,7 @@ namespace Game::Editor {
 
 		// 左クリック離し
 		if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
-			if (draggingConnectionIndex_ != -1 || draggingAreaIndex_ != -1 || draggingEnemyIndex_ != -1 || draggingCollisionGroupIndex_ != -1) {
+			if (draggingConnectionIndex_ != -1 || draggingAreaIndex_ != -1 || draggingEnemyIndex_ != -1 || draggingCollisionGroupIndex_ != -1 || draggingGoal_ != -1) {
 				trySaveArea(editingArea_, true);
 			}
 			draggingConnectionIndex_ = -1;
@@ -322,6 +353,7 @@ namespace Game::Editor {
 			draggingEnemyIndex_ = -1;
 			draggingCollisionGroupIndex_ = -1;
 			draggingCollisionPointIndex_ = -1;
+			draggingGoal_ = -1;
 		}
 
 		// バックグラウンド描画リストでエリアとコネクションを描画
@@ -532,6 +564,21 @@ namespace Game::Editor {
 						drawList->AddCircle(ImVec2(pcx, pcy), radius, MakeCol32(255, 100, 255, 255), 0, 1.5f);
 						drawList->AddText(ImVec2(pcx - radius, pcy - radius - 15.0f), MakeCol32(255, 150, 255, 255), ("Point: " + cg.name).c_str());
 					}
+				}
+
+				// ゴールの描画
+				if (drawData.hasGoal) {
+					constexpr float goalMarkerSize = 20.0f;
+					float gcx2 = cx + (drawData.editorPos.x + drawData.goalPosition.x) * scale;
+					float gcy2 = cy - (drawData.editorPos.y + drawData.goalPosition.y) * scale;
+					float gms = goalMarkerSize * scale;
+
+					// 金色の円マーカー
+					ImU32 goalFill = isEditing ? MakeCol32(255, 215, 0, 180) : MakeCol32(255, 215, 0, 80);
+					ImU32 goalOutline = MakeCol32(255, 255, 100, 255);
+					drawList->AddCircleFilled(ImVec2(gcx2, gcy2), gms, goalFill);
+					drawList->AddCircle(ImVec2(gcx2, gcy2), gms, goalOutline, 0, 2.5f);
+					drawList->AddText(ImVec2(gcx2 - gms, gcy2 - gms - 15.0f), MakeCol32(255, 255, 0, 255), "GOAL");
 				}
 			}
 		}
@@ -761,6 +808,21 @@ namespace Game::Editor {
 					ImGui::TreePop();
 				}
 				ImGui::PopID();
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Goal", ImGuiTreeNodeFlags_DefaultOpen)) {
+			bool hasGoal = editingArea_.hasGoal;
+			if (ImGui::Checkbox("Place Goal in this Area", &hasGoal)) {
+				editingArea_.hasGoal = hasGoal;
+				if (hasGoal) {
+					editingArea_.goalPosition = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
+				}
+			}
+			if (editingArea_.hasGoal) {
+				ImGui::DragFloat2("Goal Position", &editingArea_.goalPosition.x, 1.0f);
+				ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "Goal marker is shown on canvas.");
+				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "(Drag the marker to reposition)");
 			}
 		}
 
