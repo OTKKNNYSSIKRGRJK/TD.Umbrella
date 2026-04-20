@@ -53,6 +53,8 @@ export namespace Game::Editor {
 		std::vector<EnemyPlacement> enemies;
 		std::vector<CollisionGroup> collisionGroups;
 		Vector2 editorPos = { 0.0f, 0.0f };
+		bool hasGoal = false;
+		Vector2 goalPosition = { 640.0f, 360.0f };
 		nlohmann::json originalJson{};
 
 		void Reset() {
@@ -65,6 +67,8 @@ export namespace Game::Editor {
 			enemies.clear();
 			collisionGroups.clear();
 			editorPos = { 0.0f, 0.0f };
+			hasGoal = false;
+			goalPosition = { 640.0f, 360.0f };
 			originalJson = nlohmann::json::object();
 		}
 	};
@@ -93,6 +97,7 @@ export namespace Game::Editor {
 		int draggingEnemyIndex_ = -1;
 		int draggingCollisionGroupIndex_ = -1;
 		int draggingCollisionPointIndex_ = -1;
+		int draggingGoal_ = -1;
 		Vector2 dragOffset_ = { 0.0f, 0.0f };
 
 		// 敵JSONファイルリスト（ドロップダウン用）

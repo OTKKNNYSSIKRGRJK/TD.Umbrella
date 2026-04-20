@@ -81,6 +81,8 @@ namespace Game::Editor {
 		j["enemies"] = a.enemies;
 		j["collisionGroups"] = a.collisionGroups;
 		j["editorPos"] = a.editorPos;
+		j["hasGoal"] = a.hasGoal;
+		j["goalPosition"] = a.goalPosition;
 	}
 
 	void from_json(const json& j, AreaData& a) {
@@ -114,6 +116,8 @@ namespace Game::Editor {
 		if (j.contains("enemies")) j.at("enemies").get_to(a.enemies);
 		if (j.contains("collisionGroups")) j.at("collisionGroups").get_to(a.collisionGroups);
 		if (j.contains("editorPos")) j.at("editorPos").get_to(a.editorPos);
+		if (j.contains("hasGoal")) j.at("hasGoal").get_to(a.hasGoal);
+		if (j.contains("goalPosition")) j.at("goalPosition").get_to(a.goalPosition);
 	}
 
 	namespace {
