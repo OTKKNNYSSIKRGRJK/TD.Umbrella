@@ -184,7 +184,7 @@ namespace Game::Scene::Impl {
 							}
 
 							if (!validMeshes.empty()) {
-								EnemyMeshIndices_[ed.name] = meshesToBeUploaded.size();
+								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
 								addMeshesToBeUploaded(validMeshes);
 							}
 						} catch (...) {
@@ -240,7 +240,7 @@ namespace Game::Scene::Impl {
 						}
 
 						if (!validMeshes.empty()) {
-							ActorMeshIndices_[actorName] = meshesToBeUploaded.size();
+							ActorMeshIndices_[actorName] = { meshesToBeUploaded.size(), validMeshes.size() };
 							addMeshesToBeUploaded(validMeshes);
 						}
 					}

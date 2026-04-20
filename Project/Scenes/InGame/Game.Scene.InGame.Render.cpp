@@ -63,7 +63,7 @@ namespace Game::Scene::Impl {
 			if (e.IsDead) continue;
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
-				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
+				const auto& range = EnemyMeshIndices_.at(e.BaseData.name);
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 				if (!e.FacingRight) {
@@ -71,12 +71,18 @@ namespace Game::Scene::Impl {
 				}
 				auto worldMat = Game::MathUtils::SRT(scale, rot, { e.Position.X, e.Position.Y, e.Position.Z });
 				
-				meshMngr.Batch(
-					MeshShaderAssets_[meshIdx],
-					1U,
-					LocalHeap_Materials_.CPUHandle(0U), // とりあえず共通マテリアル0を使用
-					worldMat
-				);
+				// マルチメッシュ対応: OBJに含まれる全サブメッシュを描画
+				for (size_t i = 0; i < range.count; ++i) {
+					size_t idx = range.startIndex + i;
+					if (idx < MeshShaderAssets_.size()) {
+						meshMngr.Batch(
+							MeshShaderAssets_[idx],
+							1U,
+							LocalHeap_Materials_.CPUHandle(0U),
+							worldMat
+						);
+					}
+				}
 			}
 		}
 
@@ -87,8 +93,11 @@ namespace Game::Scene::Impl {
 
 			// Actor のメッシュを使用、なければ CubeMesh にフォールバック
 			size_t meshIdx = CubeMeshIdx_;
+			size_t meshCount = 1;
 			if (!proj.data.actorName.empty() && ActorMeshIndices_.contains(proj.data.actorName)) {
-				meshIdx = ActorMeshIndices_.at(proj.data.actorName);
+				const auto& range = ActorMeshIndices_.at(proj.data.actorName);
+				meshIdx = range.startIndex;
+				meshCount = range.count;
 			}
 
 			if (meshIdx < MeshShaderAssets_.size()) {
@@ -121,12 +130,19 @@ namespace Game::Scene::Impl {
 
 				// Combine: mesh is locally transformed, then moved to projectile's world position
 				auto projWorldMat = localMat * worldPosMat;
-				meshMngr.Batch(
-					MeshShaderAssets_[meshIdx],
-					1U,
-					LocalHeap_Materials_.CPUHandle(0U),
-					projWorldMat
-				);
+
+				// マルチメッシュ対応: 全サブメッシュを描画
+				for (size_t i = 0; i < meshCount; ++i) {
+					size_t idx = meshIdx + i;
+					if (idx < MeshShaderAssets_.size()) {
+						meshMngr.Batch(
+							MeshShaderAssets_[idx],
+							1U,
+							LocalHeap_Materials_.CPUHandle(0U),
+							projWorldMat
+						);
+					}
+				}
 			}
 		}
 
