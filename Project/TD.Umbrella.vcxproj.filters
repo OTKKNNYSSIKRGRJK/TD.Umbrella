@@ -223,8 +223,15 @@
       <Filter>Game\Debug</Filter>
     </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Game\Game.BGMManager.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Update.cpp" />
+    <ClCompile Include="Game\Game.BGMManager.ixx" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="KingSlime.json" />
+    <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
   </ItemGroup>
 </Project>

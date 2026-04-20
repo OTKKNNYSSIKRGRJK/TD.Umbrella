@@ -145,7 +145,17 @@
         "x": -1394.0,
         "y": 28.0
     },
-    "enemies": [],
+    "enemies": [
+        {
+            "enemyName": "KingSlime",
+            "facingRight": true,
+            "position": {
+                "x": 560.0,
+                "y": 172.0
+            },
+            "sizeCategory": 1
+        }
+    ],
     "height": 344,
     "index": 0,
     "name": 0,

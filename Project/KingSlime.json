@@ -1,0 +1,36 @@
+{
+    "name": "KingSlime",
+    "hp": 300,
+    "power": 5.0,
+    "gltfPath": "Models/Enemy/KingSlime.obj",
+    "sizeTiers": [
+        { "hp": 60, "power": 1.2, "scale": 0.4 },
+        { "hp": 120, "power": 2.0, "scale": 0.6 },
+        { "hp": 300, "power": 5.0, "scale": 1.0 }
+    ],
+    "animationMap": { "Idle": "Idle", "Walk": "Walk", "Attack": "Attack" },
+    "motionMap": { "Idle": "", "Walk": "", "Attack": "KingSlimeAttack" },
+    "collisionVertices": [
+        { "x": -0.6, "y": -0.4 },
+        { "x":  0.6, "y": -0.4 },
+        { "x":  0.6, "y":  0.6 },
+        { "x": -0.6, "y":  0.6 }
+    ],
+    "aggroRadius": 18.0,
+    "attackRange": 2.5,
+    "moveSpeed": 1.8,
+    "attackCooldown": 2.0,
+    "retreatThreshold": 0.1,
+    "patrolRadius": 6.0,
+    "aggressiveness": 0.8,
+    "attackType": "Melee",
+    "projectile": { "actorName": "", "isHoming": false, "homingStrength": 0.0, "damage": 0, "lifetime": 0.0, "colliderRadius": 0.0 },
+    "nodes": [
+        { "id": 1, "name": "Idle", "state": "Idle", "x": 40.0,  "y": 40.0,  "animationName": "Idle" },
+        { "id": 2, "name": "Attack", "state": "Attack", "x": 260.0, "y": 40.0,  "animationName": "Attack" }
+    ],
+    "links": [
+        { "from": 1, "to": 2, "condition": "Time>=1.0" },
+        { "from": 2, "to": 1, "condition": "Time>=0.5" }
+    ]
+}

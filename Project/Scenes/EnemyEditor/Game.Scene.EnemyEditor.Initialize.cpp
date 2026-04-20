@@ -219,24 +219,75 @@ namespace Game::Editor {
 	}
 
 	void EnemyActionEditor::SaveEnemy(const EnemyData& enemy) {
-		std::string filename = enemy.name + ".json";
-		std::ofstream file(filename);
-		if (file.is_open()) {
-			json j = enemy;
-			file << j.dump(4);
-		}
+    std::string filename = enemy.name + ".json";
+    std::ofstream file(filename);
+    if (file.is_open()) {
+        json j = enemy;
+        file << j.dump(4);
+    }
+
+    // persist into per-file storage so runtime state is kept per JSON
+    perFileEnemies_[filename] = enemy;
+    PerFileRuntime rt;
+    rt.currentStateId = currentStateId_;
+    rt.currentStateElapsedTime = currentStateElapsedTime_;
+    rt.previousStateId = previousStateId_;
+    rt.transitionFlashTimer = transitionFlashTimer_;
+    rt.firstNodeStarted = firstNodeStarted_;
+    rt.undoStack = undoStack_;
+    rt.cachedAnimationNames = cachedAnimationNames_;
+    perFileRuntimes_[filename] = std::move(rt);
+    activeFileName_ = filename;
 	}
 
 	void EnemyActionEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
-		std::ifstream file(filename);
-		if (file.is_open()) {
-			try {
-				json j;
-				file >> j;
-				enemy = j.get<EnemyData>();
-			} catch (...) {
-			}
-		}
+    std::ifstream file(filename);
+    EnemyData loaded;
+    if (file.is_open()) {
+        try {
+            json j;
+            file >> j;
+            loaded = j.get<EnemyData>();
+        } catch (...) {
+        }
+    }
+
+    // store into per-file map
+    std::string fname = filename;
+    perFileEnemies_[fname] = loaded;
+
+    // restore runtime state if exists
+    if (perFileRuntimes_.find(fname) != perFileRuntimes_.end()) {
+        auto& rt = perFileRuntimes_[fname];
+        currentStateId_ = rt.currentStateId;
+        currentStateElapsedTime_ = rt.currentStateElapsedTime;
+        previousStateId_ = rt.previousStateId;
+        transitionFlashTimer_ = rt.transitionFlashTimer;
+        firstNodeStarted_ = rt.firstNodeStarted;
+        undoStack_ = rt.undoStack;
+        cachedAnimationNames_ = rt.cachedAnimationNames;
+    } else {
+        // initialize runtime for this file
+        PerFileRuntime rt;
+        rt.currentStateId = -1;
+        rt.currentStateElapsedTime = 0.0f;
+        rt.previousStateId = -1;
+        rt.transitionFlashTimer = 0.0f;
+        rt.firstNodeStarted = false;
+        rt.cachedAnimationNames = ExtractAnimationNames(loaded.gltfPath);
+        perFileRuntimes_[fname] = rt;
+        currentStateId_ = -1;
+        currentStateElapsedTime_ = 0.0f;
+        previousStateId_ = -1;
+        transitionFlashTimer_ = 0.0f;
+        firstNodeStarted_ = false;
+        cachedAnimationNames_ = perFileRuntimes_[fname].cachedAnimationNames;
+    }
+
+    // set editing enemy reference
+    enemy = loaded;
+    editingEnemy_ = loaded;
+    activeFileName_ = fname;
 	}
 
 	std::vector<std::string> EnemyActionEditor::ExtractAnimationNames(const std::string& gltfPath) {

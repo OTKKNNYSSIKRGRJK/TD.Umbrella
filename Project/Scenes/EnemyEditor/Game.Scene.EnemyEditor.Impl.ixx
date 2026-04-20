@@ -194,9 +194,25 @@ export namespace Game::Editor {
 		void AddLog(const std::string& msg);
 
 	private:
+		// Active editing enemy (holds current visible data). Persisted per-file in perFileEnemies_.
 		EnemyData editingEnemy_{};
 		std::string cachedGltfPath_;
 		std::vector<std::string> cachedAnimationNames_;
+
+		// Per-file storage so each JSON keeps its own nodes, links and runtime state
+		struct PerFileRuntime {
+			std::vector<std::string> cachedAnimationNames;
+			int currentStateId = -1;
+			float currentStateElapsedTime = 0.0f;
+			int previousStateId = -1;
+			float transitionFlashTimer = 0.0f;
+			bool firstNodeStarted = false;
+			std::vector<EnemyData> undoStack; // keep per-file undo history
+		};
+
+		std::map<std::string, EnemyData> perFileEnemies_;
+		std::map<std::string, PerFileRuntime> perFileRuntimes_;
+		std::string activeFileName_; // includes ".json" suffix when set
 
 		float canvasOffsetX_ = 0.0f;
 		float canvasOffsetY_ = 0.0f;

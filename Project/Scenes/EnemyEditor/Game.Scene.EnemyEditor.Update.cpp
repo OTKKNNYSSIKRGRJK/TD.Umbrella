@@ -127,6 +127,8 @@ namespace Game::Editor {
 					bool isSelected = (editingEnemy_.name + ".json" == fName);
 					if (ImGui::Selectable(fName.c_str(), isSelected)) {
 						LoadEnemy(editingEnemy_, fName);
+						// also load into action editor per-file runtime
+						// note: enemyActionEditor_ is assumed available globally where used; if not, callers should load appropriately
 					}
 				}
 			}
@@ -846,9 +848,86 @@ namespace Game::Editor {
 			ImGui::EndMenuBar();
 		}
 
-		ImGui::Text("Editing JSON:");
-		static char filenameBuf[64] = "enemy_data";
-		ImGui::InputText(".json##action", filenameBuf, sizeof(filenameBuf));
+	// Floating action file browser so it's visible even when other panes overlap
+	ImGui::SetNextWindowPos(ImVec2(320.0f, 10.0f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(340.0f, 300.0f), ImGuiCond_FirstUseEver);
+	ImGui::Begin("Action File Browser", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+	ImGui::TextDisabled("Click a JSON to load into the Action Editor");
+	ImGui::Separator();
+	static char fileFilter[128] = "";
+	ImGui::InputText("Filter", fileFilter, sizeof(fileFilter));
+	ImGui::Separator();
+	ImGui::BeginChild("ActionFileList", ImVec2(0, 0), false);
+	if (fs::exists("./")) {
+		for (const auto& entry : fs::directory_iterator("./")) {
+			if (entry.path().extension() != ".json") continue;
+			std::string fName = entry.path().filename().string();
+			if (fName.find("area") == 0) continue;
+			if (fileFilter[0] != '\0') {
+				if (fName.find(fileFilter) == std::string::npos) continue;
+			}
+			bool isSel = (!activeFileName_.empty() && activeFileName_ == fName);
+			if (ImGui::Selectable(fName.c_str(), isSel)) {
+				LoadEnemy(editingEnemy_, fName);
+				if (!editingEnemy_.gltfPath.empty()) cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
+				if (!editingEnemy_.nodes.empty()) {
+					if (requireManualStart_) { currentStateId_ = -1; firstNodeStarted_ = false; }
+					else { currentStateId_ = editingEnemy_.nodes.front().id; }
+				}
+				currentStateElapsedTime_ = 0.0f;
+				previousStateId_ = -1;
+				AddLog(std::string("[EnemyEditor] Loaded: ") + fName);
+			}
+		}
+	}
+	ImGui::EndChild();
+	ImGui::End();
+
+	ImGui::Text("Editing JSON:");
+	// Display currently active file (if any) and keep input box in sync
+	static char filenameBuf[64] = "enemy_data";
+	static std::string lastActiveFile;
+	if (!activeFileName_.empty()) {
+		ImGui::TextDisabled("Active: %s", activeFileName_.c_str());
+		if (activeFileName_ != lastActiveFile) {
+			// strip trailing .json for the editable buffer
+			std::string base = activeFileName_;
+			if (base.size() > 5 && base.substr(base.size() - 5) == ".json") base = base.substr(0, base.size() - 5);
+			strncpy_s(filenameBuf, base.c_str(), sizeof(filenameBuf));
+			lastActiveFile = activeFileName_;
+		}
+	} else {
+		// if no active file, clear lastActiveFile so manual edits aren't overwritten later
+		lastActiveFile.clear();
+	}
+	ImGui::InputText(".json##action", filenameBuf, sizeof(filenameBuf));
+
+	// File browser: show available .json files so user can click to load
+	ImGui::Spacing();
+	ImGui::TextDisabled("JSON Files");
+	ImGui::BeginChild("FileListAction", ImVec2(0, 150), true);
+	if (fs::exists("./")) {
+		for (const auto& entry : fs::directory_iterator("./")) {
+			if (entry.path().extension() == ".json") {
+				std::string fName = entry.path().filename().string();
+				if (fName.find("area") == 0) continue;
+				bool isSelected = (!activeFileName_.empty() && activeFileName_ == fName);
+				if (ImGui::Selectable(fName.c_str(), isSelected)) {
+					LoadEnemy(editingEnemy_, fName);
+					// refresh animations and runtime state
+					if (!editingEnemy_.gltfPath.empty()) cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
+					if (!editingEnemy_.nodes.empty()) {
+						if (requireManualStart_) { currentStateId_ = -1; firstNodeStarted_ = false; }
+						else { currentStateId_ = editingEnemy_.nodes.front().id; }
+					}
+					currentStateElapsedTime_ = 0.0f;
+					previousStateId_ = -1;
+					AddLog(std::string("[EnemyEditor] Loaded: ") + fName);
+				}
+			}
+		}
+	}
+	ImGui::EndChild();
 
 		if (ImGui::Button("Load Enemy##action")) {
 			std::string fname = std::string(filenameBuf) + ".json";
@@ -1419,17 +1498,33 @@ namespace Game::Editor {
 
 	// ===== Undo =====
 	void EnemyActionEditor::PushUndoState() {
-		undoStack_.push_back(editingEnemy_);
-		if (undoStack_.size() > undoStackMax_) undoStack_.erase(undoStack_.begin());
+		if (!activeFileName_.empty()) {
+			perFileRuntimes_[activeFileName_].undoStack.push_back(editingEnemy_);
+			if (perFileRuntimes_[activeFileName_].undoStack.size() > undoStackMax_)
+				perFileRuntimes_[activeFileName_].undoStack.erase(perFileRuntimes_[activeFileName_].undoStack.begin());
+		} else {
+			undoStack_.push_back(editingEnemy_);
+			if (undoStack_.size() > undoStackMax_) undoStack_.erase(undoStack_.begin());
+		}
 	}
 
 	void EnemyActionEditor::Undo() {
-		if (undoStack_.empty()) return;
-		editingEnemy_ = undoStack_.back();
-		undoStack_.pop_back();
-		if (!editingEnemy_.nodes.empty()) currentStateId_ = editingEnemy_.nodes.front().id;
-		else currentStateId_ = -1;
-		AddLog("[EnemyEditor] Undo performed");
+		if (!activeFileName_.empty()) {
+			auto& stk = perFileRuntimes_[activeFileName_].undoStack;
+			if (stk.empty()) return;
+			editingEnemy_ = stk.back();
+			stk.pop_back();
+			if (!editingEnemy_.nodes.empty()) currentStateId_ = editingEnemy_.nodes.front().id;
+			else currentStateId_ = -1;
+			AddLog("[EnemyEditor] Undo performed (per-file)");
+		} else {
+			if (undoStack_.empty()) return;
+			editingEnemy_ = undoStack_.back();
+			undoStack_.pop_back();
+			if (!editingEnemy_.nodes.empty()) currentStateId_ = editingEnemy_.nodes.front().id;
+			else currentStateId_ = -1;
+			AddLog("[EnemyEditor] Undo performed");
+		}
 	}
 
 	// ===== Log =====
