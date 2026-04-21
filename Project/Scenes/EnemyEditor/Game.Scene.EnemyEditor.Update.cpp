@@ -1264,6 +1264,7 @@ namespace Game::Editor {
 		nodeCanvasHeight_ = canvasSize.y;
 
 		ImGui::InvisibleButton("node_canvas", canvasSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+		ImGui::SetItemAllowOverlap();  // ノード内のUI部品（コンボ等）がクリックを受け取れるようにする
 		ImVec2 origin = canvasPos;
 
 		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
@@ -1339,7 +1340,7 @@ namespace Game::Editor {
 			ImGui::SetCursorScreenPos(prevScreenPos);
 
 			bool hovered = (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y);
-			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 90.0f);
+			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 96.0f);
 
 			if (!nodeDragActive_ && hovered && !overInline && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				nodeDragActive_ = true;
