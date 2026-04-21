@@ -42,6 +42,7 @@ export namespace AttackData {
     struct AttackData {
         std::string name;
         std::string motion;
+        std::string animationName;
         float duration = 0.0f;
         float damage = 0.0f;
         float manaCost = 0.0f; // 攻撃そのものを出すのに必要なマナ

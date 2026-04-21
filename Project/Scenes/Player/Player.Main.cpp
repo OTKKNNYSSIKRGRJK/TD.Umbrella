@@ -43,6 +43,7 @@ AttackData::Database LoadAttackDatabase(const std::string& filepath) {
 
 			attack.name = val.value("name", "");
 			attack.motion = val.value("motion", "");
+			attack.animationName = val.value("animation", "");
 			attack.duration = val.value("duration", 0.0f);
 			attack.damage = val.value("damage", 0.0f);
 			attack.manaCost = val.value("manaCost", 0.0f);
