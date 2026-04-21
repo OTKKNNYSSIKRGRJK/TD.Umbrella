@@ -346,11 +346,11 @@ namespace Game {
 
 	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
 		(void)playerPosition;
-
-		auto motionIt = enemy.baseData.motionMap.find("Attack");
-		if (motionIt != enemy.baseData.motionMap.end() && !motionIt->second.empty() && enemy.aiState == EnemyInstance::AIState::Attack) {
+		auto attackIt = enemy.baseData.motionMap.find("Attack");
+		// Priority: play attack motion when attacking
+		if (attackIt != enemy.baseData.motionMap.end() && !attackIt->second.empty() && enemy.aiState == EnemyInstance::AIState::Attack) {
 			if (!motionController_.IsPlaying()) {
-				motionController_.Play(motionIt->second, enemy.position, (std::max)(enemy.attackDuration, 0.01f));
+				motionController_.Play(attackIt->second, enemy.position, (std::max)(enemy.attackDuration, 0.01f));
 			}
 
 			Lumina::Math::F32x3 direction = enemy.facingRight
@@ -358,18 +358,27 @@ namespace Game {
 				: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
 			(void)motionController_.Update(deltaTime, direction);
 
-			// debug: if MotionController reports active node, ensure WalkActive mirrors it
-			int nodeIdx = motionController_.GetActiveNodeIndex();
-			if (nodeIdx >= 0) {
-				// make sure walk_ is set according to our node event as well
-				// no-op here since nodeEventCallback already sets walk_
-			}
-
+			// Motion node callbacks drive walk_ flag. During attack, if a node indicates "walk" we may want to pause horizontal movement.
 			if (walk_) {
 				enemy.velocity.X = 0.0f;
 			}
-		} else {
-			walk_ = false;
+		}
+		// If not attacking, also allow playing Walk motion so per-node boundBool events can trigger (e.g. walk flag)
+		else {
+			auto walkIt = enemy.baseData.motionMap.find("Walk");
+			if (walkIt != enemy.baseData.motionMap.end() && !walkIt->second.empty() && enemy.currentAction == "Walk") {
+				if (!motionController_.IsPlaying()) {
+					// use a reasonable loop duration; editor motions are normalized so 1.0s is acceptable for triggering nodes
+					motionController_.Play(walkIt->second, enemy.position, 1.0f);
+				}
+				Lumina::Math::F32x3 direction = enemy.facingRight
+					? Lumina::Math::F32x3{ 1.0f, 0.0f, 0.0f }
+					: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
+				(void)motionController_.Update(deltaTime, direction);
+			} else {
+				// not playing any motion that drives walk -> clear flag
+				walk_ = false;
+			}
 		}
 	}
 

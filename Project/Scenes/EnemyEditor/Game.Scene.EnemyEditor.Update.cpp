@@ -1019,14 +1019,27 @@ namespace Game::Editor {
 		if (!editingEnemy_.nodes.empty()) {
 			if (jumpNodeIdx >= static_cast<int>(editingEnemy_.nodes.size())) jumpNodeIdx = 0;
 			std::string jumpPreview = editingEnemy_.nodes[jumpNodeIdx].name;
-			if (ImGui::BeginCombo("##jump_state", jumpPreview.c_str())) {
-				for (int i = 0; i < static_cast<int>(editingEnemy_.nodes.size()); ++i) {
-					bool isSel = (i == jumpNodeIdx);
-					if (ImGui::Selectable(editingEnemy_.nodes[i].name.c_str(), isSel)) jumpNodeIdx = i;
-					if (isSel) ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
+            if (ImGui::BeginCombo("##jump_state", jumpPreview.c_str())) {
+                for (int i = 0; i < static_cast<int>(editingEnemy_.nodes.size()); ++i) {
+                    bool isSel = (i == jumpNodeIdx);
+                    if (ImGui::Selectable(editingEnemy_.nodes[i].name.c_str(), isSel)) {
+                        // Immediately jump to the selected node so the combo is actionable
+                        jumpNodeIdx = i;
+                        previousStateId_ = currentStateId_;
+                        currentStateId_ = editingEnemy_.nodes[i].id;
+                        currentStateElapsedTime_ = 0.0f;
+                        transitionFlashTimer_ = 1.0f;
+                        firstNodeStarted_ = true;
+                        // Activate the node's boundBool flag if present
+                        if (!editingEnemy_.nodes[i].boundBool.empty()) {
+                            runtimeBoolFlags_[editingEnemy_.nodes[i].boundBool] = true;
+                        }
+                        char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Jumped to node %d", currentStateId_); AddLog(dbg);
+                    }
+                    if (isSel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Jump To Node")) {
@@ -1129,12 +1142,40 @@ namespace Game::Editor {
 			ImGui::SeparatorText("Selected Node Binding");
 			ImGui::Text("Selected: %s (id=%d)", selectedNode->name.c_str(), selectedNode->id);
 
-			const char* boolOptions[] = { "(none)", "Walk" };
-			int boolIdx = (selectedNode->boundBool == "walk") ? 1 : 0;
-			ImGui::SetNextItemWidth(180.0f);
-			if (ImGui::Combo("Bool", &boolIdx, boolOptions, 2)) {
-				selectedNode->boundBool = (boolIdx == 1) ? "walk" : "";
-			}
+            // Build dynamic list of available boolean names (include canonical "walk")
+            std::vector<std::string> boolOptions;
+            boolOptions.push_back("(none)");
+            // ensure the canonical runtime name used in code is present
+            bool hasWalk = false;
+            // collect from existing nodes to avoid duplicates
+            for (const auto& nd : editingEnemy_.nodes) {
+                if (!nd.boundBool.empty()) {
+                    if (nd.boundBool == "walk") hasWalk = true;
+                    bool dup = false;
+                    for (const auto& b : boolOptions) { if (b == nd.boundBool) { dup = true; break; } }
+                    if (!dup) boolOptions.push_back(nd.boundBool);
+                }
+            }
+            if (!hasWalk) boolOptions.push_back("walk");
+
+            // find current index
+            int boolIdx = 0;
+            for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
+                if (selectedNode->boundBool == boolOptions[bi]) { boolIdx = bi; break; }
+            }
+
+            ImGui::SetNextItemWidth(180.0f);
+            if (ImGui::BeginCombo("Bool", boolOptions[boolIdx].c_str())) {
+                for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
+                    bool isSel = (bi == boolIdx);
+                    if (ImGui::Selectable(boolOptions[bi].c_str(), isSel)) {
+                        selectedNode->boundBool = (bi == 0) ? std::string() : boolOptions[bi];
+                        boolIdx = bi;
+                    }
+                    if (isSel) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
 
 			std::vector<std::string> motionFiles;
 			motionFiles.push_back("");
