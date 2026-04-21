@@ -146,6 +146,11 @@
         "y": 28.0
     },
     "enemies": [],
+    "goalPosition": {
+        "x": 640.0,
+        "y": 360.0
+    },
+    "hasGoal": false,
     "height": 344,
     "index": 0,
     "name": 0,
