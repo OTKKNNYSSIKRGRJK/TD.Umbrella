@@ -3,6 +3,7 @@ module Game.Scene.InGame;
 import : Impl;
 
 import <cmath>;
+import <numbers>;
 import <algorithm>;
 import <string>;
 
@@ -15,6 +16,7 @@ import Lumina.Main;
 import Lumina.OS.Windows.RawInput;
 import Lumina.Utils.Data;
 import nlohmann.json;
+import Lumina.Utils.Color;
 
 import Game.MotionManager;
 import Game.EnemyManager;
@@ -28,6 +30,21 @@ namespace {
 	}
 }
 #endif
+
+namespace {
+	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
+	
+	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
+		p_.Translate.X += p_.Velocity.X;
+		p_.Translate.Z += p_.Velocity.Z;
+		p_.RenderData.RGBA.W *= 0.95f;
+		p_.Scale.X *= 0.93f;
+		p_.Scale.Y *= 0.93f;
+		p_.Rotate.Z += p_.Velocity.Z * 0.01f;
+		p_.Life -= 1.0f;
+		return (p_.Life > 0.0f);
+	}
+}
 
 namespace Game::Scene::Impl {
 #if defined(_DEBUG)
@@ -360,9 +377,14 @@ namespace Game::Scene::Impl {
 		#endif
 	}
 
-	/*
+	
 	template<>
-	void InGame::Update_<"Particles">() {
+	void InGame::Update_<"Particles">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::Math::F32x4x4<> const& viewToWorld_
+	) {
+		auto& rndEngine{ Lumina::Math::Random::Generator() };
+
 		// Player effects
 		{
 			static float playerEffectTimeFactor{ 0.0f };
@@ -379,41 +401,42 @@ namespace Game::Scene::Impl {
 			);
 
 			for (int i = 0; i < 2; ++i) {
-				Particle p{};
+				Lumina::Particle playerEffect{};
 				{
-					p.Translate = {
+					playerEffect.Translate = {
 						std::cos(playerEffectTimeFactor * 0.3f + i * 3.6f) * 1.5f,
 						std::sin(playerEffectTimeFactor * 0.4f * i) * 1.0f,
 						std::sin(playerEffectTimeFactor * 0.5f - i * 1.2f) * 1.5f
 					};
 
-					p.Velocity.x = p.Translate.z * (-0.05f);
-					p.Velocity.z = p.Translate.x * (-0.05f);
+					playerEffect.Velocity.X = playerEffect.Translate.Z * (-0.05f);
+					playerEffect.Velocity.Z = playerEffect.Translate.X * (-0.05f);
 
-					p.Translate.x += Player_->ModelTranslate().x;
-					p.Translate.y += Player_->ModelTranslate().y;
-					p.Translate.z += Player_->ModelTranslate().z;
+					playerEffect.Translate.X += Player_->GetPosition().X;
+					playerEffect.Translate.Y += Player_->GetPosition().Y;
+					playerEffect.Translate.Z += Player_->GetPosition().Z;
 
-					p.Scale.x = 0.7f;
-					p.Scale.y = 0.7f;
+					playerEffect.Scale.X = 0.7f;
+					playerEffect.Scale.Y = 0.7f;
 
-					p.Rotate.z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+					playerEffect.Rotate.Z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
 
-					p.Life = 64.0f;
+					playerEffect.Life = 64.0f;
 
-					p.RenderData.RGBA = {
+					playerEffect.RenderData.RGBA = {
 						rgb_Gaming.R + rndEngine() * Inv_0xFFFFFFFF * 0.1f,
 						rgb_Gaming.G + rndEngine() * Inv_0xFFFFFFFF * 0.1f,
 						rgb_Gaming.B,
 						0.15f
 					};
-					p.RenderData.DiffuseID = 0U;
-					p.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
-					PlayerEffects_->Emit(std::move(p));
+					// Particles TextureのIDは1
+					playerEffect.RenderData.DiffuseID = 1U;
+					playerEffect.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
+					PlayerEffects_->Emit(std::move(playerEffect));
 				}
 			}
 
-			if (PlayerJumpEffectEmitFrameCount > 0) {
+			/*if (PlayerJumpEffectEmitFrameCount > 0) {
 				for (int i = 0; i < 2; ++i) {
 					Particle p_Jump{};
 					{
@@ -449,9 +472,9 @@ namespace Game::Scene::Impl {
 					}
 				}
 				--PlayerJumpEffectEmitFrameCount;
-			}
+			}*/
 
-			if (PlayerDashEffectEmitFrameCount > 0) {
+			/*if (PlayerDashEffectEmitFrameCount > 0) {
 				float const cos_Theta{ std::cos(Player_->Angle()) };
 				float const sin_Theta{ std::sin(Player_->Angle()) };
 
@@ -492,62 +515,64 @@ namespace Game::Scene::Impl {
 					}
 				}
 				--PlayerDashEffectEmitFrameCount;
-			}
-			PlayerEffects_->Update(cmdList_, viewToWorld, UpdatePlayerEffect);
+			}*/
+
+			
+			PlayerEffects_->Update(cmdList_, viewToWorld_, UpdatePlayerEffect);
 		}
 
-		// Ambient sparkles
-		{
-			static float sparkleTimeFactor{ 0.0f };
-			sparkleTimeFactor += 0.75f;
+		//// Ambient sparkles
+		//{
+		//	static float sparkleTimeFactor{ 0.0f };
+		//	sparkleTimeFactor += 0.75f;
 
-			float const spawnPosRad = rndEngine() * Inv_0xFFFFFFFF * 100.0f;
-			float const spawnPosTheta = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
-			float const x{ spawnPosRad * std::cos(spawnPosTheta) };
-			float const z{ spawnPosRad * std::sin(spawnPosTheta) };
-			if (std::abs(x) < 40.0f && std::abs(z) < 40.0f) {
-				Particle sparkle{};
-				sparkle.Translate = {
-					x,
-					rndEngine() * Inv_0xFFFFFFFF * 2.0f,
-					z
-				};
-				sparkle.Scale.x = 1.0f;
-				sparkle.Scale.y = 1.0f;
-				sparkle.Life = 60.0f;
-				auto rgb = Lumina::Utils::Color::Convert(
-					Lumina::Utils::Color::HSV{
-						rndEngine() * Inv_0xFFFFFFFF * 45.0f,
-						rndEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
-						0.75f
-					}
-				);
-				auto rgb_Gaming = Lumina::Utils::Color::Convert(
-					Lumina::Utils::Color::HSV{
-						rndEngine() * Inv_0xFFFFFFFF * 45.0f +
-						sparkleTimeFactor +
-						spawnPosTheta * 180.0f * std::numbers::inv_pi_v<float>,
-						rndEngine() * Inv_0xFFFFFFFF * 0.3f + 0.5f,
-						0.95f
-					}
-				);
-				sparkle.RenderData.RGBA = {
-					rgb.R * (0.7f + rgb_Gaming.R * 0.3f),
-					rgb.G * (0.7f + rgb_Gaming.G * 0.3f),
-					rgb.B * (0.7f + rgb_Gaming.B * 0.3f),
-					0.0f
-				};
-				sparkle.RenderData.DiffuseID = 0U;
-				sparkle.RenderData.DiffuseAtlasID = 5U;
-				AmbientSparkles_->Emit(std::move(sparkle));
-			}
+		//	float const spawnPosRad = rndEngine() * Inv_0xFFFFFFFF * 100.0f;
+		//	float const spawnPosTheta = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+		//	float const x{ spawnPosRad * std::cos(spawnPosTheta) };
+		//	float const z{ spawnPosRad * std::sin(spawnPosTheta) };
+		//	if (std::abs(x) < 40.0f && std::abs(z) < 40.0f) {
+		//		Particle sparkle{};
+		//		sparkle.Translate = {
+		//			x,
+		//			rndEngine() * Inv_0xFFFFFFFF * 2.0f,
+		//			z
+		//		};
+		//		sparkle.Scale.x = 1.0f;
+		//		sparkle.Scale.y = 1.0f;
+		//		sparkle.Life = 60.0f;
+		//		auto rgb = Lumina::Utils::Color::Convert(
+		//			Lumina::Utils::Color::HSV{
+		//				rndEngine() * Inv_0xFFFFFFFF * 45.0f,
+		//				rndEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
+		//				0.75f
+		//			}
+		//		);
+		//		auto rgb_Gaming = Lumina::Utils::Color::Convert(
+		//			Lumina::Utils::Color::HSV{
+		//				rndEngine() * Inv_0xFFFFFFFF * 45.0f +
+		//				sparkleTimeFactor +
+		//				spawnPosTheta * 180.0f * std::numbers::inv_pi_v<float>,
+		//				rndEngine() * Inv_0xFFFFFFFF * 0.3f + 0.5f,
+		//				0.95f
+		//			}
+		//		);
+		//		sparkle.RenderData.RGBA = {
+		//			rgb.R * (0.7f + rgb_Gaming.R * 0.3f),
+		//			rgb.G * (0.7f + rgb_Gaming.G * 0.3f),
+		//			rgb.B * (0.7f + rgb_Gaming.B * 0.3f),
+		//			0.0f
+		//		};
+		//		sparkle.RenderData.DiffuseID = 0U;
+		//		sparkle.RenderData.DiffuseAtlasID = 5U;
+		//		AmbientSparkles_->Emit(std::move(sparkle));
+		//	}
 
-			AmbientSparkles_->Update(cmdList_, viewToWorld, UpdateAmbientSparkle);
-		}
+		//	AmbientSparkles_->Update(cmdList_, viewToWorld, UpdateAmbientSparkle);
+		//}
 
-		KnockEffects_->Update(cmdList_, viewToWorld, UpdateKnockEffect);
+		//KnockEffects_->Update(cmdList_, viewToWorld, UpdateKnockEffect);
 	}
-	*/
+	
 
 	template<>
 	void InGame::Update_<"Lighting">() {

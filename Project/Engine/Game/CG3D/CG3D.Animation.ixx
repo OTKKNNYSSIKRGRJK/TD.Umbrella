@@ -31,7 +31,7 @@ namespace Lumina::CG3D {
 
 		/// Creates joints from ALL nodes regardless of being related to the animation.
 		auto CreateJoint(
-			std::vector<Joint> joints_,
+			std::vector<Joint>& joints_,
 			std::optional<U32> const& id_Parent_,
 			Node const& node_
 		) -> U32 {
@@ -43,11 +43,16 @@ namespace Lumina::CG3D {
 				joint.Transform = node_.Transform;
 				joint.ID = static_cast<U32>(joints_.size()) - 1U;
 				joint.ID_Parent = id_Parent_;
+				joint.IDs_Child = {};
 			}
 
-			for (auto const& child : node_.Children) {
-				U32 const id_Child{ CreateJoint(joints_, joint.ID, child) };
-				joint.IDs_Child.emplace_back(id_Child);
+			U32 const id{ joint.ID };
+
+			if (!node_.Children.empty()) {
+				for (auto const& child : node_.Children) {
+					U32 const id_Child{ CreateJoint(joints_, id, child) };
+					joints_[id].IDs_Child.emplace_back(id_Child);
+				}
 			}
 
 			return joint.ID;
@@ -56,7 +61,9 @@ namespace Lumina::CG3D {
 
 	export auto CreateSkeleton(Node const& rootNode_) -> Skeleton {
 		Skeleton ret{};
-		ret.ID_Root = CreateJoint(ret.ARR_Joint, std::nullopt, rootNode_);
+		for (auto const& child : rootNode_.Children) {
+			ret.ID_Root = CreateJoint(ret.ARR_Joint, std::nullopt, child);
+		}
 
 		for (Joint const& joint : ret.ARR_Joint) {
 			ret.IDX_Joint.emplace(joint.Name, joint.ID);
@@ -76,17 +83,16 @@ namespace Lumina::CG3D {
 				anim_IN_.mDuration /
 				anim_IN_.mTicksPerSecond
 			);
-
 			for (
 				auto const* nodeAnim_IN :
 				std::span{ anim_IN_.mChannels, anim_IN_.mNumChannels }
 			) {
-				MyAnimation::Node nodeAnim_OUT{};
+				auto& nodeAnim_OUT{ anim_OUT_.Nodes[nodeAnim_IN->mNodeName.data] };
 				for (
 					auto const& keyframe_IN :
 					std::span{ nodeAnim_IN->mPositionKeys, nodeAnim_IN->mNumPositionKeys }
 				) {
-					Animation::Keyframe<Math::F32x3> keyframe_OUT{};
+					auto& keyframe_OUT{ nodeAnim_OUT.Translate.Keyframes.emplace_back() };
 					auto const& value_IN{ keyframe_IN.mValue };
 					keyframe_OUT.Value = { -value_IN.x, value_IN.y, value_IN.z };
 					keyframe_OUT.TimepointInSecond = static_cast<F32>(
@@ -98,11 +104,11 @@ namespace Lumina::CG3D {
 					auto const& keyframe_IN :
 					std::span{ nodeAnim_IN->mRotationKeys, nodeAnim_IN->mNumRotationKeys }
 				) {
-					Animation::Keyframe<Math::Versor> keyframe_OUT{};
+					auto& keyframe_OUT{ nodeAnim_OUT.Rotate.Keyframes.emplace_back() };
 					auto const& value_IN{ keyframe_IN.mValue };
 					/// Right-hand system to left-hand system;
 					/// the rotation orientation and the axis is thus reversed. 
-					keyframe_OUT.Value = Math::Quaternion{ value_IN.x, -value_IN.y, -value_IN.z, value_IN.w };
+					keyframe_OUT.Value = { value_IN.x, -value_IN.y, -value_IN.z, value_IN.w };
 					keyframe_OUT.TimepointInSecond = static_cast<F32>(
 						keyframe_IN.mTime /
 						anim_IN_.mTicksPerSecond
@@ -146,7 +152,7 @@ namespace Lumina::CG3D {
 
 	namespace {
 		auto SRT(TRANSFORM const& transform_) noexcept -> Math::F32x4x4<> {
-			Math::F32x4x4<> ret{ Math::SE3{ transform_.Rotate } };
+			Math::F32x4x4<> ret{ Math::SE3{ *reinterpret_cast<Math::Versor const*>(&transform_.Rotate) } };
 			ret[0] *= transform_.Scale.X;
 			ret[1] *= transform_.Scale.Y;
 			ret[2] *= transform_.Scale.Z;
@@ -189,7 +195,7 @@ namespace Lumina::CG3D {
 
 						out_ = Math::LERP{
 							static_cast<Math::F32x3>(cur.Value),
-							static_cast<Math::F32x3>(next.Value),
+							static_cast<Math::F32x3>(next.Value)
 						}(t);
 						return;
 					}
@@ -197,8 +203,8 @@ namespace Lumina::CG3D {
 			}
 		}
 		void Calculate(
-			Math::Versor& out_,
-			Animation::Curve<Math::Versor> const& in_,
+			F32x4& out_,
+			Animation::Curve<F32x4> const& in_,
 			F32 time_
 		) {
 			if (in_.Keyframes.size() == 1 || time_ <= in_.Keyframes[0].TimepointInSecond) {
@@ -213,7 +219,15 @@ namespace Lumina::CG3D {
 							(time_ - cur.TimepointInSecond) /
 							(next.TimepointInSecond - cur.TimepointInSecond)
 						};
-						out_ = Math::SLERP{ cur.Value, next.Value }(t);
+						/*auto rotate = Math::SLERP{
+							Math::Quaternion{ cur.Value.X, cur.Value.Y, cur.Value.Z, cur.Value.W },
+							Math::Quaternion{ next.Value.X, next.Value.Y, next.Value.Z, next.Value.W }
+						}(t);*/
+						auto rotate = Math::LERP{
+							Math::F32x4{ &cur.Value.X },
+							Math::F32x4{ &next.Value.X }
+						}(t);
+						out_ = *reinterpret_cast<F32x4 const*>(&rotate);
 						return;
 					}
 				}
@@ -276,8 +290,12 @@ namespace Lumina::CG3D {
 			d3d12Device_,
 			sizeof(VertexInfluence) * mesh_.Vertices.size()
 		);
+		skinCluster_.MappedInfluence = {
+			reinterpret_cast<VertexInfluence*>(skinCluster_.InfluenceResource()),
+			mesh_.Vertices.size()
+		};
 		auto influenceBufferView{ D3D12::VBV::Create<VertexInfluence>(skinCluster_.InfluenceResource) };
-		skinCluster_.InfluenceBufferView = reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW&>(influenceBufferView);
+		skinCluster_.InfluenceBufferView = *reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW*>(&influenceBufferView);
 
 		skinCluster_.ARR_INV_BindPose.resize(skeleton_.ARR_Joint.size());
 		std::generate(

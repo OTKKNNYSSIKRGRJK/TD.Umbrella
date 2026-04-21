@@ -19,7 +19,8 @@ import Lumina.CG3D;
 import Lumina.CG3D.Animation;
 
 namespace Game::Scene::Impl {
-	auto Title::LoadMeshes() -> void {
+	template<>
+	auto Title::Initialize_<"Meshes">() -> void {
 		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
@@ -47,9 +48,48 @@ namespace Game::Scene::Impl {
 		// 頂点バッファを使ってビューを作成
 		// テンプレートに頂点の変数型を入れる
 		VBV_ = Lumina::D3D12::VBV::Create<Lumina::CG3D::Mesh::Vertex>(VertexBuffer_);
+
+		IndexBuffer_.Initialize(
+			d3d12Device,
+			sizeof(Lumina::U32) *
+			Collection_.Meshes[0].Indices.size()
+		);
+		IndexBuffer_.Store(
+			Collection_.Meshes[0].Indices.data(),
+			sizeof(Lumina::U32) *
+			Collection_.Meshes[0].Indices.size(),
+			0LLU
+		);
+		IBV_ = Lumina::D3D12::IBV::Create(IndexBuffer_);
 	}
 
-	auto Title::LoadImageTextures() -> void {
+	template<>
+	auto Title::Initialize_<"Animation">() -> void {
+		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
+		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
+		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+
+		auto animations{ Lumina::CG3D::LoadAnimationFile("animation.gltf", "Assets/Neki") };
+		Animation_ = animations[0];
+		Skeleton_ = Lumina::CG3D::CreateSkeleton(Collection_.Root);
+		Lumina::CG3D::CreateSkinCluster(
+			SkinCluster_,
+			d3d12Device,
+			d3d12Context.GlobalDescriptorHeap(),
+			Skeleton_,
+			// メッシュ
+			Collection_.Meshes[0]
+		);
+
+		AnimationTimer_ = 0.0f;
+
+		MeshScale_ = { 1.0f, 1.0f, 1.0f };
+		MeshRotate_ = { 0.0f, 0.0f, 0.0f };
+		MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
+	}
+
+	template<>
+	auto Title::Initialize_<"ImageTextures">() -> void {
 		// エンジン
 		auto& context{ Lumina::Context::Instance() };
 		// 画像や音声の読み込みなどを司るやつ
@@ -66,9 +106,9 @@ namespace Game::Scene::Impl {
 				//{ 適当な名前（重複しちゃダメ）, ファイルパス },
 				
 				// uvCheckerは1番目に読み込まれるだからIDは0
-				{ "uvChecker", "Assets/Img/uvChecker.png" },
+				{ "Title.uvChecker", "Assets/Img/uvChecker.png" },
 				// Diff2は2番目だからIDは1
-				{ "Diff2", "Assets/Img/Diff2.png" },
+				{ "Title.Diff2", "Assets/Img/Diff2.png" },
 			}
 		);
 
@@ -85,8 +125,9 @@ namespace Game::Scene::Impl {
 			);
 		}
 	}
-
-	auto Title::InitializeMeshMaterials() -> void {
+	
+	template<>
+	auto Title::Initialize_<"MeshMaterials">() -> void {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
@@ -120,7 +161,8 @@ namespace Game::Scene::Impl {
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 	}
 
-	auto Title::InitializeRenderPipeline() -> void {
+	template<>
+	auto Title::Initialize_<"RenderPipeline">() -> void {
 		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
@@ -154,8 +196,8 @@ namespace Game::Scene::Impl {
 		inputLayout_Mesh.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
 		inputLayout_Mesh.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
 		inputLayout_Mesh.Append("NORMAL", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
-		inputLayout_Mesh.Append("WEIGHT", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
-		inputLayout_Mesh.Append("PALETTE", 0U, DXGI_FORMAT_R32G32B32A32_SINT);
+		inputLayout_Mesh.Append("WEIGHT", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT, 1U);
+		inputLayout_Mesh.Append("PALETTE", 0U, DXGI_FORMAT_R32G32B32A32_SINT, 1U);
 
 		GraphicsPSO_SkinnedMeshDeferredGeometry_.Initialize(
 			d3d12Device,
@@ -300,47 +342,35 @@ namespace Game::Scene::Impl {
 		);
 	}
 
-	void Title::Initialize() {
+	template<>
+	auto Title::Initialize_<"Camera">() -> void {
+		Camera_ = std::make_unique<Lumina::Utils::Camera>();
+		Camera_->LookAt({ 5.0f, 0.0f, 5.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
+	}
+
+	template<>
+	auto Title::Initialize_<"Resource, View">() -> void {
 		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
-
-		LoadMeshes();
-		LoadImageTextures();
-		InitializeMeshMaterials();
-
-		// アニメーション関連
-
-		// ファイル名変えないとエラー出ちゃう
-		auto animations{ Lumina::CG3D::LoadAnimationFile("Neki.gltf", "Assets/Neki") };
-		Animation_ = animations[0];
-		Skeleton_ = Lumina::CG3D::CreateSkeleton(Collection_.Root);
-		Lumina::CG3D::CreateSkinCluster(
-			SkinCluster_,
-			d3d12Device,
-			d3d12Context.GlobalDescriptorHeap(),
-			Skeleton_,
-			// メッシュ
-			Collection_.Meshes[0]
-		);
-
-		Camera_ = std::make_unique<Lumina::Utils::Camera>();
-		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
-		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
 
 		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		UB_Transforms_.Initialize(d3d12Device, 256LLU);
 		GlobalTable_CBV_Scene_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
 		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_CBV_Scene_.CPUHandle(0U), UB_Transforms_);
+	}
 
-		InitializeRenderPipeline();
+	void Title::Initialize() {
 
-		AnimationTimer_ = 0.0f;
-
-		MeshScale_ = { 1.0f, 1.0f, 1.0f };
-		MeshRotate_ = { 0.0f, 0.0f, 0.0f };
-		MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
+		Initialize_<"Meshes">();
+		Initialize_<"Animation">();
+		Initialize_<"ImageTextures">();
+		Initialize_<"MeshMaterials">();
+		Initialize_<"RenderPipeline">();
+		Initialize_<"Camera">();
+		Initialize_<"Resource, View">();
 	}
 
 	Title::Title() = default;

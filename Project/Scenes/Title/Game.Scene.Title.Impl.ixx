@@ -10,6 +10,7 @@ import Lumina.D3D12.Aux.View;
 import Lumina.MeshManager;
 import Lumina.Utils.Camera;
 import Lumina.Primitive;
+import Lumina.Core.String;
 
 import Lumina.CG3D.Struct;
 
@@ -19,15 +20,17 @@ namespace Game::Scene::Impl {
 		void Render_Geometry();
 		void Render_Merge();
 
+	private:
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Update_(_ARGs&&...args_) -> void;
+
 	public:
 		void Update();
 		void Render();
 
 	private:
-		auto LoadMeshes() -> void;
-		auto LoadImageTextures() -> void;
-		auto InitializeMeshMaterials() -> void;
-		auto InitializeRenderPipeline() -> void;
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Initialize_(_ARGs&&...args_) -> void;
 
 	public:
 		void Initialize();
@@ -45,7 +48,9 @@ namespace Game::Scene::Impl {
 		Lumina::Math::F32x3 MeshRotate_;
 		Lumina::Math::F32x3 MeshTranslate_;
 		Lumina::D3D12::UploadBuffer VertexBuffer_;
+		Lumina::D3D12::UploadBuffer IndexBuffer_;
 		Lumina::D3D12::VBV VBV_;
+		Lumina::D3D12::IBV IBV_;
 
 	private:
 		struct MeshMaterial {

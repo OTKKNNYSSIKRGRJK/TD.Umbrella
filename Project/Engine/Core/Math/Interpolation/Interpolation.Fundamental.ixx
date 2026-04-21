@@ -3,6 +3,7 @@ export module Lumina.Core.Math : Interpolation.Fundamental;
 //////	//////	//////	//////	//////	//////	//////	//////	//////
 
 import <cmath>;
+import <algorithm>;
 import <concepts>;
 
 import Lumina.Core.Common;
@@ -41,14 +42,15 @@ namespace Lumina::Math {
 
 	public:
 		constexpr SLERP() noexcept = default;
-		inline SLERP(Quaternion const& q0_, Quaternion const& q1_) noexcept :
-			Alpha_{ q0_.Unit() }, Omega_{ q1_.Unit() } {
-			F32 const cos_Theta{ Quaternion::Dot(Alpha_, Omega_) };
+		inline SLERP(Quaternion const& q0_, Quaternion const& q1_) noexcept {
+			Alpha_ = q0_.Unit();
+			Omega_ = q1_.Unit();
+			F32 const cos_Theta{ std::clamp(Quaternion::Dot(Alpha_, Omega_), -1.0f, 1.0f) };
 			if (cos_Theta < 0.0f) {
 				Alpha_ = Alpha_ * (-1.0f);
 			}
 			Theta_ = std::acos(cos_Theta);
-			INV_SIN_Theta_ = (cos_Theta != 0.0f) ? (1.0f / SIN(Theta_)) : (0.0f);
+			INV_SIN_Theta_ = 1.0f / SIN(Theta_);
 		}
 
 	private:

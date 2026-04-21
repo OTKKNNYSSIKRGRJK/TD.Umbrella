@@ -44,45 +44,43 @@ namespace Lumina {
 			}
 		}
 
-		namespace {
-			auto SRT(
-				Math::F32x3 const& scale_,
-				Math::F32x3 const& rotate_,
-				Math::F32x3 const& translate_
-			) -> Math::F32x4x4<> {
-				F32 const
-					cosAlpha{ Math::COS(rotate_.X) },
-					sinAlpha{ Math::SIN(rotate_.X) },
-					cosBeta{ Math::COS(rotate_.Y) },
-					sinBeta{ Math::SIN(rotate_.Y) },
-					cosGamma{ Math::COS(rotate_.Z) },
-					sinGamma{ Math::SIN(rotate_.Z) };
+		inline auto SRT(
+			Math::F32x3 const& scale_,
+			Math::F32x3 const& rotate_,
+			Math::F32x3 const& translate_
+		) -> Math::F32x4x4<> {
+			F32 const
+				cosAlpha{ Math::COS(rotate_.X) },
+				sinAlpha{ Math::SIN(rotate_.X) },
+				cosBeta{ Math::COS(rotate_.Y) },
+				sinBeta{ Math::SIN(rotate_.Y) },
+				cosGamma{ Math::COS(rotate_.Z) },
+				sinGamma{ Math::SIN(rotate_.Z) };
 
-				Math::F32x4x4<> srt{
-					cosBeta * cosGamma,
-					cosBeta * sinGamma,
-					-sinBeta,
-					0.0f,
-					sinAlpha * sinBeta * cosGamma - cosAlpha * sinGamma,
-					sinAlpha * sinBeta * sinGamma + cosAlpha * cosGamma,
-					sinAlpha * cosBeta,
-					0.0f,
-					cosAlpha * sinBeta * cosGamma + sinAlpha * sinGamma,
-					cosAlpha * sinBeta * sinGamma - sinAlpha * cosGamma,
-					cosAlpha * cosBeta,
-					0.0f,
-					translate_.X,
-					translate_.Y,
-					translate_.Z,
-					1.0f,
-				};
+			Math::F32x4x4<> srt{
+				cosBeta * cosGamma,
+				cosBeta * sinGamma,
+				-sinBeta,
+				0.0f,
+				sinAlpha * sinBeta * cosGamma - cosAlpha * sinGamma,
+				sinAlpha * sinBeta * sinGamma + cosAlpha * cosGamma,
+				sinAlpha * cosBeta,
+				0.0f,
+				cosAlpha * sinBeta * cosGamma + sinAlpha * sinGamma,
+				cosAlpha * sinBeta * sinGamma - sinAlpha * cosGamma,
+				cosAlpha * cosBeta,
+				0.0f,
+				translate_.X,
+				translate_.Y,
+				translate_.Z,
+				1.0f,
+			};
 
-				srt[0] *= scale_.X;
-				srt[1] *= scale_.Y;
-				srt[2] *= scale_.Z;
+			srt[0] = srt[0] * scale_.X;
+			srt[1] = srt[1] * scale_.Y;
+			srt[2] = srt[2] * scale_.Z;
 
-				return srt;
-			}
+			return srt;
 		}
 
 		struct ParticleSpriteVertex {
@@ -204,25 +202,28 @@ namespace Lumina {
 				}
 			}
 			else {
-				particle.Translate.x += particle.Velocity.x;
-				particle.Translate.y += particle.Velocity.y;
-				particle.Translate.z += particle.Velocity.z;
+				particle.Translate.X += particle.Velocity.X;
+				particle.Translate.Y += particle.Velocity.Y;
+				particle.Translate.Z += particle.Velocity.Z;
 				particle.Life -= 1.0f;
 			}
 
 			if (isAlive) {
 				auto&& transform{
 					SRT(
-						Lumina::Math::F32x3{ &particle.Scale.x },
-						Lumina::Math::F32x3{ &particle.Rotate.x },
-						Lumina::Math::F32x3{ &particle.Translate.x }
+						Lumina::Math::F32x3{ &particle.Scale.X },
+						Lumina::Math::F32x3{ &particle.Rotate.X },
+						Lumina::Math::F32x3{ &particle.Translate.X }
 					)
 				};
 
 				Lumina::Math::F32x4x4<>::Multiply(transform, transform, viewToWorld_);
-				transform[3][0] = particle.Translate.x;
-				transform[3][1] = particle.Translate.y;
-				transform[3][2] = particle.Translate.z;
+				transform[3] = {
+					particle.Translate.X,
+					particle.Translate.Y,
+					particle.Translate.Z,
+					1.0f
+				};
 
 				// Transform
 				UB_Array_RenderData_.Store(

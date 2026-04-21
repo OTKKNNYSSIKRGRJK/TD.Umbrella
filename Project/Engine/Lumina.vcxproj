@@ -102,6 +102,7 @@
     <ClCompile Include="Lumina.Main.cpp" />
     <ClCompile Include="Lumina.Main.ixx" />
     <ClCompile Include="Utils\Utils.Camera.ixx" />
+    <ClCompile Include="Utils\Utils.Color.ixx" />
     <ClCompile Include="Utils\Utils.Data.ixx" />
     <ClCompile Include="Utils\Utils.Data.Mesh.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />

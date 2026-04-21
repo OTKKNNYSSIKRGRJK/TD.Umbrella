@@ -58,9 +58,6 @@ namespace Game::Scene::Impl {
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
 		auto Initialize_(_ARGs&&...args_) -> void;
 
-		auto LoadImageTextures() -> void;
-		auto LoadMeshes() -> void;
-		auto InitializeMeshMaterials() -> void;
 		void SyncPlayEnemiesFromManager();
 
 	public:

@@ -26,8 +26,9 @@ ConstantBuffer<MATERIAL> Material : register(b0, SPACE_MATERIAL);
 PSOutput main(VSOutput input_) {
 	PSOutput output;
 	
-	float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
-	output.Diffuse = diffuseColor * Material.Color;
+	//float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
+	//output.Diffuse = diffuseColor * Material.Color;
+	output.Diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	output.Normal = float4(normalize(input_.Normal.xyz) * 0.5f + 0.5f, 1.0f);
 	
 	return output;

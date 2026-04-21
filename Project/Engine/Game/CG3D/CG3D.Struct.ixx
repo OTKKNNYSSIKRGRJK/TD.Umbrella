@@ -30,7 +30,7 @@ namespace Lumina::CG3D {
 	export class TRANSFORM {
 	public:
 		Math::F32x3 Scale;
-		Math::Versor Rotate;
+		F32x4 Rotate;
 		Math::F32x3 Translate;
 	};
 
@@ -51,7 +51,7 @@ namespace Lumina::CG3D {
 	export struct MyAnimation {
 		struct Node {
 			Animation::Curve<Math::F32x3> Scale;
-			Animation::Curve<Math::Versor> Rotate;
+			Animation::Curve<F32x4> Rotate;
 			Animation::Curve<Math::F32x3> Translate;
 		};
 
@@ -141,6 +141,7 @@ namespace Lumina::CG3D {
 		std::string Name;
 
 		std::vector<Vertex> Vertices;
+		std::vector<Lumina::U32> Indices;
 
 		std::map<std::string, JointWeightData> SkinClusterData;
 

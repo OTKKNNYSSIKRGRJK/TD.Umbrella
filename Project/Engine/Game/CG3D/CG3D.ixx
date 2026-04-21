@@ -52,9 +52,19 @@ namespace Lumina::CG3D {
 	namespace {
 		void ProcessNode(Node& node_OUT_, ASSIMP::Node const& node_IN_) {
 			auto const& transform{ node_IN_.mTransformation };
+
 			std::memcpy(&node_OUT_.Transform_Local, &transform, sizeof(F32) * 16U);
 			/// We are using row-major matrices and the ASSIMP ones are column-major.
 			node_OUT_.Transform_Local = node_OUT_.Transform_Local.Transpose();
+
+			ASSIMP::Vec3 scale{};
+			ASSIMP::Quaternion rotate{};
+			ASSIMP::Vec3 translate{};
+			transform.Decompose(scale, rotate, translate);
+			node_OUT_.Transform.Scale = { scale.x, scale.y, scale.z };
+			node_OUT_.Transform.Rotate = { rotate.x, -rotate.y, -rotate.z, rotate.w };
+			node_OUT_.Transform.Translate = { -translate.x, translate.y, translate.z };
+
 			node_OUT_.Name = node_IN_.mName.data;
 			node_OUT_.Children.reserve(node_IN_.mNumChildren);
 
@@ -63,50 +73,6 @@ namespace Lumina::CG3D {
 				std::span{ node_IN_.mChildren, node_IN_.mNumChildren }
 			) {
 				ProcessNode(node_OUT_.Children.emplace_back(), *child);
-			}
-		}
-
-		void ProcessMesh(Mesh& mesh_OUT_, ASSIMP::Mesh const& mesh_IN_) {
-			for (auto const& face : std::span{ mesh_IN_.mFaces, mesh_IN_.mNumFaces }) {
-				(face.mNumIndices == 3) ||
-				Debug::ThrowIfFalse<>{ "Faces must be triangulated!" };
-
-				U32 const indices[]{
-					face.mIndices[0],
-					face.mIndices[1],
-					face.mIndices[2]
-				};
-				for (auto idx : std::span{ indices, 3U }) {
-					auto& vert{ mesh_OUT_.Vertices.emplace_back() };
-
-					auto const& position{ mesh_IN_.mVertices[idx] };
-					/// Convert right-hand system to left-hand system by flipping sign of x-coord.
-					vert.Position = { -position.x, position.y, position.z };
-
-					auto const& normal{ mesh_IN_.mNormals[idx] };
-					/// Convert right-hand system to left-hand system by flipping sign of x-coord.
-					vert.Normal = { -normal.x, normal.y, normal.z };
-
-					auto const& texCoord0{ mesh_IN_.mTextureCoords[0][idx] };
-					vert.TexCoord = { texCoord0.x, texCoord0.y };
-				}
-			}
-			
-			mesh_OUT_.Index_Material = mesh_IN_.mMaterialIndex;
-		}
-
-		void ProcessMeshes(std::vector<Mesh>& out_, ASSIMP::Scene const& scene_) {
-			for (
-				ASSIMP::Mesh const* mesh_IN :
-				std::span{ scene_.mMeshes, scene_.mNumMeshes }
-			) {
-				(mesh_IN->HasTextureCoords(0U)) ||
-				Debug::ThrowIfFalse<>{ "Mesh has no texture coordinates!\n" };
-				(mesh_IN->HasNormals()) ||
-				Debug::ThrowIfFalse<>{ "Mesh has no normals!\n" };
-				
-				auto& mesh_OUT{ out_.emplace_back() };
-				ProcessMesh(mesh_OUT, *mesh_IN);
 			}
 		}
 
@@ -128,7 +94,7 @@ namespace Lumina::CG3D {
 		void ProcessBones(Mesh& mesh_OUT_, ASSIMP::Mesh const& mesh_IN_) {
 			for (ASSIMP::Bone const* bone_IN : std::span{ mesh_IN_.mBones, mesh_IN_.mNumBones }) {
 				std::string_view jointName{ bone_IN->mName.data };
-				JointWeightData& jointWeightData{ mesh_OUT_.SkinClusterData.at(jointName.data()) };
+				JointWeightData& jointWeightData{ mesh_OUT_.SkinClusterData[jointName.data()] };
 
 				ASSIMP::Mat4x4 bonePoseMat_IN{ bone_IN->mOffsetMatrix };
 				bonePoseMat_IN.Inverse();
@@ -146,7 +112,6 @@ namespace Lumina::CG3D {
 					)
 				};
 				jointWeightData.INV_BindPose = bonePoseMat_OUT.Inverse();
-
 				for (
 					ASSIMP::VertexWeight const& vertexWeight :
 					std::span{ bone_IN->mWeights, bone_IN->mNumWeights }
@@ -156,6 +121,47 @@ namespace Lumina::CG3D {
 						vertexWeight.mVertexId
 					);
 				}
+			}
+		}
+
+		void ProcessMesh(Mesh& mesh_OUT_, ASSIMP::Mesh const& mesh_IN_) {
+			for (Lumina::U32 idx{ 0U }; idx < mesh_IN_.mNumVertices; ++idx) {
+				auto const& position{ mesh_IN_.mVertices[idx] };
+				auto const& normal{ mesh_IN_.mNormals[idx] };
+				auto const& texCoord{ mesh_IN_.mTextureCoords[0][idx] };
+
+				auto& vert{ mesh_OUT_.Vertices.emplace_back() };
+				vert.Position = { -position.x, position.y, position.z };
+				vert.TexCoord = { texCoord.x, texCoord.y };
+				vert.Normal = { -normal.x, normal.y, normal.z };
+			}
+
+			for (auto const& face : std::span{ mesh_IN_.mFaces, mesh_IN_.mNumFaces }) {
+				(face.mNumIndices == 3) ||
+				Debug::ThrowIfFalse<>{ "Faces must be triangulated!" };
+
+				mesh_OUT_.Indices.emplace_back(face.mIndices[0]);
+				mesh_OUT_.Indices.emplace_back(face.mIndices[1]);
+				mesh_OUT_.Indices.emplace_back(face.mIndices[2]);
+			}
+
+			ProcessBones(mesh_OUT_, mesh_IN_);
+			
+			mesh_OUT_.Index_Material = mesh_IN_.mMaterialIndex;
+		}
+
+		void ProcessMeshes(std::vector<Mesh>& out_, ASSIMP::Scene const& scene_) {
+			for (
+				ASSIMP::Mesh const* mesh_IN :
+				std::span{ scene_.mMeshes, scene_.mNumMeshes }
+			) {
+				(mesh_IN->HasTextureCoords(0U)) ||
+				Debug::ThrowIfFalse<>{ "Mesh has no texture coordinates!\n" };
+				(mesh_IN->HasNormals()) ||
+				Debug::ThrowIfFalse<>{ "Mesh has no normals!\n" };
+				
+				auto& mesh_OUT{ out_.emplace_back() };
+				ProcessMesh(mesh_OUT, *mesh_IN);
 			}
 		}
 	}

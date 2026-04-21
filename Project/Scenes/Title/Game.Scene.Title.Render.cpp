@@ -40,6 +40,13 @@ namespace Game::Scene::Impl {
 			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+
+		GeometryPass_.Begin(cmdList);
+
+
 		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
 		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
 		cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
@@ -53,17 +60,13 @@ namespace Game::Scene::Impl {
 			reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW&>(SkinCluster_.InfluenceBufferView)
 		};
 		cmdList->IASetVertexBuffers(0, 2, vbvs);
-		cmdList->DrawInstanced(
-			static_cast<Lumina::U32>(Collection_.Meshes[0].Vertices.size()),
-			1U, 0U, 0U
+		cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&IBV_));
+		cmdList->DrawIndexedInstanced(
+			static_cast<Lumina::U32>(Collection_.Meshes[0].Indices.size()),
+			1U, 0U, 0U, 0U
 		);
 
-		GeometryPass_.Begin(cmdList);
 		GeometryPass_.End();
-
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(

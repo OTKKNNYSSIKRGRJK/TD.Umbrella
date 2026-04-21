@@ -64,8 +64,8 @@ namespace Game::Scene::Impl {
 				
 				// uvCheckerは1番目に読み込まれるだからIDは0
 				{ "uvChecker", "Assets/Img/uvChecker.png" },
-				// Diff2は2番目だからIDは1
-				{ "Diff2", "Assets/Img/Diff2.png" },
+				// Particlesは2番目だからIDは1
+				{ "Particles", "Assets/Img/Particles.png" },
 			}
 		);
 
@@ -431,14 +431,6 @@ namespace Game::Scene::Impl {
 		MergePass_.DepthStencil().StencilBeginningEvent().NoAccess();
 		MergePass_.DepthStencil().StencilEndingEvent().NoAccess();
 
-		Terrain_ = std::make_unique<TerrainShapeCollection>();
-
-		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
-		TerrainRenderer_->Initialize();
-		TerrainEditor_->SetShapes(*Terrain_);
-		TerrainEditor_->SetCamera(*Camera_);
-		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
-
 		PrimitiveManager_ = std::make_unique<Lumina::PrimitiveManager>();
 		PrimitiveManager_->Initialize(d3d12Context);
 
@@ -479,6 +471,9 @@ namespace Game::Scene::Impl {
 		#if defined(_DEBUG)
 		TerrainEditor_ = std::make_unique<TerrainEditor>();
 		TerrainEditor_->Initialize();
+		TerrainEditor_->SetShapes(*Terrain_);
+		TerrainEditor_->SetCamera(*Camera_);
+		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 
@@ -591,6 +586,12 @@ namespace Game::Scene::Impl {
 		Initialize_<"Player">();
 		Initialize_<"Lighting">(d3d12Context);
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
+
+		Terrain_ = std::make_unique<TerrainShapeCollection>();
+		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));
+
+		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
+		TerrainRenderer_->Initialize();
 
 		Initialize_<"[Debug]">();
 	}

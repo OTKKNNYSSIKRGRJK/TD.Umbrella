@@ -64,6 +64,10 @@ VSOutput main(in VSInput vsIN_) {
 	VSOutput vsOUT;
 	
 	ApplySkinning(vsOUT, vsIN_);
+	//vsOUT.Pos = mul(float4(vsIN_.Pos, 1.0f), WVP);
+	//vsOUT.WorldPos = vsOUT.Pos;
+	//vsOUT.Normal = mul(vsIN_.Normal, (float3x3) TR_INV_World);
+	
 	vsOUT.TexCoord = vsIN_.TexCoord;
 	
 	return vsOUT;
