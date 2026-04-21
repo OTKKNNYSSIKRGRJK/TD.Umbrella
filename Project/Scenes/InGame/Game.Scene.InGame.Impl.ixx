@@ -14,6 +14,7 @@ import Game.Editor.ActorEditor;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
+import Lumina.Core.String;
 import Lumina.Utils.Data;
 import Lumina.D3D12;
 import Lumina.MeshManager;
@@ -21,6 +22,8 @@ import Lumina.MeshManager;
 import Game.Terrain;
 import Lumina.Utils.Camera;
 import Lumina.Primitive;
+import Lumina.DeferredLighting;
+import ParticleSystem;
 
 import Game.Player;
 import CollisionManager;
@@ -40,6 +43,10 @@ namespace Game::Scene::Impl {
 		void Lose(typename ArgTypes const&...args_);
 
 	private:
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Update_(_ARGs&&...args_) -> void;
+
+	private:
 		void Render_Geometry();
 		void Render_Merge();
 
@@ -48,6 +55,9 @@ namespace Game::Scene::Impl {
 		void Render();
 
 	private:
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Initialize_(_ARGs&&...args_) -> void;
+
 		auto LoadImageTextures() -> void;
 		auto LoadMeshes() -> void;
 		auto InitializeMeshMaterials() -> void;
@@ -160,6 +170,21 @@ namespace Game::Scene::Impl {
 		void DrawPlayMode();
 #endif
 
+		/// パーティクル・ライティング
+
 	private:
+		std::unique_ptr<Lumina::DeferredLighting> DeferredLighting_;
+		Lumina::List<Lumina::PointLight> List_PointLight_;
+		Lumina::List<Lumina::Math::F32x4x4<>> List_LocalToWorld_LightSphere_;
+		std::vector<Lumina::U32> Arr_Index_ActivePointLight_;
+
+		Lumina::D3D12::RootSignature RS_ParticleSystem_;
+		Lumina::D3D12::Shader VS_BasicParticle_;
+		Lumina::D3D12::Shader PS_BasicParticle_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_BasicParticle_AdditiveMode_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> AmbientSparkles_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
+
 	};
 }

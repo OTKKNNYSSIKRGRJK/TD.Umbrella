@@ -33,6 +33,7 @@
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
     <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Impl.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Initialize.cpp" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.ixx" />

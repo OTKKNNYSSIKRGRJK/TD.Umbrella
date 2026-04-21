@@ -94,6 +94,12 @@
     <ClCompile Include="Game\CG3D\CG3D.Animation.ixx">
       <Filter>Game\CG3D</Filter>
     </ClCompile>
+    <ClCompile Include="Game\DeferredLighting.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\DeferredLighting.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

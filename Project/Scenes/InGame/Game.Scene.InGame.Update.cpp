@@ -10,6 +10,7 @@ import <string>;
 import Lumina.Utils.ImGui;
 #endif
 
+import Lumina.Core.Math;
 import Lumina.Main;
 import Lumina.OS.Windows.RawInput;
 import Lumina.Utils.Data;
@@ -213,17 +214,25 @@ namespace Game::Scene::Impl {
 	}
 #endif
 
-	void InGame::Update() {
+	template<>
+	void InGame::Update_<"Player">() {
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
 		playState_.Player.Position.Y = Player_->GetPosition().Y;
 		playState_.Player.Position.Z = Player_->GetPosition().Z;
+	}
 
-		Game::EnemyManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
+	template<>
+	void InGame::Update_<"Enemies-1">(Lumina::F32&& deltaTime_) {
+		Game::EnemyManager::GetInstance()->Update(
+			deltaTime_,
+			Player_->GetPosition()
+		);
+	}
 
-		// Collision の更新処理↓↓↓
-		
+	template<>
+	void InGame::Update_<"Collision">() {
 		// 中身をclear
 		CollisionManager_->Begin();
 
@@ -246,11 +255,12 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-
-
 		// Check!
 		CollisionManager_->CheckAllCollisions();
+	}
 
+	template<>
+	void InGame::Update_<"Enemies-2">() {
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
 		playState_.Enemies.clear();
 		playState_.Enemies.reserve(enemyInstances.size());
@@ -265,15 +275,24 @@ namespace Game::Scene::Impl {
 			pe.Scale = inst.modelScale;
 			playState_.Enemies.push_back(std::move(pe));
 		}
+	}
 
+	template<>
+	void InGame::Update_<"[Debug] TerrainEditor">() {
+		#if defined(_DEBUG)
 		//TerrainEditor_->Update();
+		#endif
+	}
 
+	template<>
+	void InGame::Update_<"[Debug] Area">() {
 		#if defined(_DEBUG)
 		// エリアの移動処理
 		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
 			if (playState_.TransitionCooldownTimer > 0.0f) {
 				playState_.TransitionCooldownTimer -= 1.0f / 60.0f;
-			} else {
+			}
+			else {
 				auto const& pos = playState_.Player.Position;
 				auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
 				auto const& keyboard{ inputMngr.Keyboard() };
@@ -282,7 +301,7 @@ namespace Game::Scene::Impl {
 				for (const auto& conn : playState_.CurrentArea.connections) {
 					if (std::abs(pos.X - conn.position.x) <= 1.5f &&
 						std::abs(pos.Y - conn.position.y) <= 1.5f) {
-						
+
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
 							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
@@ -292,7 +311,12 @@ namespace Game::Scene::Impl {
 				}
 			}
 		}
+		#endif
+	}
 
+	template<>
+	void InGame::Update_<"Camera">() {
+		#if defined(_DEBUG)
 		ImGui::Begin("Camera");
 		static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
@@ -324,13 +348,330 @@ namespace Game::Scene::Impl {
 		}
 		Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 
+		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
 			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
 		}
 		else {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		}
+		#else
+		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		#endif
+	}
 
+	/*
+	template<>
+	void InGame::Update_<"Particles">() {
+		// Player effects
+		{
+			static float playerEffectTimeFactor{ 0.0f };
+			playerEffectTimeFactor += 0.5f;
+
+			auto rgb_Gaming = Lumina::Utils::Color::Convert(
+				Lumina::Utils::Color::HSV{
+					rndEngine() * Inv_0xFFFFFFFF * 60.0f +
+					playerEffectTimeFactor +
+					playerEffectTimeFactor * 0.1f * 180.0f * std::numbers::inv_pi_v<float>,
+					rndEngine() * Inv_0xFFFFFFFF * 0.3f + 0.5f,
+					0.95f
+				}
+			);
+
+			for (int i = 0; i < 2; ++i) {
+				Particle p{};
+				{
+					p.Translate = {
+						std::cos(playerEffectTimeFactor * 0.3f + i * 3.6f) * 1.5f,
+						std::sin(playerEffectTimeFactor * 0.4f * i) * 1.0f,
+						std::sin(playerEffectTimeFactor * 0.5f - i * 1.2f) * 1.5f
+					};
+
+					p.Velocity.x = p.Translate.z * (-0.05f);
+					p.Velocity.z = p.Translate.x * (-0.05f);
+
+					p.Translate.x += Player_->ModelTranslate().x;
+					p.Translate.y += Player_->ModelTranslate().y;
+					p.Translate.z += Player_->ModelTranslate().z;
+
+					p.Scale.x = 0.7f;
+					p.Scale.y = 0.7f;
+
+					p.Rotate.z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+
+					p.Life = 64.0f;
+
+					p.RenderData.RGBA = {
+						rgb_Gaming.R + rndEngine() * Inv_0xFFFFFFFF * 0.1f,
+						rgb_Gaming.G + rndEngine() * Inv_0xFFFFFFFF * 0.1f,
+						rgb_Gaming.B,
+						0.15f
+					};
+					p.RenderData.DiffuseID = 0U;
+					p.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
+					PlayerEffects_->Emit(std::move(p));
+				}
+			}
+
+			if (PlayerJumpEffectEmitFrameCount > 0) {
+				for (int i = 0; i < 2; ++i) {
+					Particle p_Jump{};
+					{
+						p_Jump.Translate = {
+							std::cos(playerEffectTimeFactor * 1.6f + std::numbers::pi_v<float> *i) * 0.5f,
+							std::sin(playerEffectTimeFactor * 0.8f) * 0.1f,
+							std::sin(playerEffectTimeFactor * 1.6f + std::numbers::pi_v<float> *i) * 0.5f
+						};
+
+						p_Jump.Velocity.x = p_Jump.Translate.z * (-0.05f);
+						p_Jump.Velocity.z = p_Jump.Translate.x * (-0.05f);
+
+						p_Jump.Translate.x += Player_->ModelTranslate().x;
+						p_Jump.Translate.y += Player_->ModelTranslate().y - 1.0f;
+						p_Jump.Translate.z += Player_->ModelTranslate().z;
+
+						p_Jump.Scale.x = 1.0f;
+						p_Jump.Scale.y = 1.0f;
+
+						p_Jump.Rotate.z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+
+						p_Jump.Life = 32.0f;
+
+						p_Jump.RenderData.RGBA = {
+							0.1f + rgb_Gaming.R + rndEngine() * Inv_0xFFFFFFFF * 0.05f,
+							0.1f + rgb_Gaming.G + rndEngine() * Inv_0xFFFFFFFF * 0.05f,
+							0.1f + rgb_Gaming.B + rndEngine() * Inv_0xFFFFFFFF * 0.05f,
+							1.0f
+						};
+						p_Jump.RenderData.DiffuseID = 0U;
+						p_Jump.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
+						PlayerEffects_->Emit(std::move(p_Jump));
+					}
+				}
+				--PlayerJumpEffectEmitFrameCount;
+			}
+
+			if (PlayerDashEffectEmitFrameCount > 0) {
+				float const cos_Theta{ std::cos(Player_->Angle()) };
+				float const sin_Theta{ std::sin(Player_->Angle()) };
+
+				for (int i = 0; i < 2; ++i) {
+					Particle p_Dash{};
+					{
+						p_Dash.Translate = {
+							std::cos(playerEffectTimeFactor * 2.4f + std::numbers::pi_v<float> *i) * 0.2f +
+							cos_Theta * 0.9f,
+							std::sin(playerEffectTimeFactor * 0.8f) * 0.1f,
+							std::sin(playerEffectTimeFactor * 2.4f + std::numbers::pi_v<float> *i) * 0.2f +
+							sin_Theta * 0.9f
+						};
+
+						p_Dash.Velocity.x = p_Dash.Translate.x * (-0.1f);
+						p_Dash.Velocity.z = p_Dash.Translate.z * (-0.1f);
+
+						p_Dash.Translate.x += Player_->ModelTranslate().x;
+						p_Dash.Translate.y += Player_->ModelTranslate().y;
+						p_Dash.Translate.z += Player_->ModelTranslate().z;
+
+						p_Dash.Scale.x = 3.0f;
+						p_Dash.Scale.y = 3.0f;
+
+						p_Dash.Rotate.z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+
+						p_Dash.Life = 32.0f;
+
+						p_Dash.RenderData.RGBA = {
+							0.1f + rgb_Gaming.R,
+							0.1f + rgb_Gaming.G,
+							0.1f + rgb_Gaming.B,
+							0.5f
+						};
+						p_Dash.RenderData.DiffuseID = 0U;
+						p_Dash.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
+						PlayerEffects_->Emit(std::move(p_Dash));
+					}
+				}
+				--PlayerDashEffectEmitFrameCount;
+			}
+			PlayerEffects_->Update(cmdList_, viewToWorld, UpdatePlayerEffect);
+		}
+
+		// Ambient sparkles
+		{
+			static float sparkleTimeFactor{ 0.0f };
+			sparkleTimeFactor += 0.75f;
+
+			float const spawnPosRad = rndEngine() * Inv_0xFFFFFFFF * 100.0f;
+			float const spawnPosTheta = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+			float const x{ spawnPosRad * std::cos(spawnPosTheta) };
+			float const z{ spawnPosRad * std::sin(spawnPosTheta) };
+			if (std::abs(x) < 40.0f && std::abs(z) < 40.0f) {
+				Particle sparkle{};
+				sparkle.Translate = {
+					x,
+					rndEngine() * Inv_0xFFFFFFFF * 2.0f,
+					z
+				};
+				sparkle.Scale.x = 1.0f;
+				sparkle.Scale.y = 1.0f;
+				sparkle.Life = 60.0f;
+				auto rgb = Lumina::Utils::Color::Convert(
+					Lumina::Utils::Color::HSV{
+						rndEngine() * Inv_0xFFFFFFFF * 45.0f,
+						rndEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
+						0.75f
+					}
+				);
+				auto rgb_Gaming = Lumina::Utils::Color::Convert(
+					Lumina::Utils::Color::HSV{
+						rndEngine() * Inv_0xFFFFFFFF * 45.0f +
+						sparkleTimeFactor +
+						spawnPosTheta * 180.0f * std::numbers::inv_pi_v<float>,
+						rndEngine() * Inv_0xFFFFFFFF * 0.3f + 0.5f,
+						0.95f
+					}
+				);
+				sparkle.RenderData.RGBA = {
+					rgb.R * (0.7f + rgb_Gaming.R * 0.3f),
+					rgb.G * (0.7f + rgb_Gaming.G * 0.3f),
+					rgb.B * (0.7f + rgb_Gaming.B * 0.3f),
+					0.0f
+				};
+				sparkle.RenderData.DiffuseID = 0U;
+				sparkle.RenderData.DiffuseAtlasID = 5U;
+				AmbientSparkles_->Emit(std::move(sparkle));
+			}
+
+			AmbientSparkles_->Update(cmdList_, viewToWorld, UpdateAmbientSparkle);
+		}
+
+		KnockEffects_->Update(cmdList_, viewToWorld, UpdateKnockEffect);
+	}
+	*/
+
+	template<>
+	void InGame::Update_<"Lighting">() {
+		List_PointLight_.Clear();
+		List_LocalToWorld_LightSphere_.Clear();
+
+		using ParticleListIterator = Lumina::List<Lumina::Particle>::Iterator;
+
+		auto makePointLightBasedOnParticle{
+			[this] (
+				Lumina::Particle const& particle_,
+				Lumina::F32 intensity_
+			) -> Lumina::PointLight& {
+				auto& pointLight{ List_PointLight_.New() };
+
+				pointLight.WorldPosition = {
+					particle_.Translate.X,
+					particle_.Translate.Y,
+					particle_.Translate.Z,
+					1.0f
+				};
+				pointLight.RGB = {
+					particle_.RenderData.RGBA.X,
+					particle_.RenderData.RGBA.Y,
+					particle_.RenderData.RGBA.Z
+				};
+				pointLight.Intensity = particle_.Scale.X * intensity_;
+				
+				return pointLight;
+			}
+		};
+
+		auto makeLightSphereTransform{
+			[this] (
+				Lumina::PointLight const& pointLight_,
+				Lumina::F32 inv_Threshold_ = 1024.0f,
+				Lumina::F32 factor_MaxComp_intensity_ = 0.5f,
+				Lumina::F32 factor_Constant_ = 1.0f,
+				Lumina::F32 factor_Linear_ = 1.0f,
+				Lumina::F32 factor_Quadratic_ = 0.5f
+			) -> void {
+				auto& lightSphere{ List_LocalToWorld_LightSphere_.New() };
+
+				Lumina::F32 const radius{
+					Lumina::LightSphereRadius(
+						inv_Threshold_,
+						pointLight_.Intensity * factor_MaxComp_intensity_,
+						factor_Constant_,
+						factor_Linear_,
+						factor_Quadratic_
+					)
+				};
+				lightSphere = {
+					radius, 0.0f, 0.0f, 0.0f,
+					0.0f, radius, 0.0f, 0.0f,
+					0.0f, 0.0f, radius, 0.0f,
+					pointLight_.WorldPosition.X,
+					pointLight_.WorldPosition.Y,
+					pointLight_.WorldPosition.Z,
+					1.0f,
+				};
+			}
+		};
+
+		ParticleListIterator it_KnockEffect{ KnockEffects_->InstanceList() };
+		for (it_KnockEffect.Begin(); !it_KnockEffect.End(); it_KnockEffect.Next()) {
+			auto const& knockEffect{ *it_KnockEffect };
+
+			if (!List_PointLight_.IsFull()) {
+				auto& pointLight{
+					makePointLightBasedOnParticle(
+						knockEffect,
+						knockEffect.Scale.X * 30.0f
+					)
+				};
+				makeLightSphereTransform(pointLight);
+			}
+		}
+
+		ParticleListIterator it_PlayerEffect{ PlayerEffects_->InstanceList() };
+		for (it_PlayerEffect.Begin(); !it_PlayerEffect.End(); it_PlayerEffect.Next()) {
+			auto const& playerEffect{ *it_PlayerEffect };
+
+			if (!List_PointLight_.IsFull() && (playerEffect.RenderData.DiffuseAtlasID == 4U)) {
+				auto& pointLight{
+					makePointLightBasedOnParticle(
+						playerEffect,
+						playerEffect.RenderData.RGBA.W * 100.0f
+					)
+				};
+				makeLightSphereTransform(pointLight);
+			}
+		}
+
+		ParticleListIterator it_Sparkle{ AmbientSparkles_->InstanceList() };
+		for (it_Sparkle.Begin(); !it_Sparkle.End(); it_Sparkle.Next()) {
+			auto const& sparkle{ *it_Sparkle };
+
+			if (!List_PointLight_.IsFull()) {
+				auto& pointLight{
+					makePointLightBasedOnParticle(
+						sparkle,
+						sparkle.RenderData.RGBA.W * 400.0f
+					)
+				};
+				makeLightSphereTransform(pointLight, 1024.0f, 1.0f, 1.0f, 1.0f, 0.5f);
+			}
+		}
+
+		Arr_Index_ActivePointLight_.clear();
+		Lumina::List<Lumina::PointLight>::Iterator it_Light{ List_PointLight_ };
+		for (it_Light.Begin(); !it_Light.End(); it_Light.Next()) {
+			Arr_Index_ActivePointLight_.emplace_back(it_Light.Index());
+		}
+
+		DeferredLighting_->Update(
+			List_PointLight_,
+			List_LocalToWorld_LightSphere_,
+			Arr_Index_ActivePointLight_
+		);
+	}
+
+	template<>
+	void InGame::Update_<"[Debug] Editor">() {
 		#if defined(_DEBUG)
 		// メインメニューバー: エディタ切り替え
 		if (ImGui::BeginMainMenuBar()) {
@@ -408,12 +749,17 @@ namespace Game::Scene::Impl {
 			break;
 		}
 		#endif
+	}
 
+	template<>
+	void InGame::Update_<"[Debug] Manual">() {
+		#if defined(_DEBUG)
 		ImGui::Begin("Manual");
 
 		ImGui::Text("Enter Key or GamePad Start : Player Respawn");
 
-		auto const& pad = inputMngr.Pad();
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		auto const& pad{ inputMngr.Pad() };
 		auto textColor = [](bool cond_) -> ImVec4 {
 			if (cond_) {
 				return ImVec4{ 1.0f, 0.3f, 0.3f, 1.0f };
@@ -575,11 +921,19 @@ namespace Game::Scene::Impl {
 			}
 		}
 		ImGui::End();
+		#endif
 	}
-}
 
-namespace Game::Scene {
 	void InGame::Update() {
-		Impl_->Update();
+		Update_<"Player">();
+		Update_<"Enemies-1">(1.0f / 60.0f);
+		Update_<"Collision">();
+		Update_<"Enemies-2">();
+		Update_<"[Debug] TerrainEditor">();
+		Update_<"[Debug] Area">();
+		Update_<"Camera">();
+		Update_<"Lighting">();
+		Update_<"[Debug] Editor">();
+		Update_<"[Debug] Manual">();
 	}
 }

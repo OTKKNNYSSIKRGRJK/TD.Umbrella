@@ -253,6 +253,9 @@
     <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Initialize.cpp">
       <Filter>Scenes\Title-InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

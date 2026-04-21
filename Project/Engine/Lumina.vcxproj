@@ -83,6 +83,8 @@
     <ClCompile Include="Game\CG3D\CG3D.ASSIMP.ixx" />
     <ClCompile Include="Game\CG3D\CG3D.ixx" />
     <ClCompile Include="Game\CG3D\CG3D.Struct.ixx" />
+    <ClCompile Include="Game\DeferredLighting.cpp" />
+    <ClCompile Include="Game\DeferredLighting.ixx" />
     <ClCompile Include="Game\EventSystem.cpp" />
     <ClCompile Include="Game\EventSystem.ixx" />
     <ClCompile Include="Game\MeshManager.cpp" />
