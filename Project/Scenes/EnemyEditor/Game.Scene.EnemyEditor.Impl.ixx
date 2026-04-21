@@ -28,6 +28,13 @@ export namespace Game::Editor {
 		std::string boundMotion = "";
 		int boundMotionNodeIndex = -1;
 		std::string boundBool = "";
+
+		bool facePlayer = false;
+		float velocityFrictionX = 1.0f;
+		float jumpVelocityXMult = 0.0f;
+		float jumpVelocityY = 0.0f;
+		std::string splineMotionName = "";
+		float splineDuration = 1.0f;
 	};
 
 	struct Link {

@@ -62,10 +62,10 @@
     "enemies": [
         {
             "enemyName": "Slime",
-            "facingRight": true,
+            "facingRight": false,
             "position": {
-                "x": 1500.0,
-                "y": 450.0
+                "x": 1452.0,
+                "y": 244.0
             },
             "sizeCategory": 1
         }

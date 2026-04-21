@@ -37,7 +37,13 @@ namespace Game::Editor {
 			{"animationName", n.animationName},
 			{"boundMotion", n.boundMotion},
 			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
-			{"boundBool", n.boundBool}
+			{"boundBool", n.boundBool},
+			{"facePlayer", n.facePlayer},
+			{"velocityFrictionX", n.velocityFrictionX},
+			{"jumpVelocityXMult", n.jumpVelocityXMult},
+			{"jumpVelocityY", n.jumpVelocityY},
+			{"splineMotionName", n.splineMotionName},
+			{"splineDuration", n.splineDuration}
 		};
 	}
 	void from_json(const json& j, Node& n) {
@@ -50,6 +56,13 @@ namespace Game::Editor {
 		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
+		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
+		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
+		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
+		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
 
 		// migration: if user previously put "BOOL:Attack" in animationName
 		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {

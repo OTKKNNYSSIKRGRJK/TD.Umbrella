@@ -116,7 +116,12 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
         // one-shot mode: invoke when motion starts on the node (handled above on change). No-op here.
     }
 
+    Vector3 startOffset = MathUtils::Spline::GetPointSpline(motionData, 0.0f);
     Vector3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
+    localOffset.X -= startOffset.X;
+    localOffset.Y -= startOffset.Y;
+    localOffset.Z -= startOffset.Z;
+
 	localOffset.Y *= -1.0f;
 	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
 

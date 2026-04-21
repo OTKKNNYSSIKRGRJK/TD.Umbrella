@@ -226,6 +226,7 @@ export namespace Game {
 
 		// --- アニメーション ---
 		std::string currentAction = "Idle";            // 現在のアクション名
+		::MotionController motionController{};
 
 		// --- 当たり判定（凸包分割された複数のConvexCollider） ---
 		std::vector<std::unique_ptr<ConvexCollider>> colliders;

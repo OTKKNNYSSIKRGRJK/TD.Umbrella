@@ -199,6 +199,13 @@ namespace {
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
 
+		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
+		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
+		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
+		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
+		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
+
 		// Backwards-compat migration:
 		// Older editor versions stored a node-level boolean trigger in `animationName`
 		// as the literal string "BOOL:Name". On load we convert that into the
@@ -830,10 +837,12 @@ namespace Game {
 			}
 
 			// --- AI 状態遷移 ---
-			switch (enemy.aiState) {
-			case EnemyInstance::AIState::Idle:
-				enemy.currentAction = "Idle";
-				enemy.velocity.X *= 0.9f;
+			// ノード（JSONステート）が定義されている場合はレガシーAIスイッチを無視する
+			if (enemy.baseData.nodes.empty()) {
+				switch (enemy.aiState) {
+				case EnemyInstance::AIState::Idle:
+					enemy.currentAction = "Idle";
+					enemy.velocity.X *= 0.9f;
 				// 索敵範囲にプレイヤーが入った場合
 				if (dist < enemy.baseData.aggroRadius) {
 					if (enemy.baseData.aggressiveness > 0.0f) {
@@ -946,7 +955,8 @@ namespace Game {
 					enemy.aiState = EnemyInstance::AIState::Idle;
 				}
 				break;
-			}
+				} // end switch(enemy.aiState)
+			} // end if(enemy.baseData.nodes.empty())
 
 			// --- 状態タイマー更新 ---
 			enemy.stateTimer += deltaTime;
@@ -973,7 +983,6 @@ namespace Game {
 				// リンク条件を評価して遷移
 				for (const auto& link : enemy.baseData.links) {
 					if (link.from != currentNodeId) continue;
-					// Time>= 条件のみ対応
 					std::string c = link.condition;
 					if (c.rfind("Time>=", 0) == 0) {
 						try {
@@ -991,7 +1000,39 @@ namespace Game {
 							}
 						} catch (...) {}
 					}
-					else if (c == "Always") {
+					else if (c.find("Dist<=") != std::string::npos) {
+						try {
+							size_t pos = c.find("Dist<=");
+							float threshold = std::stof(c.substr(pos + 6));
+							if (dist <= threshold) {
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c.find("Dist>") != std::string::npos) {
+						try {
+							size_t pos = c.find("Dist>");
+							float threshold = std::stof(c.substr(pos + 5));
+							if (dist > threshold) {
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c.find("Always") != std::string::npos) {
 						for (const auto& n : enemy.baseData.nodes) {
 							if (n.id == link.to) {
 								enemy.currentAction = n.state;
@@ -1003,32 +1044,59 @@ namespace Game {
 					}
 				}
 
-				// --- ステートに応じた物理挙動 ---
-				if (enemy.currentAction == "Idle") {
-					// 止まる
-					enemy.velocity.X *= 0.85f;
-				}
-				else if (enemy.currentAction == "FacePlayer") {
-					// プレイヤーのほうを向く
-					enemy.facingRight = (dx > 0.0f);
-					enemy.velocity.X *= 0.85f;
-				}
-				else if (enemy.currentAction == "Squash") {
-					// ジャンプ前のため（しゃがみ）— 止まったまま
-					enemy.velocity.X *= 0.5f;
-				}
-				else if (enemy.currentAction == "Hop") {
-					// はねる: ステート突入時にジャンプ力を付与
-					if (enemy.stateTimer < deltaTime * 1.5f) {
-						float hopDir = (dx > 0.0f) ? 1.0f : -1.0f;
-						enemy.velocity.X = hopDir * enemy.baseData.moveSpeed * 1.8f;
-						enemy.velocity.Y = 7.0f;
+				// ステート遷移が発生した場合はその場で currentNodeId を更新する
+				if (enemy.stateTimer == 0.0f) {
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.state == enemy.currentAction) {
+							currentNodeId = n.id;
+							break;
+						}
 					}
-					// 空中では横速度を維持
 				}
-				else if (enemy.currentAction == "Landing") {
-					// 着地硬直
-					enemy.velocity.X *= 0.7f;
+
+				// --- ステートに応じた物理挙動 ---
+				const Game::Editor::Node* currentNodeInfo = nullptr;
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.id == currentNodeId) {
+						currentNodeInfo = &n;
+						break;
+					}
+				}
+
+				if (currentNodeInfo) {
+					// プレイヤーのほうを向く
+					if (currentNodeInfo->facePlayer) {
+						enemy.facingRight = (dx > 0.0f);
+					}
+
+					// Spline Motionの再生開始判定（ステートに入った瞬間に再生開始）
+					// enemy.stateTimerは直前で deltaTime が足されていても、遷移した際は 0.0f が代入されている
+					if (enemy.stateTimer == 0.0f && !currentNodeInfo->splineMotionName.empty()) {
+						enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+					}
+
+					// SplineMotion再生中なら物理演算をオーバーライド
+					if (enemy.motionController.IsPlaying()) {
+						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
+						Lumina::Math::F32x3 newPos = enemy.motionController.Update(deltaTime, dir);
+						enemy.position = newPos;
+						enemy.velocity = {0.0f, 0.0f, 0.0f}; // Spline中は物理演算を無効化
+					} else {
+						// 継続的な摩擦/ブレーキ
+						enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
+
+						// ステート突入時の付加力（1フレーム目のみ付与するため approximate で判定）
+						if (enemy.stateTimer < deltaTime * 1.5f) {
+							if (currentNodeInfo->jumpVelocityXMult != 0.0f) {
+								float jumpDir = (dx > 0.0f) ? 1.0f : -1.0f;
+								enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * currentNodeInfo->jumpVelocityXMult;
+							}
+							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
+							if (currentNodeInfo->jumpVelocityY != 0.0f) {
+								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
+							}
+						}
+					}
 				}
 
 				// ステートマシンで駆動されているのでデフォルトAIを上書き
