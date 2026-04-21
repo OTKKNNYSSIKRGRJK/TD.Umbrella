@@ -50,6 +50,12 @@ namespace Game::Editor {
 		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+		// migration: if user previously put "BOOL:Attack" in animationName
+		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
+			n.boundBool = n.animationName.substr(5);
+			n.animationName.clear();
+		}
 	}
 	
 	void to_json(json& j, const Link& l) {
@@ -245,6 +251,7 @@ namespace Game::Editor {
     rt.firstNodeStarted = firstNodeStarted_;
     rt.undoStack = undoStack_;
     rt.cachedAnimationNames = cachedAnimationNames_;
+    rt.runtimeBoolFlags = runtimeBoolFlags_;
     perFileRuntimes_[filename] = std::move(rt);
     activeFileName_ = filename;
 	}
@@ -275,6 +282,7 @@ namespace Game::Editor {
         firstNodeStarted_ = rt.firstNodeStarted;
         undoStack_ = rt.undoStack;
         cachedAnimationNames_ = rt.cachedAnimationNames;
+        runtimeBoolFlags_ = rt.runtimeBoolFlags;
     } else {
         // initialize runtime for this file
         PerFileRuntime rt;
@@ -284,6 +292,7 @@ namespace Game::Editor {
         rt.transitionFlashTimer = 0.0f;
         rt.firstNodeStarted = false;
         rt.cachedAnimationNames = ExtractAnimationNames(loaded.gltfPath);
+        rt.runtimeBoolFlags.clear();
         perFileRuntimes_[fname] = rt;
         currentStateId_ = -1;
         currentStateElapsedTime_ = 0.0f;
@@ -291,6 +300,7 @@ namespace Game::Editor {
         transitionFlashTimer_ = 0.0f;
         firstNodeStarted_ = false;
         cachedAnimationNames_ = perFileRuntimes_[fname].cachedAnimationNames;
+        runtimeBoolFlags_.clear();
     }
 
     // set editing enemy reference

@@ -1292,7 +1292,7 @@ namespace Game::Editor {
 		// Draw Nodes
 		for (auto& n : editingEnemy_.nodes) {
 			ImVec2 a = ImVec2(origin.x + n.x, origin.y + n.y);
-			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 110.0f);
+			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 140.0f);
 
 			ImU32 col = MakeCol32(60, 60, 70, 220);
 			if (currentStateId_ == n.id) {
@@ -1325,10 +1325,11 @@ namespace Game::Editor {
 			ImGui::SetNextItemWidth(150.0f);
 			if (ImGui::InputText("##node_state_fb", stateBufFB, sizeof(stateBufFB))) n.state = stateBufFB;
 
+			// animationName inline combo box
 			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 66.0f));
 			ImGui::SetNextItemWidth(150.0f);
-			if (ImGui::BeginCombo("##node_anim_inline", n.animationName.empty() ? "(None)" : n.animationName.c_str())) {
-				if (ImGui::Selectable("(None)", n.animationName.empty())) n.animationName.clear();
+			if (ImGui::BeginCombo("##node_anim_inline", n.animationName.empty() ? "(none)" : n.animationName.c_str())) {
+				if (ImGui::Selectable("(none)", n.animationName.empty())) n.animationName.clear();
 				for (const auto& avail : cachedAnimationNames_) {
 					bool isSel = (n.animationName == avail);
 					if (ImGui::Selectable(avail.c_str(), isSel)) n.animationName = avail;
@@ -1336,11 +1337,74 @@ namespace Game::Editor {
 				}
 				ImGui::EndCombo();
 			}
+
+			// boundBool inline combo box
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 96.0f));
+			ImGui::SetNextItemWidth(150.0f);
+			std::vector<std::string> boolOptions;
+			boolOptions.push_back("(none)");
+			bool hasWalk = false;
+			for (const auto& nd : editingEnemy_.nodes) {
+				if (!nd.boundBool.empty()) {
+					if (nd.boundBool == "walk") hasWalk = true;
+					bool dup = false;
+					for (const auto& opt : boolOptions) { if (opt == nd.boundBool) { dup = true; break; } }
+					if (!dup) boolOptions.push_back(nd.boundBool);
+				}
+			}
+			for (const auto& l : editingEnemy_.links) {
+				if (l.condition.size() > 5 && l.condition.rfind("BOOL:", 0) == 0) {
+					std::string flag = l.condition.substr(5);
+					if (flag == "walk") hasWalk = true;
+					bool dup = false;
+					for (const auto& opt : boolOptions) { if (opt == flag) { dup = true; break; } }
+					if (!dup) boolOptions.push_back(flag);
+				}
+			}
+			for (const auto& kv : editingEnemy_.animationMap) {
+				if (kv.first.empty()) continue;
+				if (kv.first == "walk" || kv.first == "Walk") hasWalk = true;
+				bool dup = false;
+				for (const auto& opt : boolOptions) { if (opt == kv.first) { dup = true; break; } }
+				if (!dup) boolOptions.push_back(kv.first);
+			}
+			if (!hasWalk) boolOptions.push_back("walk");
+			int boolIdx = 0;
+			for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
+				if (n.boundBool == boolOptions[bi]) { boolIdx = bi; break; }
+			}
+			
+			std::string displayStr = n.boundBool.empty() ? "" : ("BOOL:" + n.boundBool);
+			char boolBuf[64];
+			strncpy_s(boolBuf, sizeof(boolBuf), displayStr.c_str(), _TRUNCATE);
+			ImGui::SetNextItemWidth(126.0f);
+			if (ImGui::InputText("##node_bool_input", boolBuf, sizeof(boolBuf))) {
+				std::string newVal = boolBuf;
+				if (newVal.rfind("BOOL:", 0) == 0) newVal = newVal.substr(5);
+				n.boundBool = newVal;
+			}
+			ImGui::SameLine(0, 4.0f);
+			ImGui::Button("v##node_bool_btn", ImVec2(20.0f, 0));
+			if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+				ImGui::OpenPopup("node_bool_popup");
+			}
+			if (ImGui::BeginPopup("node_bool_popup")) {
+				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
+					bool isSel = (bi == boolIdx);
+					std::string label = (bi == 0) ? "(none)" : ("BOOL:" + boolOptions[bi]);
+					if (ImGui::Selectable(label.c_str(), isSel)) {
+						n.boundBool = (bi == 0) ? std::string() : boolOptions[bi];
+					}
+					if (isSel) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndPopup();
+			}
+
 			ImGui::PopID();
 			ImGui::SetCursorScreenPos(prevScreenPos);
 
 			bool hovered = (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y);
-			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 96.0f);
+			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 126.0f);
 
 			if (!nodeDragActive_ && hovered && !overInline && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				nodeDragActive_ = true;
@@ -1355,8 +1419,8 @@ namespace Game::Editor {
 			}
 
 			// Ports
-			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 96.0f);
-			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 96.0f);
+			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 126.0f);
+			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 126.0f);
 			drawList->AddCircleFilled(inputPortPos, 8.0f, MakeCol32(120, 220, 140, 220));
 			drawList->AddCircleFilled(portPos, 8.0f, MakeCol32(120, 160, 255, 220));
 			drawList->AddText(ImVec2(inputPortPos.x - 5.0f, inputPortPos.y - 22.0f), MakeCol32(180, 220, 180, 255), "In");
@@ -1384,8 +1448,8 @@ namespace Game::Editor {
 				if (n.id == l.to) to = &n;
 			}
 			if (from && to) {
-				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 96.0f);
-				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 96.0f);
+				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 126.0f);
+				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 126.0f);
 				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
 
 				// Improved link hit detection
@@ -1406,7 +1470,7 @@ namespace Game::Editor {
 				int targetId = -1;
 				for (const auto& n : editingEnemy_.nodes) {
 					ImVec2 na = ImVec2(origin.x + n.x, origin.y + n.y);
-					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 110.0f);
+					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 140.0f);
 					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) { targetId = n.id; break; }
 				}
 				if (targetId != -1 && targetId != nodeEditor_linkStartId_) {
@@ -1668,13 +1732,32 @@ namespace Game::Editor {
 					std::string flag;
 					if (l.condition.size() > 5) flag = l.condition.substr(5);
 					std::vector<std::string> availBools;
+					bool hasWalk = false;
 					for (const auto& nd : editingEnemy_.nodes) {
 						if (!nd.boundBool.empty()) {
+							if (nd.boundBool == "walk" || nd.boundBool == "Walk") hasWalk = true;
 							bool dup = false;
 							for (const auto& ab : availBools) { if (ab == nd.boundBool) { dup = true; break; } }
 							if (!dup) availBools.push_back(nd.boundBool);
 						}
 					}
+					for (const auto& lk : editingEnemy_.links) {
+						if (lk.condition.size() > 5 && lk.condition.rfind("BOOL:", 0) == 0) {
+							std::string fl = lk.condition.substr(5);
+							if (fl == "walk" || fl == "Walk") hasWalk = true;
+							bool dup = false;
+							for (const auto& ab : availBools) { if (ab == fl) { dup = true; break; } }
+							if (!dup) availBools.push_back(fl);
+						}
+					}
+					for (const auto& kv : editingEnemy_.animationMap) {
+						if (kv.first.empty()) continue;
+						if (kv.first == "walk" || kv.first == "Walk") hasWalk = true;
+						bool dup = false;
+						for (const auto& ab : availBools) { if (ab == kv.first) { dup = true; break; } }
+						if (!dup) availBools.push_back(kv.first);
+					}
+					if (!hasWalk) availBools.push_back("walk");
 					std::string boolPreview = flag.empty() ? "(select flag)" : flag;
 					ImGui::SetNextItemWidth(120.0f);
 					if (ImGui::BeginCombo("##bool_flag", boolPreview.c_str())) {

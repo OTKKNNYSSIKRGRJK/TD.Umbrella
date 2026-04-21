@@ -61,12 +61,50 @@ namespace {
 				if (m.contains("splineMotionName")) m.at("splineMotionName").get_to(out.movement.splineMotionName);
 				if (m.contains("totalDuration")) m.at("totalDuration").get_to(out.movement.totalDuration);
 				if (m.contains("loopSpline")) m.at("loopSpline").get_to(out.movement.loopSpline);
+				if (m.contains("nodeTimings") && m["nodeTimings"].is_array()) {
+					for (const auto& nj : m["nodeTimings"]) {
+						Game::Editor::NodeTiming nt;
+						if (nj.contains("arrivalTime")) nj.at("arrivalTime").get_to(nt.arrivalTime);
+						if (nj.contains("easing")) nt.easing = static_cast<Game::Editor::EasingType>(nj.at("easing").get<int>());
+						out.movement.nodeTimings.push_back(nt);
+					}
+				}
 			}
 
-			// Lifecycle (lifetime)
+			// Interaction
+			if (j.contains("interaction") && j["interaction"].is_object()) {
+				const auto& ind = j["interaction"];
+				if (ind.contains("type")) out.interaction.type = static_cast<Game::Editor::InteractionType>(ind.at("type").get<int>());
+				if (ind.contains("damageValue")) ind.at("damageValue").get_to(out.interaction.damageValue);
+				if (ind.contains("pushForce")) ind.at("pushForce").get_to(out.interaction.pushForce);
+				if (ind.contains("activationTriggerID")) ind.at("activationTriggerID").get_to(out.interaction.activationTriggerID);
+			}
+
+			// Collider
+			if (j.contains("collider") && j["collider"].is_object()) {
+				const auto& c = j["collider"];
+				if (c.contains("type")) out.collider.type = static_cast<Game::Editor::ColliderType>(c.at("type").get<int>());
+				if (c.contains("sizeX")) c.at("sizeX").get_to(out.collider.sizeX);
+				if (c.contains("sizeY")) c.at("sizeY").get_to(out.collider.sizeY);
+				if (c.contains("sizeZ")) c.at("sizeZ").get_to(out.collider.sizeZ);
+				if (c.contains("collisionVertices") && c["collisionVertices"].is_array()) {
+					for (const auto& vj : c["collisionVertices"]) {
+						Game::Editor::ActorCollisionVertex v;
+						if (vj.contains("x")) vj.at("x").get_to(v.x);
+						if (vj.contains("y")) vj.at("y").get_to(v.y);
+						out.collider.collisionVertices.push_back(v);
+					}
+				}
+			}
+
+			// Lifecycle
 			if (j.contains("lifecycle") && j["lifecycle"].is_object()) {
 				const auto& l = j["lifecycle"];
+				if (l.contains("spawnTrigger")) out.lifecycle.spawnTrigger = static_cast<Game::Editor::SpawnTriggerType>(l.at("spawnTrigger").get<int>());
+				if (l.contains("spawnValue")) l.at("spawnValue").get_to(out.lifecycle.spawnValue);
+				if (l.contains("spawnEventID")) l.at("spawnEventID").get_to(out.lifecycle.spawnEventID);
 				if (l.contains("lifetime")) l.at("lifetime").get_to(out.lifecycle.lifetime);
+				if (l.contains("autoDestroyOffscreen")) l.at("autoDestroyOffscreen").get_to(out.lifecycle.autoDestroyOffscreen);
 			}
 
 			return true;

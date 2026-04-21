@@ -198,6 +198,11 @@ namespace {
 		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
+			n.boundBool = n.animationName.substr(5);
+			n.animationName.clear();
+		}
 	}
 
 	void from_json(const json& j, Game::Editor::Link& l) {

@@ -212,6 +212,7 @@ export namespace Game::Editor {
 			float transitionFlashTimer = 0.0f;
 			bool firstNodeStarted = false;
 			std::vector<EnemyData> undoStack; // keep per-file undo history
+			std::map<std::string, bool> runtimeBoolFlags; // keep per-file boolean flags
 		};
 
 		std::map<std::string, EnemyData> perFileEnemies_;
