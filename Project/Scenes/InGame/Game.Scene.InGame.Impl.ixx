@@ -62,6 +62,11 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
+		struct MeshRange {
+			size_t startIndex;
+			size_t count;
+		};
+
 		struct MeshMaterial {
 			Lumina::F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
 			Lumina::U32 ID_DiffuseMap;
@@ -88,7 +93,7 @@ namespace Game::Scene::Impl {
 		std::map<std::string, size_t> EnemyMeshIndices_;
 		std::map<std::string, size_t> EnemyMaterialIndices_;
 		std::map<std::string, uint32_t> EnemyTextureIndices_;
-		std::map<std::string, size_t> ActorMeshIndices_;  // actor名 → メッシュインデックス
+		std::map<std::string, MeshRange> ActorMeshIndices_;  // actor名 → メッシュ範囲
 		size_t CubeMeshIdx_{ 0 };
 
 		std::vector<std::pair<std::string, std::string>> AdditionalTextures_;
