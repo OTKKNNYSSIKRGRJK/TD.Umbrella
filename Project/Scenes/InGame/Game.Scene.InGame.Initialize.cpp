@@ -45,7 +45,8 @@ namespace Game::Scene::Impl {
 	}
 
 	// テクスチャ読み込み
-	auto InGame::LoadImageTextures() -> void {
+	template<>
+	auto InGame::Initialize_<"ImageTextures">() -> void {
 		// エンジン
 		auto& context{ Lumina::Context::Instance() };
 		// 画像や音声の読み込みなどを司るやつ
@@ -83,7 +84,8 @@ namespace Game::Scene::Impl {
 	}
 
 	// メッシュ読み込み
-	auto InGame::LoadMeshes() -> void {
+	template<>
+	auto InGame::Initialize_<"Meshes">() -> void {
 		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
 
 		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
@@ -207,7 +209,8 @@ namespace Game::Scene::Impl {
 	
 	// シェーダーにマテリアルを使ってもらうにはバッファとビューが必要だから
 	// ここでこいつらの下ごしらえを
-	auto InGame::InitializeMeshMaterials() -> void {
+	template<>
+	auto InGame::Initialize_<"MeshMaterials">() -> void {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
@@ -242,108 +245,9 @@ namespace Game::Scene::Impl {
 		// uint64_t offsetInBytes_: バッファ先頭からのオフセット。ここは0で大丈夫
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 	}
-	
-	template<>
-	auto InGame::Initialize_<"Lighting">(
-		Lumina::D3D12::Context const& d3d12Context_
-	) -> void {
-		DeferredLighting_ = std::make_unique<Lumina::DeferredLighting>();
-		DeferredLighting_->Initialize(d3d12Context_, 1280U, 720U);
-
-		List_PointLight_.Initialize(2048U);
-		List_LocalToWorld_LightSphere_.Initialize(2048U);
-	}
 
 	template<>
-	auto InGame::Initialize_<"Particles">(
-		Lumina::D3D12::Context const& d3d12Context_,
-		Lumina::D3D12::GraphicsDevice const& d3d12Device_
-	) -> void {
-		auto config_ParticleSystem{
-			Lumina::Utils::LoadFromFile<nlohmann::json>(
-				"Assets/Configs/ParticleSystem.json"
-			)
-		};
-		RS_ParticleSystem_.Initialize(
-			d3d12Device_,
-			Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(
-				config_ParticleSystem.at("Common RS")
-			)
-		);
-
-		d3d12Context_.Compile(
-			VS_BasicParticle_,
-			L"Assets/Shaders/BasicParticle.VS.hlsl",
-			L"vs_6_6",
-			L"main",
-			"BasicParticle.VS"
-		);
-		d3d12Context_.Compile(
-			PS_BasicParticle_,
-			L"Assets/Shaders/BasicParticle.PS.hlsl",
-			L"ps_6_6",
-			L"main",
-			"BasicParticle.PS"
-		);
-
-		Lumina::D3D12::BlendState blendState_AdditiveMode{};
-		blendState_AdditiveMode.RenderTarget[0] = {
-			.BlendEnable{ true },
-			.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
-			.DestBlend{ D3D12_BLEND_ONE },
-			.BlendOp{ D3D12_BLEND_OP_ADD },
-			.SrcBlendAlpha{ D3D12_BLEND_SRC_ALPHA },
-			.DestBlendAlpha{ D3D12_BLEND_ONE },
-			.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
-			.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
-		};
-
-		Lumina::D3D12::GraphicsPSO::InputLayout inputLayout_Particle{};
-		inputLayout_Particle.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
-		inputLayout_Particle.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
-		GraphicsPSO_BasicParticle_AdditiveMode_.Initialize(
-			d3d12Device_,
-			RS_ParticleSystem_,
-			VS_BasicParticle_,
-			PS_BasicParticle_,
-			blendState_AdditiveMode,
-			Lumina::D3D12::RasterizerState{
-				.FillMode{ D3D12_FILL_MODE_SOLID },
-				.CullMode{ D3D12_CULL_MODE_NONE },
-			},
-			Lumina::D3D12::DepthStencilState{
-				.DepthEnable{ false },
-				.StencilEnable{ false },
-			},
-			inputLayout_Particle,
-			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, },
-			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
-		);
-
-		AmbientSparkles_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		AmbientSparkles_->Initialize(d3d12Context_, 256U);
-
-		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		PlayerEffects_->Initialize(d3d12Context_, 512U);
-
-		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		KnockEffects_->Initialize(d3d12Context_, 256U);
-	}
-
-	void InGame::Initialize() {
-		auto& context{ Lumina::Context::Instance() };
-		auto const& d3d12Context{ context.D3D12Context() };
-		auto const& d3d12Device{ d3d12Context.Device() };
-
-		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
-		TerrainEditor_ = std::make_unique<TerrainEditor>();
-		TerrainEditor_->Initialize();
-
-		LoadImageTextures();
-		LoadMeshes();
-		InitializeMeshMaterials();
-
+	auto InGame::Initialize_<"Camera">() -> void {
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		Camera_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
@@ -351,15 +255,26 @@ namespace Game::Scene::Impl {
 		Camera_Player_ = std::make_unique<Lumina::Utils::Camera>();
 		Camera_Player_->LookAt({ 0.0f, 0.0f, -30.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		Camera_Player_->Perspective(0.45f, 1280.0f / 720.0f, 0.1f, 100.0f);
-		
+	}
+
+	template<>
+	auto InGame::Initialize_<"Resource, View">(
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_
+	) -> void {
 		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
-		UB_WorldToHomogeneous_.Initialize(d3d12Device, 256LLU);
-		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
-		LocalHeap_Scene_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
-		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
+		UB_WorldToHomogeneous_.Initialize(d3d12Device_, 256LLU);
+		LocalHeap_Scene_.Initialize(d3d12Device_, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
 
-		//////	//////	//////	//////	//////	//////	//////
+		UB_WorldToHomogeneous_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+	}
+
+	template<>
+	auto InGame::Initialize_<"Pipeline, Canvas, RenderPass">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
 
 		d3d12Context.Compile(
 			VS_MeshDeferredGeometry_,
@@ -408,7 +323,7 @@ namespace Game::Scene::Impl {
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
 			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM, },
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
-		);
+			);
 
 		Canvas_.AllocateTextures(2U, true);
 		Canvas_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
@@ -504,6 +419,7 @@ namespace Game::Scene::Impl {
 			GeometryPass_.RenderTarget(idx).View() = Canvas_GeometryPass_.RTV(idx);
 		}
 		GeometryPass_.DepthStencil().View() = Canvas_GeometryPass_.DSV();
+		
 
 		MergePass_.Initialize(1U, true);
 		MergePass_.RenderTarget(0).BeginningEvent().ClearTarget(
@@ -537,7 +453,10 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_CanvasTexture_.CPUHandle(1U),
 			Canvas_GeometryPass_.RenderTexture(1U)
 		);
+	}
 
+	template<>
+	auto InGame::Initialize_<"Player">() -> void {
 		Player_ = std::make_unique<Player>();
 		Player_->Initialize();
 		Player_->SetMesh(MeshShaderAssets_[0]);
@@ -553,17 +472,127 @@ namespace Game::Scene::Impl {
 		CollisionManager_ = std::make_unique<CollisionManager>();
 		ConvexColliderDebugRenderer_ = std::make_unique<ConvexColliderDebugRenderer>();
 		ConvexColliderDebugRenderer_->Initialize();
+	}
 
+	template<>
+	auto InGame::Initialize_<"[Debug]">() -> void {
+		#if defined(_DEBUG)
+		TerrainEditor_ = std::make_unique<TerrainEditor>();
+		TerrainEditor_->Initialize();
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 
-		Initialize_<"Lighting">(d3d12Context);
-		Initialize_<"Particles">(d3d12Context, d3d12Device);
-		
-#if defined(_DEBUG)
 		playState_.IsPlaying = true;
 		CheckAndLoadArea(0);
-#endif
+		#endif
+	}
+
+	template<>
+	auto InGame::Initialize_<"Lighting">(
+		Lumina::D3D12::Context const& d3d12Context_
+	) -> void {
+		DeferredLighting_ = std::make_unique<Lumina::DeferredLighting>();
+		DeferredLighting_->Initialize(d3d12Context_, 1280U, 720U);
+
+		List_PointLight_.Initialize(2048U);
+		List_LocalToWorld_LightSphere_.Initialize(2048U);
+	}
+
+	template<>
+	auto InGame::Initialize_<"Particles">(
+		Lumina::D3D12::Context const& d3d12Context_,
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_
+	) -> void {
+		auto config_ParticleSystem{
+			Lumina::Utils::LoadFromFile<nlohmann::json>(
+				"Assets/Configs/ParticleSystem.json"
+			)
+		};
+		RS_ParticleSystem_.Initialize(
+			d3d12Device_,
+			Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(
+				config_ParticleSystem.at("Common RS")
+			)
+		);
+
+		d3d12Context_.Compile(
+			VS_BasicParticle_,
+			L"Assets/Shaders/BasicParticle.VS.hlsl",
+			L"vs_6_6",
+			L"main",
+			"BasicParticle.VS"
+		);
+		d3d12Context_.Compile(
+			PS_BasicParticle_,
+			L"Assets/Shaders/BasicParticle.PS.hlsl",
+			L"ps_6_6",
+			L"main",
+			"BasicParticle.PS"
+		);
+
+		Lumina::D3D12::BlendState blendState_AdditiveMode{};
+		blendState_AdditiveMode.RenderTarget[0] = {
+			.BlendEnable{ true },
+			.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlend{ D3D12_BLEND_ONE },
+			.BlendOp{ D3D12_BLEND_OP_ADD },
+			.SrcBlendAlpha{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlendAlpha{ D3D12_BLEND_ONE },
+			.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
+			.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
+		};
+
+		Lumina::D3D12::GraphicsPSO::InputLayout inputLayout_Particle{};
+		inputLayout_Particle.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		inputLayout_Particle.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
+		GraphicsPSO_BasicParticle_AdditiveMode_.Initialize(
+			d3d12Device_,
+			RS_ParticleSystem_,
+			VS_BasicParticle_,
+			PS_BasicParticle_,
+			blendState_AdditiveMode,
+			Lumina::D3D12::RasterizerState{
+				.FillMode{ D3D12_FILL_MODE_SOLID },
+				.CullMode{ D3D12_CULL_MODE_NONE },
+			},
+			Lumina::D3D12::DepthStencilState{
+				.DepthEnable{ false },
+				.StencilEnable{ false },
+			},
+			inputLayout_Particle,
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, },
+			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
+		);
+
+		AmbientSparkles_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		AmbientSparkles_->Initialize(d3d12Context_, 256U);
+
+		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		PlayerEffects_->Initialize(d3d12Context_, 512U);
+
+		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		KnockEffects_->Initialize(d3d12Context_, 256U);
+	}
+
+	void InGame::Initialize() {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+
+		Initialize_<"ImageTextures">();
+		Initialize_<"Meshes">();
+		Initialize_<"MeshMaterials">();
+		Initialize_<"Camera">();
+		Initialize_<"Resource, View">(d3d12Device);
+		Initialize_<"Pipeline, Canvas, RenderPass">();
+		Initialize_<"Player">();
+		Initialize_<"Lighting">(d3d12Context);
+		Initialize_<"Particles">(d3d12Context, d3d12Device);
+
+		Initialize_<"[Debug]">();
 	}
 
 	InGame::InGame() = default;
