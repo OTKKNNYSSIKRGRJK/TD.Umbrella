@@ -11,6 +11,7 @@ export import : NumberSystem.Quaternion;
 export import : LinearAlgebra.Vector;
 export import : LinearAlgebra.Matrix;
 
+export import : Interpolation.Fundamental;
 export import : Interpolation.Bezier;
 
 export import : Geometry.Transformation;

@@ -267,9 +267,3 @@ namespace Game::Scene::Impl {
 		Render_Merge();
 	}
 }
-
-namespace Game::Scene {
-	void InGame::Render() {
-		Impl_->Render();
-	}
-}

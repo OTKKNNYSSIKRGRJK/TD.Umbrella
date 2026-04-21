@@ -28,6 +28,5 @@ namespace Lumina {
 	template<>
 	void SceneManager::Load<"Title">() {
 		Load<Game::Scene::Title>("Title");
-		
 	}
 }

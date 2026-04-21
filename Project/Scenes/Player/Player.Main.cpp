@@ -1,8 +1,3 @@
-module;
-
-//#include"Ground.h"
-//#include "CameraSystem.h"
-
 module Game.Player : Main;
 
 import Game.MathUtils;
@@ -10,7 +5,10 @@ import Game.MathUtils;
 import Lumina.Main;
 import Lumina.MeshManager;
 import Lumina.D3D12.Aux.View;
+import nlohmann.json;
 import Game.MathUtils;
+
+import <fstream>;
 
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
@@ -20,11 +18,81 @@ namespace {
 	using Vector3 = Lumina::Math::F32x3;
 	using Matrix4x4 = Lumina::Math::F32x4x4<>;
 	using namespace PlayerStates;
+	using json = nlohmann::json;
+}
+
+AttackData::Database LoadAttackDatabase(const std::string& filepath) {
+	AttackData::Database database;
+
+	std::ifstream file(filepath);
+	if (!file.is_open()) {
+		// エラーハンドリング
+		return database;
+	}
+
+	json j;
+	file >> j;
+
+	// "attacks" の中身をループして取り出す
+	if (j.contains("attacks")) {
+		for (auto& item : j["attacks"].items()) {
+			std::string key = item.key();
+			auto& val = item.value();
+
+			AttackData::AttackData attack;
+
+			attack.name = val.value("name", "");
+			attack.motion = val.value("motion", "");
+			attack.animationName = val.value("animation", "");
+			attack.duration = val.value("duration", 0.0f);
+			attack.damage = val.value("damage", 0.0f);
+			attack.manaCost = val.value("manaCost", 0.0f);
+
+			// 物理データ（省略されたらデフォルト値）
+			if (val.contains("physics")) {
+				attack.physics.velocityX = val["physics"].value("velocityX", 0.0f);
+				attack.physics.velocityY = val["physics"].value("velocityY", 0.0f);
+				attack.physics.gravityScale = val["physics"].value("gravityScale", 1.0f);
+			}
+
+			// 演出データ
+			if (val.contains("feel")) {
+				attack.feel.hitStop = val["feel"].value("hitStop", 0.0f);
+				attack.feel.cameraShake = val["feel"].value("cameraShake", 0.0f);
+			}
+
+			// 派生ルート配列
+			if (val.contains("branches")) {
+				for (auto& branchJson : val["branches"]) {
+					AttackData::AttackBranch branch;
+					branch.type = branchJson.value("type", "Input");
+					branch.input = branchJson.value("input", "");
+					branch.timeMin = branchJson.value("timeMin", 0.0f);
+					branch.timeMax = branchJson.value("timeMax", 999.0f);
+					branch.nextAttack = branchJson.value("nextAttack", "");
+					branch.consumeMana = branchJson.value("consumeMana", 0.0f);
+
+					if (branchJson.contains("condition")) {
+						branch.condition.minMana = branchJson["condition"].value("minMana", 0.0f);
+					}
+
+					attack.branches.push_back(branch);
+				}
+			}
+
+			// データベースに登録（キーは "NormalCombo3" など）
+			database[key] = attack;
+		}
+	}
+
+	return database;
 }
 
 void Player::Initialize() {
 
 	Position_ = { 0.0f, 10.0f, 0.0f };
+
+	attackDataBase_ = LoadAttackDatabase("Assets/Data/attacks.json");
 
 	InitializeStates();
 	InitializeComponents();
@@ -103,6 +171,9 @@ void Player::Initialize() {
 					if (this->externalVelocity_.Y < 0.0f) {
 						this->externalVelocity_.Y = 0.0f;
 					}
+					if (this->myVelocity_.Y < 0.0f) {
+						this->myVelocity_.Y = 0.0f;
+					}
 				}
 			}
 
@@ -138,9 +209,9 @@ void Player::Initialize() {
 					this->onGround_ = true;
 
 					// バウンドする
-					if (this->externalVelocity_.Y < 0.0f) {
-						this->externalVelocity_.Y = normal.Y * 4.5f; // バウンドの強さを調整
-					}
+					//if (this->externalVelocity_.Y < 0.0f) {
+					//	this->externalVelocity_.Y = normal.Y * 4.5f; // バウンドの強さを調整
+					//}
 				}
 			}
 		}
@@ -275,6 +346,8 @@ void Player::Update(float deltaTime) {
 
 	ImGui::Text("HP : %f / %f", this->status_->GetHp(), this->status_->GetMaxHp());
 	ImGui::Text("Umbrella Hp : %f", this->umbrella_->top_->GetStatusComponent().GetHp());
+	ImGui::Text("External Velocity Y : %f", this->externalVelocity_.Y);
+	ImGui::Text("My Velocity X : %f", this->myVelocity_.X);
 	if (ImGui::Button("Take Damage(Umbrella)")) {
 		this->umbrella_->top_->GetStatusComponent().TakeDamage(10.0f);
 	}
@@ -458,6 +531,8 @@ void Player::WarpToUmbrella() {
 	// 3. 飛んでいた傘を手元に戻す（アタッチし直す）
 	umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
 	umbrella_->top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+	this->externalVelocity_.Y = 0.0f;
 
 	umbrella_->top_->ChangeState(new UmbrellaStates::Attached());
 	umbrella_->top_->ChangeForm(UmbrellaForm::Closed);

@@ -107,7 +107,9 @@ namespace Lumina {
 			CmdList_->ClearRenderTargetView(rtv, clearColor, 0U, nullptr);
 
 			SceneManager::Instance().Update();
-			SceneManager::Instance().Render();
+
+			SceneManager::Instance().UpdateActive();
+			SceneManager::Instance().RenderActive();
 
 			CmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
 

@@ -58,6 +58,9 @@
     <ClCompile Include="NumberSystem\NumberSystem.Quaternion.ixx">
       <Filter>NumberSystem</Filter>
     </ClCompile>
+    <ClCompile Include="Interpolation\Interpolation.Fundamental.ixx">
+      <Filter>Interpolation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

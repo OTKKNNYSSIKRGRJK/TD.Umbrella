@@ -46,6 +46,12 @@
     <Filter Include="Game\Debug">
       <UniqueIdentifier>{20bcad73-3ac5-4431-bb01-5f4097f360a3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\Title">
+      <UniqueIdentifier>{470a2c93-db9b-485c-a183-3d3ddfa5768a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scenes\Title-InGame">
+      <UniqueIdentifier>{018979df-7ab8-4429-962c-b33f79f91a48}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -225,22 +231,52 @@
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp">
       <Filter>Game\Debug</Filter>
     </ClCompile>
+
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Update.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Impl.ixx">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Initialize.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.ixx">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Render.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.ixx">
+      <Filter>Scenes\Title-InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Render.cpp">
+      <Filter>Scenes\Title-InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Update.cpp">
+      <Filter>Scenes\Title-InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Impl.ixx">
+      <Filter>Scenes\Title-InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Initialize.cpp">
+      <Filter>Scenes\Title-InGame</Filter>
+    </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Update.cpp" />
     <ClCompile Include="Game\Game.BGMManager.ixx" />
-    <ClCompile Include="Scenes\Title\Game.Scene.Title.Impl.ixx" />
-    <ClCompile Include="Scenes\Title\Game.Scene.Title.Initialize.cpp" />
-    <ClCompile Include="Scenes\Title\Game.Scene.Title.ixx" />
-    <ClCompile Include="Scenes\Title\Game.Scene.Title.Render.cpp" />
-    <ClCompile Include="Scenes\Title\Game.Scene.Title.Update.cpp" />
     <ClCompile Include="Scenes\Result\Game.Scene.Result.Impl.ixx" />
     <ClCompile Include="Scenes\Result\Game.Scene.Result.Initialize.cpp" />
     <ClCompile Include="Scenes\Result\Game.Scene.Result.ixx" />
     <ClCompile Include="Scenes\Result\Game.Scene.Result.Render.cpp" />
     <ClCompile Include="Scenes\Result\Game.Scene.Result.Update.cpp" />
+    <ClCompile Include="Scenes\Player\PlayerAttackData.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
