@@ -199,6 +199,11 @@ namespace {
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
 
+		// Backwards-compat migration:
+		// Older editor versions stored a node-level boolean trigger in `animationName`
+		// as the literal string "BOOL:Name". On load we convert that into the
+		// dedicated `boundBool` field so runtime can evaluate it independently of
+		// `boundMotion`/`boundMotionNodeIndex`.
 		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
 			n.boundBool = n.animationName.substr(5);
 			n.animationName.clear();
@@ -336,13 +341,26 @@ namespace Game {
 		enemy.currentAction = "Idle";
 		walk_ = false;
 		motionController_.SetUseIntervalMode(true);
-    motionController_.SetNodeEventCallback([this, ePtr = &enemy](const std::string& motionName, int nodeIndex, const std::string&, bool isEntering) {
-            // Check per-node bindings on the enemy template: if any node is bound to this motion and node index,
-            // toggle the walk_ flag accordingly. This allows the editor to assign a specific motion/node as the "walk" trigger.
+		// Node event callback: when a motion/node is entered or exited the controller
+		// invokes this lambda. We scan the enemy template `nodes` for a matching
+		// `boundMotion` and `boundMotionNodeIndex`. If matched, the node's
+		// `boundBool` string is used to drive behavior (e.g. set `walk_` when the
+		// node indicates "walk", or start the "followAbove" sequence). This
+		// allows designers to bind logical flags to specific motion nodes via the
+		// editor without hard-coding behavior into motions.
+		motionController_.SetNodeEventCallback([this, ePtr = &enemy](const std::string& motionName, int nodeIndex, const std::string&, bool isEntering) {
             for (const auto& n : ePtr->baseData.nodes) {
-                if (n.boundBool == "walk" && !n.boundMotion.empty() && n.boundMotion == motionName && n.boundMotionNodeIndex == nodeIndex) {
-                    walk_ = isEntering;
-                    return;
+                if (!n.boundMotion.empty() && n.boundMotion == motionName && n.boundMotionNodeIndex == nodeIndex) {
+                    if (n.boundBool == "walk") {
+                        walk_ = isEntering;
+                        return;
+                    }
+                    if (n.boundBool == "followAbove" && isEntering) {
+                        // activate follow-above sequence
+                        this->followAboveActive_ = true;
+                        this->followTimer_ = this->followDuration_;
+                        return;
+                    }
                 }
             }
             // no binding matched: do nothing (leave previous state)
@@ -351,6 +369,23 @@ namespace Game {
 
 	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
 		(void)playerPosition;
+
+		// If follow-above is active, override movement to hover above player for duration then drop
+		if (followAboveActive_) {
+			// lock to player's X and hover at offset
+			enemy.position.X = playerPosition.X;
+			enemy.position.Y = playerPosition.Y + hoverHeight_;
+			enemy.position.Z = 0.0f;
+			followTimer_ -= deltaTime;
+			// prevent other movement
+			enemy.velocity.X = 0.0f;
+			if (followTimer_ <= 0.0f) {
+				followAboveActive_ = false;
+				// initiate drop: set downward velocity
+				enemy.velocity.Y = fallInitialVelocity_;
+			}
+			return; // skip normal update while hovering/dropping setup
+		}
 		auto attackIt = enemy.baseData.motionMap.find("Attack");
 		// Priority: play attack motion when attacking
 		if (attackIt != enemy.baseData.motionMap.end() && !attackIt->second.empty() && enemy.aiState == EnemyInstance::AIState::Attack) {
@@ -568,6 +603,43 @@ namespace Game {
 			file >> j;
 			Editor::EnemyData data;
 			from_json(j, data);
+
+			// Persist migration of legacy "BOOL:..." stored in animationName into
+			// explicit "boundBool" fields so editor/runtime do not rely on the
+			// legacy format. If any node was migrated, update the JSON on disk.
+			bool jsonChanged = false;
+			if (j.contains("nodes") && j["nodes"].is_array()) {
+				for (size_t i = 0; i < data.nodes.size() && i < j["nodes"].size(); ++i) {
+					const auto& node = data.nodes[i];
+					json& nodeJson = j["nodes"][i];
+					// If boundBool was produced by migration, ensure it's written.
+					if (!node.boundBool.empty()) {
+						if (!nodeJson.contains("boundBool") || nodeJson["boundBool"].get<std::string>() != node.boundBool) {
+							nodeJson["boundBool"] = node.boundBool;
+							jsonChanged = true;
+						}
+						// Clear legacy animationName if it contained BOOL: prefix
+						if (nodeJson.contains("animationName") && nodeJson["animationName"].is_string()) {
+							std::string anim = nodeJson["animationName"].get<std::string>();
+							if (anim.rfind("BOOL:", 0) == 0) {
+								nodeJson["animationName"] = "";
+								jsonChanged = true;
+							}
+						}
+					}
+				}
+				if (jsonChanged) {
+					// write back changes to the same file (best-effort)
+					try {
+						std::ofstream ofs(filePath, std::ios::trunc);
+						if (ofs.is_open()) {
+							ofs << j.dump(4);
+						}
+					} catch (...) {
+						// ignore write errors
+					}
+				}
+			}
 
 			// テンプレート名は EnemyData.name を使う
 			templates_[data.name] = data;
@@ -882,6 +954,8 @@ namespace Game {
 			if (enemy.behavior) {
 				enemy.behavior->Update(enemy, deltaTime, playerPosition);
 			}
+
+
 
 			// --- コライダー位置更新 ---
 			enemy.UpdateCollider();

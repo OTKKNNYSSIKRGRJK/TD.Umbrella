@@ -1113,10 +1113,33 @@ namespace Game::Editor {
 
 		// --- Runtime Bool Flags UI ---
 		{
-			// Auto-register boundBool names from all nodes
-			for (const auto& nd : editingEnemy_.nodes) {
-				if (!nd.boundBool.empty() && runtimeBoolFlags_.find(nd.boundBool) == runtimeBoolFlags_.end()) {
-					runtimeBoolFlags_[nd.boundBool] = false;
+			// Auto-register available boundBool names from nodes, links and animationMap
+			// so the runtime checkbox list shows all possible flags even if no node
+			// currently has the flag assigned.
+			{
+				std::vector<std::string> allFlags;
+				// from nodes
+				for (const auto& nd : editingEnemy_.nodes) if (!nd.boundBool.empty()) allFlags.push_back(nd.boundBool);
+				// from links (BOOL: conditions)
+				for (const auto& lk : editingEnemy_.links) {
+					if (lk.condition.rfind("BOOL:", 0) == 0 && lk.condition.size() > 5) {
+						std::string f = lk.condition.substr(5);
+						allFlags.push_back(f);
+					}
+				}
+				// from animation map keys (common action names)
+				for (const auto& kv : editingEnemy_.animationMap) {
+					if (!kv.first.empty()) allFlags.push_back(kv.first);
+				}
+				// ensure common built-in flags always exist
+				allFlags.push_back("walk");
+				allFlags.push_back("boundBool");
+				allFlags.push_back("followAbove");
+				// unique and register
+				std::sort(allFlags.begin(), allFlags.end());
+				allFlags.erase(std::unique(allFlags.begin(), allFlags.end()), allFlags.end());
+				for (const auto& f : allFlags) {
+					if (runtimeBoolFlags_.find(f) == runtimeBoolFlags_.end()) runtimeBoolFlags_[f] = false;
 				}
 			}
 			if (!runtimeBoolFlags_.empty()) {
@@ -1157,6 +1180,14 @@ namespace Game::Editor {
                 }
             }
             if (!hasWalk) boolOptions.push_back("walk");
+            bool hasBoundBool = false;
+            bool hasFollowAbove = false;
+            for (const auto& b : boolOptions) {
+                if (b == "boundBool") hasBoundBool = true;
+                if (b == "followAbove") hasFollowAbove = true;
+            }
+            if (!hasBoundBool) boolOptions.push_back("boundBool");
+            if (!hasFollowAbove) boolOptions.push_back("followAbove");
 
             // find current index
             int boolIdx = 0;
@@ -1369,6 +1400,16 @@ namespace Game::Editor {
 				if (!dup) boolOptions.push_back(kv.first);
 			}
 			if (!hasWalk) boolOptions.push_back("walk");
+			{
+				bool hasBoundBool = false;
+				bool hasFollowAbove = false;
+				for (const auto& opt : boolOptions) {
+					if (opt == "boundBool") hasBoundBool = true;
+					if (opt == "followAbove") hasFollowAbove = true;
+				}
+				if (!hasBoundBool) boolOptions.push_back("boundBool");
+				if (!hasFollowAbove) boolOptions.push_back("followAbove");
+			}
 			int boolIdx = 0;
 			for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 				if (n.boundBool == boolOptions[bi]) { boolIdx = bi; break; }
@@ -1758,6 +1799,16 @@ namespace Game::Editor {
 						if (!dup) availBools.push_back(kv.first);
 					}
 					if (!hasWalk) availBools.push_back("walk");
+					{
+						bool hasBoundBool = false;
+						bool hasFollowAbove = false;
+						for (const auto& ab : availBools) {
+							if (ab == "boundBool") hasBoundBool = true;
+							if (ab == "followAbove") hasFollowAbove = true;
+						}
+						if (!hasBoundBool) availBools.push_back("boundBool");
+						if (!hasFollowAbove) availBools.push_back("followAbove");
+					}
 					std::string boolPreview = flag.empty() ? "(select flag)" : flag;
 					ImGui::SetNextItemWidth(120.0f);
 					if (ImGui::BeginCombo("##bool_flag", boolPreview.c_str())) {

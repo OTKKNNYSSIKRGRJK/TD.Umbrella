@@ -147,7 +147,7 @@
     },
     "enemies": [
         {
-            "enemyName": "KingSlime",
+            "enemyName": "Slime",
             "facingRight": true,
             "position": {
                 "x": 560.0,

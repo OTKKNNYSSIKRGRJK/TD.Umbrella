@@ -46,6 +46,14 @@ export namespace Game {
 	private:
 		MotionController motionController_{};
 		bool walk_ = false;
+
+		// Follow-above behavior: when triggered, KingSlime will hover above the player
+		// for a short duration and then fall straight down.
+		bool followAboveActive_ = false;
+		float followTimer_ = 0.0f;
+		float followDuration_ = 0.9f; // seconds to hover above player
+		float hoverHeight_ = 3.0f; // vertical offset above player
+		float fallInitialVelocity_ = -12.0f; // initial downward velocity when dropping
 	};
 
 	/// <summary>
