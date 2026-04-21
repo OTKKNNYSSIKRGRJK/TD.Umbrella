@@ -82,6 +82,27 @@
     <ClCompile Include="Game\EventSystem.ixx">
       <Filter>Game</Filter>
     </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.ASSIMP.ixx">
+      <Filter>Game\CG3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.ixx">
+      <Filter>Game\CG3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.Struct.ixx">
+      <Filter>Game\CG3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.Animation.ixx">
+      <Filter>Game\CG3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\DeferredLighting.cpp">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\DeferredLighting.ixx">
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Utils.Color.ixx">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
@@ -101,6 +122,9 @@
     </Filter>
     <Filter Include="Utils">
       <UniqueIdentifier>{970f1451-d44f-4d63-ad0a-bb6f1f864629}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\CG3D">
+      <UniqueIdentifier>{327fb877-b353-4077-abfd-9a14ad42ed2a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

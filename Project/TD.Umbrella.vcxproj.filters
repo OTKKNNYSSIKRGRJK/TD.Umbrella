@@ -253,8 +253,11 @@
     <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Initialize.cpp">
       <Filter>Scenes\Title-InGame</Filter>
     </ClCompile>
-     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Scenes\Player\PlayerAttackData.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

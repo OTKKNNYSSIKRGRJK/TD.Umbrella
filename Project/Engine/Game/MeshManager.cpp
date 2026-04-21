@@ -262,29 +262,31 @@ namespace Lumina {
 	}
 
 	void MeshManager::Begin(D3D12::CommandList const& cmdList_) {
-			CommandList_ = cmdList_.Get();
-			CommandList_->SetGraphicsRootSignature(RS_.Get());
-			Count_UnuploadedBatches_ = 0U;
-			Count_BatchedVertices_ = 0U;
-		}
+		CommandList_ = cmdList_.Get();
+		CommandList_->SetGraphicsRootSignature(RS_.Get());
+		Count_UnuploadedBatches_ = 0U;
+		Count_BatchedVertices_ = 0U;
+	}
 
 	void MeshManager::End() {
-			Count_UnuploadedBatches_ = 0U;
-			Count_BatchedVertices_ = 0U;
+		Count_UnuploadedBatches_ = 0U;
+		Count_BatchedVertices_ = 0U;
 
-			Array_CommandArgs_.clear();
-		}
+		Array_CommandArgs_.clear();
+	}
 
 	void MeshManager::BatchBegin() {
-			D3D12_RESOURCE_BARRIER const barrier{
-				D3D12::Barrier::Transition(
-					DB_Worlds_,
-					D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-					D3D12_RESOURCE_STATE_COPY_DEST
-				)
-			};
-			CommandList_->ResourceBarrier(1U, &barrier);
-		}
+		D3D12_RESOURCE_BARRIER const barrier{
+			D3D12::Barrier::Transition(
+				DB_Worlds_,
+				D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+				D3D12_RESOURCE_STATE_COPY_DEST
+			)
+		};
+		CommandList_->ResourceBarrier(1U, &barrier);
+
+		Array_CommandArgs_.clear();
+	}
 
 	void MeshManager::Batch(
 		MeshShaderAsset const& mesh_,
