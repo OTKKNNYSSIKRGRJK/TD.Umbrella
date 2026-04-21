@@ -119,17 +119,17 @@
         },
         {
             "position": {
-                "x": 682.0,
-                "y": 636.0
-            },
-            "targetAreaIndex": 4
-        },
-        {
-            "position": {
                 "x": 62.0,
                 "y": 574.0
             },
             "targetAreaIndex": 0
+        },
+        {
+            "position": {
+                "x": 682.0,
+                "y": 636.0
+            },
+            "targetAreaIndex": 4
         }
     ],
     "editorPos": {
@@ -147,6 +147,11 @@
             "sizeCategory": 1
         }
     ],
+    "goalPosition": {
+        "x": 640.0,
+        "y": 360.0
+    },
+    "hasGoal": false,
     "height": 720,
     "index": 1,
     "name": 1,

@@ -139,6 +139,8 @@ namespace Game {
 	template<>
 	auto TerrainEditor::OutputData(nlohmann::ordered_json& output_) const -> void {
 		output_ = OriginalData_;
+		output_["width"] = CanvasSize_.X;
+		output_["height"] = CanvasSize_.Y;
 		output_["MapInfo"] = nlohmann::ordered_json::object();
 		output_["MapInfo"]["Size"] = nlohmann::ordered_json::array();
 		output_["MapInfo"]["Size"].emplace_back(CanvasSize_.X);
