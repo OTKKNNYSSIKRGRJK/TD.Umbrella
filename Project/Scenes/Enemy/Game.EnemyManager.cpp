@@ -955,7 +955,86 @@ namespace Game {
 				enemy.behavior->Update(enemy, deltaTime, playerPosition);
 			}
 
+			// --- JSON ステートマシンによる行動制御 ---
+			// ノードが定義されている敵はステートマシンで currentAction を駆動する
+			if (!enemy.baseData.nodes.empty()) {
+				// 初回: currentAction に対応するノードを探す
+				int currentNodeId = -1;
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.state == enemy.currentAction) { currentNodeId = n.id; break; }
+				}
+				// ノードが見つからなければ最初のノードから開始
+				if (currentNodeId == -1) {
+					currentNodeId = enemy.baseData.nodes.front().id;
+					enemy.currentAction = enemy.baseData.nodes.front().state;
+					enemy.stateTimer = 0.0f;
+				}
 
+				// リンク条件を評価して遷移
+				for (const auto& link : enemy.baseData.links) {
+					if (link.from != currentNodeId) continue;
+					// Time>= 条件のみ対応
+					std::string c = link.condition;
+					if (c.rfind("Time>=", 0) == 0) {
+						try {
+							float threshold = std::stof(c.substr(6));
+							if (enemy.stateTimer >= threshold) {
+								// 遷移先のノードを探す
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c == "Always") {
+						for (const auto& n : enemy.baseData.nodes) {
+							if (n.id == link.to) {
+								enemy.currentAction = n.state;
+								enemy.stateTimer = 0.0f;
+								break;
+							}
+						}
+						break;
+					}
+				}
+
+				// --- ステートに応じた物理挙動 ---
+				if (enemy.currentAction == "Idle") {
+					// 止まる
+					enemy.velocity.X *= 0.85f;
+				}
+				else if (enemy.currentAction == "FacePlayer") {
+					// プレイヤーのほうを向く
+					enemy.facingRight = (dx > 0.0f);
+					enemy.velocity.X *= 0.85f;
+				}
+				else if (enemy.currentAction == "Squash") {
+					// ジャンプ前のため（しゃがみ）— 止まったまま
+					enemy.velocity.X *= 0.5f;
+				}
+				else if (enemy.currentAction == "Hop") {
+					// はねる: ステート突入時にジャンプ力を付与
+					if (enemy.stateTimer < deltaTime * 1.5f) {
+						float hopDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = hopDir * enemy.baseData.moveSpeed * 1.8f;
+						enemy.velocity.Y = 7.0f;
+					}
+					// 空中では横速度を維持
+				}
+				else if (enemy.currentAction == "Landing") {
+					// 着地硬直
+					enemy.velocity.X *= 0.7f;
+				}
+
+				// ステートマシンで駆動されているのでデフォルトAIを上書き
+				// (Chase等に入らないようにする)
+				enemy.aiState = EnemyInstance::AIState::Idle;
+			}
 
 			// --- コライダー位置更新 ---
 			enemy.UpdateCollider();

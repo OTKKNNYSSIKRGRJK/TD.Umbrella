@@ -666,8 +666,8 @@ namespace Game::Scene::Impl {
 
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 
-		Initialize_<"ImageTextures">();
 		Initialize_<"Meshes">();
+		Initialize_<"ImageTextures">();
 		Initialize_<"MeshMaterials">();
 		Initialize_<"Camera">();
 		Initialize_<"Resource, View">(d3d12Device);
