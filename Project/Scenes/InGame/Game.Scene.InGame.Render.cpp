@@ -9,7 +9,8 @@ import Lumina.Primitive;
 import Game.MathUtils;
 
 namespace Game::Scene::Impl {
-	void InGame::Render_Geometry() {
+	template<>
+	auto InGame::Render_<"Deferred Geometry Pass">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
 
@@ -154,6 +155,11 @@ namespace Game::Scene::Impl {
 		meshMngr.End();
 	}
 
+	template<>
+	auto InGame::Render_<"Deferredd Lighting Pass">() -> void {
+
+	}
+
 	void InGame::Render_Merge() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
@@ -196,7 +202,8 @@ namespace Game::Scene::Impl {
 
 		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
-		Render_Geometry();
+		Render_<"Deferred Geometry Pass">();
+		Render_<"Deferred Lighting Pass">();
 		Render_Merge();
 	}
 }

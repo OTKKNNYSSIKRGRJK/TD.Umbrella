@@ -376,10 +376,9 @@ namespace Game::Scene::Impl {
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		#endif
 	}
-
 	
 	template<>
-	void InGame::Update_<"Particles">(
+	void InGame::Initialize_ <"Particles">(
 		Lumina::D3D12::CommandList const& cmdList_,
 		Lumina::Math::F32x4x4<> const& viewToWorld_
 	) {

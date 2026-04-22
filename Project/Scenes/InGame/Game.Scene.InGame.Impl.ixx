@@ -47,6 +47,10 @@ namespace Game::Scene::Impl {
 		auto Update_(_ARGs&&...args_) -> void;
 
 	private:
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Render_(_ARGs&&...args_) -> void;
+
+	private:
 		void Render_Geometry();
 		void Render_Merge();
 
