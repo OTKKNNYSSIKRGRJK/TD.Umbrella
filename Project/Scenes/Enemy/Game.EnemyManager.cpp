@@ -358,8 +358,15 @@ namespace Game {
 		motionController_.SetNodeEventCallback([this, ePtr = &enemy](const std::string& motionName, int nodeIndex, const std::string&, bool isEntering) {
             for (const auto& n : ePtr->baseData.nodes) {
                 if (!n.boundMotion.empty() && n.boundMotion == motionName && n.boundMotionNodeIndex == nodeIndex) {
-                    if (n.boundBool == "walk") {
-                        walk_ = isEntering;
+                    if (n.boundBool == "walk" || n.boundBool == "WALK") {
+                        this->walk_ = isEntering;
+                        if (isEntering) {
+                            float jumpDir = ePtr->facingRight ? 1.0f : -1.0f;
+                            float jumpXMult = n.jumpVelocityXMult != 0.0f ? n.jumpVelocityXMult : 1.5f;
+                            float jumpY = n.jumpVelocityY != 0.0f ? n.jumpVelocityY : 4.0f;
+                            ePtr->velocity.X = jumpDir * ePtr->baseData.moveSpeed * jumpXMult;
+                            ePtr->velocity.Y = jumpY;
+                        }
                         return;
                     }
                     if (n.boundBool == "followAbove" && isEntering) {
@@ -405,10 +412,9 @@ namespace Game {
 				: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
 			(void)motionController_.Update(deltaTime, direction);
 
-			// Motion node callbacks drive walk_ flag. During attack, if a node indicates "walk" we may want to pause horizontal movement.
-			if (walk_) {
-				enemy.velocity.X = 0.0f;
-			}
+			// Motion node callbacks drive walk_ flag.
+			// The Slime jump impulse is applied once in OnSpawn's callback when walk is triggered.
+			// Friction is handled continuously by EnemyManager::Update.
 		}
 		// If not attacking, also allow playing Walk motion so per-node boundBool events can trigger (e.g. walk flag)
 		else {
