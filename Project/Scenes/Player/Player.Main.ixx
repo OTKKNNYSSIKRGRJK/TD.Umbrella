@@ -178,6 +178,30 @@ private:
 
 	//////////////////////////////
 	///
+	///   Animationのデータ
+	/// 
+	//////////////////////////////
+public:
+	// GetAnimationDuration()：再生時間が欲しい
+
+	// GetAnimationMoving()：再生が終わったかどうかが知りたい
+
+	// PlayAnimation(std::string useAnimationName)：アニメーションをセットする関数
+	// (currentAnim_ = animDatabase_.find(useAnimationName));
+	// animTimer_ = 0.0f;
+
+	// UpdateAnimation()：設定したAnimationを流し続ける
+
+private:
+	// using AnimationDatabase = std::unoredered_map<std::string, Animation>;
+	// AnimationDatabase animDatabase_;
+
+	// Animation* currentAnim_;
+
+	// float animTimer_ = 0.0f;
+
+	//////////////////////////////
+	///
 	///   移動関係の変数
 	/// 
 	//////////////////////////////
