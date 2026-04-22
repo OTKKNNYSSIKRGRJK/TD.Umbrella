@@ -187,8 +187,8 @@ namespace Game::Editor {
 		ImGui::TextDisabled("ACTOR JSON FILES");
 		ImGui::Separator();
 		ImGui::BeginChild("ActorFileList", ImVec2(0, -40), false);
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Actor/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Actor/")) {
 				if (entry.path().extension() == ".json") {
 					std::string fName = entry.path().filename().string();
 					if (fName.find("actor_") != 0) continue;

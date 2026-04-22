@@ -120,11 +120,10 @@ namespace Game::Editor {
 		ImGui::TextDisabled("JSON FILES");
 		ImGui::Separator();
 		ImGui::BeginChild("FileList", ImVec2(0, 0), false);
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Enemy/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
 				if (entry.path().extension() == ".json") {
 					std::string fName = entry.path().filename().string();
-					if (fName.find("area") == 0) continue;
 					bool isSelected = (editingEnemy_.name + ".json" == fName);
 					if (ImGui::Selectable(fName.c_str(), isSelected)) {
 						LoadEnemy(editingEnemy_, fName);
@@ -207,8 +206,8 @@ namespace Game::Editor {
 				// actor_*.json ファイルを検索
 				std::vector<std::string> actorNames;
 				actorNames.push_back(""); // (none)
-				if (fs::exists("./")) {
-					for (const auto& entry : fs::directory_iterator("./")) {
+				if (fs::exists("Assets/Data/Actor/")) {
+					for (const auto& entry : fs::directory_iterator("Assets/Data/Actor/")) {
 						if (entry.is_regular_file() && entry.path().extension() == ".json") {
 							std::string fName = entry.path().filename().string();
 							if (fName.find("actor_") == 0 && fName.size() > 11) {
@@ -859,11 +858,10 @@ namespace Game::Editor {
 	ImGui::InputText("Filter", fileFilter, sizeof(fileFilter));
 	ImGui::Separator();
 	ImGui::BeginChild("ActionFileList", ImVec2(0, 0), false);
-	if (fs::exists("./")) {
-		for (const auto& entry : fs::directory_iterator("./")) {
+	if (fs::exists("Assets/Data/Enemy/")) {
+		for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
 			if (entry.path().extension() != ".json") continue;
 			std::string fName = entry.path().filename().string();
-			if (fName.find("area") == 0) continue;
 			if (fileFilter[0] != '\0') {
 				if (fName.find(fileFilter) == std::string::npos) continue;
 			}
@@ -907,11 +905,10 @@ namespace Game::Editor {
 	ImGui::Spacing();
 	ImGui::TextDisabled("JSON Files");
 	ImGui::BeginChild("FileListAction", ImVec2(0, 150), true);
-	if (fs::exists("./")) {
-		for (const auto& entry : fs::directory_iterator("./")) {
+	if (fs::exists("Assets/Data/Enemy/")) {
+		for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
 			if (entry.path().extension() == ".json") {
 				std::string fName = entry.path().filename().string();
-				if (fName.find("area") == 0) continue;
 				bool isSelected = (!activeFileName_.empty() && activeFileName_ == fName);
 				if (ImGui::Selectable(fName.c_str(), isSelected)) {
 					LoadEnemy(editingEnemy_, fName);

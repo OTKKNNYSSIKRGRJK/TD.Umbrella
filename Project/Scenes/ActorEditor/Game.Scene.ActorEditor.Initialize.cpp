@@ -166,7 +166,8 @@ namespace Game::Editor {
 	}
 
 	void ActorEditor::SaveActor(const ActorData& actor) {
-		std::string filename = "actor_" + actor.name + ".json";
+		fs::create_directories("Assets/Data/Actor");
+		std::string filename = "Assets/Data/Actor/actor_" + actor.name + ".json";
 		std::ofstream file(filename);
 		if (file.is_open()) {
 			json j = actor;
@@ -175,7 +176,8 @@ namespace Game::Editor {
 	}
 
 	void ActorEditor::LoadActor(ActorData& actor, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string fullPath = "Assets/Data/Actor/" + filename;
+		std::ifstream file(fullPath);
 		if (file.is_open()) {
 			json j;
 			file >> j;

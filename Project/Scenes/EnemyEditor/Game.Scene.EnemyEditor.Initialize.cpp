@@ -159,7 +159,8 @@ namespace Game::Editor {
 	}
 
 	void EnemyEditor::SaveEnemy(const EnemyData& enemy) {
-		std::string filename = enemy.name + ".json";
+		fs::create_directories("Assets/Data/Enemy");
+		std::string filename = "Assets/Data/Enemy/" + enemy.name + ".json";
 		std::ofstream file(filename);
 		if (file.is_open()) {
 			json j = enemy;
@@ -168,7 +169,8 @@ namespace Game::Editor {
 	}
 
 	void EnemyEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string fullPath = "Assets/Data/Enemy/" + filename;
+		std::ifstream file(fullPath);
 		if (file.is_open()) {
 			try {
 				json j;
@@ -247,8 +249,10 @@ namespace Game::Editor {
 	}
 
 	void EnemyActionEditor::SaveEnemy(const EnemyData& enemy) {
+    fs::create_directories("Assets/Data/Enemy");
     std::string filename = enemy.name + ".json";
-    std::ofstream file(filename);
+    std::string fullPath = "Assets/Data/Enemy/" + filename;
+    std::ofstream file(fullPath);
     if (file.is_open()) {
         json j = enemy;
         file << j.dump(4);
@@ -270,7 +274,8 @@ namespace Game::Editor {
 	}
 
 	void EnemyActionEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
-    std::ifstream file(filename);
+    std::string fullPath = "Assets/Data/Enemy/" + filename;
+    std::ifstream file(fullPath);
     EnemyData loaded;
     if (file.is_open()) {
         try {

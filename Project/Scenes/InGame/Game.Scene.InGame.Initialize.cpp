@@ -161,11 +161,10 @@ namespace Game::Scene::Impl {
 		// 敵用
 		EnemyMeshIndices_.clear();
 		namespace fs = std::filesystem;
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Enemy/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
 				if (entry.is_regular_file() && entry.path().extension() == ".json") {
 					std::string fName = entry.path().filename().string();
-					if (fName.find("area") == 0) continue; // エリアデータは除外
 					
 					Game::Editor::EnemyData ed;
 					enemyEditor_.LoadEnemy(ed, fName);
@@ -220,8 +219,8 @@ namespace Game::Scene::Impl {
 
 		// Actor用メッシュ（プロジェクタイル描画用）
 		ActorMeshIndices_.clear();
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Actor/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Actor/")) {
 				if (!entry.is_regular_file() || entry.path().extension() != ".json") continue;
 				std::string fName = entry.path().filename().string();
 				if (fName.find("actor_") != 0 || fName.size() <= 11) continue;
@@ -230,7 +229,8 @@ namespace Game::Scene::Impl {
 
 				// Actor JSON からメッシュパスを読み取る
 				try {
-					std::ifstream actorFile(fName);
+					std::string actorFullPath = "Assets/Data/Actor/" + fName;
+					std::ifstream actorFile(actorFullPath);
 					if (!actorFile.is_open()) continue;
 					nlohmann::json aj;
 					actorFile >> aj;

@@ -15,7 +15,7 @@ namespace {
 	// Actor JSON をロードするローカル関数
 	// (ActorEditor の from_json は別モジュール実装部なので直接呼べないため手動パース)
 	bool LoadActorDataFromFile(const std::string& actorName, Game::Editor::ActorData& out) {
-		std::string filename = "actor_" + actorName + ".json";
+		std::string filename = "Assets/Data/Actor/actor_" + actorName + ".json";
 		if (!fs::exists(filename)) return false;
 
 		std::ifstream file(filename);

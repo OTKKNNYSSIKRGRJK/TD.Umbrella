@@ -84,15 +84,15 @@ namespace Game::Editor {
 		// 敵JSONファイルリストをディレクトリ変更時のみ再スキャン
 		static std::filesystem::file_time_type lastScanDirTime{};
 		try {
-			auto currentDirTime = std::filesystem::last_write_time("./");
+			auto currentDirTime = std::filesystem::last_write_time("Assets/Data/Enemy/");
 			if (lastScanDirTime != currentDirTime) {
 				lastScanDirTime = currentDirTime;
 				enemyFiles_.clear();
-				for (const auto& entry : std::filesystem::directory_iterator("./")) {
+				for (const auto& entry : std::filesystem::directory_iterator("Assets/Data/Enemy/")) {
 					try {
 						if (!entry.is_regular_file()) continue;
 						std::string fName = entry.path().filename().string();
-						if (entry.path().extension() == ".json" && fName.find("area") != 0) {
+						if (entry.path().extension() == ".json") {
 							std::ifstream ifs(entry.path());
 							if (ifs.is_open()) {
 								nlohmann::json j;
