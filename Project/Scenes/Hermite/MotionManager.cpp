@@ -73,6 +73,7 @@ void MotionController::Play(const std::string& motionName, const Vector3& startP
 	motionTimer_ = 0.0f;
 	isPlaying_ = true;
 	actionStartPosition_ = startPosition;
+	lastLocalOffset_ = Vector3{};
 }
 
 Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
@@ -124,6 +125,8 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 
 	localOffset.Y *= -1.0f;
 	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
+
+	lastLocalOffset_ = localOffset;
 
 	if (motionTimer_ >= motionDuration_) {
 		isPlaying_ = false; // 再生終了

@@ -21,16 +21,12 @@
             "y": -0.4555555582046509
         },
         {
-            "x": -0.8666666746139526,
-            "y": -0.8777777552604675
+            "x": -0.08888889104127884,
+            "y": -0.9666666388511658
         },
         {
-            "x": 0.6000000238418579,
-            "y": -0.9222221970558167
-        },
-        {
-            "x": 1.2000000476837158,
-            "y": -0.5
+            "x": 1.2333333492279053,
+            "y": -0.5333333611488342
         },
         {
             "x": 0.5333333611488342,
@@ -63,7 +59,7 @@
         {
             "animationName": "",
             "boundBool": "Attack",
-            "boundMotion": "",
+            "boundMotion": "Test",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "id": 1,
@@ -93,6 +89,23 @@
             "velocityFrictionX": 1.0,
             "x": 416.0,
             "y": 53.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "Walk",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "facePlayer": false,
+            "id": 3,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "name": "State3",
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Idle",
+            "velocityFrictionX": 1.0,
+            "x": 691.0,
+            "y": 33.0
         }
     ],
     "patrolRadius": 10.0,

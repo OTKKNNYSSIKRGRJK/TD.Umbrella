@@ -795,6 +795,8 @@ namespace Game {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
 
+			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
+
 			// --- 物理挙動（重力） ---
 			enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
@@ -1084,12 +1086,42 @@ namespace Game {
 					// SplineMotion再生中なら物理演算をオーバーライド
 					if (enemy.motionController.IsPlaying()) {
 						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
-						Lumina::Math::F32x3 newPos = enemy.motionController.Update(deltaTime, dir);
-						enemy.position = newPos;
-						enemy.velocity = {0.0f, 0.0f, 0.0f}; // Spline中は物理演算を無効化
+						
+						Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
+						(void)enemy.motionController.Update(deltaTime, dir); // absolute position is unused
+						Lumina::Math::F32x3 newOffset = enemy.motionController.GetLastLocalOffset();
+						
+						Lumina::Math::F32x3 delta;
+						delta.X = newOffset.X - oldOffset.X;
+						delta.Y = newOffset.Y - oldOffset.Y;
+						delta.Z = newOffset.Z - oldOffset.Z;
+						
+						if (deltaTime > 0.0f) {
+							enemy.velocity.X = delta.X / deltaTime;
+							enemy.velocity.Y = delta.Y / deltaTime;
+							enemy.velocity.Z = delta.Z / deltaTime;
+						} else {
+							enemy.velocity = {0.0f, 0.0f, 0.0f};
+						}
+
+						// 重力などの汎用物理移動をキャンセルし、Splineの純粋な相対移動(delta)を適用する
+						// posBeforePhysics はコリジョン押し出し結果が維持された正しい開始位置
+						enemy.position.X = posBeforePhysics.X + delta.X;
+						enemy.position.Y = posBeforePhysics.Y + delta.Y;
+						enemy.position.Z = posBeforePhysics.Z + delta.Z;
 					} else {
 						// 継続的な摩擦/ブレーキ
-						enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
+						// 空中にいるときは横方向の摩擦を軽減し、落下中の慣性を保つ
+						float expectedGroundedVelY = -9.8f * deltaTime;
+						bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
+						
+						if (isGrounded) {
+							enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
+						} else {
+							// 空中では摩擦を最小限にする（極端な減速を防ぐ）
+							float airFriction = (std::max)(currentNodeInfo->velocityFrictionX, 0.98f);
+							enemy.velocity.X *= airFriction;
+						}
 
 						// ステート突入時の付加力（1フレーム目のみ付与するため approximate で判定）
 						if (enemy.stateTimer < deltaTime * 1.5f) {
