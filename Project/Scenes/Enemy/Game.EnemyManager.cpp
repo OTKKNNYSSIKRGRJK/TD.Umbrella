@@ -347,91 +347,86 @@ namespace Game {
 	void KingSlimeBehavior::OnSpawn(EnemyInstance& enemy) {
 		enemy.currentAction = "Idle";
 		walk_ = false;
-		motionController_.SetUseIntervalMode(true);
-		// Node event callback: when a motion/node is entered or exited the controller
-		// invokes this lambda. We scan the enemy template `nodes` for a matching
-		// `boundMotion` and `boundMotionNodeIndex`. If matched, the node's
-		// `boundBool` string is used to drive behavior (e.g. set `walk_` when the
-		// node indicates "walk", or start the "followAbove" sequence). This
-		// allows designers to bind logical flags to specific motion nodes via the
-		// editor without hard-coding behavior into motions.
-		motionController_.SetNodeEventCallback([this, ePtr = &enemy](const std::string& motionName, int nodeIndex, const std::string&, bool isEntering) {
-            for (const auto& n : ePtr->baseData.nodes) {
-                if (!n.boundMotion.empty() && n.boundMotion == motionName && n.boundMotionNodeIndex == nodeIndex) {
-                    if (n.boundBool == "walk" || n.boundBool == "WALK") {
-                        this->walk_ = isEntering;
-                        if (isEntering) {
-                            float jumpDir = ePtr->facingRight ? 1.0f : -1.0f;
-                            float jumpXMult = n.jumpVelocityXMult != 0.0f ? n.jumpVelocityXMult : 1.5f;
-                            float jumpY = n.jumpVelocityY != 0.0f ? n.jumpVelocityY : 4.0f;
-                            ePtr->velocity.X = jumpDir * ePtr->baseData.moveSpeed * jumpXMult;
-                            ePtr->velocity.Y = jumpY;
-                        }
-                        return;
-                    }
-                    if (n.boundBool == "followAbove" && isEntering) {
-                        // activate follow-above sequence
-                        this->followAboveActive_ = true;
-                        this->followTimer_ = this->followDuration_;
-                        return;
-                    }
-                }
-            }
-            // no binding matched: do nothing (leave previous state)
-        });
+		followPhase_ = FollowPhase::None;
 	}
 
 	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
-		(void)playerPosition;
+		// Detect when the state machine enters a node with boundBool == "followAbove"
+		// by checking the current node's boundBool
+		const Game::Editor::Node* currentNode = nullptr;
+		for (const auto& n : enemy.baseData.nodes) {
+			if (n.state == enemy.currentAction) {
+				currentNode = &n;
+				break;
+			}
+		}
 
-		// If follow-above is active, override movement to hover above player for duration then drop
-		if (followAboveActive_) {
-			// lock to player's X and hover at offset
+		// --- Jump cooldown: accumulate combat time and set jumpReady when due ---
+		if (followPhase_ == FollowPhase::None) {
+			jumpCooldownTimer_ += deltaTime;
+			if (jumpCooldownTimer_ >= jumpCooldownInterval_) {
+				enemy.runtimeBoolFlags["jumpReady"] = true;
+			}
+		}
+
+		// --- Activate follow-above when entering JumpUp state ---
+		if (currentNode && currentNode->boundBool == "followAbove" && followPhase_ == FollowPhase::None) {
+			followPhase_ = FollowPhase::Rising;
+			enemy.runtimeBoolFlags["followAboveDone"] = false;
+			enemy.runtimeBoolFlags["jumpReady"] = false;
+			jumpCooldownTimer_ = 0.0f;
+		}
+
+		// --- Follow-above phase handling ---
+		switch (followPhase_) {
+		case FollowPhase::Rising:
+			// Fly upward rapidly to go off-screen
+			enemy.velocity.X = 0.0f;
+			enemy.velocity.Y = riseSpeed_;
+			// Disable gravity effect by overriding position
+			enemy.position.Y += riseSpeed_ * deltaTime;
+			// Once high enough above player, start tracking
+			if (enemy.position.Y >= playerPosition.Y + hoverHeight_) {
+				followPhase_ = FollowPhase::Tracking;
+				followTimer_ = followDuration_;
+				lastTrackedX_ = playerPosition.X;
+			}
+			break;
+
+		case FollowPhase::Tracking:
+			// Track player X while hovering at fixed height, invisible (off-screen)
+			lastTrackedX_ = playerPosition.X;
 			enemy.position.X = playerPosition.X;
 			enemy.position.Y = playerPosition.Y + hoverHeight_;
-			enemy.position.Z = 0.0f;
-			followTimer_ -= deltaTime;
-			// prevent other movement
 			enemy.velocity.X = 0.0f;
+			enemy.velocity.Y = 0.0f;
+			followTimer_ -= deltaTime;
 			if (followTimer_ <= 0.0f) {
-				followAboveActive_ = false;
-				// initiate drop: set downward velocity
-				enemy.velocity.Y = fallInitialVelocity_;
+				// Start dropping
+				followPhase_ = FollowPhase::Dropping;
+				enemy.position.X = lastTrackedX_;
+				enemy.velocity.Y = dropSpeed_;
+				enemy.velocity.X = 0.0f;
 			}
-			return; // skip normal update while hovering/dropping setup
-		}
-		auto attackIt = enemy.baseData.motionMap.find("Attack");
-		// Priority: play attack motion when attacking
-		if (attackIt != enemy.baseData.motionMap.end() && !attackIt->second.empty() && enemy.aiState == EnemyInstance::AIState::Attack) {
-			if (!motionController_.IsPlaying()) {
-				motionController_.Play(attackIt->second, enemy.position, (std::max)(enemy.attackDuration, 0.01f));
-			}
+			break;
 
-			Lumina::Math::F32x3 direction = enemy.facingRight
-				? Lumina::Math::F32x3{ 1.0f, 0.0f, 0.0f }
-				: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
-			(void)motionController_.Update(deltaTime, direction);
-
-			// Motion node callbacks drive walk_ flag.
-			// The Slime jump impulse is applied once in OnSpawn's callback when walk is triggered.
-			// Friction is handled continuously by EnemyManager::Update.
-		}
-		// If not attacking, also allow playing Walk motion so per-node boundBool events can trigger (e.g. walk flag)
-		else {
-			auto walkIt = enemy.baseData.motionMap.find("Walk");
-			if (walkIt != enemy.baseData.motionMap.end() && !walkIt->second.empty() && enemy.currentAction == "Walk") {
-				if (!motionController_.IsPlaying()) {
-					// use a reasonable loop duration; editor motions are normalized so 1.0s is acceptable for triggering nodes
-					motionController_.Play(walkIt->second, enemy.position, 1.0f);
-				}
-				Lumina::Math::F32x3 direction = enemy.facingRight
-					? Lumina::Math::F32x3{ 1.0f, 0.0f, 0.0f }
-					: Lumina::Math::F32x3{ -1.0f, 0.0f, 0.0f };
-				(void)motionController_.Update(deltaTime, direction);
-			} else {
-				// not playing any motion that drives walk -> clear flag
-				walk_ = false;
+		case FollowPhase::Dropping:
+			// Let gravity and physics handle the drop
+			// Check if landed (velocity.Y became 0 or positive after being negative = ground collision)
+			if (enemy.velocity.Y >= -0.1f && enemy.position.Y < playerPosition.Y + 3.0f) {
+				followPhase_ = FollowPhase::None;
+				enemy.runtimeBoolFlags["followAboveDone"] = true;
 			}
+			break;
+
+		case FollowPhase::None:
+		default:
+			break;
+		}
+
+		// Walk flag: set when current node has boundBool == "walk" or "Walk"
+		if (currentNode) {
+			walk_ = (currentNode->boundBool == "walk" || currentNode->boundBool == "Walk");
 		}
 	}
 
@@ -440,11 +435,11 @@ namespace Game {
 	}
 
 	bool KingSlimeBehavior::IsMotionPlaying() const {
-		return motionController_.IsPlaying();
+		return followPhase_ != FollowPhase::None;
 	}
 
 	int KingSlimeBehavior::GetActiveNodeIndex() const {
-		return motionController_.GetActiveNodeIndex();
+		return -1;
 	}
 
 	// ============================
@@ -1049,6 +1044,23 @@ namespace Game {
 							}
 						}
 						break;
+					}
+					// BOOL: condition - check runtime bool flags on the instance
+					else if (c.rfind("BOOL:", 0) == 0) {
+						std::string flag = c.substr(5);
+						auto flagIt = enemy.runtimeBoolFlags.find(flag);
+						if (flagIt != enemy.runtimeBoolFlags.end() && flagIt->second) {
+							for (const auto& n : enemy.baseData.nodes) {
+								if (n.id == link.to) {
+									enemy.currentAction = n.state;
+									enemy.stateTimer = 0.0f;
+									// Consume the flag (reset it)
+									flagIt->second = false;
+									break;
+								}
+							}
+							break;
+						}
 					}
 				}
 

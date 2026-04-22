@@ -3,6 +3,7 @@ export module Game.EnemyManager;
 import <string>;
 import <memory>;
 import <unordered_map>;
+import <map>;
 import <vector>;
 import <functional>;
 import <algorithm>;
@@ -44,16 +45,21 @@ export namespace Game {
 		bool IsMotionPlaying() const override;
 		int GetActiveNodeIndex() const override;
 	private:
-		MotionController motionController_{};
 		bool walk_ = false;
 
-		// Follow-above behavior: when triggered, KingSlime will hover above the player
-		// for a short duration and then fall straight down.
-		bool followAboveActive_ = false;
+		// Follow-above (JumpAbove) behavior phases
+		enum class FollowPhase { None, Rising, Tracking, Dropping };
+		FollowPhase followPhase_ = FollowPhase::None;
 		float followTimer_ = 0.0f;
-		float followDuration_ = 0.9f; // seconds to hover above player
-		float hoverHeight_ = 3.0f; // vertical offset above player
-		float fallInitialVelocity_ = -12.0f; // initial downward velocity when dropping
+		float followDuration_ = 1.2f;   // seconds to track above player
+		float hoverHeight_ = 12.0f;     // Y offset above player (off-screen)
+		float riseSpeed_ = 25.0f;       // speed to fly up
+		float dropSpeed_ = -18.0f;      // initial downward velocity when dropping
+		float lastTrackedX_ = 0.0f;     // last player X during tracking
+
+		// Jump cooldown: accumulates time across all states, triggers jumpReady flag
+		float jumpCooldownTimer_ = 0.0f;
+		float jumpCooldownInterval_ = 6.0f; // seconds of combat before jump-above is ready
 	};
 
 	/// <summary>
@@ -89,6 +95,7 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
+			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -120,6 +127,7 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
+				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -153,6 +161,7 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
+			, runtimeBoolFlags(other.runtimeBoolFlags)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -185,6 +194,7 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
+				runtimeBoolFlags = other.runtimeBoolFlags;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -228,6 +238,9 @@ export namespace Game {
 		std::string currentAction = "Idle";            // 現在のアクション名
 		::MotionController motionController{};
 
+		// --- ランタイムブールフラグ（BOOL: リンク条件用） ---
+		std::map<std::string, bool> runtimeBoolFlags;
+
 		// --- 当たり判定（凸包分割された複数のConvexCollider） ---
 		std::vector<std::unique_ptr<ConvexCollider>> colliders;
 
@@ -246,6 +259,7 @@ export namespace Game {
 			aiState = AIState::Idle;
 			currentAction = "Idle";
 			burstSpeedMultiplier = 1.0f;
+			runtimeBoolFlags.clear();
 			preferredCombatDistance = baseData.attackRange;
 			attackWindupDuration = 0.4f;
 			attackDuration = 0.25f;
