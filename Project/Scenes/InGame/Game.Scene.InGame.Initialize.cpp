@@ -201,7 +201,7 @@ namespace Game::Scene::Impl {
 							}
 
 							if (!validMeshes.empty()) {
-								EnemyMeshIndices_[ed.name] = meshesToBeUploaded.size();
+								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
 								if (!diffuseTexName.empty()) {
 									// 既存の基本テクスチャ2枚の後に登録される前提でインデックスを計算
 									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(2 + AdditionalTextures_.size());

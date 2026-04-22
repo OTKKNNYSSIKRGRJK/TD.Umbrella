@@ -97,7 +97,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
-		std::map<std::string, size_t> EnemyMeshIndices_;
+		std::map<std::string, MeshRange> EnemyMeshIndices_;
 		std::map<std::string, size_t> EnemyMaterialIndices_;
 		std::map<std::string, uint32_t> EnemyTextureIndices_;
 		std::map<std::string, MeshRange> ActorMeshIndices_;  // actor名 → メッシュ範囲

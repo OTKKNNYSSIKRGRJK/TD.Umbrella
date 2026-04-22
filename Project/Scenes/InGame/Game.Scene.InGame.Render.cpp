@@ -63,7 +63,7 @@ namespace Game::Scene::Impl {
 			if (e.IsDead) continue;
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
-				size_t meshIdx = EnemyMeshIndices_.at(e.BaseData.name);
+				const auto& range = EnemyMeshIndices_.at(e.BaseData.name);
 				
 				uint32_t materialIdx = 0U;
 				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
@@ -77,12 +77,18 @@ namespace Game::Scene::Impl {
 				}
 				auto worldMat = Game::MathUtils::SRT(scale, rot, { e.Position.X, e.Position.Y, e.Position.Z });
 				
-				meshMngr.Batch(
-					MeshShaderAssets_[meshIdx],
-					1U,
-					LocalHeap_Materials_.CPUHandle(materialIdx),
-					worldMat
-				);
+				// マルチメッシュ対応: 全サブメッシュを描画
+				for (size_t i = 0; i < range.count; ++i) {
+					size_t idx = range.startIndex + i;
+					if (idx < MeshShaderAssets_.size()) {
+						meshMngr.Batch(
+							MeshShaderAssets_[idx],
+							1U,
+							LocalHeap_Materials_.CPUHandle(materialIdx),
+							worldMat
+						);
+					}
+				}
 			}
 		}
 
