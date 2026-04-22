@@ -46,7 +46,6 @@ namespace Game::Scene::Impl {
 
 		GeometryPass_.Begin(cmdList);
 
-
 		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
 		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
 		cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));

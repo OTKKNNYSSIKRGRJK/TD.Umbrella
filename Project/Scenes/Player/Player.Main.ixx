@@ -18,8 +18,27 @@ import StatusComponent;
 import Lumina.Core.Math;
 import Lumina.MeshManager;
 import Lumina.D3D12;
+import Lumina.D3D12.Aux.View;
 
 import Lumina.CG3D.Struct;
+
+struct SkinnedModel {
+	Lumina::CG3D::Collection Collection_;
+
+	Lumina::D3D12::UploadBuffer VertexBuffer_;
+	Lumina::D3D12::UploadBuffer IndexBuffer_;
+	Lumina::D3D12::VBV VBV_;
+	Lumina::D3D12::IBV IBV_;
+};
+
+struct SkinnedInstance {
+	Lumina::CG3D::Skeleton Skeleton_;
+	Lumina::CG3D::SkinCluster SkinCluster_;
+
+	Lumina::Math::F32x3 MeshScale_;
+	Lumina::Math::F32x3 MeshRotate_;
+	Lumina::Math::F32x3 MeshTranslate_;
+};
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -192,6 +211,9 @@ private:
 	float animTimer_ = 0.0f;
 	bool isLoop_ = false;
 
+	std::unique_ptr<SkinnedModel> PlayerSkinnedModel_;
+	std::unique_ptr<SkinnedInstance> PlayerSkinnedInstance_;
+
 public:
 	// 再生時間
 	float GetAnimationDuration() { return currentAnim_->DurationInSeconds; }
@@ -211,6 +233,9 @@ public:
 		/*throw std::runtime_error("Motion not found: " + name);*/
 		currentAnim_ = &(animDatabase_.begin()->second); // データがないときは先頭のデータを返す（要注意）
 	}
+
+	auto GetAnimatedModel() -> std::pair<SkinnedModel const&, SkinnedInstance const&> {
+		return { *PlayerSkinnedModel_, *PlayerSkinnedInstance_ }; }
 
 private:
 	void LoadAnimation();
