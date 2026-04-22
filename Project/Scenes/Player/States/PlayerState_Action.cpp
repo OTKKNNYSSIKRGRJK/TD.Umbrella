@@ -251,6 +251,8 @@ namespace PlayerStates::Action {
 		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
 
+		player_->PlayAnimation(currentAttackData_.animationName);
+
 		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
 	}

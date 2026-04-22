@@ -198,10 +198,10 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-1.0f, -0.8f, 0.0f}, // 左下
-		{ 1.0f, -0.8f, 0.0f}, // 右下
-		{ 1.0f,  1.4f, 0.0f},  // 右上
-		{ -1.0f,  1.4f, 0.0f }, // 左上
+		{-0.5f, -0.2f, 0.0f}, // 左下
+		{ 0.5f, -0.2f, 0.0f}, // 右下
+		{ 0.5f,  2.8f, 0.0f},  // 右上
+		{ -0.5f,  2.8f, 0.0f }, // 左上
 	};
 	collider_->SetVertices(localVertices);
 
@@ -379,6 +379,19 @@ void Player::Update(float deltaTime) {
 	Position_ += moveAmount_;
 
 	UpdateAnimation();
+
+	auto it = PlayerSkinnedInstance_->Skeleton_.IDX_Joint.find("Bone.024");
+
+	// 見つかったかどうかチェック
+	if (it != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
+
+		auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
+		Vector3 pos = { row3.Get(0),
+			row3.Get(1) + 0.4f,
+			row3.Get(2) };
+		rightHandJoint_.SetPos(pos + Position_
+		);
+	}
 
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
