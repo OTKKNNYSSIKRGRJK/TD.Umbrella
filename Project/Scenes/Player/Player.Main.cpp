@@ -8,6 +8,9 @@ import Lumina.D3D12.Aux.View;
 import nlohmann.json;
 import Game.MathUtils;
 
+import Lumina.CG3D;
+import Lumina.CG3D.Animation;
+
 import <fstream>;
 
 #if defined(_DEBUG)
@@ -88,6 +91,11 @@ AttackData::Database LoadAttackDatabase(const std::string& filepath) {
 	return database;
 }
 
+void Player::LoadAnimation() {
+	auto animations{ Lumina::CG3D::LoadAnimationFile("animation.gltf", "Assets/Neki") };
+	animDatabase_["nazo"] = animations[0];
+}
+
 void Player::Initialize() {
 
 	Position_ = { 0.0f, 10.0f, 0.0f };
@@ -114,6 +122,9 @@ void Player::Initialize() {
 	umbrella_->handle_->GetBaseJoint()->AttachTo(GetBackJoint());
 
 	motionController_ = std::make_unique<MotionController>();
+
+	LoadAnimation();
+	PlayAnimation("nazo");
 
 	// =====================
 	// 【 当たり判定の設定 】
@@ -308,6 +319,8 @@ void Player::Update(float deltaTime) {
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
 	Position_ += moveAmount_;
+
+	UpdateAnimation();
 
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
@@ -543,4 +556,21 @@ void Player::WarpToUmbrella() {
 	// 4. 空中状態にするなどの後処理
 	ChangeMovementState(airborneState_.get());
 	ChangeActionState(normalDrawnState_.get());
+}
+
+void Player::UpdateAnimation() {
+	if (!currentAnim_) return;
+
+	animTimer_ += 1.0f / 60.0f;
+
+	if (isLoop_) {
+		// ループする場合は fmod で 0 ～ Duration に収める
+		animTimer_ = std::fmod(animTimer_, currentAnim_->DurationInSeconds);
+	}
+	else {
+		// ループしない場合は Duration で止める（これなら > 判定でOK）
+		if (animTimer_ > currentAnim_->DurationInSeconds) {
+			animTimer_ = currentAnim_->DurationInSeconds;
+		}
+	}
 }

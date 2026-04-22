@@ -19,9 +19,12 @@ import Lumina.Core.Math;
 import Lumina.MeshManager;
 import Lumina.D3D12;
 
+import Lumina.CG3D.Struct;
+
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
 	using Matrix4x4 = Lumina::Math::F32x4x4<>;
+	using Animation = Lumina::CG3D::MyAnimation;
 }
 
 export enum class WeaponStance {
@@ -181,24 +184,39 @@ private:
 	///   Animationのデータ
 	/// 
 	//////////////////////////////
+private:
+
+	using AnimationDatabase = std::unordered_map<std::string, Animation>;
+	AnimationDatabase animDatabase_;
+	Animation* currentAnim_;
+	float animTimer_ = 0.0f;
+	bool isLoop_ = false;
+
 public:
-	// GetAnimationDuration()：再生時間が欲しい
+	// 再生時間
+	float GetAnimationDuration() { return currentAnim_->DurationInSeconds; }
 
-	// GetAnimationMoving()：再生が終わったかどうかが知りたい
+	// 再生が終わったかどうか
+	bool GetAnimationMoving() { return animTimer_ > currentAnim_->DurationInSeconds ? true : false; }
 
-	// PlayAnimation(std::string useAnimationName)：アニメーションをセットする関数
-	// (currentAnim_ = animDatabase_.find(useAnimationName));
-	// animTimer_ = 0.0f;
-
-	// UpdateAnimation()：設定したAnimationを流し続ける
+	// アニメーションをセットする関数
+	void PlayAnimation(std::string useAnimationName, bool isLoop = false) {
+		auto it = animDatabase_.find(useAnimationName);
+		animTimer_ = 0.0f;
+		isLoop_ = isLoop;
+		if (it != animDatabase_.end()) {
+			currentAnim_ = &(it->second);
+			return;
+		}
+		/*throw std::runtime_error("Motion not found: " + name);*/
+		currentAnim_ = &(animDatabase_.begin()->second); // データがないときは先頭のデータを返す（要注意）
+	}
 
 private:
-	// using AnimationDatabase = std::unoredered_map<std::string, Animation>;
-	// AnimationDatabase animDatabase_;
+	void LoadAnimation();
 
-	// Animation* currentAnim_;
-
-	// float animTimer_ = 0.0f;
+	// 設定したAnimationを流し続ける
+	void UpdateAnimation();
 
 	//////////////////////////////
 	///
