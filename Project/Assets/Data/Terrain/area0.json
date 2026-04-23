@@ -128,17 +128,17 @@
         },
         {
             "position": {
-                "x": 1048.0,
-                "y": 130.0
-            },
-            "targetAreaIndex": 1
-        },
-        {
-            "position": {
                 "x": 412.0,
                 "y": 160.0
             },
             "targetAreaIndex": 5
+        },
+        {
+            "position": {
+                "x": 1048.0,
+                "y": 130.0
+            },
+            "targetAreaIndex": 1
         }
     ],
     "editorPos": {

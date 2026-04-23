@@ -406,10 +406,12 @@ namespace Game::Editor {
 								if (v.contains("Pos") && v["Pos"].is_array() && v["Pos"].size() >= 2) {
 									float px = v["Pos"][0].get<float>();
 									float py = v["Pos"][1].get<float>();
-									points.push_back(ImVec2(
-										cx + (drawData.editorPos.x + px) * scale,
-										cy - (drawData.editorPos.y + drawData.height - py) * scale
-									));
+									//エリア外に点があった場合描画上はクランプ
+									float sx = cx + (drawData.editorPos.x + px) * scale;
+									float sy = cy - (drawData.editorPos.y + drawData.height - py) * scale;
+									sx = (std::max)(areaMin.x, (std::min)(sx, areaMax.x));
+									sy = (std::max)(areaMin.y, (std::min)(sy, areaMax.y));
+									points.push_back(ImVec2(sx, sy));
 								}
 							}
 							if (points.size() >= 3) {
