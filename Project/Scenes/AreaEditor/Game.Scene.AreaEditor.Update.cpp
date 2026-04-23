@@ -60,8 +60,8 @@ namespace Game::Editor {
 		bool openConvexError = false;
 		auto centerCameraOnArea = [&]() {
 			ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * 0.5f) * 0.5f;
-			cameraPos_.y = displaySize.y * 0.5f + (editingArea_.editorPos.y + editingArea_.height * 0.5f) * 0.5f;
+			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * 0.5f) * zoom_;
+			cameraPos_.y = displaySize.y * 0.5f + (editingArea_.editorPos.y + editingArea_.height * 0.5f) * zoom_;
 		};
 		auto trySaveArea = [&](const AreaData& areaToSave, bool sync) {
 			for (const auto& cg : areaToSave.collisionGroups) {
@@ -79,6 +79,24 @@ namespace Game::Editor {
 			ImVec2 delta = ImGui::GetIO().MouseDelta;
 			cameraPos_.x += delta.x;
 			cameraPos_.y += delta.y;
+		}
+
+		// マウスホイールで拡縮（マウスカーソル位置を中心にズーム）
+		if (!ImGui::GetIO().WantCaptureMouse) {
+			float wheel = ImGui::GetIO().MouseWheel;
+			if (wheel != 0.0f) {
+				float oldZoom = zoom_;
+				constexpr float zoomSpeed = 0.1f;
+				constexpr float zoomMin = 0.05f;
+				constexpr float zoomMax = 5.0f;
+				zoom_ *= (1.0f + wheel * zoomSpeed);
+				zoom_ = (std::max)(zoomMin, (std::min)(zoomMax, zoom_));
+
+				// マウスカーソル位置を中心にズーム（カーソル下のワールド座標が変わらないように補正）
+				ImVec2 mPos = ImGui::GetMousePos();
+				cameraPos_.x = mPos.x - (mPos.x - cameraPos_.x) * (zoom_ / oldZoom);
+				cameraPos_.y = mPos.y - (mPos.y - cameraPos_.y) * (zoom_ / oldZoom);
+			}
 		}
 
 		// 敵JSONファイルリストをディレクトリ変更時のみ再スキャン
@@ -149,7 +167,7 @@ namespace Game::Editor {
 			}
 		} catch (...) {}
 
-		float scale = 0.5f;
+		float scale = zoom_;
 		float cx = cameraPos_.x;
 		float cy = cameraPos_.y;
 		ImVec2 mousePos = ImGui::GetMousePos();
