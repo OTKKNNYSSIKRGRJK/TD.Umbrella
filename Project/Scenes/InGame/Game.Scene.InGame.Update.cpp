@@ -215,6 +215,10 @@ namespace Game::Scene::Impl {
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
 		
+		if (CollisionManager_) {
+			CollisionManager_->Begin();
+		}
+
 		playState_.IsGoalReached = false;
 	}
 
@@ -318,9 +322,13 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"[Debug] Area">() {
-		#if defined(_DEBUG)
 		// エリアの移動処理
-		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
+#if defined(_DEBUG)
+		bool shouldProcessAreaTransition = (activeEditor_ == EditorTab::Play && playState_.IsPlaying);
+#else
+		bool shouldProcessAreaTransition = playState_.IsPlaying;
+#endif
+		if (shouldProcessAreaTransition) {
 			if (playState_.TransitionCooldownTimer > 0.0f) {
 				playState_.TransitionCooldownTimer -= 1.0f / 60.0f;
 			}
@@ -343,7 +351,6 @@ namespace Game::Scene::Impl {
 				}
 			}
 		}
-		#endif
 	}
 
 	template<>
