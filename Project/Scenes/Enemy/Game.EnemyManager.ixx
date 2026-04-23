@@ -52,8 +52,11 @@ export namespace Game {
 		FollowPhase followPhase_ = FollowPhase::None;
 		float followTimer_ = 0.0f;
 		float followDuration_ = 1.2f;   // seconds to track above player
-		float hoverHeight_ = 12.0f;     // Y offset above player (off-screen)
-		float riseSpeed_ = 25.0f;       // speed to fly up
+		float hoverHeight_ = 5.0f;      // Y offset above player (on-screen)
+		float riseDuration_ = 0.5f;     // seconds to lerp up to target position
+		float riseTimer_ = 0.0f;        // current rise interpolation time
+		Lumina::Math::F32x3 riseStartPos_{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 riseTargetPos_{ 0.0f, 0.0f, 0.0f };
 		float dropSpeed_ = -18.0f;      // initial downward velocity when dropping
 		float lastTrackedX_ = 0.0f;     // last player X during tracking
 

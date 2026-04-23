@@ -375,18 +375,30 @@ namespace Game {
 			enemy.runtimeBoolFlags["followAboveDone"] = false;
 			enemy.runtimeBoolFlags["jumpReady"] = false;
 			jumpCooldownTimer_ = 0.0f;
+			// Store start position and compute target for lerp
+			riseStartPos_ = enemy.position;
+			riseTargetPos_ = { playerPosition.X, playerPosition.Y + hoverHeight_, enemy.position.Z };
+			riseTimer_ = 0.0f;
 		}
 
 		// --- Follow-above phase handling ---
 		switch (followPhase_) {
 		case FollowPhase::Rising:
-			// Fly upward rapidly to go off-screen
-			enemy.velocity.X = 0.0f;
-			enemy.velocity.Y = riseSpeed_;
-			// Disable gravity effect by overriding position
-			enemy.position.Y += riseSpeed_ * deltaTime;
-			// Once high enough above player, start tracking
-			if (enemy.position.Y >= playerPosition.Y + hoverHeight_) {
+			// Update target every frame so it follows the moving player
+			riseTargetPos_.X = playerPosition.X;
+			riseTargetPos_.Y = playerPosition.Y + hoverHeight_;
+			// Linear interpolation from start to target position
+			riseTimer_ += deltaTime;
+			{
+				float t = (std::min)(riseTimer_ / riseDuration_, 1.0f);
+				enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
+				enemy.position.Y = riseStartPos_.Y + (riseTargetPos_.Y - riseStartPos_.Y) * t;
+				enemy.position.Z = riseStartPos_.Z;
+				// Override velocity to prevent gravity interference
+				enemy.velocity.X = 0.0f;
+				enemy.velocity.Y = 0.0f;
+			}
+			if (riseTimer_ >= riseDuration_) {
 				followPhase_ = FollowPhase::Tracking;
 				followTimer_ = followDuration_;
 				lastTrackedX_ = playerPosition.X;
@@ -412,10 +424,16 @@ namespace Game {
 
 		case FollowPhase::Dropping:
 			// Let gravity and physics handle the drop
-			// Check if landed (velocity.Y became 0 or positive after being negative = ground collision)
-			if (enemy.velocity.Y >= -0.1f && enemy.position.Y < playerPosition.Y + 3.0f) {
-				followPhase_ = FollowPhase::None;
-				enemy.runtimeBoolFlags["followAboveDone"] = true;
+			// Detect landing: after ground collision resets velocity.Y to 0,
+			// the next frame's gravity gives velocity.Y = -9.8f * deltaTime.
+			// Compare against that expected grounded value.
+			{
+				float expectedGroundedVelY = -9.8f * deltaTime;
+				bool isGrounded = (enemy.velocity.Y >= expectedGroundedVelY - 0.5f) && (enemy.velocity.Y <= 0.0f);
+				if (isGrounded && enemy.position.Y < playerPosition.Y + hoverHeight_) {
+					followPhase_ = FollowPhase::None;
+					enemy.runtimeBoolFlags["followAboveDone"] = true;
+				}
 			}
 			break;
 
