@@ -187,8 +187,8 @@ namespace Game::Editor {
 		ImGui::TextDisabled("ACTOR JSON FILES");
 		ImGui::Separator();
 		ImGui::BeginChild("ActorFileList", ImVec2(0, -40), false);
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Actor/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Actor/")) {
 				if (entry.path().extension() == ".json") {
 					std::string fName = entry.path().filename().string();
 					if (fName.find("actor_") != 0) continue;
@@ -241,6 +241,15 @@ namespace Game::Editor {
 				editingActor_.visual.meshPath = meshBuf;
 			}
 			ImGui::DragInt("Material Index", &editingActor_.visual.materialIndex, 1, 0, 32);
+			
+			ImGui::Spacing();
+			ImGui::Checkbox("Show Preview Mesh", &showMeshWireframe_);
+			if (showMeshWireframe_) {
+				ImGui::SameLine();
+				const char* viewNames[] = { "Front (XY)", "Side (ZY)", "Top (XZ)" };
+				ImGui::SetNextItemWidth(120.0f);
+				ImGui::Combo("View", &meshViewMode_, viewNames, 3);
+			}
 		}
 
 		if (ImGui::CollapsingHeader("Collider", ImGuiTreeNodeFlags_DefaultOpen)) {
@@ -279,15 +288,6 @@ namespace Game::Editor {
 					}
 
 					ImGui::SliderFloat("Coll Zoom", &collisionZoom_, 1.0f, 10.0f, "%.1fx");
-
-					// ワイヤーフレームプレビュー設定
-					ImGui::Checkbox("Show Mesh Wireframe", &showMeshWireframe_);
-					if (showMeshWireframe_) {
-						ImGui::SameLine();
-						const char* viewNames[] = { "Front (XY)", "Side (ZY)", "Top (XZ)" };
-						ImGui::SetNextItemWidth(120.0f);
-						ImGui::Combo("View", &meshViewMode_, viewNames, 3);
-					}
 				}
 			}
 		}
@@ -659,6 +659,109 @@ namespace Game::Editor {
 		// --- Actor body ---
 		ImVec2 actorScr = localToScreen(baseX + offX, baseY + offY);
 
+		// --- メッシュワイヤーフレームキャッシュ更新 ---
+		if (cachedMeshPath_ != editingActor_.visual.meshPath) {
+			ExtractMeshWireframe(editingActor_.visual.meshPath);
+		}
+
+		// --- メッシュ描画（ソリッドポリゴン） ---
+		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
+			// Actor Transform のスケールを適用
+			float sx = editingActor_.transform.scaleX;
+			float sy = editingActor_.transform.scaleY;
+			float sz = editingActor_.transform.scaleZ;
+			if (sx == 0.0f) sx = 1.0f;
+			if (sy == 0.0f) sy = 1.0f;
+			if (sz == 0.0f) sz = 1.0f;
+
+			// Y軸回転
+			float rotY = editingActor_.transform.rotY * 3.14159265f / 180.0f;
+			float cosR = std::cos(rotY), sinR = std::sin(rotY);
+
+			// 3D→ 2D投影
+			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
+				// スケール＆回転適用
+				float x = pos[0] * sx;
+				float y = pos[1] * sy;
+				float z = pos[2] * sz;
+				float rx = x * cosR + z * sinR;
+				float ry = y;
+				float rz = -x * sinR + z * cosR;
+
+				float px, py;
+				switch (meshViewMode_) {
+				case 0: px = rx; py = ry; break; // Front (XY)
+				case 1: px = rz; py = ry; break; // Side (ZY)
+				case 2: px = rx; py = rz; break; // Top (XZ)
+				default:px = rx; py = ry; break;
+				}
+				// Actorの中心にオフセットを足す
+				return ImVec2(actorScr.x + px * scale, actorScr.y - py * scale);
+			};
+
+			auto getDepth = [&](const std::array<float, 3>& pos) -> float {
+				float x = pos[0] * sx;
+				float y = pos[1] * sy;
+				float z = pos[2] * sz;
+				float rx = x * cosR + z * sinR;
+				float ry = y;
+				float rz = -x * sinR + z * cosR;
+
+				switch (meshViewMode_) {
+				case 0: return -rz;
+				case 1: return -rx;
+				case 2: return -ry;
+				default:return -rz;
+				}
+			};
+
+			struct SolidFace {
+				ImVec2 p0, p1, p2;
+				float depth;
+				ImU32 col;
+			};
+			std::vector<SolidFace> renderFaces;
+
+			for (const auto& face : cachedMeshFaces_) {
+				if (face[0] < 0 || face[0] >= static_cast<int>(cachedMeshPositions_.size())) continue;
+				if (face[1] < 0 || face[1] >= static_cast<int>(cachedMeshPositions_.size())) continue;
+				if (face[2] < 0 || face[2] >= static_cast<int>(cachedMeshPositions_.size())) continue;
+
+				const auto& v0 = cachedMeshPositions_[face[0]];
+				const auto& v1 = cachedMeshPositions_[face[1]];
+				const auto& v2 = cachedMeshPositions_[face[2]];
+
+				float d = (getDepth(v0) + getDepth(v1) + getDepth(v2)) / 3.0f;
+
+				ImVec2 p0 = project3D(v0);
+				ImVec2 p1 = project3D(v1);
+				ImVec2 p2 = project3D(v2);
+
+				// 法線計算(疑似ライティング)
+				float nx = (p1.x - p0.x) * (p2.y - p0.y) - (p1.y - p0.y) * (p2.x - p0.x);
+				if (nx < 0.0f) continue; // バックフェースカリング
+
+				float brightness = 0.5f + 0.5f * (nx / (std::abs(p1.x - p0.x) * std::abs(p2.y - p0.y) + 0.001f));
+				if (brightness > 1.0f) brightness = 1.0f;
+
+				int colV = static_cast<int>(200 * brightness);
+				ImU32 col = MakeCol32(colV, colV + 20, colV + 50, 180);
+
+				renderFaces.push_back({ p0, p1, p2, d, col });
+			}
+
+			// 深度でソート（奥から手前）
+			std::sort(renderFaces.begin(), renderFaces.end(), [](const SolidFace& a, const SolidFace& b) {
+				return a.depth > b.depth;
+			});
+
+			for (const auto& f : renderFaces) {
+				ImVec2 pts[3] = { f.p0, f.p1, f.p2 };
+				drawList->AddConvexPolyFilled(pts, 3, f.col);
+				drawList->AddPolyline(pts, 3, MakeCol32(0, 0, 0, 50), true, 1.0f);
+			}
+		}
+
 		// Collider
 		if (editingActor_.collider.type == ColliderType::Box) {
 			float hw = editingActor_.collider.sizeX * scale, hh = editingActor_.collider.sizeY * scale;
@@ -808,20 +911,60 @@ namespace Game::Editor {
 
 		// --- メッシュワイヤーフレーム描画 ---
 		if (showMeshWireframe_ && !cachedMeshEdges_.empty()) {
-			// 3D→ 2D投影 (ビューモードに応じた座標選択)
+			// Actor Transform のスケールを適用
+			float sx = editingActor_.transform.scaleX;
+			float sy = editingActor_.transform.scaleY;
+			float sz = editingActor_.transform.scaleZ;
+			if (sx == 0.0f) sx = 1.0f;
+			if (sy == 0.0f) sy = 1.0f;
+			if (sz == 0.0f) sz = 1.0f;
+
+			float rx = editingActor_.transform.rotX * 3.14159265f / 180.0f;
+			float ry = editingActor_.transform.rotY * 3.14159265f / 180.0f;
+			float rz = editingActor_.transform.rotZ * 3.14159265f / 180.0f;
+			
+			float ox = editingActor_.transform.posX;
+			float oy = editingActor_.transform.posY;
+			float oz = editingActor_.transform.posZ;
+
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
-				float px, py;
+				// 1. Scale
+				float x1 = pos[0] * sx;
+				float y1 = pos[1] * sy;
+				float z1 = pos[2] * sz;
+
+				// 2. Rotate X
+				float x2 = x1;
+				float y2 = y1 * std::cos(rx) - z1 * std::sin(rx);
+				float z2 = y1 * std::sin(rx) + z1 * std::cos(rx);
+
+				// 3. Rotate Y
+				float x3 = x2 * std::cos(ry) + z2 * std::sin(ry);
+				float y3 = y2;
+				float z3 = -x2 * std::sin(ry) + z2 * std::cos(ry);
+
+				// 4. Rotate Z
+				float px = x3 * std::cos(rz) - y3 * std::sin(rz);
+				float py = x3 * std::sin(rz) + y3 * std::cos(rz);
+				float pz = z3;
+
+				// 5. Offset
+				px += ox;
+				py += oy;
+				pz += oz;
+
+				float outX, outY;
 				switch (meshViewMode_) {
 				case 0: // Front (XY)
-					px = pos[0]; py = pos[1]; break;
+					outX = px; outY = py; break;
 				case 1: // Side (ZY)
-					px = pos[2]; py = pos[1]; break;
+					outX = pz; outY = py; break;
 				case 2: // Top (XZ)
-					px = pos[0]; py = pos[2]; break;
+					outX = px; outY = pz; break;
 				default:
-					px = pos[0]; py = pos[1]; break;
+					outX = px; outY = py; break;
 				}
-				return ImVec2(center.x + px * scale, center.y - py * scale);
+				return ImVec2(center.x + outX * scale, center.y - outY * scale);
 			};
 
 			// クリッピング付きでエッジ描画

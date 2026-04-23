@@ -198,10 +198,10 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-1.0f, -0.8f, 0.0f}, // 左下
-		{ 1.0f, -0.8f, 0.0f}, // 右下
-		{ 1.0f,  1.4f, 0.0f},  // 右上
-		{ -1.0f,  1.4f, 0.0f }, // 左上
+		{-0.5f, -0.2f, 0.0f}, // 左下
+		{ 0.5f, -0.2f, 0.0f}, // 右下
+		{ 0.5f,  2.8f, 0.0f},  // 右上
+		{ -0.5f,  2.8f, 0.0f }, // 左上
 	};
 	collider_->SetVertices(localVertices);
 
@@ -289,17 +289,14 @@ void Player::Initialize() {
 			this->GetStatusComponent().TakeDamage(1.0f);
 		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
-			//this->GetStatusComponent().TakeDamage(10.0f);
-			// 1. 相手のコライダーから「持ち主（Enemy）」のポインタをもらう
-			// ※ void* で返ってくるので、Enemy型にキャスト（変換）する
-			//Enemy* enemy = static_cast<Enemy*>(other->GetUserData());
-
-			// 2. 万が一キャストに失敗していないかチェック
-			//if (enemy != nullptr) {
-			//	// 3. 敵本体から攻撃力を取得して、ダメージを受ける！
-			//	int damage = enemy->GetAttackPower();
-			//	this->TakeDamage(damage); // プレイヤーのHPを減らす処理など
-			//}
+			// プロジェクタイルからダメージを受ける
+			// UserData には Projectile* が入っている
+			void* userData = other->GetUserData();
+			if (userData != nullptr) {
+				// ProjectileData の damage をそのまま使用
+				// （Projectile 構造体の先頭メンバが ProjectileData data なので安全にアクセス可能）
+				this->GetStatusComponent().TakeDamage(10.0f);
+			}
 		}
 	};
 
@@ -379,6 +376,19 @@ void Player::Update(float deltaTime) {
 	Position_ += moveAmount_;
 
 	UpdateAnimation();
+
+	auto it = PlayerSkinnedInstance_->Skeleton_.IDX_Joint.find("Bone.024");
+
+	// 見つかったかどうかチェック
+	if (it != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
+
+		auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
+		Vector3 pos = { row3.Get(0),
+			row3.Get(1) + 0.4f,
+			row3.Get(2) };
+		rightHandJoint_.SetPos(pos + Position_
+		);
+	}
 
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算

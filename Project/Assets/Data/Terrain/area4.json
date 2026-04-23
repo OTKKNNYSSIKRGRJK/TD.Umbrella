@@ -271,6 +271,11 @@
             "sizeCategory": 1
         }
     ],
+    "goalPosition": {
+        "x": 640.0,
+        "y": 360.0
+    },
+    "hasGoal": false,
     "height": 720,
     "index": 4,
     "name": 4,

@@ -3,6 +3,7 @@ module Game.Scene.InGame : Impl;
 import <vector>;
 import <filesystem>;
 import <random>;
+import <fstream>;
 
 import nlohmann.json;
 
@@ -60,20 +61,22 @@ namespace Game::Scene::Impl {
 		auto const& d3d12Device{ d3d12Context.Device() };
 
 		std::vector<uint32_t> texIDs{};
+		std::vector<std::pair<std::string, std::string>> texturesToLoad = {
+			{ "uvChecker", "Assets/Img/uvChecker.png" },
+			{ "Particles", "Assets/Img/Particles.png" },
+		};
+		// 追加のテクスチャ（敵など）をマージ
+		for (const auto& addTex : AdditionalTextures_) {
+			texturesToLoad.push_back(addTex);
+		}
+
 		resMngr.Graphics().LoadImageTextures(
 			texIDs,
-			{
-				//{ 適当な名前（重複しちゃダメ）, ファイルパス },
-				
-				// uvCheckerは1番目に読み込まれるだからIDは0
-				{ "uvChecker", "Assets/Img/uvChecker.png" },
-				// Particlesは2番目だからIDは1
-				{ "Particles", "Assets/Img/Particles.png" },
-			}
+			texturesToLoad
 		);
 
 		// シェーダーで使えるディスクリプタ
-		GlobalTable_SRV_ImageTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
+		GlobalTable_SRV_ImageTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(64U); // 余裕をもたせて64個確保
 		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
 			
 			// さき読み込んだテクスチャのSRVをシェーダーで使えるディスクリプタにコピー
@@ -161,38 +164,114 @@ namespace Game::Scene::Impl {
 		// 敵用
 		EnemyMeshIndices_.clear();
 		namespace fs = std::filesystem;
-		if (fs::exists("./")) {
-			for (const auto& entry : fs::directory_iterator("./")) {
+		if (fs::exists("Assets/Data/Enemy/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
 				if (entry.is_regular_file() && entry.path().extension() == ".json") {
 					std::string fName = entry.path().filename().string();
-					if (fName.find("area") == 0) continue; // エリアデータは除外
 					
 					Game::Editor::EnemyData ed;
 					enemyEditor_.LoadEnemy(ed, fName);
 					
 					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4 && ed.gltfPath.substr(ed.gltfPath.size() - 4) == ".obj") {
 						try {
-							auto&& enemyMesh = Lumina::Utils::Mesh::Load(
-								Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath)
-							);
+							auto&& objParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath);
+							
+							// OBJからMTL名を取得してテクスチャパスを解決
+							std::string diffuseTexName = "";
+							std::string diffuseTexPath = "";
+							if (!objParser.MTLFileNames().empty()) {
+								std::string mtlFileName = fs::path(objParser.MTLFileNames()[0]).filename().string();
+								std::string mtlPath = (fs::path(ed.gltfPath).parent_path() / mtlFileName).string();
+								try {
+									auto&& mtlParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontMTL>(mtlPath);
+									std::string texRawName = mtlParser.TextureFileName();
+									if (!texRawName.empty()) {
+										std::string texFileName = fs::path(texRawName).filename().string();
+										diffuseTexName = ed.name + "_diffuse";
+										diffuseTexPath = (fs::path(mtlPath).parent_path() / texFileName).string();
+									}
+								} catch(...) {}
+							}
+
+							auto&& enemyMesh = Lumina::Utils::Mesh::Load(objParser);
 							
 							using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 							MeshCollection validMeshes;
 							for (auto& m : enemyMesh) {
-								// D3D12への空バッファ転送を防ぐため、頂点が存在するかチェック
 								if (!m.Positions.empty() && !m.Vertices.empty()) {
 									validMeshes.push_back(std::move(m));
 								}
 							}
 
 							if (!validMeshes.empty()) {
-								EnemyMeshIndices_[ed.name] = meshesToBeUploaded.size();
+								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
+								if (!diffuseTexName.empty()) {
+									// 既存の基本テクスチャ2枚の後に登録される前提でインデックスを計算
+									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(2 + AdditionalTextures_.size());
+									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
+								}
 								addMeshesToBeUploaded(validMeshes);
 							}
 						} catch (...) {
 							// 読み込み失敗時はスキップ
 						}
 					}
+				}
+			}
+		}
+
+		// Actor用メッシュ（プロジェクタイル描画用）
+		ActorMeshIndices_.clear();
+		if (fs::exists("Assets/Data/Actor/")) {
+			for (const auto& entry : fs::directory_iterator("Assets/Data/Actor/")) {
+				if (!entry.is_regular_file() || entry.path().extension() != ".json") continue;
+				std::string fName = entry.path().filename().string();
+				if (fName.find("actor_") != 0 || fName.size() <= 11) continue;
+
+				std::string actorName = fName.substr(6, fName.size() - 11);
+
+				// Actor JSON からメッシュパスを読み取る
+				try {
+					std::string actorFullPath = "Assets/Data/Actor/" + fName;
+					std::ifstream actorFile(actorFullPath);
+					if (!actorFile.is_open()) continue;
+					nlohmann::json aj;
+					actorFile >> aj;
+
+					std::string meshPath;
+					if (aj.contains("visual") && aj["visual"].is_object()) {
+						if (aj["visual"].contains("meshPath")) {
+							meshPath = aj["visual"]["meshPath"].get<std::string>();
+						}
+					}
+
+					if (meshPath.empty()) continue;
+					if (ActorMeshIndices_.contains(actorName)) continue;
+
+					// .obj メッシュをロード
+					std::string ext = fs::path(meshPath).extension().string();
+					for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+					if (ext == ".obj") {
+						auto&& actorMesh = Lumina::Utils::Mesh::Load(
+							Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(meshPath)
+						);
+
+						using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+						MeshCollection validMeshes;
+						for (auto& m : actorMesh) {
+							if (!m.Positions.empty() && !m.Vertices.empty()) {
+								validMeshes.push_back(std::move(m));
+							}
+						}
+
+						if (!validMeshes.empty()) {
+							ActorMeshIndices_[actorName] = { meshesToBeUploaded.size(), validMeshes.size() };
+							addMeshesToBeUploaded(validMeshes);
+						}
+					}
+				} catch (...) {
+					// Actor メッシュ読み込み失敗時はスキップ
 				}
 			}
 		}
@@ -230,23 +309,32 @@ namespace Game::Scene::Impl {
 		LocalHeap_Materials_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64U, false);
 		
 		// CBV作成
-		// --- パラメータ ---
-		// GraphicsDevice const& device_ : D3D12デバイス
-		// D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle_ : マテリアル用ディスクリプタのCPUハンドル
-		// BufferType const& buffer_ : マテリアル用バッファ
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
-
-		// アップデートでマテリアルをいじったりするのであれば下記のように書くとよろし
-		// マテリアルデータを更新
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
 		Material0_.ID_DiffuseMap = 0;
-		
-		// マテリアルデータをCBVと紐づけてあるバッファに格納
-		// --- パラメータ ---
-		// void const* src_ : 格納されるデータへのポインター。ボイドポインター最強
-		// uint64_t sizeInBytes_ : 格納されるサイズ。ここは構造体のサイズで大丈夫
-		// uint64_t offsetInBytes_: バッファ先頭からのオフセット。ここは0で大丈夫
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
+
+		// 敵用のマテリアルを設定
+		uint32_t materialIdx = 1; // 0番は共通で使っているため1番から割り当て
+		EnemyMaterialIndices_.clear();
+
+		for (const auto& pair : EnemyTextureIndices_) {
+			if (materialIdx >= 64U) break; // 余裕を見て制限
+
+			const auto& enemyName = pair.first;
+			uint32_t texIdx = pair.second;
+
+			Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(materialIdx), *UB_Materials_[materialIdx]);
+			
+			MeshMaterial mat{};
+			mat.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
+			mat.ID_DiffuseMap = texIdx; // ここに敵ごと固有のテクスチャIDを設定
+
+			UB_Materials_[materialIdx]->Store(&mat, sizeof(MeshMaterial), 0LLU);
+			
+			EnemyMaterialIndices_[enemyName] = materialIdx;
+			materialIdx++;
+		}
 	}
 
 	template<>
@@ -547,6 +635,7 @@ namespace Game::Scene::Impl {
 		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
+		objMotionEditor_.Initialize();
 
 		playState_.IsPlaying = true;
 		CheckAndLoadArea(0);
@@ -648,8 +737,8 @@ namespace Game::Scene::Impl {
 
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 
-		Initialize_<"ImageTextures">();
 		Initialize_<"Meshes">();
+		Initialize_<"ImageTextures">();
 		Initialize_<"MeshMaterials">();
 		Initialize_<"Camera">();
 		Initialize_<"Resource, View">(d3d12Device);

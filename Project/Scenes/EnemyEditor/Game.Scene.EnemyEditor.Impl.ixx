@@ -7,6 +7,7 @@ import <vector>;
 import <array>;
 
 import Lumina;
+import Game.ProjectileManager;
 
 export namespace Game::Editor {
 
@@ -14,6 +15,32 @@ export namespace Game::Editor {
 	struct CollisionVertex {
 		float x = 0.0f;
 		float y = 0.0f;
+	};
+
+	struct Node {
+		int id = 0;
+		std::string name = "State";
+		std::string state = "Idle";
+		float x = 0.0f;
+		float y = 0.0f;
+		std::string animationName = "";
+		// Debug: bound motion and node index for runtime hooks (e.g. walk trigger)
+		std::string boundMotion = "";
+		int boundMotionNodeIndex = -1;
+		std::string boundBool = "";
+
+		bool facePlayer = false;
+		float velocityFrictionX = 1.0f;
+		float jumpVelocityXMult = 0.0f;
+		float jumpVelocityY = 0.0f;
+		std::string splineMotionName = "";
+		float splineDuration = 1.0f;
+	};
+
+	struct Link {
+		int from = 0;
+		int to = 0;
+		std::string condition = "Always";
 	};
 
 	// サイズ段階ごとのステータス（小・中・大）
@@ -58,6 +85,16 @@ export namespace Game::Editor {
 		float patrolRadius = 10.0f;      // 巡回範囲
 		float aggressiveness = 0.5f;     // 攻撃的傾向 (0.0 ~ 1.0)
 
+		// --- 攻撃タイプ ---
+		enum class AttackType { Melee, Ranged };
+		AttackType attackType = AttackType::Melee;
+
+		// --- 遠距離攻撃用プロジェクタイル設定 ---
+		Game::ProjectileData projectile;
+
+		std::vector<Node> nodes;
+		std::vector<Link> links;
+
 		void Reset() {
 			name = "NewEnemy";
 			hp = 100;
@@ -78,6 +115,10 @@ export namespace Game::Editor {
 			retreatThreshold = 0.2f;
 			patrolRadius = 10.0f;
 			aggressiveness = 0.5f;
+			attackType = AttackType::Melee;
+			projectile = Game::ProjectileData{};
+			nodes.clear();
+			links.clear();
 		}
 	};
 
@@ -124,5 +165,112 @@ export namespace Game::Editor {
 		// キャンバス移動オフセット
 		float canvasOffsetX_ = 0.0f;
 		float canvasOffsetY_ = 0.0f;
+	};
+
+	export class EnemyActionEditor {
+	public:
+		void Initialize();
+		void Update();
+		void LoadEnemy(EnemyData& enemy, const std::string& filename);
+
+		// --- Public accessors for Inspector ---
+		int GetSelectedNodeId() const { return nodeEditor_selectedNodeId_; }
+		Node* FindNodeById(int id) {
+			for (auto& n : editingEnemy_.nodes) {
+				if (n.id == id) return &n;
+			}
+			return nullptr;
+		}
+	private:
+		void DrawEditorUI();
+		void DrawNodeEditor();
+		void SaveEnemy(const EnemyData& enemy);
+		std::vector<std::string> ExtractAnimationNames(const std::string& gltfPath);
+
+		// --- State Machine Runtime ---
+		void EvaluateStateMachine();
+		bool CheckLinkCondition(const Link& link);
+		bool HasOutgoingTransition(int nodeId) const;
+		bool HasTimeDrivenTransition(int nodeId) const;
+		void DrawStateMachineControlUI();
+		void DrawLinkConditionList();
+		void DrawEditorLogUI();
+
+		// --- Undo ---
+		void PushUndoState();
+		void Undo();
+		bool CanUndo() const { return !undoStack_.empty(); }
+
+		// --- Log ---
+		void AddLog(const std::string& msg);
+
+	private:
+		// Active editing enemy (holds current visible data). Persisted per-file in perFileEnemies_.
+		EnemyData editingEnemy_{};
+		std::string cachedGltfPath_;
+		std::vector<std::string> cachedAnimationNames_;
+
+		// Per-file storage so each JSON keeps its own nodes, links and runtime state
+		struct PerFileRuntime {
+			std::vector<std::string> cachedAnimationNames;
+			int currentStateId = -1;
+			float currentStateElapsedTime = 0.0f;
+			int previousStateId = -1;
+			float transitionFlashTimer = 0.0f;
+			bool firstNodeStarted = false;
+			std::vector<EnemyData> undoStack; // keep per-file undo history
+			std::map<std::string, bool> runtimeBoolFlags; // keep per-file boolean flags
+		};
+
+		std::map<std::string, EnemyData> perFileEnemies_;
+		std::map<std::string, PerFileRuntime> perFileRuntimes_;
+		std::string activeFileName_; // includes ".json" suffix when set
+
+		float canvasOffsetX_ = 0.0f;
+		float canvasOffsetY_ = 0.0f;
+
+		// --- Node Editor Status ---
+		int currentStateId_ = -1;
+		float currentStateElapsedTime_ = 0.0f;
+		int nodeEditor_selectedNodeId_ = -1;
+		int nodeEditor_linkStartId_ = -1;
+		int nodeEditor_contextNodeId_ = -1;
+		int nodeEditor_pendingDeleteNodeId_ = -1;
+		int linkEditor_contextLinkIndex_ = -1;
+		int linkEditor_pendingDeleteLinkIndex_ = -1;
+		bool nodeDragActive_ = false;
+		float nodeDragOffsetX_ = 0.0f;
+		float nodeDragOffsetY_ = 0.0f;
+		bool nodeLinkDragActive_ = false;
+		float nodeCanvasWidth_ = 1220.0f;
+		float nodeCanvasHeight_ = 180.0f;
+		bool nodeCanvasResizing_ = false;
+		float nodeCanvasResizeStartMouseX_ = 0.0f;
+		float nodeCanvasResizeStartMouseY_ = 0.0f;
+		float nodeCanvasStartWidth_ = 0.0f;
+		float nodeCanvasStartHeight_ = 0.0f;
+		float pendingNewNodeScreenX_ = 0.0f;
+		float pendingNewNodeScreenY_ = 0.0f;
+
+		// --- State Machine Runtime ---
+		int previousStateId_ = -1;
+		float transitionFlashTimer_ = 0.0f;
+
+		// --- Manual Start ---
+		bool requireManualStart_ = true;
+		bool firstNodeStarted_ = false;
+		bool lockStateMachineAfterStartFirstNode_ = false;
+		bool userRequestedStart_ = false;
+
+		// --- Runtime Bool Flags (for BOOL: link conditions) ---
+		std::map<std::string, bool> runtimeBoolFlags_;
+
+		// --- Undo ---
+		std::vector<EnemyData> undoStack_;
+		size_t undoStackMax_ = 64;
+
+		// --- Editor Log ---
+		std::vector<std::string> editorLog_;
+		size_t editorLogMax_ = 512;
 	};
 }

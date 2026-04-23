@@ -11,6 +11,7 @@ import nlohmann.json;
 import Game.MathUtils;
 import Game.Player;
 import Game.Umbrella;
+import Game.ProjectileManager;
 
 import Game.Events;
 
@@ -187,6 +188,41 @@ namespace {
 	}
 
 	// EnemyData の JSON シリアライズ（EnemyEditor と同じ形式）
+	void from_json(const json& j, Game::Editor::Node& n) {
+		if (j.contains("id")) j.at("id").get_to(n.id);
+		if (j.contains("name")) j.at("name").get_to(n.name);
+		if (j.contains("state")) j.at("state").get_to(n.state);
+		if (j.contains("x")) j.at("x").get_to(n.x);
+		if (j.contains("y")) j.at("y").get_to(n.y);
+		if (j.contains("animationName")) j.at("animationName").get_to(n.animationName);
+		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
+		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
+		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
+		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
+		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
+		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
+		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
+
+		// Backwards-compat migration:
+		// Older editor versions stored a node-level boolean trigger in `animationName`
+		// as the literal string "BOOL:Name". On load we convert that into the
+		// dedicated `boundBool` field so runtime can evaluate it independently of
+		// `boundMotion`/`boundMotionNodeIndex`.
+		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
+			n.boundBool = n.animationName.substr(5);
+			n.animationName.clear();
+		}
+	}
+
+	void from_json(const json& j, Game::Editor::Link& l) {
+		if (j.contains("from")) j.at("from").get_to(l.from);
+		if (j.contains("to")) j.at("to").get_to(l.to);
+		if (j.contains("condition")) j.at("condition").get_to(l.condition);
+	}
+
 	void from_json(const json& j, Game::Editor::EnemyData& e) {
 		if (j.contains("name")) j.at("name").get_to(e.name);
 		if (j.contains("hp")) j.at("hp").get_to(e.hp);
@@ -207,8 +243,8 @@ namespace {
 			e.collisionVertices.clear();
 			for (const auto& vj : j["collisionVertices"]) {
 				Game::Editor::CollisionVertex v;
-				if (vj.contains("x")) v.x = vj["x"].get<float>();
-				if (vj.contains("y")) v.y = vj["y"].get<float>();
+				if (vj.contains("x")) vj.at("x").get_to(v.x);
+				if (vj.contains("y")) vj.at("y").get_to(v.y);
 				e.collisionVertices.push_back(v);
 			}
 		}
@@ -219,6 +255,47 @@ namespace {
 		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
 		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
 		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
+
+		if (j.contains("attackType")) {
+			std::string atype;
+			j.at("attackType").get_to(atype);
+			e.attackType = (atype == "Ranged")
+				? Game::Editor::EnemyData::AttackType::Ranged
+				: Game::Editor::EnemyData::AttackType::Melee;
+		}
+
+		if (j.contains("projectile") && j["projectile"].is_object()) {
+			const auto& pj = j["projectile"];
+			if (pj.contains("actorName")) pj.at("actorName").get_to(e.projectile.actorName);
+			if (pj.contains("isHoming")) pj.at("isHoming").get_to(e.projectile.isHoming);
+			if (pj.contains("trajectory") && !pj.contains("isHoming")) {
+				std::string traj;
+				pj.at("trajectory").get_to(traj);
+				e.projectile.isHoming = (traj == "Homing");
+			}
+			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
+			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
+			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
+			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
+		}
+
+		if (j.contains("nodes") && j["nodes"].is_array()) {
+			e.nodes.clear();
+			for (const auto& nodeJson : j["nodes"]) {
+				Game::Editor::Node node;
+				from_json(nodeJson, node);
+				e.nodes.push_back(std::move(node));
+			}
+		}
+
+		if (j.contains("links") && j["links"].is_array()) {
+			e.links.clear();
+			for (const auto& linkJson : j["links"]) {
+				Game::Editor::Link link;
+				from_json(linkJson, link);
+				e.links.push_back(std::move(link));
+			}
+		}
 	}
 
 	void SpawnSplitChildren(
@@ -260,6 +337,110 @@ namespace {
 }
 
 namespace Game {
+	std::unique_ptr<EnemyBehavior> CreateEnemyBehavior(const Editor::EnemyData& data) {
+		if (data.name == "KingSlime") {
+			return std::make_unique<KingSlimeBehavior>();
+		}
+		return std::make_unique<EnemyBehavior>();
+	}
+
+	void KingSlimeBehavior::OnSpawn(EnemyInstance& enemy) {
+		enemy.currentAction = "Idle";
+		walk_ = false;
+		followPhase_ = FollowPhase::None;
+	}
+
+	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+		// Detect when the state machine enters a node with boundBool == "followAbove"
+		// by checking the current node's boundBool
+		const Game::Editor::Node* currentNode = nullptr;
+		for (const auto& n : enemy.baseData.nodes) {
+			if (n.state == enemy.currentAction) {
+				currentNode = &n;
+				break;
+			}
+		}
+
+		// --- Jump cooldown: accumulate combat time and set jumpReady when due ---
+		if (followPhase_ == FollowPhase::None) {
+			jumpCooldownTimer_ += deltaTime;
+			if (jumpCooldownTimer_ >= jumpCooldownInterval_) {
+				enemy.runtimeBoolFlags["jumpReady"] = true;
+			}
+		}
+
+		// --- Activate follow-above when entering JumpUp state ---
+		if (currentNode && currentNode->boundBool == "followAbove" && followPhase_ == FollowPhase::None) {
+			followPhase_ = FollowPhase::Rising;
+			enemy.runtimeBoolFlags["followAboveDone"] = false;
+			enemy.runtimeBoolFlags["jumpReady"] = false;
+			jumpCooldownTimer_ = 0.0f;
+		}
+
+		// --- Follow-above phase handling ---
+		switch (followPhase_) {
+		case FollowPhase::Rising:
+			// Fly upward rapidly to go off-screen
+			enemy.velocity.X = 0.0f;
+			enemy.velocity.Y = riseSpeed_;
+			// Disable gravity effect by overriding position
+			enemy.position.Y += riseSpeed_ * deltaTime;
+			// Once high enough above player, start tracking
+			if (enemy.position.Y >= playerPosition.Y + hoverHeight_) {
+				followPhase_ = FollowPhase::Tracking;
+				followTimer_ = followDuration_;
+				lastTrackedX_ = playerPosition.X;
+			}
+			break;
+
+		case FollowPhase::Tracking:
+			// Track player X while hovering at fixed height, invisible (off-screen)
+			lastTrackedX_ = playerPosition.X;
+			enemy.position.X = playerPosition.X;
+			enemy.position.Y = playerPosition.Y + hoverHeight_;
+			enemy.velocity.X = 0.0f;
+			enemy.velocity.Y = 0.0f;
+			followTimer_ -= deltaTime;
+			if (followTimer_ <= 0.0f) {
+				// Start dropping
+				followPhase_ = FollowPhase::Dropping;
+				enemy.position.X = lastTrackedX_;
+				enemy.velocity.Y = dropSpeed_;
+				enemy.velocity.X = 0.0f;
+			}
+			break;
+
+		case FollowPhase::Dropping:
+			// Let gravity and physics handle the drop
+			// Check if landed (velocity.Y became 0 or positive after being negative = ground collision)
+			if (enemy.velocity.Y >= -0.1f && enemy.position.Y < playerPosition.Y + 3.0f) {
+				followPhase_ = FollowPhase::None;
+				enemy.runtimeBoolFlags["followAboveDone"] = true;
+			}
+			break;
+
+		case FollowPhase::None:
+		default:
+			break;
+		}
+
+		// Walk flag: set when current node has boundBool == "walk" or "Walk"
+		if (currentNode) {
+			walk_ = (currentNode->boundBool == "walk" || currentNode->boundBool == "Walk");
+		}
+	}
+
+	bool KingSlimeBehavior::IsWalkActive() const {
+		return walk_;
+	}
+
+	bool KingSlimeBehavior::IsMotionPlaying() const {
+		return followPhase_ != FollowPhase::None;
+	}
+
+	int KingSlimeBehavior::GetActiveNodeIndex() const {
+		return -1;
+	}
 
 	// ============================
 	//  コライダー初期化（凸包分割対応）
@@ -314,6 +495,13 @@ namespace Game {
 								this->landingStunTimer = kLargeLandingStunDuration;
 								this->velocity.X *= 0.2f;
 							}
+						}
+					} else if (std::abs(normal.X) > 0.3f && normal.Y > -0.2f) {
+						// 壁や急な斜面に直面している場合、ジャンプして凹みを乗り越える
+						bool isBlockedForward = (this->facingRight && normal.X < 0.0f) || (!this->facingRight && normal.X > 0.0f);
+						// 大幅に落下中でなければジャンプ（穴から抜け出す）
+						if (isBlockedForward && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
+							this->velocity.Y = 6.5f; // 脱出用ジャンプ
 						}
 					}
 				}
@@ -424,6 +612,43 @@ namespace Game {
 			Editor::EnemyData data;
 			from_json(j, data);
 
+			// Persist migration of legacy "BOOL:..." stored in animationName into
+			// explicit "boundBool" fields so editor/runtime do not rely on the
+			// legacy format. If any node was migrated, update the JSON on disk.
+			bool jsonChanged = false;
+			if (j.contains("nodes") && j["nodes"].is_array()) {
+				for (size_t i = 0; i < data.nodes.size() && i < j["nodes"].size(); ++i) {
+					const auto& node = data.nodes[i];
+					json& nodeJson = j["nodes"][i];
+					// If boundBool was produced by migration, ensure it's written.
+					if (!node.boundBool.empty()) {
+						if (!nodeJson.contains("boundBool") || nodeJson["boundBool"].get<std::string>() != node.boundBool) {
+							nodeJson["boundBool"] = node.boundBool;
+							jsonChanged = true;
+						}
+						// Clear legacy animationName if it contained BOOL: prefix
+						if (nodeJson.contains("animationName") && nodeJson["animationName"].is_string()) {
+							std::string anim = nodeJson["animationName"].get<std::string>();
+							if (anim.rfind("BOOL:", 0) == 0) {
+								nodeJson["animationName"] = "";
+								jsonChanged = true;
+							}
+						}
+					}
+				}
+				if (jsonChanged) {
+					// write back changes to the same file (best-effort)
+					try {
+						std::ofstream ofs(filePath, std::ios::trunc);
+						if (ofs.is_open()) {
+							ofs << j.dump(4);
+						}
+					} catch (...) {
+						// ignore write errors
+					}
+				}
+			}
+
 			// テンプレート名は EnemyData.name を使う
 			templates_[data.name] = data;
 		}
@@ -475,6 +700,7 @@ namespace Game {
 		bool facingRight, float scale, int sizeTier) {
 		EnemyInstance inst;
 		inst.baseData = data;
+		inst.behavior = CreateEnemyBehavior(inst.baseData);
 		for (auto& tier : inst.baseData.sizeTiers) {
 			tier.hp = GetScaledEnemyHp(tier.hp);
 		}
@@ -487,6 +713,9 @@ namespace Game {
 		ConfigureEnemyBehaviorBySize(inst);
 		if (scale > 0.0f) {
 			inst.modelScale = scale;
+		}
+		if (inst.behavior) {
+			inst.behavior->OnSpawn(inst);
 		}
 		inst.InitCollider();
 
@@ -561,6 +790,8 @@ namespace Game {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
 
+			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
+
 			// --- 物理挙動（重力） ---
 			enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
@@ -609,10 +840,12 @@ namespace Game {
 			}
 
 			// --- AI 状態遷移 ---
-			switch (enemy.aiState) {
-			case EnemyInstance::AIState::Idle:
-				enemy.currentAction = "Idle";
-				enemy.velocity.X *= 0.9f;
+			// ノード（JSONステート）が定義されている場合はレガシーAIスイッチを無視する
+			if (enemy.baseData.nodes.empty()) {
+				switch (enemy.aiState) {
+				case EnemyInstance::AIState::Idle:
+					enemy.currentAction = "Idle";
+					enemy.velocity.X *= 0.9f;
 				// 索敵範囲にプレイヤーが入った場合
 				if (dist < enemy.baseData.aggroRadius) {
 					if (enemy.baseData.aggressiveness > 0.0f) {
@@ -631,8 +864,15 @@ namespace Game {
 
 			case EnemyInstance::AIState::Chase:
 				enemy.currentAction = "Walk";
+				
+				// 遠距離タイプの敵で、プレイヤーに近づきすぎた場合は攻撃よりも後退を優先する
+				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged && dist < enemy.preferredCombatDistance * 0.5f) {
+					float moveDir = (dx > 0.0f) ? -1.0f : 1.0f;
+					enemy.position.X += moveDir * enemy.baseData.moveSpeed * deltaTime;
+					enemy.facingRight = (dx > 0.0f);
+				}
 				// 攻撃範囲に入ったら攻撃前アクションへ
-				if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
+				else if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
 					enemy.aiState = EnemyInstance::AIState::PreAttack;
 					enemy.preAttackTimer = enemy.attackWindupDuration;
 					enemy.velocity.X = 0.0f;
@@ -641,16 +881,26 @@ namespace Game {
 				else if (dist > enemy.baseData.aggroRadius * 1.5f) {
 					enemy.aiState = EnemyInstance::AIState::Idle;
 				}
-				// 追跡移動
+				// 追跡移動または距離調整
 				else {
 					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
 					float moveSpeed = enemy.baseData.moveSpeed;
-					if (enemy.sizeTier == kMinEnemySizeTier) {
+					
+					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+						// 遠距離タイプは適正距離の範囲内で姿勢を保つ
+						float keepDistanceMin = enemy.preferredCombatDistance * 0.8f;
+						if (dist < keepDistanceMin) {
+							moveDir = (dx > 0.0f) ? -1.0f : 1.0f; // 少し近いので離れる
+						} else if (dist <= enemy.preferredCombatDistance) {
+							moveSpeed = 0.0f; // 適正距離に入っているので止まって待機
+						}
+					} else if (enemy.sizeTier == kMinEnemySizeTier) {
 						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
 						float desiredX = playerPosition.X - moveDir * enemy.preferredCombatDistance + orbitOffset;
 						moveDir = (desiredX > enemy.position.X) ? 1.0f : -1.0f;
 						moveSpeed *= 1.35f;
 					}
+					
 					enemy.position.X += moveDir * moveSpeed * deltaTime;
 					enemy.facingRight = (dx > 0.0f);
 				}
@@ -666,9 +916,23 @@ namespace Game {
 				else if (enemy.preAttackTimer <= 0.0f) {
 					enemy.aiState = EnemyInstance::AIState::Attack;
 					enemy.attackTimer = enemy.attackDuration;
-					float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
-					enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
-					enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
+
+					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+						// 遠距離攻撃: プロジェクタイルを発射
+						ProjectileManager::GetInstance()->Fire(
+							enemy.position,
+							playerPosition,
+							enemy.baseData.projectile,
+							enemy.id
+						);
+						// 遠距離攻撃時は突進しない
+						enemy.velocity.X *= 0.3f;
+					} else {
+						// 近接攻撃: 従来の突進
+						float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
+						enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
+					}
 				}
 				break;
 
@@ -694,10 +958,201 @@ namespace Game {
 					enemy.aiState = EnemyInstance::AIState::Idle;
 				}
 				break;
-			}
+				} // end switch(enemy.aiState)
+			} // end if(enemy.baseData.nodes.empty())
 
 			// --- 状態タイマー更新 ---
 			enemy.stateTimer += deltaTime;
+
+			if (enemy.behavior) {
+				enemy.behavior->Update(enemy, deltaTime, playerPosition);
+			}
+
+			// --- JSON ステートマシンによる行動制御 ---
+			// ノードが定義されている敵はステートマシンで currentAction を駆動する
+			if (!enemy.baseData.nodes.empty()) {
+				// 初回: currentAction に対応するノードを探す
+				int currentNodeId = -1;
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.state == enemy.currentAction) { currentNodeId = n.id; break; }
+				}
+				// ノードが見つからなければ最初のノードから開始
+				if (currentNodeId == -1) {
+					currentNodeId = enemy.baseData.nodes.front().id;
+					enemy.currentAction = enemy.baseData.nodes.front().state;
+					enemy.stateTimer = 0.0f;
+				}
+
+				// リンク条件を評価して遷移
+				for (const auto& link : enemy.baseData.links) {
+					if (link.from != currentNodeId) continue;
+					std::string c = link.condition;
+					if (c.rfind("Time>=", 0) == 0) {
+						try {
+							float threshold = std::stof(c.substr(6));
+							if (enemy.stateTimer >= threshold) {
+								// 遷移先のノードを探す
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c.find("Dist<=") != std::string::npos) {
+						try {
+							size_t pos = c.find("Dist<=");
+							float threshold = std::stof(c.substr(pos + 6));
+							if (dist <= threshold) {
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c.find("Dist>") != std::string::npos) {
+						try {
+							size_t pos = c.find("Dist>");
+							float threshold = std::stof(c.substr(pos + 5));
+							if (dist > threshold) {
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+										break;
+									}
+								}
+								break;
+							}
+						} catch (...) {}
+					}
+					else if (c.find("Always") != std::string::npos) {
+						for (const auto& n : enemy.baseData.nodes) {
+							if (n.id == link.to) {
+								enemy.currentAction = n.state;
+								enemy.stateTimer = 0.0f;
+								break;
+							}
+						}
+						break;
+					}
+					// BOOL: condition - check runtime bool flags on the instance
+					else if (c.rfind("BOOL:", 0) == 0) {
+						std::string flag = c.substr(5);
+						auto flagIt = enemy.runtimeBoolFlags.find(flag);
+						if (flagIt != enemy.runtimeBoolFlags.end() && flagIt->second) {
+							for (const auto& n : enemy.baseData.nodes) {
+								if (n.id == link.to) {
+									enemy.currentAction = n.state;
+									enemy.stateTimer = 0.0f;
+									// Consume the flag (reset it)
+									flagIt->second = false;
+									break;
+								}
+							}
+							break;
+						}
+					}
+				}
+
+				// ステート遷移が発生した場合はその場で currentNodeId を更新する
+				if (enemy.stateTimer == 0.0f) {
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.state == enemy.currentAction) {
+							currentNodeId = n.id;
+							break;
+						}
+					}
+				}
+
+				// --- ステートに応じた物理挙動 ---
+				const Game::Editor::Node* currentNodeInfo = nullptr;
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.id == currentNodeId) {
+						currentNodeInfo = &n;
+						break;
+					}
+				}
+
+				if (currentNodeInfo) {
+					// プレイヤーのほうを向く
+					if (currentNodeInfo->facePlayer) {
+						enemy.facingRight = (dx > 0.0f);
+					}
+
+					// Spline Motionの再生開始判定（ステートに入った瞬間に再生開始）
+					// enemy.stateTimerは直前で deltaTime が足されていても、遷移した際は 0.0f が代入されている
+					if (enemy.stateTimer == 0.0f && !currentNodeInfo->splineMotionName.empty()) {
+						enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+					}
+
+					// SplineMotion再生中なら物理演算をオーバーライド
+					if (enemy.motionController.IsPlaying()) {
+						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
+						
+						Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
+						(void)enemy.motionController.Update(deltaTime, dir); // absolute position is unused
+						Lumina::Math::F32x3 newOffset = enemy.motionController.GetLastLocalOffset();
+						
+						Lumina::Math::F32x3 delta;
+						delta.X = newOffset.X - oldOffset.X;
+						delta.Y = newOffset.Y - oldOffset.Y;
+						delta.Z = newOffset.Z - oldOffset.Z;
+						
+						if (deltaTime > 0.0f) {
+							enemy.velocity.X = delta.X / deltaTime;
+							enemy.velocity.Y = delta.Y / deltaTime;
+							enemy.velocity.Z = delta.Z / deltaTime;
+						} else {
+							enemy.velocity = {0.0f, 0.0f, 0.0f};
+						}
+
+						// 重力などの汎用物理移動をキャンセルし、Splineの純粋な相対移動(delta)を適用する
+						// posBeforePhysics はコリジョン押し出し結果が維持された正しい開始位置
+						enemy.position.X = posBeforePhysics.X + delta.X;
+						enemy.position.Y = posBeforePhysics.Y + delta.Y;
+						enemy.position.Z = posBeforePhysics.Z + delta.Z;
+					} else {
+						// 継続的な摩擦/ブレーキ
+						// 空中にいるときは横方向の摩擦を軽減し、落下中の慣性を保つ
+						float expectedGroundedVelY = -9.8f * deltaTime;
+						bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
+						
+						if (isGrounded) {
+							enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
+						} else {
+							// 空中では摩擦を最小限にする（極端な減速を防ぐ）
+							float airFriction = (std::max)(currentNodeInfo->velocityFrictionX, 0.98f);
+							enemy.velocity.X *= airFriction;
+						}
+
+						// ステート突入時の付加力（1フレーム目のみ付与するため approximate で判定）
+						if (enemy.stateTimer < deltaTime * 1.5f) {
+							if (currentNodeInfo->jumpVelocityXMult != 0.0f) {
+								float jumpDir = (dx > 0.0f) ? 1.0f : -1.0f;
+								enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * currentNodeInfo->jumpVelocityXMult;
+							}
+							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
+							if (currentNodeInfo->jumpVelocityY != 0.0f) {
+								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
+							}
+						}
+					}
+				}
+
+				// ステートマシンで駆動されているのでデフォルトAIを上書き
+				// (Chase等に入らないようにする)
+				enemy.aiState = EnemyInstance::AIState::Idle;
+			}
 
 			// --- コライダー位置更新 ---
 			enemy.UpdateCollider();

@@ -1,0 +1,5 @@
+[
+  {"posX":0.0,"posY":0.0,"posZ":0.0,"inX":-0.2,"inY":0.0,"inZ":0.0,"outX":0.2,"outY":0.0,"outZ":0.0},
+  {"posX":0.5,"posY":0.0,"posZ":0.0,"inX":0.3,"inY":0.0,"inZ":0.0,"outX":0.7,"outY":0.0,"outZ":0.0},
+  {"posX":1.0,"posY":0.0,"posZ":0.0,"inX":0.8,"inY":0.0,"inZ":0.0,"outX":1.0,"outY":0.0,"outZ":0.0}
+]
