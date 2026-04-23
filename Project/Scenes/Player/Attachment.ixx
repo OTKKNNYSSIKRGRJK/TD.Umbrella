@@ -44,6 +44,7 @@ public:
 	Vector3 GetRot() { return rotation_; }
 	// 取得
 	Matrix4x4 const& GetMatrix() const noexcept { return *matWorld_; }
+	void SetMatrix(const Matrix4x4& mat) { *matWorld_ = mat; }
 	Vector3 GetWorldPos() const noexcept {
 		auto const& row3{ (*matWorld_)[3] };
 		return {

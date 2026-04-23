@@ -18,6 +18,9 @@ import Lumina.D3D12.Aux.View;
 import Game.MotionManager;
 import Game.Player;
 
+import Lumina.CG3D;
+import Lumina.CG3D.Animation;
+
 namespace Game::Scene::Impl {
 	namespace {
 		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
@@ -536,6 +539,74 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Initialize_<"RenderPipeline">() -> void {
+		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
+		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
+		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+
+		auto config{ Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Configs/SkinnedMesh.json") };
+		auto&& rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(config.at("RS")) };
+		RS_Skinning_.Initialize(d3d12Device, rsSetup);
+
+		d3d12Context.Compile(
+			VS_SkinnedMeshDeferredGeometry_,
+			L"Assets/Shaders/MeshSkinning.VS.hlsl",
+			L"vs_6_6",
+			L"main",
+			"SkinnedMesh.DeferredGeometry.VS"
+		);
+		d3d12Context.Compile(
+			PS_SkinnedMeshDeferredGeometry_,
+			L"Assets/Shaders/MeshSkinning.PS.hlsl",
+			L"ps_6_6",
+			L"main",
+			"SkinnedMesh.DeferredGeometry.PS"
+		);
+
+		Lumina::D3D12::BlendState blendState_None{};
+		blendState_None.RenderTarget[0].BlendEnable = false;
+		blendState_None.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+		blendState_None.RenderTarget[1].BlendEnable = false;
+		blendState_None.RenderTarget[1].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+		Lumina::D3D12::GraphicsPSO::InputLayout inputLayout_Mesh{};
+		inputLayout_Mesh.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
+		inputLayout_Mesh.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
+		inputLayout_Mesh.Append("NORMAL", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
+		inputLayout_Mesh.Append("WEIGHT", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT, 1U);
+		inputLayout_Mesh.Append("PALETTE", 0U, DXGI_FORMAT_R32G32B32A32_SINT, 1U);
+
+		GraphicsPSO_SkinnedMeshDeferredGeometry_.Initialize(
+			d3d12Device,
+			RS_Skinning_,
+			VS_SkinnedMeshDeferredGeometry_,
+			PS_SkinnedMeshDeferredGeometry_,
+			blendState_None,
+			Lumina::D3D12::RasterizerState{
+				.FillMode{ D3D12_FILL_MODE_SOLID },
+				.CullMode{ D3D12_CULL_MODE_BACK },
+			},
+			Lumina::D3D12::DepthStencilState{
+				.DepthEnable{ true },
+				.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ALL },
+				.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+				.StencilEnable{ false },
+			},
+			inputLayout_Mesh,
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM, },
+			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
+		);
+
+		UB_Transforms_.Initialize(d3d12Device, 256LLU);
+		GlobalTable_CBV_Scene_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_CBV_Scene_.CPUHandle(0U), UB_Transforms_);
+
+		GlobalTable_Materials_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
+		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_Materials_.CPUHandle(0U), *UB_Materials_[0]);
+	}
+
+	template<>
 	auto InGame::Initialize_<"Player">() -> void {
 		Player_ = std::make_unique<Player>();
 		Player_->Initialize();
@@ -675,6 +746,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Player">();
 		Initialize_<"Lighting">(d3d12Context);
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
+		Initialize_<"RenderPipeline">();
 
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
 		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));

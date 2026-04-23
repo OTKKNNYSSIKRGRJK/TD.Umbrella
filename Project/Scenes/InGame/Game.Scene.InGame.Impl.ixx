@@ -19,6 +19,7 @@ import Lumina.Core.Math;
 import Lumina.Core.String;
 import Lumina.Utils.Data;
 import Lumina.D3D12;
+import Lumina.D3D12.Aux.View;
 import Lumina.MeshManager;
 
 import Game.Terrain;
@@ -31,6 +32,8 @@ import Game.Player;
 import CollisionManager;
 import Game.ConvexColliderDebug;
 import Collider;
+
+import Lumina.CG3D.Struct;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -49,6 +52,9 @@ namespace Game::Scene::Impl {
 		auto Update_(_ARGs&&...args_) -> void;
 
 	private:
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Render_(_ARGs&&...args_) -> void;
+
 		void Render_Geometry();
 		void Render_Merge();
 
@@ -181,10 +187,10 @@ namespace Game::Scene::Impl {
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
 		} playState_;
 
-#if defined(_DEBUG)
+		#if defined(_DEBUG)
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
 		void DrawPlayMode();
-#endif
+		#endif
 
 		/// パーティクル・ライティング
 
@@ -202,5 +208,15 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
 
+	private:
+		Lumina::D3D12::RootSignature RS_Skinning_;
+		Lumina::D3D12::Shader VS_SkinnedMeshDeferredGeometry_;
+		Lumina::D3D12::Shader PS_SkinnedMeshDeferredGeometry_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_SkinnedMeshDeferredGeometry_;
+
+		Lumina::D3D12::DescriptorTable GlobalTable_Materials_;
+		Lumina::D3D12::UploadBuffer UB_Transforms_;
+
+		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
 	};
 }

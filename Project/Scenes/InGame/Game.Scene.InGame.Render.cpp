@@ -10,6 +10,32 @@ import Game.MathUtils;
 import Game.ProjectileManager;
 
 namespace Game::Scene::Impl {
+	template<>
+	auto InGame::Render_<"Player">() -> void {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		auto const& playerModel{ Player_->GetAnimatedModel() };
+		
+		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
+		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
+		cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
+		cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
+		cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
+		cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
+			reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
+			reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.second.SkinCluster_.InfluenceBufferView)
+		};
+		cmdList->IASetVertexBuffers(0, 2, vbvs);
+		cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&playerModel.first.IBV_));
+		cmdList->DrawIndexedInstanced(
+			static_cast<Lumina::U32>(playerModel.first.Collection_.Meshes[0].Indices.size()),
+			1U, 0U, 0U, 0U
+		);
+	}
+
 	void InGame::Render_Geometry() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
@@ -187,6 +213,7 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
 			LocalHeap_Scene_.CPUHandle(0U)
 		);
+		Render_<"Player">();
 		GeometryPass_.End();
 
 		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
@@ -268,6 +295,14 @@ namespace Game::Scene::Impl {
 		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
 
 		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+
+		auto const& playerModel{ Player_->GetAnimatedModel() };
+		Lumina::Math::F32x4x4<> meshWorld{ Game::MathUtils::SRT(playerModel.second.MeshScale_, playerModel.second.MeshRotate_, playerModel.second.MeshTranslate_) };
+		Lumina::Math::F32x4x4<> tr_INV_MeshWorld{ meshWorld.Inverse().Transpose() };
+		Lumina::Math::F32x4x4<> wvp{ meshWorld * (*WorldToHomogeneous_) };
+		UB_Transforms_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
+		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
 
 		Render_Geometry();
 		Render_Merge();

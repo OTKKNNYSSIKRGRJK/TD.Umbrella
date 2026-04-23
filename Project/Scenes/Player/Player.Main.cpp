@@ -8,6 +8,9 @@ import Lumina.D3D12.Aux.View;
 import nlohmann.json;
 import Game.MathUtils;
 
+import Lumina.CG3D;
+import Lumina.CG3D.Animation;
+
 import <fstream>;
 
 #if defined(_DEBUG)
@@ -88,6 +91,69 @@ AttackData::Database LoadAttackDatabase(const std::string& filepath) {
 	return database;
 }
 
+void Player::LoadAnimation() {
+	[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
+	[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
+	[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+
+	PlayerSkinnedModel_ = std::make_unique<SkinnedModel>();
+	PlayerSkinnedModel_->Collection_ = Lumina::CG3D::Import("Neki.gltf", "Assets/Neki");
+
+	PlayerSkinnedModel_->VertexBuffer_.Initialize(
+		d3d12Device,
+		// バッファサイズ＝頂点サイズ×メッシュの頂点数
+		sizeof(Lumina::CG3D::Mesh::Vertex) *
+		PlayerSkinnedModel_->Collection_.Meshes[0].Vertices.size()
+	);
+	// 頂点バッファに頂点データを入れる
+	PlayerSkinnedModel_->VertexBuffer_.Store(
+		// データ
+		PlayerSkinnedModel_->Collection_.Meshes[0].Vertices.data(),
+		// データサイズ
+		sizeof(Lumina::CG3D::Mesh::Vertex) *
+		PlayerSkinnedModel_->Collection_.Meshes[0].Vertices.size(),
+		// メモリオフセット　気にせんでええ
+		0LLU
+	);
+	// 頂点バッファを使ってビューを作成
+	// テンプレートに頂点の変数型を入れる
+	PlayerSkinnedModel_->VBV_ =
+		Lumina::D3D12::VBV::Create<Lumina::CG3D::Mesh::Vertex>(PlayerSkinnedModel_->VertexBuffer_);
+
+	PlayerSkinnedModel_->IndexBuffer_.Initialize(
+		d3d12Device,
+		sizeof(Lumina::U32) *
+		PlayerSkinnedModel_->Collection_.Meshes[0].Indices.size()
+	);
+	PlayerSkinnedModel_->IndexBuffer_.Store(
+		PlayerSkinnedModel_->Collection_.Meshes[0].Indices.data(),
+		sizeof(Lumina::U32) *
+		PlayerSkinnedModel_->Collection_.Meshes[0].Indices.size(),
+		0LLU
+	);
+	PlayerSkinnedModel_->IBV_ = Lumina::D3D12::IBV::Create(PlayerSkinnedModel_->IndexBuffer_);
+
+	PlayerSkinnedInstance_ = std::make_unique<SkinnedInstance>();
+
+	PlayerSkinnedInstance_->Skeleton_ =
+		Lumina::CG3D::CreateSkeleton(PlayerSkinnedModel_->Collection_.Root);
+	Lumina::CG3D::CreateSkinCluster(
+		PlayerSkinnedInstance_->SkinCluster_,
+		d3d12Device,
+		d3d12Context.GlobalDescriptorHeap(),
+		PlayerSkinnedInstance_->Skeleton_,
+		// メッシュ
+		PlayerSkinnedModel_->Collection_.Meshes[0]
+	);
+
+	PlayerSkinnedInstance_->MeshScale_ = { 1.0f, 1.0f, 1.0f };
+	PlayerSkinnedInstance_->MeshRotate_ = { 0.0f, 0.0f, 0.0f };
+	PlayerSkinnedInstance_->MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
+
+	auto animations_Idle{ Lumina::CG3D::LoadAnimationFile("animation.gltf", "Assets/Neki") };
+	animDatabase_["Idle"] = animations_Idle[0];
+}
+
 void Player::Initialize() {
 
 	Position_ = { 0.0f, 10.0f, 0.0f };
@@ -115,6 +181,9 @@ void Player::Initialize() {
 
 	motionController_ = std::make_unique<MotionController>();
 
+	LoadAnimation();
+	PlayAnimation("Idle", true);
+
 	// =====================
 	// 【 当たり判定の設定 】
 	// =====================
@@ -129,10 +198,10 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-1.0f, -0.8f, 0.0f}, // 左下
-		{ 1.0f, -0.8f, 0.0f}, // 右下
-		{ 1.0f,  1.4f, 0.0f},  // 右上
-		{ -1.0f,  1.4f, 0.0f }, // 左上
+		{-0.5f, -0.2f, 0.0f}, // 左下
+		{ 0.5f, -0.2f, 0.0f}, // 右下
+		{ 0.5f,  2.8f, 0.0f},  // 右上
+		{ -0.5f,  2.8f, 0.0f }, // 左上
 	};
 	collider_->SetVertices(localVertices);
 
@@ -306,6 +375,21 @@ void Player::Update(float deltaTime) {
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
 	Position_ += moveAmount_;
 
+	UpdateAnimation();
+
+	auto it = PlayerSkinnedInstance_->Skeleton_.IDX_Joint.find("Bone.024");
+
+	// 見つかったかどうかチェック
+	if (it != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
+
+		auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
+		Vector3 pos = { row3.Get(0),
+			row3.Get(1) + 0.4f,
+			row3.Get(2) };
+		rightHandJoint_.SetPos(pos + Position_
+		);
+	}
+
 	// rightHandJoint_.SetRot( 手の回転 );
 	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 
@@ -366,6 +450,10 @@ void Player::Update(float deltaTime) {
 	// 地面についているフラグを解除
 	// ※ バグの原因になりそうな箇所
 	this->onGround_ = false;
+
+	PlayerSkinnedInstance_->MeshScale_ = Scale_;
+	PlayerSkinnedInstance_->MeshRotate_ = EulerAngle_;
+	PlayerSkinnedInstance_->MeshTranslate_ = Position_;
 }
 
 // メッシュバッチ自体はMeshManager::BatchBegin()とBatchEnd()の間に入れないといけないので
@@ -373,17 +461,6 @@ void Player::Update(float deltaTime) {
 // BatchBegin()とBatchEnd()の間で呼び出さなくてはならない
 void Player::Draw() {
 	if (status_->IsDead())return;
-
-	// メッシュバッチ・描画マネージャ
-	auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
-
-	// 描画してほしいメッシュをバッチ
-	// --- パラメータ ---
-	// Lumina::MeshShaderAsset const* mesh_ : メッシュ（シーンのほうで読み込み）
-	// uint32_t num_Instances_ : インスタンス数（今のパイプラインではインスタンシングやってないから1固定で）
-	// D3D12_CPU_DESCRIPTOR_HANDLE localCBV_Material_ : メッシュマテリアルバッファのCBV
-	// Matrix4x4 const& world_ : ワールド行列
-	meshMngr.Batch(*Mesh_, 1U, MeshMaterialCBV_, *WorldMatrix_);
 
 	umbrella_->Draw();
 }
@@ -540,4 +617,28 @@ void Player::WarpToUmbrella() {
 	// 4. 空中状態にするなどの後処理
 	ChangeMovementState(airborneState_.get());
 	ChangeActionState(normalDrawnState_.get());
+}
+
+void Player::UpdateAnimation() {
+	if (!currentAnim_) return;
+
+	animTimer_ += 1.0f / 60.0f;
+
+	if (isLoop_) {
+		// ループする場合は fmod で 0 ～ Duration に収める
+		animTimer_ = std::fmod(animTimer_, currentAnim_->DurationInSeconds);
+	}
+	else {
+		// ループしない場合は Duration で止める（これなら > 判定でOK）
+		if (animTimer_ > currentAnim_->DurationInSeconds) {
+			animTimer_ = currentAnim_->DurationInSeconds;
+		}
+	}
+
+	Lumina::CG3D::Update(
+		PlayerSkinnedInstance_->SkinCluster_,
+		PlayerSkinnedInstance_->Skeleton_,
+		*currentAnim_,
+		animTimer_
+	);
 }
