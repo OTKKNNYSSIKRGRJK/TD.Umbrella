@@ -48,7 +48,8 @@ namespace Game::Scene::Impl {
 		AnimationTimer_ = std::fmod(AnimationTimer_, Animation_.DurationInSeconds);
 		Lumina::CG3D::Update(SkinCluster_, Skeleton_, Animation_, AnimationTimer_);
 
-		if (keyboard.IsJustPressed(KEY::NUM_0)) {
+		// タイトル画面でスペースキーが押されたらゲーム開始
+        if (keyboard.IsJustPressed(KEY::SPACE)) {
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
 			sceneMngr.Load<"Title->InGame">();
 			sceneMngr.Activate("Title->InGame");
