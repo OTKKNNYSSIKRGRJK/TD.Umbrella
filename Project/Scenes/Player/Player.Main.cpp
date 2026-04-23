@@ -150,7 +150,7 @@ void Player::LoadAnimation() {
 	PlayerSkinnedInstance_->MeshRotate_ = { 0.0f, 0.0f, 0.0f };
 	PlayerSkinnedInstance_->MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
 
-	auto animations_Idle{ Lumina::CG3D::LoadAnimationFile("animation.gltf", "Assets/Neki") };
+	auto animations_Idle{ Lumina::CG3D::LoadAnimationFile("run.gltf", "Assets/Neki") };
 	animDatabase_["Idle"] = animations_Idle[0];
 }
 
