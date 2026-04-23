@@ -38,6 +38,11 @@ export namespace AttackData {
         float cameraShake = 0.0f;
     };
 
+    struct TransformEvent {
+        float time;
+        std::string targetStance;
+    };
+
     // 攻撃1つ分のメインデータ
     struct AttackData {
         std::string name;
@@ -47,6 +52,7 @@ export namespace AttackData {
         float damage = 0.0f;
         float manaCost = 0.0f; // 攻撃そのものを出すのに必要なマナ
 
+		TransformEvent transformEvent; // 攻撃中にスタンス変化がある場合のイベント
         AttackPhysics physics;
         AttackFeel feel;
 

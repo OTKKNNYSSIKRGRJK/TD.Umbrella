@@ -51,6 +51,11 @@ AttackData::Database LoadAttackDatabase(const std::string& filepath) {
 			attack.damage = val.value("damage", 0.0f);
 			attack.manaCost = val.value("manaCost", 0.0f);
 
+			if (val.contains("transformEvent")) {
+				attack.transformEvent.time = val["transformEvent"].value("time", 0.0f);
+				attack.transformEvent.targetStance = val["transformEvent"].value("targetUmbrellaForm", "");
+			}
+
 			// 物理データ（省略されたらデフォルト値）
 			if (val.contains("physics")) {
 				attack.physics.velocityX = val["physics"].value("velocityX", 0.0f);
