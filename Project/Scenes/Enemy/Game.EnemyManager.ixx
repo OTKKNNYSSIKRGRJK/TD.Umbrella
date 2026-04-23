@@ -3,16 +3,64 @@ export module Game.EnemyManager;
 import <string>;
 import <memory>;
 import <unordered_map>;
+import <map>;
 import <vector>;
 import <functional>;
 import <algorithm>;
 
 import Lumina;
 import Game.Editor.EnemyEditor;
+import Game.MotionManager;
 import Collider;
 import CollisionManager;
 
 export namespace Game {
+	struct EnemyInstance;
+	class EnemyBehavior;
+	class KingSlimeBehavior;
+	std::unique_ptr<EnemyBehavior> CreateEnemyBehavior(const Editor::EnemyData& data);
+
+	class EnemyBehavior {
+	public:
+		virtual ~EnemyBehavior() = default;
+		virtual void OnSpawn(EnemyInstance& enemy) { (void)enemy; }
+		virtual void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+			(void)enemy;
+			(void)deltaTime;
+			(void)playerPosition;
+		}
+
+		// Debug helper: whether a 'walk' flag is active for this behavior
+		virtual bool IsWalkActive() const { return false; }
+		virtual bool IsMotionPlaying() const { return false; }
+		virtual int GetActiveNodeIndex() const { return -1; }
+	};
+
+	class KingSlimeBehavior final : public EnemyBehavior {
+	public:
+		~KingSlimeBehavior() override = default;
+		void OnSpawn(EnemyInstance& enemy) override;
+		void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) override;
+		bool IsWalkActive() const override;
+		bool IsMotionPlaying() const override;
+		int GetActiveNodeIndex() const override;
+	private:
+		bool walk_ = false;
+
+		// Follow-above (JumpAbove) behavior phases
+		enum class FollowPhase { None, Rising, Tracking, Dropping };
+		FollowPhase followPhase_ = FollowPhase::None;
+		float followTimer_ = 0.0f;
+		float followDuration_ = 1.2f;   // seconds to track above player
+		float hoverHeight_ = 12.0f;     // Y offset above player (off-screen)
+		float riseSpeed_ = 25.0f;       // speed to fly up
+		float dropSpeed_ = -18.0f;      // initial downward velocity when dropping
+		float lastTrackedX_ = 0.0f;     // last player X during tracking
+
+		// Jump cooldown: accumulates time across all states, triggers jumpReady flag
+		float jumpCooldownTimer_ = 0.0f;
+		float jumpCooldownInterval_ = 6.0f; // seconds of combat before jump-above is ready
+	};
 
 	/// <summary>
 	/// ゲーム内で実際に動く敵インスタンス
@@ -25,6 +73,7 @@ export namespace Game {
 		// ムーブ時もコライダーを再生成して 'this' キャプチャを更新する
 		EnemyInstance(EnemyInstance&& other) noexcept
 			: baseData(std::move(other.baseData))
+			, behavior(std::move(other.behavior))
 			, id(other.id)
 			, position(other.position)
 			, velocity(other.velocity)
@@ -46,6 +95,7 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
+			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -55,6 +105,7 @@ export namespace Game {
 		EnemyInstance& operator=(EnemyInstance&& other) noexcept {
 			if (this != &other) {
 				baseData = std::move(other.baseData);
+				behavior = std::move(other.behavior);
 				id = other.id;
 				position = other.position;
 				velocity = other.velocity;
@@ -76,6 +127,7 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
+				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -87,6 +139,7 @@ export namespace Game {
 		// コピー時はコライダーを除いてコピーし、後で InitCollider() で再生成する
 		EnemyInstance(const EnemyInstance& other)
 			: baseData(other.baseData)
+			, behavior(CreateEnemyBehavior(other.baseData))
 			, id(other.id)
 			, position(other.position)
 			, velocity(other.velocity)
@@ -108,6 +161,7 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
+			, runtimeBoolFlags(other.runtimeBoolFlags)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -118,6 +172,7 @@ export namespace Game {
 		EnemyInstance& operator=(const EnemyInstance& other) {
 			if (this != &other) {
 				baseData = other.baseData;
+				behavior = CreateEnemyBehavior(other.baseData);
 				id = other.id;
 				position = other.position;
 				velocity = other.velocity;
@@ -139,6 +194,7 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
+				runtimeBoolFlags = other.runtimeBoolFlags;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -149,6 +205,7 @@ export namespace Game {
 
 		// --- テンプレートデータ（EnemyEditorから読み込み） ---
 		Editor::EnemyData baseData;
+		std::unique_ptr<EnemyBehavior> behavior;
 
 		// --- ランタイム状態 ---
 		uint32_t id = 0;                              // ユニークID
@@ -179,6 +236,10 @@ export namespace Game {
 
 		// --- アニメーション ---
 		std::string currentAction = "Idle";            // 現在のアクション名
+		::MotionController motionController{};
+
+		// --- ランタイムブールフラグ（BOOL: リンク条件用） ---
+		std::map<std::string, bool> runtimeBoolFlags;
 
 		// --- 当たり判定（凸包分割された複数のConvexCollider） ---
 		std::vector<std::unique_ptr<ConvexCollider>> colliders;
@@ -198,6 +259,7 @@ export namespace Game {
 			aiState = AIState::Idle;
 			currentAction = "Idle";
 			burstSpeedMultiplier = 1.0f;
+			runtimeBoolFlags.clear();
 			preferredCombatDistance = baseData.attackRange;
 			attackWindupDuration = 0.4f;
 			attackDuration = 0.25f;

@@ -146,6 +146,7 @@ export namespace Game::Editor {
 		const std::string& GetCachedMeshPath() const { return cachedMeshPath_; }
 		const std::vector<std::array<float, 3>>& GetCachedMeshPositions() const { return cachedMeshPositions_; }
 		const std::vector<std::array<int, 2>>& GetCachedMeshEdges() const { return cachedMeshEdges_; }
+		const std::vector<std::array<int, 3>>& GetCachedMeshFaces() const { return cachedMeshFaces_; }
 
 	private:
 		ActorData editingActor_{};
@@ -176,6 +177,7 @@ export namespace Game::Editor {
 		std::string cachedMeshPath_;
 		std::vector<std::array<float, 3>> cachedMeshPositions_;  // 3D頂点座標
 		std::vector<std::array<int, 2>> cachedMeshEdges_;        // エッジ（頂点インデックスペア）
+		std::vector<std::array<int, 3>> cachedMeshFaces_;        // 面（頂点インデックスのトリオ）
 
 		// ワイヤーフレームビューモード (0=正面XY, 1=側面ZY, 2=上面XZ)
 		int meshViewMode_ = 0;

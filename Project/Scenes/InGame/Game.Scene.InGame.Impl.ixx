@@ -11,6 +11,8 @@ import Game.TerrainEditor;
 import Game.Editor.AreaEditor;
 import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
+import Game.Editor.AudioEditor;
+import Game.Editor.ObjMotionEditor;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -73,6 +75,11 @@ namespace Game::Scene::Impl {
 		virtual ~InGame();
 
 	private:
+		struct MeshRange {
+			size_t startIndex;
+			size_t count;
+		};
+
 		struct MeshMaterial {
 			Lumina::F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
 			Lumina::U32 ID_DiffuseMap;
@@ -96,8 +103,14 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
 
-		std::map<std::string, size_t> EnemyMeshIndices_;
+		std::map<std::string, MeshRange> EnemyMeshIndices_;
+		std::map<std::string, size_t> EnemyMaterialIndices_;
+		std::map<std::string, uint32_t> EnemyTextureIndices_;
+		std::map<std::string, MeshRange> ActorMeshIndices_;  // actor名 → メッシュ範囲
 		size_t CubeMeshIdx_{ 0 };
+
+		std::vector<std::pair<std::string, std::string>> AdditionalTextures_;
+
 
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
@@ -120,11 +133,14 @@ namespace Game::Scene::Impl {
 
 	private:
 		// エディタ統合
-		enum class EditorTab { None, Motion, Area, Enemy, Actor, Terrain, Play };
+		enum class EditorTab { None, Motion, ObjMotion, Area, Enemy, EnemyAction, Actor, Terrain, Audio, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
+		Game::Editor::EnemyActionEditor enemyActionEditor_;
 		Game::Editor::ActorEditor actorEditor_;
+		Game::Editor::AudioEditor audioEditor_;
+		Game::Editor::ObjMotionEditor objMotionEditor_;
 
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
@@ -146,6 +162,9 @@ namespace Game::Scene::Impl {
 			bool FacingRight = true;
 			int SizeTier = 1;
 			float Scale = 1.0f;
+			bool WalkActive = false; // debug flag from behavior
+			bool MotionPlaying = false;
+			int ActiveNodeIndex = -1;
 		};
 
 		struct PlayState {

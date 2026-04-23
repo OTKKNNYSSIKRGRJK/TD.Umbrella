@@ -20,8 +20,10 @@ import Lumina.Utils.Color;
 
 import Game.MotionManager;
 import Game.EnemyManager;
+import Game.ProjectileManager;
 
 import Game.Events;
+import Lumina.Scene;
 
 #if defined(_DEBUG)
 namespace {
@@ -180,6 +182,7 @@ namespace Game::Scene::Impl {
 
 		playState_.Enemies.clear();
 		Game::EnemyManager::GetInstance()->ClearInstances();
+		Game::ProjectileManager::GetInstance()->ClearAll();
 
 		for (auto& ep : playState_.CurrentArea.enemies) {
 			PlayEnemy pe;
@@ -211,11 +214,7 @@ namespace Game::Scene::Impl {
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
 		
-		if (areaIndex == 1) {
-			playState_.IsGoalReached = true;
-		} else {
-			playState_.IsGoalReached = false;
-		}
+		playState_.IsGoalReached = false;
 	}
 
 
@@ -250,14 +249,18 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"Collision">() {
+		// プロジェクタイル更新
+		Game::ProjectileManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition());
+
 		// 中身をclear
 		CollisionManager_->Begin();
 
 		// ここからColliderを設定
+		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
+		Game::ProjectileManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		CollisionManager_->SetColliders(Player_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetUmbrella().top_->GetCollider());
 		CollisionManager_->SetColliders(Player_->GetSmashCollider());
-		Game::EnemyManager::GetInstance()->RegisterCollidersTo(*CollisionManager_);
 		for (auto const& polygon : Terrain_->PolygonsData()) {
 			CollisionManager_->SetColliders(polygon.Col.get());
 		}
@@ -278,6 +281,9 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"Enemies-2">() {
+		// 死亡済みプロジェクタイルを除去
+		Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
+
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
 		playState_.Enemies.clear();
 		playState_.Enemies.reserve(enemyInstances.size());
@@ -290,6 +296,14 @@ namespace Game::Scene::Impl {
 			pe.FacingRight = inst.facingRight;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
+			// pull debug flag from behavior if available
+			if (inst.behavior) {
+				pe.WalkActive = inst.behavior->IsWalkActive();
+				pe.MotionPlaying = inst.behavior->IsMotionPlaying();
+				pe.ActiveNodeIndex = inst.behavior->GetActiveNodeIndex();
+			} else {
+				pe.WalkActive = false;
+			}
 			playState_.Enemies.push_back(std::move(pe));
 		}
 	}
@@ -712,6 +726,10 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Motion;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Obj Motion Editor", nullptr, activeEditor_ == EditorTab::ObjMotion)) {
+					activeEditor_ = EditorTab::ObjMotion;
+					playState_.IsPlaying = false;
+				}
 				if (ImGui::MenuItem("Area Editor", nullptr, activeEditor_ == EditorTab::Area)) {
 					activeEditor_ = EditorTab::Area;
 					playState_.IsPlaying = false;
@@ -720,12 +738,20 @@ namespace Game::Scene::Impl {
 					activeEditor_ = EditorTab::Enemy;
 					playState_.IsPlaying = false;
 				}
+				if (ImGui::MenuItem("Enemy Action Editor", nullptr, activeEditor_ == EditorTab::EnemyAction)) {
+					activeEditor_ = EditorTab::EnemyAction;
+					playState_.IsPlaying = false;
+				}
 				if (ImGui::MenuItem("Actor Editor", nullptr, activeEditor_ == EditorTab::Actor)) {
 					activeEditor_ = EditorTab::Actor;
 					playState_.IsPlaying = false;
 				}
 				if (ImGui::MenuItem("Terrain Editor", nullptr, activeEditor_ == EditorTab::Terrain)) {
 					activeEditor_ = EditorTab::Terrain;
+					playState_.IsPlaying = false;
+				}
+				if (ImGui::MenuItem("Audio Editor", nullptr, activeEditor_ == EditorTab::Audio)) {
+					activeEditor_ = EditorTab::Audio;
 					playState_.IsPlaying = false;
 				}
 				ImGui::EndMenu();
@@ -738,17 +764,26 @@ namespace Game::Scene::Impl {
 		case EditorTab::Motion:
 			MotionEditor::GetInstance()->NodeImGui();
 			break;
+		case EditorTab::ObjMotion:
+			objMotionEditor_.Update();
+			break;
 		case EditorTab::Area:
 			areaEditor_.Update();
 			break;
 		case EditorTab::Enemy:
 			enemyEditor_.Update();
 			break;
+		case EditorTab::EnemyAction:
+			enemyActionEditor_.Update();
+			break;
 		case EditorTab::Actor:
 			actorEditor_.Update();
 			break;
 		case EditorTab::Terrain:
 			if (TerrainEditor_) TerrainEditor_->Update();
+			break;
+		case EditorTab::Audio:
+			audioEditor_.Update();
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
@@ -757,11 +792,14 @@ namespace Game::Scene::Impl {
 			ImGui::Begin("Enemy HP");
 			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
 				const auto& enemy = playState_.Enemies[i];
-				ImGui::Text("Enemy[%d] HP: %d / %d %s",
-					static_cast<int>(i),
-					enemy.CurrentHP,
-					enemy.BaseData.hp,
-					enemy.IsDead ? "(Dead)" : "");
+			ImGui::Text("Enemy[%d] HP: %d / %d %s  Walk:%s Motion:%s Node:%d",
+				static_cast<int>(i),
+				enemy.CurrentHP,
+				enemy.BaseData.hp,
+				enemy.IsDead ? "(Dead)" : "",
+				enemy.WalkActive ? "true" : "false",
+				enemy.MotionPlaying ? "playing" : "stopped",
+				enemy.ActiveNodeIndex);
 			}
 			ImGui::End();
 

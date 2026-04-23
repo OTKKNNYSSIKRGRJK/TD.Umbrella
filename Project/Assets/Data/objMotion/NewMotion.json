@@ -1,0 +1,32 @@
+{
+    "duration": 1.0,
+    "isLoop": true,
+    "keyframes": [
+        {
+            "px": 0.0,
+            "py": 0.0,
+            "pz": 0.0,
+            "rx": 0.0,
+            "ry": 0.0,
+            "rz": 0.0,
+            "sx": 1.0,
+            "sy": 1.0,
+            "sz": 1.0,
+            "time": 0.0
+        },
+        {
+            "px": 0.0,
+            "py": 0.0,
+            "pz": 0.0,
+            "rx": 0.0,
+            "ry": 0.0,
+            "rz": 0.0,
+            "sx": 1.0,
+            "sy": 1.0,
+            "sz": 1.0,
+            "time": 0.6041009426116943
+        }
+    ],
+    "name": "NewMotion",
+    "targetModelPath": "Models/Enemy/default.obj"
+}

@@ -132,13 +132,44 @@
                 "y": 130.0
             },
             "targetAreaIndex": 1
+        },
+        {
+            "position": {
+                "x": 412.0,
+                "y": 160.0
+            },
+            "targetAreaIndex": 5
         }
     ],
     "editorPos": {
         "x": -1394.0,
         "y": 28.0
     },
-    "enemies": [],
+    "enemies": [
+        {
+            "enemyName": "KingSlime",
+            "facingRight": true,
+            "position": {
+                "x": 736.0,
+                "y": 134.0
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 530.0,
+                "y": 152.0
+            },
+            "sizeCategory": 1
+        }
+    ],
+    "goalPosition": {
+        "x": 640.0,
+        "y": 360.0
+    },
+    "hasGoal": false,
     "height": 344,
     "index": 0,
     "name": 0,

@@ -196,6 +196,9 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Update.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
@@ -203,6 +206,12 @@
       <Filter>Scenes\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp">
+      <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.ixx">
+      <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.cpp">
       <Filter>Scenes\Enemy</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx">
@@ -254,6 +263,16 @@
       <Filter>Scenes\Title-InGame</Filter>
     </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Game\Game.BGMManager.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Update.cpp" />
+    <ClCompile Include="Game\Game.BGMManager.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Impl.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Initialize.cpp" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Render.cpp" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Update.cpp" />
     <ClCompile Include="Scenes\Player\PlayerAttackData.ixx" />
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp">
       <Filter>Scenes\InGame</Filter>
@@ -261,5 +280,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="KingSlime.json" />
+    <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
   </ItemGroup>
 </Project>

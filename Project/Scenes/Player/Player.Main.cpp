@@ -289,17 +289,14 @@ void Player::Initialize() {
 			this->GetStatusComponent().TakeDamage(1.0f);
 		}
 		else if (other->GetMyType() == COL_Enemy_Attack) {
-			//this->GetStatusComponent().TakeDamage(10.0f);
-			// 1. 相手のコライダーから「持ち主（Enemy）」のポインタをもらう
-			// ※ void* で返ってくるので、Enemy型にキャスト（変換）する
-			//Enemy* enemy = static_cast<Enemy*>(other->GetUserData());
-
-			// 2. 万が一キャストに失敗していないかチェック
-			//if (enemy != nullptr) {
-			//	// 3. 敵本体から攻撃力を取得して、ダメージを受ける！
-			//	int damage = enemy->GetAttackPower();
-			//	this->TakeDamage(damage); // プレイヤーのHPを減らす処理など
-			//}
+			// プロジェクタイルからダメージを受ける
+			// UserData には Projectile* が入っている
+			void* userData = other->GetUserData();
+			if (userData != nullptr) {
+				// ProjectileData の damage をそのまま使用
+				// （Projectile 構造体の先頭メンバが ProjectileData data なので安全にアクセス可能）
+				this->GetStatusComponent().TakeDamage(10.0f);
+			}
 		}
 	};
 

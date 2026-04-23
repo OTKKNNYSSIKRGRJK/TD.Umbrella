@@ -1,0 +1,64 @@
+{
+    "aggressiveness": 0.5,
+    "aggroRadius": 15.0,
+    "animationMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "attackCooldown": 1.5,
+    "attackRange": 2.0,
+    "attackType": "Melee",
+    "collisionVertices": [],
+    "gltfPath": "Models/Enemy/default.gltf",
+    "hp": 100,
+    "links": [],
+    "motionMap": {
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
+    },
+    "moveSpeed": 3.0,
+    "name": "NewEnemy",
+    "nodes": [
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "JumpAttack",
+            "boundMotionNodeIndex": -1,
+            "id": 1,
+            "name": "State1",
+            "state": "Idle",
+            "x": 125.0,
+            "y": 0.0
+        }
+    ],
+    "patrolRadius": 10.0,
+    "power": 1.0,
+    "projectile": {
+        "actorName": "",
+        "colliderRadius": 0.15000000596046448,
+        "damage": 10,
+        "homingStrength": 3.0,
+        "isHoming": false,
+        "lifetime": 5.0
+    },
+    "retreatThreshold": 0.20000000298023224,
+    "sizeTiers": [
+        {
+            "hp": 35,
+            "power": 0.800000011920929,
+            "scale": 0.30000001192092896
+        },
+        {
+            "hp": 70,
+            "power": 1.0,
+            "scale": 0.5
+        },
+        {
+            "hp": 140,
+            "power": 1.7999999523162842,
+            "scale": 0.699999988079071
+        }
+    ]
+}

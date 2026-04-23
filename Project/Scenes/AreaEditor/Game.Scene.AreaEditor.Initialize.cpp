@@ -72,6 +72,36 @@ namespace Game::Editor {
 
 	void to_json(json& j, const AreaData& a) {
 		j = a.originalJson;
+		
+		int oldHeight = a.height;
+		if (j.contains("height")) {
+			oldHeight = j.at("height").get<int>();
+		} else if (j.contains("MapInfo") && j.at("MapInfo").is_object() && j.at("MapInfo").contains("Size") && j.at("MapInfo").at("Size").is_array() && j.at("MapInfo").at("Size").size() >= 2) {
+			oldHeight = static_cast<int>(j.at("MapInfo").at("Size")[1].get<float>());
+		}
+
+		if (a.height != oldHeight) {
+			int heightDiff = a.height - oldHeight;
+			if (j.contains("Polygons") && j["Polygons"].is_array()) {
+				for (auto& poly : j["Polygons"]) {
+					if (poly.contains("Vertices") && poly["Vertices"].is_array()) {
+						for (auto& v : poly["Vertices"]) {
+							if (v.contains("Pos") && v["Pos"].is_array() && v["Pos"].size() >= 2) {
+								v["Pos"][1] = v["Pos"][1].get<float>() + heightDiff;
+							}
+						}
+					}
+				}
+			}
+			if (j.contains("GroundPoints") && j["GroundPoints"].is_array()) {
+				for (auto& pt : j["GroundPoints"]) {
+					if (pt.contains("Pos") && pt["Pos"].is_array() && pt["Pos"].size() >= 2) {
+						pt["Pos"][1] = pt["Pos"][1].get<float>() + heightDiff;
+					}
+				}
+			}
+		}
+
 		j["name"] = a.name;
 		j["index"] = a.index;
 		j["width"] = a.width;
@@ -81,6 +111,8 @@ namespace Game::Editor {
 		j["enemies"] = a.enemies;
 		j["collisionGroups"] = a.collisionGroups;
 		j["editorPos"] = a.editorPos;
+		j["hasGoal"] = a.hasGoal;
+		j["goalPosition"] = a.goalPosition;
 	}
 
 	void from_json(const json& j, AreaData& a) {
@@ -107,13 +139,21 @@ namespace Game::Editor {
 
 		a.name = a.index;
 
-		if (j.contains("width")) j.at("width").get_to(a.width);
-		if (j.contains("height")) j.at("height").get_to(a.height);
+		if (j.contains("width") && j.contains("height")) {
+			j.at("width").get_to(a.width);
+			j.at("height").get_to(a.height);
+		} else if (j.contains("MapInfo") && j.at("MapInfo").is_object() && j.at("MapInfo").contains("Size") && j.at("MapInfo").at("Size").is_array() && j.at("MapInfo").at("Size").size() >= 2) {
+			a.width = static_cast<int>(j.at("MapInfo").at("Size")[0].get<float>());
+			a.height = static_cast<int>(j.at("MapInfo").at("Size")[1].get<float>());
+		}
+
 		if (j.contains("backgroundMusic")) j.at("backgroundMusic").get_to(a.backgroundMusic);
 		if (j.contains("connections")) j.at("connections").get_to(a.connections);
 		if (j.contains("enemies")) j.at("enemies").get_to(a.enemies);
 		if (j.contains("collisionGroups")) j.at("collisionGroups").get_to(a.collisionGroups);
 		if (j.contains("editorPos")) j.at("editorPos").get_to(a.editorPos);
+		if (j.contains("hasGoal")) j.at("hasGoal").get_to(a.hasGoal);
+		if (j.contains("goalPosition")) j.at("goalPosition").get_to(a.goalPosition);
 	}
 
 	namespace {

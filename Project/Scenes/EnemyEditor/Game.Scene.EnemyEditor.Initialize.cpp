@@ -31,6 +31,55 @@ namespace Game::Editor {
 		if (j.contains("scale")) j.at("scale").get_to(t.scale);
 	}
 
+	void to_json(json& j, const Node& n) {
+		j = json{
+			{"id", n.id}, {"name", n.name}, {"state", n.state}, {"x", n.x}, {"y", n.y},
+			{"animationName", n.animationName},
+			{"boundMotion", n.boundMotion},
+			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
+			{"boundBool", n.boundBool},
+			{"facePlayer", n.facePlayer},
+			{"velocityFrictionX", n.velocityFrictionX},
+			{"jumpVelocityXMult", n.jumpVelocityXMult},
+			{"jumpVelocityY", n.jumpVelocityY},
+			{"splineMotionName", n.splineMotionName},
+			{"splineDuration", n.splineDuration}
+		};
+	}
+	void from_json(const json& j, Node& n) {
+		if (j.contains("id")) j.at("id").get_to(n.id);
+		if (j.contains("name")) j.at("name").get_to(n.name);
+		if (j.contains("state")) j.at("state").get_to(n.state);
+		if (j.contains("x")) j.at("x").get_to(n.x);
+		if (j.contains("y")) j.at("y").get_to(n.y);
+		if (j.contains("animationName")) j.at("animationName").get_to(n.animationName);
+		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
+		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
+		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
+		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
+		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
+		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
+		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
+
+		// migration: if user previously put "BOOL:Attack" in animationName
+		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
+			n.boundBool = n.animationName.substr(5);
+			n.animationName.clear();
+		}
+	}
+	
+	void to_json(json& j, const Link& l) {
+		j = json{ {"from", l.from}, {"to", l.to}, {"condition", l.condition} };
+	}
+	void from_json(const json& j, Link& l) {
+		if (j.contains("from")) j.at("from").get_to(l.from);
+		if (j.contains("to")) j.at("to").get_to(l.to);
+		if (j.contains("condition")) j.at("condition").get_to(l.condition);
+	}
+
 	// JSON シリアライズ定義
 	void to_json(json& j, const EnemyData& e) {
 		j = json{
@@ -43,7 +92,20 @@ namespace Game::Editor {
 			{"aggroRadius", e.aggroRadius}, {"attackRange", e.attackRange},
 			{"moveSpeed", e.moveSpeed}, {"attackCooldown", e.attackCooldown},
 			{"retreatThreshold", e.retreatThreshold},
-			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness}
+			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness},
+			{"attackType", (e.attackType == EnemyData::AttackType::Ranged) ? "Ranged" : "Melee"},
+			{"nodes", e.nodes},
+			{"links", e.links},
+		};
+
+		// プロジェクタイル設定（遠距離攻撃時のみ有効だが常に保存）
+		j["projectile"] = json{
+			{"actorName", e.projectile.actorName},
+			{"isHoming", e.projectile.isHoming},
+			{"homingStrength", e.projectile.homingStrength},
+			{"damage", e.projectile.damage},
+			{"lifetime", e.projectile.lifetime},
+			{"colliderRadius", e.projectile.colliderRadius},
 		};
 	}
 	void from_json(const json& j, EnemyData& e) {
@@ -64,13 +126,41 @@ namespace Game::Editor {
 		if (j.contains("retreatThreshold")) j.at("retreatThreshold").get_to(e.retreatThreshold);
 		if (j.contains("patrolRadius")) j.at("patrolRadius").get_to(e.patrolRadius);
 		if (j.contains("aggressiveness")) j.at("aggressiveness").get_to(e.aggressiveness);
+
+		if (j.contains("attackType")) {
+			std::string atype = j["attackType"].get<std::string>();
+			e.attackType = (atype == "Ranged") ? EnemyData::AttackType::Ranged : EnemyData::AttackType::Melee;
+		}
+
+		if (j.contains("projectile") && j["projectile"].is_object()) {
+			const auto& pj = j["projectile"];
+			// 新形式: actorName ベース
+			if (pj.contains("actorName")) pj.at("actorName").get_to(e.projectile.actorName);
+			if (pj.contains("isHoming")) pj.at("isHoming").get_to(e.projectile.isHoming);
+			// 旧形式の後方互換: trajectory が "Homing" なら isHoming を true に
+			if (pj.contains("trajectory") && !pj.contains("isHoming")) {
+				std::string traj = pj["trajectory"].get<std::string>();
+				e.projectile.isHoming = (traj == "Homing");
+			}
+			if (pj.contains("homingStrength")) pj.at("homingStrength").get_to(e.projectile.homingStrength);
+			if (pj.contains("damage")) pj.at("damage").get_to(e.projectile.damage);
+			if (pj.contains("lifetime")) pj.at("lifetime").get_to(e.projectile.lifetime);
+			if (pj.contains("colliderRadius")) pj.at("colliderRadius").get_to(e.projectile.colliderRadius);
+		}
+
+		if (j.contains("nodes")) j.at("nodes").get_to(e.nodes);
+		if (j.contains("links")) j.at("links").get_to(e.links);
 	}
 
 	void EnemyEditor::Initialize() {
 	}
 
+	void EnemyActionEditor::Initialize() {
+	}
+
 	void EnemyEditor::SaveEnemy(const EnemyData& enemy) {
-		std::string filename = enemy.name + ".json";
+		fs::create_directories("Assets/Data/Enemy");
+		std::string filename = "Assets/Data/Enemy/" + enemy.name + ".json";
 		std::ofstream file(filename);
 		if (file.is_open()) {
 			json j = enemy;
@@ -79,7 +169,8 @@ namespace Game::Editor {
 	}
 
 	void EnemyEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string fullPath = "Assets/Data/Enemy/" + filename;
+		std::ifstream file(fullPath);
 		if (file.is_open()) {
 			try {
 				json j;
@@ -143,6 +234,147 @@ namespace Game::Editor {
 		}
 
 		//"animations" 配列内の各要素の "name" を取得
+		if (gltfJson.contains("animations") && gltfJson["animations"].is_array()) {
+			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
+				const auto& anim = gltfJson["animations"][i];
+				if (anim.contains("name") && anim["name"].is_string()) {
+					names.push_back(anim["name"].get<std::string>());
+				} else {
+					names.push_back("Animation_" + std::to_string(i));
+				}
+			}
+		}
+
+		return names;
+	}
+
+	void EnemyActionEditor::SaveEnemy(const EnemyData& enemy) {
+    fs::create_directories("Assets/Data/Enemy");
+    std::string filename = enemy.name + ".json";
+    std::string fullPath = "Assets/Data/Enemy/" + filename;
+    std::ofstream file(fullPath);
+    if (file.is_open()) {
+        json j = enemy;
+        file << j.dump(4);
+    }
+
+    // persist into per-file storage so runtime state is kept per JSON
+    perFileEnemies_[filename] = enemy;
+    PerFileRuntime rt;
+    rt.currentStateId = currentStateId_;
+    rt.currentStateElapsedTime = currentStateElapsedTime_;
+    rt.previousStateId = previousStateId_;
+    rt.transitionFlashTimer = transitionFlashTimer_;
+    rt.firstNodeStarted = firstNodeStarted_;
+    rt.undoStack = undoStack_;
+    rt.cachedAnimationNames = cachedAnimationNames_;
+    rt.runtimeBoolFlags = runtimeBoolFlags_;
+    perFileRuntimes_[filename] = std::move(rt);
+    activeFileName_ = filename;
+	}
+
+	void EnemyActionEditor::LoadEnemy(EnemyData& enemy, const std::string& filename) {
+    std::string fullPath = "Assets/Data/Enemy/" + filename;
+    std::ifstream file(fullPath);
+    EnemyData loaded;
+    if (file.is_open()) {
+        try {
+            json j;
+            file >> j;
+            loaded = j.get<EnemyData>();
+        } catch (...) {
+        }
+    }
+
+    // store into per-file map
+    std::string fname = filename;
+    perFileEnemies_[fname] = loaded;
+
+    // restore runtime state if exists
+    if (perFileRuntimes_.find(fname) != perFileRuntimes_.end()) {
+        auto& rt = perFileRuntimes_[fname];
+        currentStateId_ = rt.currentStateId;
+        currentStateElapsedTime_ = rt.currentStateElapsedTime;
+        previousStateId_ = rt.previousStateId;
+        transitionFlashTimer_ = rt.transitionFlashTimer;
+        firstNodeStarted_ = rt.firstNodeStarted;
+        undoStack_ = rt.undoStack;
+        cachedAnimationNames_ = rt.cachedAnimationNames;
+        runtimeBoolFlags_ = rt.runtimeBoolFlags;
+    } else {
+        // initialize runtime for this file
+        PerFileRuntime rt;
+        rt.currentStateId = -1;
+        rt.currentStateElapsedTime = 0.0f;
+        rt.previousStateId = -1;
+        rt.transitionFlashTimer = 0.0f;
+        rt.firstNodeStarted = false;
+        rt.cachedAnimationNames = ExtractAnimationNames(loaded.gltfPath);
+        rt.runtimeBoolFlags.clear();
+        perFileRuntimes_[fname] = rt;
+        currentStateId_ = -1;
+        currentStateElapsedTime_ = 0.0f;
+        previousStateId_ = -1;
+        transitionFlashTimer_ = 0.0f;
+        firstNodeStarted_ = false;
+        cachedAnimationNames_ = perFileRuntimes_[fname].cachedAnimationNames;
+        runtimeBoolFlags_.clear();
+    }
+
+    // set editing enemy reference
+    enemy = loaded;
+    editingEnemy_ = loaded;
+    activeFileName_ = fname;
+	}
+
+	std::vector<std::string> EnemyActionEditor::ExtractAnimationNames(const std::string& gltfPath) {
+		std::vector<std::string> names;
+		if (gltfPath.empty()) return names;
+
+		if (!fs::exists(gltfPath)) return names;
+
+		std::string ext = fs::path(gltfPath).extension().string();
+		for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		json gltfJson;
+
+		if (ext == ".gltf") {
+			std::ifstream ifs(gltfPath);
+			if (!ifs.is_open()) return names;
+			try {
+				ifs >> gltfJson;
+			} catch (...) {
+				return names;
+			}
+		} else if (ext == ".glb") {
+			std::ifstream ifs(gltfPath, std::ios::binary);
+			if (!ifs.is_open()) return names;
+
+			uint32_t magic = 0, version = 0, totalLength = 0;
+			ifs.read(reinterpret_cast<char*>(&magic), 4);
+			ifs.read(reinterpret_cast<char*>(&version), 4);
+			ifs.read(reinterpret_cast<char*>(&totalLength), 4);
+
+			if (magic != 0x46546C67) return names; // "glTF"
+
+			uint32_t chunkLength = 0, chunkType = 0;
+			ifs.read(reinterpret_cast<char*>(&chunkLength), 4);
+			ifs.read(reinterpret_cast<char*>(&chunkType), 4);
+
+			if (chunkType != 0x4E4F534A) return names;
+
+			std::string jsonStr(chunkLength, '\0');
+			ifs.read(jsonStr.data(), chunkLength);
+
+			try {
+				gltfJson = json::parse(jsonStr);
+			} catch (...) {
+				return names;
+			}
+		} else {
+			return names;
+		}
+
 		if (gltfJson.contains("animations") && gltfJson["animations"].is_array()) {
 			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
 				const auto& anim = gltfJson["animations"][i];

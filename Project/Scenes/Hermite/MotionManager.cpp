@@ -13,6 +13,17 @@ namespace {
     using namespace MathUtils;
 }
 
+void MotionManager::SetWalkNodeForMotion(const std::string& motionName, int nodeIndex) {
+    debugWalkNodeForMotion_[motionName] = nodeIndex;
+}
+
+int MotionManager::GetWalkNodeForMotion(const std::string& motionName) const {
+    auto it = debugWalkNodeForMotion_.find(motionName);
+    if (it == debugWalkNodeForMotion_.end()) return -1;
+    return it->second;
+}
+
+
 std::unique_ptr<MotionManager> MotionManager::instance_ = nullptr;
 std::unique_ptr<MotionEditor> MotionEditor::instance_ = nullptr;
 
@@ -32,12 +43,17 @@ void MotionManager::LoadActionData(const std::string& fileName, std::vector<Math
 
 void MotionManager::LoadMotions(const std::string& directoryPath) {
 	motions_.clear();
+	if (!std::filesystem::exists(directoryPath)) return;
 	for (const auto& entry : std::filesystem::directory_iterator(directoryPath)) {
 		if (entry.is_regular_file() && entry.path().extension() == ".json") {
 			std::string motionName = entry.path().stem().string();
 			MotionData motionData;
-			LoadActionData(directoryPath + motionName, motionData);
-			motions_[motionName] = motionData;
+			try {
+				LoadActionData(directoryPath + motionName, motionData);
+				motions_[motionName] = motionData;
+			} catch (...) {
+				// JSON形式が異なるファイル（ObjMotionEditor等）はスキップ
+			}
 		}
 	}
 }
@@ -57,16 +73,60 @@ void MotionController::Play(const std::string& motionName, const Vector3& startP
 	motionTimer_ = 0.0f;
 	isPlaying_ = true;
 	actionStartPosition_ = startPosition;
+	lastLocalOffset_ = Vector3{};
 }
 
 Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 	if (!isPlaying_) return Vector3{};
 	auto& motionData = MotionManager::GetInstance()->GetMotion(currentMotionName_);
-	motionTimer_ += deltaTime;
-	float t = motionTimer_ / motionDuration_;
-	Vector3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
+    motionTimer_ += deltaTime;
+    float t = motionTimer_ / motionDuration_;
+
+    // Determine active node index based on t and node positions (node.position.X assumed to be normalized 0..1)
+    int activeNode = -1;
+    int nodeCount = static_cast<int>(motionData.size());
+    if (nodeCount > 0) {
+        // Find interval i where t is between node[i].position.X and node[i+1].position.X
+        for (int i = 0; i < nodeCount - 1; ++i) {
+            float left = motionData[i].position.X;
+            float right = motionData[i + 1].position.X;
+            if (left > right) std::swap(left, right);
+            if (t >= left && t <= right) { activeNode = i; break; }
+        }
+        // Edge case: if t is exactly at final node position, mark last index
+        if (activeNode == -1) {
+            if (t >= motionData.back().position.X) activeNode = nodeCount - 1;
+            else if (t <= motionData.front().position.X) activeNode = 0;
+        }
+    }
+
+    // Node event dispatching
+    if (prevActiveNodeIndex_ != activeNode) {
+        // leaving previous
+        if (prevActiveNodeIndex_ >= 0 && nodeEventCallback_) {
+            std::string nodeName = (prevActiveNodeIndex_ < (int)nodeNames_.size()) ? nodeNames_[prevActiveNodeIndex_] : std::string();
+            if (useIntervalMode_) nodeEventCallback_(currentMotionName_, prevActiveNodeIndex_, nodeName, false);
+        }
+        // entering new
+        if (activeNode >= 0 && nodeEventCallback_) {
+            std::string nodeName = (activeNode < (int)nodeNames_.size()) ? nodeNames_[activeNode] : std::string();
+            nodeEventCallback_(currentMotionName_, activeNode, nodeName, true);
+        }
+        prevActiveNodeIndex_ = activeNode;
+    } else if (activeNode >= 0 && !useIntervalMode_ && nodeEventCallback_ && motionTimer_ == deltaTime) {
+        // one-shot mode: invoke when motion starts on the node (handled above on change). No-op here.
+    }
+
+    Vector3 startOffset = MathUtils::Spline::GetPointSpline(motionData, 0.0f);
+    Vector3 localOffset = MathUtils::Spline::GetPointSpline(motionData, t);
+    localOffset.X -= startOffset.X;
+    localOffset.Y -= startOffset.Y;
+    localOffset.Z -= startOffset.Z;
+
 	localOffset.Y *= -1.0f;
 	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
+
+	lastLocalOffset_ = localOffset;
 
 	if (motionTimer_ >= motionDuration_) {
 		isPlaying_ = false; // 再生終了
@@ -149,6 +209,7 @@ void MotionEditor::NodeImGui() {
             ImVec2 mouse_p = ImGui::GetIO().MousePos;
             if (dist(mouse_p, pos_screen) < NODE_RADIUS * NODE_RADIUS * 4.0f) {
                 draggedNodeIndex = i; draggedHandleType = 0; // left on node
+                selectedNodeIndex_ = i;
             }
         }
         else if (is_hovered && ImGui::IsMouseClicked(1)) {
@@ -166,9 +227,13 @@ void MotionEditor::NodeImGui() {
             }
         }
 
+        ImU32 colorNode = MakeCol32(255, 255, 255, 255);
+        if (MotionEditor::GetInstance()->selectedNodeIndex_ == i) {
+            colorNode = MakeCol32(100, 255, 100, 255);
+        }
         draw_list->AddCircleFilled(in_screen, HANDLE_RADIUS, MakeCol32(100, 200, 100, 255));
         draw_list->AddCircleFilled(out_screen, HANDLE_RADIUS, MakeCol32(200, 100, 100, 255));
-        draw_list->AddCircleFilled(pos_screen, NODE_RADIUS, MakeCol32(255, 255, 255, 255));
+        draw_list->AddCircleFilled(pos_screen, NODE_RADIUS, colorNode);
     }
 
     // --- 4. ドラッグ中の座標更新 ---
@@ -229,6 +294,16 @@ void MotionEditor::NodeImGui() {
     ImGui::SameLine();
     if (ImGui::Button("ReLoad")) {
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+    }
+
+    if (selectedNodeIndex_ >= 0 && selectedNodeIndex_ < static_cast<int>(nodes_.size())) {
+        ImGui::SeparatorText("Selected Motion Node");
+        ImGui::Text("Selected Index: %d", selectedNodeIndex_);
+        if (ImGui::Button("Use selected node as Walk trigger")) {
+            MotionManager::GetInstance()->SetWalkNodeForMotion(inputNodeName_, selectedNodeIndex_);
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("Current Walk Node: %d", MotionManager::GetInstance()->GetWalkNodeForMotion(inputNodeName_));
     }
 
     // 保存システム ここまで↑↑↑

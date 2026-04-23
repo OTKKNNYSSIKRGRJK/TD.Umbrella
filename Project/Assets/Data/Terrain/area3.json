@@ -160,6 +160,11 @@
             "sizeCategory": 2
         }
     ],
+    "goalPosition": {
+        "x": 640.0,
+        "y": 360.0
+    },
+    "hasGoal": false,
     "height": 344,
     "index": 3,
     "name": 3,

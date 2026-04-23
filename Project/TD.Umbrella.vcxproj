@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp" />
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx" />
+    <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
@@ -26,10 +27,17 @@
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\AreaEditor\Game.Scene.AreaEditor.Update.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Update.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Impl.ixx" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Initialize.cpp" />
+    <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Update.cpp" />
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.cpp" />
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.cpp" />
     <ClCompile Include="Scenes\Hermite\Hermite.ixx" />
     <ClCompile Include="Scenes\Hermite\MotionManager.cpp" />
@@ -61,6 +69,11 @@
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.Main.ixx" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.cpp" />
     <ClCompile Include="Scenes\Player\Umbrella\Umbrella.State.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Impl.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Initialize.cpp" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.ixx" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Render.cpp" />
+    <ClCompile Include="Scenes\Result\Game.Scene.Result.Update.cpp" />
     <ClCompile Include="Scenes\TDCollider\Collider.cpp" />
     <ClCompile Include="Scenes\TDCollider\CollisionManager.cpp" />
     <ClCompile Include="Scenes\TDCollider\GJK.cpp" />
@@ -81,6 +94,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
+    <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
+    <None Include="KingSlime.json" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Engine\Core\Common\Common.vcxproj">
@@ -129,6 +144,12 @@
       <FileType>Document</FileType>
     </ClCompile>
     <ClCompile Include="Scenes\Enemy\Game.EnemyManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.ixx">
+      <FileType>Document</FileType>
+    </ClCompile>
+    <ClCompile Include="Game\Game.BGMManager.ixx">
       <FileType>Document</FileType>
     </ClCompile>
   </ItemGroup>
