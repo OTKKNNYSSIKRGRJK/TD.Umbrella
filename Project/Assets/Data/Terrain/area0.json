@@ -145,17 +145,7 @@
         "x": -1394.0,
         "y": 28.0
     },
-    "enemies": [
-        {
-            "enemyName": "Slime",
-            "facingRight": false,
-            "position": {
-                "x": 530.0,
-                "y": 152.0
-            },
-            "sizeCategory": 1
-        }
-    ],
+    "enemies": [],
     "goalPosition": {
         "x": 640.0,
         "y": 360.0
