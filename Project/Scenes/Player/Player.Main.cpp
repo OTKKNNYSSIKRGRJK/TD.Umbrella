@@ -203,10 +203,10 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-0.5f, -0.2f, 0.0f}, // 左下
-		{ 0.5f, -0.2f, 0.0f}, // 右下
-		{ 0.5f,  2.8f, 0.0f},  // 右上
-		{ -0.5f,  2.8f, 0.0f }, // 左上
+		{-0.7f, -0.2f, 0.0f}, // 左下
+		{ 0.7f, -0.2f, 0.0f}, // 右下
+		{ 0.7f,  2.8f, 0.0f},  // 右上
+		{ -0.7f,  2.8f, 0.0f }, // 左上
 	};
 	collider_->SetVertices(localVertices);
 
@@ -379,6 +379,7 @@ void Player::Update(float deltaTime) {
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
 	Position_ += moveAmount_;
+	EulerAngle_.Y = eyesDirection_.X > 0.0f ? 1.0f : -1.0f;
 
 	UpdateAnimation();
 
@@ -391,8 +392,8 @@ void Player::Update(float deltaTime) {
 		Vector3 pos = { row3.Get(0),
 			row3.Get(1) + 0.4f,
 			row3.Get(2) };
-		rightHandJoint_.SetPos(pos + Position_
-		);
+		rightHandJoint_.SetPos(Vector3( pos.X * (eyesDirection_.X > 0.0f ? 1.0f : -1.0f),pos.Y,pos .Z) + Position_);
+
 	}
 
 	// rightHandJoint_.SetRot( 手の回転 );
@@ -409,7 +410,6 @@ void Player::Update(float deltaTime) {
 
 	// Colliderに設定
 	collider_->SetWorldPosition(GetPosition());
-
 	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
 
