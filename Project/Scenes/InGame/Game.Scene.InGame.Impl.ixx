@@ -114,7 +114,9 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
+	#if defined(_DEBUG)
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
+#endif
 
 		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
@@ -181,8 +183,8 @@ namespace Game::Scene::Impl {
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
 		} playState_;
 
-#if defined(_DEBUG)
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
+#if defined(_DEBUG)
 		void DrawPlayMode();
 #endif
 

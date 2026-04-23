@@ -565,10 +565,10 @@ namespace Game::Scene::Impl {
 		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 		objMotionEditor_.Initialize();
+		#endif
 
 		playState_.IsPlaying = true;
 		CheckAndLoadArea(0);
-		#endif
 	}
 
 	template<>

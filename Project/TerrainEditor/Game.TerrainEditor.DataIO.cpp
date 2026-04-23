@@ -5,6 +5,7 @@ import <string>;
 import nlohmann.json;
 import Game.Terrain;
 
+#if defined(_DEBUG)
 namespace Game {
 	namespace {
 		auto operator>>(
@@ -93,7 +94,9 @@ namespace Game {
 		CurrentPolygonID_LastestUnused_ = CurrentPolygonID_;
 	}
 }
+#endif
 
+#if defined(_DEBUG)
 namespace Game {
 	namespace {
 		auto operator<<(
@@ -157,3 +160,4 @@ namespace Game {
 		intermediate1.ConvertToWorldCoordinate(output_, *Camera_, *Viewport_);
 	}
 }
+#endif

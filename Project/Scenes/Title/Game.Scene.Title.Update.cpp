@@ -9,7 +9,9 @@ import Lumina.Main;
 import Lumina.OS.Windows.RawInput;
 import Lumina.CG3D.Animation;
 
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
 import Game.MathUtils;
 

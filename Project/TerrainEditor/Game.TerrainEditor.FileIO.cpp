@@ -13,6 +13,7 @@ import <filesystem>;
 
 import nlohmann.json;
 
+#if defined(_DEBUG)
 namespace Game {
 	auto TerrainEditor::OpenFile() -> void {
 		using Microsoft::WRL::ComPtr;
@@ -129,3 +130,4 @@ namespace Game {
 		}
 	}
 }
+#endif

@@ -423,10 +423,7 @@ namespace Game {
 			break;
 
 		case FollowPhase::Dropping:
-			// Let gravity and physics handle the drop
-			// Detect landing: after ground collision resets velocity.Y to 0,
-			// the next frame's gravity gives velocity.Y = -9.8f * deltaTime.
-			// Compare against that expected grounded value.
+
 			{
 				float expectedGroundedVelY = -9.8f * deltaTime;
 				bool isGrounded = (enemy.velocity.Y >= expectedGroundedVelY - 0.5f) && (enemy.velocity.Y <= 0.0f);

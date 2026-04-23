@@ -49,7 +49,6 @@ namespace {
 }
 
 namespace Game::Scene::Impl {
-#if defined(_DEBUG)
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
@@ -67,7 +66,9 @@ namespace Game::Scene::Impl {
 				*Camera_,
 				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
 			);
+#if defined(_DEBUG)
 			TerrainEditor_->SetShapes(*Terrain_);
+#endif
 		} catch (...) {
 			// Fallback or empty terrain if file has no terrain data yet
 			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
@@ -217,7 +218,7 @@ namespace Game::Scene::Impl {
 		playState_.IsGoalReached = false;
 	}
 
-
+#if defined(_DEBUG)
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
@@ -387,7 +388,7 @@ namespace Game::Scene::Impl {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		}
 		#else
-		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
 		#endif
 	}
 

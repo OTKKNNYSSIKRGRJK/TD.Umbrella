@@ -2,8 +2,11 @@ module Game.TerrainEditor;
 
 import <string>;
 
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
+#if defined(_DEBUG)
 namespace Game {
 	namespace {
 		auto operator<<(Lumina::Math::F32x2& dst_, ImVec2 const& src_) -> void {
@@ -485,3 +488,4 @@ namespace Game {
 		Camera_ = std::make_unique<Lumina::Utils::Camera>();
 	}
 }
+#endif

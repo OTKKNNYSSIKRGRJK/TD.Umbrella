@@ -4,7 +4,9 @@ import <fstream>;
 import <filesystem>;
 
 import nlohmann.json;
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
 namespace {
     using Vector3 = Lumina::Math::F32x3;
@@ -135,11 +137,13 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 	return actionStartPosition_ + localOffset;
 }
 
+#if defined(_DEBUG)
 namespace {
     constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
         return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
     }
 }
+#endif
 
 void MotionEditor::NodeImGui() {
 #if defined(_DEBUG)
