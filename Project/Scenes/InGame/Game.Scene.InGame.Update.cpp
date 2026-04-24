@@ -225,12 +225,38 @@ namespace Game::Scene::Impl {
 #if defined(_DEBUG)
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300, 160), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Player Info");
 		if (Player_) {
 			auto const& pos = Player_->GetPosition();
 			ImGui::Text("Player 3D Position: %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
 		}
+		ImGui::Separator();
+
+		// ポーズ・リスタートUI
+		if (playState_.IsPaused) {
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "== PAUSED ==");
+		}
+
+		if (ImGui::Button(playState_.IsPaused ? "Resume (P)" : "Pause (P)", ImVec2(140, 0))) {
+			playState_.IsPaused = !playState_.IsPaused;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Restart", ImVec2(140, 0))) {
+			playState_.IsPaused = false;
+			CheckAndLoadArea(0);
+		}
+
+		// Pキーでポーズトグル
+		{
+			auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+			auto const& keyboard{ inputMngr.Keyboard() };
+			using Lumina::OS::Windows::KEY;
+			if (keyboard.IsJustPressed(KEY::P)) {
+				playState_.IsPaused = !playState_.IsPaused;
+			}
+		}
+
 		ImGui::End();
 	}
 #endif
@@ -996,12 +1022,15 @@ namespace Game::Scene::Impl {
 	}
 
 	void InGame::Update() {
-		Update_<"Player">();
-		Update_<"Enemies-1">(1.0f / 60.0f);
-		Update_<"Collision">();
-		Update_<"Enemies-2">();
-		Update_<"[Debug] TerrainEditor">();
-		Update_<"[Debug] Area">();
+		// ポーズ中はゲームロジック更新をスキップ
+		if (!playState_.IsPaused) {
+			Update_<"Player">();
+			Update_<"Enemies-1">(1.0f / 60.0f);
+			Update_<"Collision">();
+			Update_<"Enemies-2">();
+			Update_<"[Debug] TerrainEditor">();
+			Update_<"[Debug] Area">();
+		}
 		Update_<"Camera">();
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();

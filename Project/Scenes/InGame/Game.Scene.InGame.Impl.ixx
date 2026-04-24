@@ -165,6 +165,7 @@ namespace Game::Scene::Impl {
 
 		struct PlayState {
 			bool IsPlaying = false;
+			bool IsPaused = false;
 			bool IsGoalReached = false;
 			Game::Editor::AreaData CurrentArea;
 			Character Player;
