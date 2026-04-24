@@ -19,12 +19,12 @@ bool GamePad::IsConnected() const {
     return isConnected_;
 }
 
-bool GamePad::IsPress(WORD button) {
+bool GamePad::IsPress(WORD button) const {
     if (!isConnected_) return false;
     return (state_.Gamepad.wButtons & button) != 0;
 }
 
-bool GamePad::IsPressed(WORD button) {
+bool GamePad::IsPressed(WORD button) const {
     if (!isConnected_) return false;
     return ((state_.Gamepad.wButtons & button) != 0) &&
         ((prevState_.Gamepad.wButtons & button) == 0);
