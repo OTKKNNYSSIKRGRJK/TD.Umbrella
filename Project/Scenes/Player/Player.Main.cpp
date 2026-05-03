@@ -215,20 +215,6 @@ void Player::Initialize() {
 				}
 			}
 		}
-		else if (other->GetMyType() == COL_Enemy) {
-
-			this->GetStatusComponent().TakeDamage(1.0f);
-		}
-		else if (other->GetMyType() == COL_Enemy_Attack) {
-			// プロジェクタイルからダメージを受ける
-			// UserData には Projectile* が入っている
-			void* userData = other->GetUserData();
-			if (userData != nullptr) {
-				// ProjectileData の damage をそのまま使用
-				// （Projectile 構造体の先頭メンバが ProjectileData data なので安全にアクセス可能）
-				this->GetStatusComponent().TakeDamage(10.0f);
-			}
-		}
 	};
 
 	smashCollider_ = std::make_unique<ConvexCollider>();

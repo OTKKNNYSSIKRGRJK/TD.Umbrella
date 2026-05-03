@@ -270,11 +270,15 @@ namespace Game {
 		proj.InitCollider();
 
 		// コリジョンコールバック: プレイヤーに当たったら消える、地面に当たったら消える
-		proj.collider->onCollisionCallback = [id = proj.id](Collider* other, [[maybe_unused]] const Lumina::Math::F32x3& pushOut) {
+     proj.collider->onCollisionCallback = [id = proj.id](Collider* other, [[maybe_unused]] const Lumina::Math::F32x3& pushOut) {
 			if (other->GetMyType() == COL_Player) {
+               Player* player = static_cast<Player*>(other->GetUserData());
 				auto* mgr = ProjectileManager::GetInstance();
 				for (auto& p : const_cast<std::vector<Projectile>&>(mgr->GetAll())) {
 					if (p.id == id) {
+                        if (player != nullptr) {
+							player->GetStatusComponent().TakeDamage(static_cast<float>((std::max)(1, p.data.damage)));
+						}
 						p.isDead = true;
 						break;
 					}

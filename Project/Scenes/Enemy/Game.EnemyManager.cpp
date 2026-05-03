@@ -30,9 +30,9 @@ namespace {
 	constexpr float kLargeAttackWindup = 0.75f;
 	constexpr float kMediumAttackWindup = 0.45f;
 	constexpr float kSmallAttackWindup = 0.2f;
-	constexpr float kLargeBurstSpeed = 2.8f;
+    constexpr float kLargeBurstSpeed = 3.4f;
 	constexpr float kMediumBurstSpeed = 1.9f;
-	constexpr float kSmallBurstSpeed = 1.25f;
+   constexpr float kSmallBurstSpeed = 1.0f;
 	constexpr float kSmallStrafeAmplitude = 1.8f;
 	constexpr float kLargeLandingStunDuration = 0.3f;
 	constexpr float kLargeLandingImpactThreshold = 3.0f;
@@ -518,6 +518,12 @@ namespace Game {
 						if (isBlockedForward && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
 							this->velocity.Y = 6.5f; // 脱出用ジャンプ
 						}
+					}
+				}
+             else if (other->GetMyType() == COL_Player) {
+					Player* player = static_cast<Player*>(other->GetUserData());
+					if (player != nullptr) {
+						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power));
 					}
 				}
 				else if (other->GetMyType() == COL_Player_Attack) {
