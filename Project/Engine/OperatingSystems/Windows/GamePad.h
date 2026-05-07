@@ -26,8 +26,9 @@ public:
 public:
     void Update();
     bool IsConnected() const;
-    bool IsPress(WORD button);
-    bool IsPressed(WORD button);
+
+    bool IsPress(WORD button) const;
+    bool IsPressed(WORD button) const;
 	bool IsHold(WORD button) const;
     bool IsRelease(WORD button) const;
 

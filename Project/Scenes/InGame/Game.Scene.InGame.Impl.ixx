@@ -62,6 +62,8 @@ namespace Game::Scene::Impl {
 		auto Initialize_(_ARGs&&...args_) -> void;
 
 		void SyncPlayEnemiesFromManager();
+		bool HasBossEncounterInCurrentArea() const;
+		void StartBossEncounterPresentation();
 
 	public:
 		void Initialize();
@@ -187,6 +189,10 @@ namespace Game::Scene::Impl {
 			
 			float TransitionCooldownTimer = 0.0f;
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
+           bool IsBossPresentationActive = false;
+			float BossPresentationTimer = 0.0f;
+			float BossPresentationDuration = 0.0f;
+			Lumina::Math::F32x3 BossPresentationFocusPosition{ 0.0f, 0.0f, 0.0f };
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);

@@ -103,6 +103,10 @@ namespace {
 #endif
 
 namespace Game::Editor {
+#if defined(_DEBUG)
+	static float s_actionSaveNotificationTimer = 0.0f;
+#endif
+
 	void EnemyEditor::Update() {
 #if defined(_DEBUG)
 		DrawEditorUI();
@@ -272,6 +276,7 @@ namespace Game::Editor {
 				ImGui::TextColored(tierColors[t], "[%s]", tierNames[t]);
 				ImGui::SameLine();
 				ImGui::Text("  HP / Power / Scale");
+
 
 				auto& tier = editingEnemy_.sizeTiers[t];
 				ImGui::Indent(10.0f);
@@ -946,6 +951,13 @@ namespace Game::Editor {
 			editingEnemy_.name = filenameBuf;
 			SaveEnemy(editingEnemy_);
 			AddLog("[EnemyEditor] Saved: " + editingEnemy_.name);
+			s_actionSaveNotificationTimer = 2.0f;
+		}
+
+		if (s_actionSaveNotificationTimer > 0.0f) {
+			s_actionSaveNotificationTimer -= ImGui::GetIO().DeltaTime;
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "  Saved Successfully!");
 		}
 
 		ImGui::End();
@@ -1568,6 +1580,7 @@ namespace Game::Editor {
 					if (currentStateId_ == delId) currentStateId_ = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
 					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted node %d", delId); AddLog(dbg);
 					SaveEnemy(editingEnemy_);
+					s_actionSaveNotificationTimer = 2.0f;
 					nodeEditor_pendingDeleteNodeId_ = -1;
 					ImGui::CloseCurrentPopup();
 				}
@@ -1610,6 +1623,7 @@ namespace Game::Editor {
 					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& l) { return l.from == lnk.from && l.to == lnk.to && l.condition == lnk.condition; }), editingEnemy_.links.end());
 					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted link %d -> %d", lnk.from, lnk.to); AddLog(dbg);
 					SaveEnemy(editingEnemy_);
+					s_actionSaveNotificationTimer = 2.0f;
 					linkEditor_pendingDeleteLinkIndex_ = -1; linkEditor_contextLinkIndex_ = -1;
 					ImGui::CloseCurrentPopup();
 				}

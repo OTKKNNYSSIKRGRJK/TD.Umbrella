@@ -97,6 +97,10 @@ namespace Game::Scene::Impl {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+
+		// Load spline motion assets at startup so MotionManager has data available
+		// Motion JSON files are expected under Assets/Data/Motion/*.json
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 	}
 
 	// メッシュ読み込み
