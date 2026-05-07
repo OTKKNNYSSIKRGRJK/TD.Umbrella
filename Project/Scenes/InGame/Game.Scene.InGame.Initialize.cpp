@@ -7,6 +7,8 @@ import <fstream>;
 
 import nlohmann.json;
 
+import Game.TutorialManager;
+
 //import Lumina;
 
 import Lumina.Utils.Data;
@@ -62,6 +64,17 @@ namespace Game::Scene::Impl {
 			{ "uvChecker", "Assets/Img/uvChecker.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
 		};
+		// チュートリアル用テクスチャ
+		std::vector<std::pair<std::string, std::string>> tutorialTextures = {
+			{ "tut_step1_move",   "Assets/Img/Tutorial/step1_move.png" },
+			{ "tut_step2_jump",   "Assets/Img/Tutorial/step2_jump.png" },
+			{ "tut_step3_attack", "Assets/Img/Tutorial/step3_attack.png" },
+		};
+		for (const auto& tutTex : tutorialTextures) {
+			if (std::filesystem::exists(tutTex.second)) {
+				texturesToLoad.push_back(tutTex);
+			}
+		}
 		// 追加のテクスチャ（敵など）をマージ
 		for (const auto& addTex : AdditionalTextures_) {
 			texturesToLoad.push_back(addTex);
@@ -687,6 +700,29 @@ namespace Game::Scene::Impl {
 		TerrainRenderer_->Initialize();
 
 		Initialize_<"[Debug]">();
+
+		// チュートリアルマネージャー初期化
+		TutorialManager_ = std::make_unique<Game::TutorialManager>();
+		TutorialManager_->Initialize();
+		TutorialManager_->RegisterSequences();
+		// チュートリアルテクスチャは基本テクスチャ2枚(uvChecker, Particles)の直後に配置
+		TutorialManager_->TutorialTextureStartIndex = 2U;
+		TutorialManager_->TutorialTextureCount = 3U;
+
+		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
+		PrimitiveManager_Tutorial_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager_Tutorial_->Initialize(
+			d3d12Context,
+			L"Assets/Shaders/Primitive.VS.hlsl",
+			L"Assets/Shaders/Primitive.PS.hlsl",
+			false,
+			false  // 深度テスト無効
+		);
+
+		// 初回（セッション内）かつエリア0ならチュートリアル開始
+		if (playState_.CurrentArea.index == 0) {
+			TutorialManager_->TryStartSequence("BasicControls");
+		}
 	}
 
 	InGame::InGame() = default;

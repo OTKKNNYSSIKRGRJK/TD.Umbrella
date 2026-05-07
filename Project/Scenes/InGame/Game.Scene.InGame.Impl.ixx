@@ -13,6 +13,7 @@ import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
 import Game.Editor.AudioEditor;
 import Game.Editor.ObjMotionEditor;
+import Game.TutorialManager;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -140,6 +141,10 @@ namespace Game::Scene::Impl {
 		Game::Editor::AudioEditor audioEditor_;
 		Game::Editor::ObjMotionEditor objMotionEditor_;
 
+		// チュートリアルシステム
+		std::unique_ptr<Game::TutorialManager> TutorialManager_;
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Tutorial_;
+
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
 			Lumina::Math::F32x3 Velocity{ 0.0f, 0.0f, 0.0f };
@@ -167,6 +172,7 @@ namespace Game::Scene::Impl {
 
 		struct PlayState {
 			bool IsPlaying = false;
+			bool IsPaused = false;
 			bool IsGoalReached = false;
 			Game::Editor::AreaData CurrentArea;
 			Character Player;

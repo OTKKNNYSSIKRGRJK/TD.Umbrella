@@ -238,7 +238,7 @@ void Player::Update(float deltaTime) {
 
 	// 入力関係の処理
 	inputHandler_.HandleInput();
-
+	ApplyInputMask();
 	// コンポーネントの更新
 	if (mana_) {
 		mana_->Update(deltaTime);

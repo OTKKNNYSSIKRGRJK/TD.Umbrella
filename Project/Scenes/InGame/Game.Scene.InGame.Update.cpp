@@ -150,6 +150,10 @@ namespace Game::Scene::Impl {
 			}
 		}
 
+		if (areaIndex == 0 && TutorialManager_) {
+			TutorialManager_->TryStartSequence("BasicControls");
+		}
+
 		if (!spawnedAtConnection) {
 			playerScreenX = 100.0f; // Fallback / Start location
 		}
@@ -275,18 +279,51 @@ namespace Game::Scene::Impl {
 #if defined(_DEBUG)
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300, 160), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Player Info");
 		if (Player_) {
 			auto const& pos = Player_->GetPosition();
 			ImGui::Text("Player 3D Position: %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
 		}
+		ImGui::Separator();
+
+		// ポーズ・リスタートUI
+		if (playState_.IsPaused) {
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "== PAUSED ==");
+		}
+
+		if (ImGui::Button(playState_.IsPaused ? "Resume (P)" : "Pause (P)", ImVec2(140, 0))) {
+			playState_.IsPaused = !playState_.IsPaused;
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Restart", ImVec2(140, 0))) {
+			playState_.IsPaused = false;
+			CheckAndLoadArea(0);
+		}
+
+		// Pキーでポーズトグル
+		{
+			auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+			auto const& keyboard{ inputMngr.Keyboard() };
+			using Lumina::OS::Windows::KEY;
+			if (keyboard.IsJustPressed(KEY::P)) {
+				playState_.IsPaused = !playState_.IsPaused;
+			}
+		}
+
 		ImGui::End();
 	}
 #endif
 
 	template<>
 	void InGame::Update_<"Player">() {
+		// チュートリアル入力制限の適用
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			Player_->InputMask = TutorialManager_->GetAllowedInputs();
+		} else {
+			Player_->InputMask = 0xFFFF; // 全入力許可
+		}
+
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
@@ -1060,6 +1097,7 @@ namespace Game::Scene::Impl {
 	}
 
 	void InGame::Update() {
+/// dev-Kouda-4.1
         if (playState_.IsBossPresentationActive) {
 			playState_.BossPresentationTimer -= 1.0f / 60.0f;
 			if (playState_.BossPresentationTimer <= 0.0f) {
@@ -1079,6 +1117,36 @@ namespace Game::Scene::Impl {
       if (!playState_.IsBossPresentationActive) {
 			Update_<"[Debug] Area">();
 		}
+///ここまで
+		bool tutorialActive = false;
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			tutorialActive = true;
+		}
+
+		// ポーズ中はゲームロジック更新をスキップ
+		if (!playState_.IsPaused) {
+			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+			
+			if (!tutorialActive) {
+				Update_<"Enemies-1">(1.0f / 60.0f);
+			}
+			
+			Update_<"Collision">(); // 地形との当たり判定のため実行
+			
+			if (!tutorialActive) {
+				Update_<"Enemies-2">();
+			}
+			
+			Update_<"[Debug] TerrainEditor">();
+			Update_<"[Debug] Area">();
+		}
+
+		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
+		if (tutorialActive) {
+			TutorialManager_->Update(1.0f / 60.0f);
+		}
+
+/// dev-Takanaga-temporary
 		Update_<"Camera">();
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();
