@@ -1121,6 +1121,7 @@ namespace Game {
 				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
 					Game::ProjectileData pd = enemy.baseData.projectile;
 					pd.spawnAttached = true;
+					pd.scaleOnCharge = true; // チャージエフェクト（弾の巨大化）を有効にする
                         // offset relative to the enemy model (tunable). place the visual
 						// bullet well above the slime's head so it is clearly separated
 						// and ensure activation (firing) originates from that position.
