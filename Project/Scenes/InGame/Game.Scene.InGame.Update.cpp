@@ -348,6 +348,7 @@ namespace Game::Scene::Impl {
 			pe.Position = inst.position;
 			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
 			pe.IsDead = inst.isDead;
+          pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;

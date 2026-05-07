@@ -2,6 +2,8 @@ module Game.Scene.InGame;
 
 import : Impl;
 
+import <cmath>;
+
 import Lumina.Main;
 import Lumina.D3D12;
 import Lumina.MeshManager;
@@ -70,12 +72,31 @@ namespace Game::Scene::Impl {
 					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
 				}
 
+             Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
+					float hurtRatio = e.HurtTimer / 0.2f;
+					if (hurtRatio > 1.0f) {
+						hurtRatio = 1.0f;
+					}
+
+					float const pulse = 0.5f + 0.5f * std::sin(hurtRatio * 18.0f);
+					float const stretch = 1.0f + hurtRatio * 0.18f;
+					float const squash = 1.0f - hurtRatio * 0.12f;
+					float const shakeDir = e.FacingRight ? -1.0f : 1.0f;
+
+					renderPos.X += shakeDir * pulse * 0.18f;
+					renderPos.Y += hurtRatio * 0.08f;
+					scale.X *= stretch;
+					scale.Y *= squash;
+					scale.Z *= stretch;
+				}
+
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 				if (!e.FacingRight) {
 					rot.Y = 3.14159265f; // 反転
 				}
-				auto worldMat = Game::MathUtils::SRT(scale, rot, { e.Position.X, e.Position.Y, e.Position.Z });
+             auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				
 				// マルチメッシュ対応: 全サブメッシュを描画
 				for (size_t i = 0; i < range.count; ++i) {

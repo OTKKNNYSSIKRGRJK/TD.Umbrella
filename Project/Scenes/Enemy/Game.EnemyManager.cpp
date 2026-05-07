@@ -1142,12 +1142,21 @@ namespace Game {
 						enemy.position.X = posBeforePhysics.X + delta.X;
 						enemy.position.Y = posBeforePhysics.Y + delta.Y;
 						enemy.position.Z = posBeforePhysics.Z + delta.Z;
-					} else {
+                    } else {
+						// If the node is marked with a boolean "walk" trigger, drive horizontal
+						// movement via velocity so node-driven state machines can make enemies walk
+						// without relying on spline motions.
+						bool nodeWalk = (currentNodeInfo->boundBool == "walk" || currentNodeInfo->boundBool == "Walk");
+						if (nodeWalk) {
+							float moveDir = enemy.facingRight ? 1.0f : -1.0f;
+							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
+						}
+
 						// 継続的な摩擦/ブレーキ
 						// 空中にいるときは横方向の摩擦を軽減し、落下中の慣性を保つ
 						float expectedGroundedVelY = -9.8f * deltaTime;
 						bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
-						
+
 						if (isGrounded) {
 							enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
 						} else {
