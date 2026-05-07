@@ -150,8 +150,15 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		if (areaIndex == 0 && TutorialManager_) {
-			TutorialManager_->TryStartSequence("BasicControls");
+		if (TutorialManager_) {
+			// エリア遷移時に現在アクティブなチュートリアルを中断
+			TutorialManager_->Skip();
+
+			if (areaIndex == 0) {
+				TutorialManager_->TryStartSequence("BasicControls");
+			} else if (areaIndex == 2) {
+				TutorialManager_->TryStartSequence("Parachute");
+			}
 		}
 
 		if (!spawnedAtConnection) {
@@ -1116,15 +1123,11 @@ namespace Game::Scene::Impl {
 		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
 			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
 			
-			if (!tutorialActive) {
-				Update_<"Enemies-1">(1.0f / 60.0f);
-			}
+			Update_<"Enemies-1">(1.0f / 60.0f);
 			
 			Update_<"Collision">(); // 地形との当たり判定のため実行
 			
-			if (!tutorialActive) {
-				Update_<"Enemies-2">();
-			}
+			Update_<"Enemies-2">();
 			
 			Update_<"[Debug] Area">();
 		}

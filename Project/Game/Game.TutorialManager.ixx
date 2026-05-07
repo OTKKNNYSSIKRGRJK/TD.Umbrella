@@ -33,6 +33,7 @@ namespace Game {
 			AnyInput,      // 何か入力があれば進む
 			Auto,          // 一定時間後に自動進行
 			MoveDuration,  // 一定時間移動入力をし続けたら進行
+			GuardDuration, // 傘開き（R2 / Iキー）を一定時間続けたら進行
 		} trigger{ Trigger::AnyInput };
 
 		uint16_t RequiredPadButton{ 0U };   // Trigger::PadButton の場合
@@ -102,6 +103,7 @@ namespace Game {
 
 	private:
 		std::unordered_map<std::string, std::vector<TutorialStep>> Sequences_;
+		std::string ActiveSequenceId_{};
 
 		std::vector<TutorialStep> Steps_;
 		int CurrentStep_{ -1 };
