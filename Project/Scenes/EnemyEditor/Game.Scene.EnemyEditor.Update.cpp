@@ -277,6 +277,7 @@ namespace Game::Editor {
 				ImGui::SameLine();
 				ImGui::Text("  HP / Power / Scale");
 
+
 				auto& tier = editingEnemy_.sizeTiers[t];
 				ImGui::Indent(10.0f);
 				ImGui::DragInt("HP##tier", &tier.hp, 1, 1, 9999);
