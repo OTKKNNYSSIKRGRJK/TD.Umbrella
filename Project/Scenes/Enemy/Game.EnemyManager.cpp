@@ -1110,10 +1110,45 @@ namespace Game {
 						enemy.facingRight = (dx > 0.0f);
 					}
 
-					// Spline Motionの再生開始判定（ステートに入った瞬間に再生開始）
-					// enemy.stateTimerは直前で deltaTime が足されていても、遷移した際は 0.0f が代入されている
-					if (enemy.stateTimer == 0.0f && !currentNodeInfo->splineMotionName.empty()) {
-						enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+                    // Node entry handling: allow nodes to trigger actions on entering.
+					// - If a node's `boundBool` contains a firing token (e.g. "FireProjectile"),
+					//   spawn a projectile immediately on entry. This enables node-driven
+					//   flows like: Charge -> Time>=X -> Shoot (where Shoot node triggers fire).
+					// - Also start spline motion on entry if specified.
+					if (enemy.stateTimer == 0.0f) {
+             const std::string& fb = currentNodeInfo->boundBool;
+				// If entering a Charge state for a ranged enemy, spawn a visual attached projectile
+				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+					Game::ProjectileData pd = enemy.baseData.projectile;
+					pd.spawnAttached = true;
+                        // offset relative to the enemy model (tunable). place the visual
+						// bullet well above the slime's head so it is clearly separated
+						// and ensure activation (firing) originates from that position.
+						pd.attachOffset = { 0.0f, 1.2f * enemy.modelScale, 0.0f };
+					ProjectileManager::GetInstance()->Fire(
+						enemy.position,
+						playerPosition,
+						pd,
+						enemy.id
+					);
+				}
+				// If the node requests a fire action via boundBool, attempt to activate any attached projectile;
+				// if none exists, fall back to spawning a new projectile.
+				else if (!fb.empty() && (fb == "FireProjectile" || fb == "fireProjectile" || fb == "Shoot" || fb == "shoot" || fb == "Fire" || fb == "fire")) {
+					bool activated = ProjectileManager::GetInstance()->ActivateAttachedProjectile(enemy.id, playerPosition);
+					if (!activated) {
+						ProjectileManager::GetInstance()->Fire(
+							enemy.position,
+							playerPosition,
+							enemy.baseData.projectile,
+							enemy.id
+						);
+					}
+				}
+
+						if (!currentNodeInfo->splineMotionName.empty()) {
+							enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+						}
 					}
 
 					// SplineMotion再生中なら物理演算をオーバーライド

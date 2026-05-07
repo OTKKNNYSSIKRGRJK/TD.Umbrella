@@ -8,6 +8,7 @@ import <filesystem>;
 import nlohmann.json;
 import Game.MathUtils;
 import Game.Player;
+import Game.EnemyManager;
 
 namespace fs = std::filesystem;
 
@@ -128,19 +129,22 @@ namespace Game {
 
 		std::vector<Lumina::Math::F32x3> verts;
 
-		// 1. スケールの取得
+       // 1. スケールの取得
 		float sx = (actorData.transform.scaleX > 0.0f) ? actorData.transform.scaleX : 1.0f;
 		float sy = (actorData.transform.scaleY > 0.0f) ? actorData.transform.scaleY : 1.0f;
 		float sz = (actorData.transform.scaleZ > 0.0f) ? actorData.transform.scaleZ : 1.0f;
 
+		// Apply visualScale (for charge-up visuals) so collider roughly matches visual size
+		float vs = (this->visualScale > 0.0f) ? this->visualScale : 1.0f;
+		sx *= vs; sy *= vs; sz *= vs;
+
 		if (actorData.collider.type == Game::Editor::ColliderType::Polygon && !actorData.collider.collisionVertices.empty()) {
 			// ActorEditorで描いたポリゴンを使用
-			float depthZ = (actorData.collider.sizeZ > 0.0f) ? actorData.collider.sizeZ : 0.5f;
+            float depthZ = (actorData.collider.sizeZ > 0.0f) ? actorData.collider.sizeZ * vs : 0.5f * vs;
 			for (const auto& v : actorData.collider.collisionVertices) {
-				// 既に ActorEditor 内でスケール込みで描かれた点は、ここではそのまま使用する
-				// (ActorEditorのCanvasがスケール適用後のメッシュに対して点を打つようになっているため)
-				verts.push_back({ v.x, v.y, depthZ });
-				verts.push_back({ v.x, v.y, -depthZ });
+				// Scale collision vertices by visualScale so collider follows charge-up size
+				verts.push_back({ v.x * vs, v.y * vs, depthZ });
+				verts.push_back({ v.x * vs, v.y * vs, -depthZ });
 			}
 		} else if (actorData.collider.type == Game::Editor::ColliderType::Box) {
 			// Actorの Box サイズそのものを使用し、全体の Scale も適用
@@ -196,6 +200,56 @@ namespace Game {
 		return nextId_++;
 	}
 
+	bool ProjectileManager::ActivateAttachedProjectile(uint32_t ownerEnemyId, const Lumina::Math::F32x3& target) {
+		for (auto& p : projectiles_) {
+			if (p.isDead) continue;
+			if (p.ownerEnemyId == ownerEnemyId && p.isAttached) {
+				// compute velocity toward target using actorData / speed
+				float dx = target.X - p.position.X;
+				float dy = target.Y - p.position.Y;
+				float dz = target.Z - p.position.Z;
+				float dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+				if (dist < 0.001f) dist = 1.0f;
+				float nx = dx / dist;
+				float ny = dy / dist;
+				float nz = dz / dist;
+
+				float speed = (std::max)(1.0f, p.actorData.movement.speed);
+
+				if (p.data.isHoming) {
+					p.velocity = { nx * speed, ny * speed, nz * speed };
+				} else {
+					switch (p.actorData.movement.type) {
+					case Editor::MovementType::Linear:
+					case Editor::MovementType::None:
+					default:
+						p.velocity = { nx * speed, ny * speed, nz * speed };
+						break;
+					case Editor::MovementType::PingPong:
+						p.velocity = { nx * speed, ny * speed, nz * speed };
+						p.traveledDistance = 0.0f;
+						p.pingPongDirection = 1.0f;
+						break;
+					case Editor::MovementType::Spline:
+						p.velocity = { nx * speed, ny * speed, nz * speed };
+						p.motionController.Play(p.actorData.movement.splineMotionName, p.position, p.actorData.movement.totalDuration);
+						break;
+					}
+				}
+
+				p.isAttached = false;
+                // Ensure visual scale and collider are preserved when detaching
+				p.actorData.transform.scaleX = p.visualScale;
+				p.actorData.transform.scaleY = p.visualScale;
+				p.actorData.transform.scaleZ = p.visualScale;
+				p.InitCollider();
+				p.splineOrigin = p.position;
+				return true;
+			}
+		}
+		return false;
+	}
+
 	// ============================
 	//  発射
 	// ============================
@@ -223,6 +277,26 @@ namespace Game {
 			proj.data.lifetime = proj.actorData.lifecycle.lifetime;
 			proj.data.damage = static_cast<int>(proj.actorData.interaction.damageValue);
 			proj.data.colliderRadius = proj.actorData.collider.sizeX;
+		}
+
+		// If the template requests an attached spawn, mark and position the projectile accordingly.
+		if (data.spawnAttached) {
+			proj.isAttached = true;
+			proj.position.X = origin.X + data.attachOffset.X;
+			proj.position.Y = origin.Y + data.attachOffset.Y;
+			proj.position.Z = origin.Z + data.attachOffset.Z;
+			proj.velocity = { 0.0f, 0.0f, 0.0f };
+
+			// initialize visual scaling state for chargable projectiles
+			proj.visualScale = data.initialScale;
+			float actorScale = (proj.actorData.transform.scaleX > 0.0f) ? proj.actorData.transform.scaleX : 1.0f;
+			proj.targetVisualScale = actorScale;
+			proj.chargeTimer = 0.0f;
+
+			// Apply initial visual scale to actorData so renderer shows scaled model
+			proj.actorData.transform.scaleX = proj.visualScale;
+			proj.actorData.transform.scaleY = proj.visualScale;
+			proj.actorData.transform.scaleZ = proj.visualScale;
 		}
 
 		// 方向ベクトルの計算（ターゲット方向）
@@ -313,8 +387,41 @@ namespace Game {
 				continue;
 			}
 
-			// 移動処理（位置の更新フラグ）
+           // 移動処理（位置の更新フラグ）
 			bool manuallyUpdatePosition = true;
+
+			// If this projectile is attached to an enemy, follow that enemy's position
+			// and skip the usual movement logic.
+            if (proj.isAttached && proj.ownerEnemyId != 0) {
+				auto* enemy = Game::EnemyManager::GetInstance()->GetInstance(proj.ownerEnemyId);
+				if (enemy) {
+					// update charge timer and visual scale if configured
+					if (proj.data.scaleOnCharge) {
+						proj.chargeTimer += deltaTime;
+						float dur = (proj.data.chargeGrowDuration > 0.0f) ? proj.data.chargeGrowDuration : 1.0f;
+						float t = (std::min)(1.0f, proj.chargeTimer / dur);
+						float prevScale = proj.visualScale;
+                // apply a smoothstep easing so growth feels nicer (ease in/out)
+				float te = t * t * (3.0f - 2.0f * t); // smoothstep
+				proj.visualScale = proj.data.initialScale + (proj.targetVisualScale - proj.data.initialScale) * te;
+						if (std::abs(prevScale - proj.visualScale) > 0.01f) {
+							// update collider to match new visual size
+							proj.InitCollider();
+						}
+					}
+
+					// Ensure actorData transform matches visualScale so renderer displays correct size
+					proj.actorData.transform.scaleX = proj.visualScale;
+					proj.actorData.transform.scaleY = proj.visualScale;
+					proj.actorData.transform.scaleZ = proj.visualScale;
+
+					proj.position.X = enemy->position.X + proj.data.attachOffset.X;
+					proj.position.Y = enemy->position.Y + proj.data.attachOffset.Y;
+					proj.position.Z = enemy->position.Z + proj.data.attachOffset.Z;
+					proj.UpdateCollider();
+					continue;
+				}
+			}
 
 			// ホーミングの場合
 			if (proj.data.isHoming) {
