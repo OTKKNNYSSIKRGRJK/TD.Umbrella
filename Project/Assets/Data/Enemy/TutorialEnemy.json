@@ -1,0 +1,72 @@
+{
+  "name": "TutorialSlime",
+  "hp": -1,
+  "power": 0,
+  "gltfPath": "Enemy/Slime/slime.obj",
+  "sizeTiers": [
+    { "hp": -1, "power": 0, "scale": 0.8 },
+    { "hp": -1, "power": 0, "scale": 1.0 },
+    { "hp": -1, "power": 0, "scale": 1.2 }
+  ],
+  "animationMap": {
+    "Attack": "",
+    "AttackDash": "",
+    "AttackRecovery": "",
+    "AttackWindup": "",
+    "Death": "",
+    "DropLanding": "",
+    "Enrage": "",
+    "FacePlayer": "",
+    "Idle": "Idle",
+    "JumpUp": "",
+    "Landing": "",
+    "Squash": "",
+    "TrackAbove": "",
+    "Walk": ""
+  },
+  "motionMap": {
+    "Attack": "",
+    "AttackDash": "",
+    "AttackRecovery": "",
+    "AttackWindup": "",
+    "Death": "",
+    "DropLanding": "",
+    "Enrage": "",
+    "FacePlayer": "",
+    "Idle": "",
+    "JumpUp": "",
+    "Landing": "",
+    "Squash": "",
+    "TrackAbove": "",
+    "Walk": ""
+  },
+  "collisionVertices": [],
+  "aggroRadius": 0.0,
+  "attackRange": 0.0,
+  "moveSpeed": 0.0,
+  "attackCooldown": 0.0,
+  "retreatThreshold": 0.0,
+  "patrolRadius": 0.0,
+  "aggressiveness": 0,
+  "attackType": "Melee",
+  "nodes": [
+    {
+      "id": 1,
+      "name": "Idle",
+      "state": "Idle",
+      "x": 40.0,
+      "y": 100.0,
+      "animationName": "Idle",
+      "boundBool": "",
+      "boundMotion": "",
+      "boundMotionNodeIndex": -1,
+      "facePlayer": false,
+      "velocityFrictionX": 1.0,
+      "jumpVelocityXMult": 0.0,
+      "jumpVelocityY": 0.0,
+      "splineMotionName": "",
+      "splineDuration": 1.0
+    }
+  ],
+  "links": []
+}

@@ -147,7 +147,7 @@
     },
     "enemies": [
         {
-            "enemyName": "slime-kai",
+            "enemyName": "TutorialEnemy",
             "facingRight": false,
             "position": {
                 "x": 560.0,
