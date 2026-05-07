@@ -108,6 +108,10 @@ namespace Game::Scene::Impl {
 			}
 		}
 
+		if (areaIndex == 0 && TutorialManager_) {
+			TutorialManager_->TryStartSequence("BasicControls");
+		}
+
 		if (!spawnedAtConnection) {
 			playerScreenX = 100.0f; // Fallback / Start location
 		}
@@ -263,6 +267,13 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"Player">() {
+		// チュートリアル入力制限の適用
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			Player_->InputMask = TutorialManager_->GetAllowedInputs();
+		} else {
+			Player_->InputMask = 0xFFFF; // 全入力許可
+		}
+
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
@@ -1022,15 +1033,34 @@ namespace Game::Scene::Impl {
 	}
 
 	void InGame::Update() {
+		bool tutorialActive = false;
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			tutorialActive = true;
+		}
+
 		// ポーズ中はゲームロジック更新をスキップ
 		if (!playState_.IsPaused) {
-			Update_<"Player">();
-			Update_<"Enemies-1">(1.0f / 60.0f);
-			Update_<"Collision">();
-			Update_<"Enemies-2">();
+			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+			
+			if (!tutorialActive) {
+				Update_<"Enemies-1">(1.0f / 60.0f);
+			}
+			
+			Update_<"Collision">(); // 地形との当たり判定のため実行
+			
+			if (!tutorialActive) {
+				Update_<"Enemies-2">();
+			}
+			
 			Update_<"[Debug] TerrainEditor">();
 			Update_<"[Debug] Area">();
 		}
+
+		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
+		if (tutorialActive) {
+			TutorialManager_->Update(1.0f / 60.0f);
+		}
+
 		Update_<"Camera">();
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();

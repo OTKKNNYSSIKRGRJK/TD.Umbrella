@@ -8,6 +8,7 @@ import Lumina.MeshManager;
 import Lumina.Primitive;
 import Game.MathUtils;
 import Game.ProjectileManager;
+import Game.TutorialManager;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -271,5 +272,32 @@ namespace Game::Scene::Impl {
 
 		Render_Geometry();
 		Render_Merge();
+
+		// チュートリアルオーバーレイ描画（バックバッファに直接描画）
+		if (TutorialManager_ && TutorialManager_->IsActive() && PrimitiveManager_Tutorial_) {
+			auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+			auto rtv = swapChain.BackBufferRTVCPUHandle();
+			cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
+
+			D3D12_VIEWPORT viewport{
+				.TopLeftX{ 0.0f }, .TopLeftY{ 0.0f },
+				.Width{ 1280.0f }, .Height{ 720.0f },
+				.MinDepth{ 0.0f }, .MaxDepth{ 1.0f },
+			};
+			D3D12_RECT scissor{
+				.left{ 0 }, .top{ 0 }, .right{ 1280 }, .bottom{ 720 },
+			};
+			cmdList->RSSetViewports(1U, &viewport);
+			cmdList->RSSetScissorRects(1U, &scissor);
+
+			PrimitiveManager_Tutorial_->Begin(cmdList);
+			TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
+			PrimitiveManager_Tutorial_->Render(
+				cmdList,
+				GlobalTable_SRV_ImageTexture_,
+				Lumina::Math::F32x4x4<>::Identity,
+				1
+			);
+		}
 	}
 }
