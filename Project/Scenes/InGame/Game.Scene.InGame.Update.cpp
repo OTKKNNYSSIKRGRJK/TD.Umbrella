@@ -150,8 +150,15 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		if (areaIndex == 0 && TutorialManager_) {
-			TutorialManager_->TryStartSequence("BasicControls");
+		if (TutorialManager_) {
+			// エリア遷移時に現在アクティブなチュートリアルを中断
+			TutorialManager_->Skip();
+
+			if (areaIndex == 0) {
+				TutorialManager_->TryStartSequence("BasicControls");
+			} else if (areaIndex == 2) {
+				TutorialManager_->TryStartSequence("Parachute");
+			}
 		}
 
 		if (!spawnedAtConnection) {
@@ -1106,40 +1113,27 @@ namespace Game::Scene::Impl {
 				playState_.BossPresentationDuration = 0.0f;
 			}
 		}
-
-		if (!playState_.IsBossPresentationActive) {
-			Update_<"Player">();
-			Update_<"Enemies-1">(1.0f / 60.0f);
-			Update_<"Collision">();
-			Update_<"Enemies-2">();
-		}
-		Update_<"[Debug] TerrainEditor">();
-      if (!playState_.IsBossPresentationActive) {
-			Update_<"[Debug] Area">();
-		}
 ///ここまで
 		bool tutorialActive = false;
 		if (TutorialManager_ && TutorialManager_->IsActive()) {
 			tutorialActive = true;
 		}
 
-		// ポーズ中はゲームロジック更新をスキップ
-		if (!playState_.IsPaused) {
+		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ
+		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
 			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
 			
-			if (!tutorialActive) {
-				Update_<"Enemies-1">(1.0f / 60.0f);
-			}
+			Update_<"Enemies-1">(1.0f / 60.0f);
 			
 			Update_<"Collision">(); // 地形との当たり判定のため実行
 			
-			if (!tutorialActive) {
-				Update_<"Enemies-2">();
-			}
+			Update_<"Enemies-2">();
 			
-			Update_<"[Debug] TerrainEditor">();
 			Update_<"[Debug] Area">();
 		}
+
+		// ツール系の更新はポーズ等に関わらず実行
+		Update_<"[Debug] TerrainEditor">();
 
 		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
 		if (tutorialActive) {

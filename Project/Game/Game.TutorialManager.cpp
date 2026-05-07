@@ -73,12 +73,28 @@ namespace Game {
 		}
 		
 		Sequences_["BasicControls"] = basicControls;
+
+		std::vector<TutorialStep> parachute;
+		{
+			TutorialStep step;
+			step.TextureIndex = 3U; // rakkasan.png
+			step.TextPosition = { 400.0f, 530.0f };
+			step.TextSize = { 480.0f, 120.0f };
+			step.trigger = TutorialStep::Trigger::GuardDuration;
+			step.AutoDuration = 2.0f; // 2秒間ガードボタン（傘開く）
+			step.HighlightCenter = { 0.0f, 0.0f };
+			step.HighlightSize = { 0.0f, 0.0f };
+			step.AllowedInputs = AI::Input_All; // 制限なし
+			parachute.push_back(step);
+		}
+		Sequences_["Parachute"] = parachute;
 	}
 
 	void TutorialManager::StartSequence(const std::string& sequenceId) {
 		auto it = Sequences_.find(sequenceId);
 		if (it == Sequences_.end() || it->second.empty()) return;
 		
+		ActiveSequenceId_ = sequenceId;
 		Steps_ = it->second;
 		CurrentStep_ = 0;
 		Timer_ = 0.0f;
@@ -93,12 +109,12 @@ namespace Game {
 		Completed_ = true;
 		CurrentStep_ = -1;
 		OverlayAlpha_ = 0.0f;
+		ActiveSequenceId_.clear();
 	}
 
 	bool TutorialManager::TryStartSequence(const std::string& sequenceId) {
 		if (CompletedSequences_.find(sequenceId) == CompletedSequences_.end()) {
 			StartSequence(sequenceId);
-			CompletedSequences_.insert(sequenceId);
 			return true;
 		}
 		return false;
@@ -175,6 +191,19 @@ namespace Game {
 				}
 			}
 			break;
+
+		case TutorialStep::Trigger::GuardDuration:
+			{
+				using Lumina::OS::Windows::KEY;
+				bool isGuarding = (pad.GetRightTrigger() > 10) || keyboard.IsPressed(KEY::I);
+				if (isGuarding) {
+					Timer_ += deltaTime;
+				}
+				if (Timer_ >= step.AutoDuration) {
+					shouldAdvance = true;
+				}
+			}
+			break;
 		}
 
 		if (shouldAdvance) {
@@ -183,6 +212,10 @@ namespace Game {
 
 			if (CurrentStep_ >= static_cast<int>(Steps_.size())) {
 				// チュートリアル完了
+				if (!ActiveSequenceId_.empty()) {
+					CompletedSequences_.insert(ActiveSequenceId_);
+					ActiveSequenceId_.clear();
+				}
 				Active_ = false;
 				Completed_ = true;
 				OverlayAlpha_ = 0.0f;

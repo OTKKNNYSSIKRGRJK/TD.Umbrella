@@ -64,20 +64,22 @@ namespace Game::Scene::Impl {
 			{ "uvChecker", "Assets/Img/uvChecker.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
 		};
+		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
+		for (const auto& addTex : AdditionalTextures_) {
+			texturesToLoad.push_back(addTex);
+		}
+
 		// チュートリアル用テクスチャ
 		std::vector<std::pair<std::string, std::string>> tutorialTextures = {
 			{ "tut_step1_move",   "Assets/Img/Tutorial/step1_move.png" },
 			{ "tut_step2_jump",   "Assets/Img/Tutorial/step2_jump.png" },
 			{ "tut_step3_attack", "Assets/Img/Tutorial/step3_attack.png" },
+			{ "tut_step_rakkasan", "Assets/Img/Tutorial/rakkasan.png" },
 		};
 		for (const auto& tutTex : tutorialTextures) {
 			if (std::filesystem::exists(tutTex.second)) {
 				texturesToLoad.push_back(tutTex);
 			}
-		}
-		// 追加のテクスチャ（敵など）をマージ
-		for (const auto& addTex : AdditionalTextures_) {
-			texturesToLoad.push_back(addTex);
 		}
 
 		resMngr.Graphics().LoadImageTextures(
@@ -705,9 +707,9 @@ namespace Game::Scene::Impl {
 		TutorialManager_ = std::make_unique<Game::TutorialManager>();
 		TutorialManager_->Initialize();
 		TutorialManager_->RegisterSequences();
-		// チュートリアルテクスチャは基本テクスチャ2枚(uvChecker, Particles)の直後に配置
-		TutorialManager_->TutorialTextureStartIndex = 2U;
-		TutorialManager_->TutorialTextureCount = 3U;
+		// チュートリアルテクスチャは基本テクスチャ2枚 + 追加テクスチャの直後に配置
+		TutorialManager_->TutorialTextureStartIndex = 2U + static_cast<uint32_t>(AdditionalTextures_.size());
+		TutorialManager_->TutorialTextureCount = 4U;
 
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
 		PrimitiveManager_Tutorial_ = std::make_unique<Lumina::PrimitiveManager>();
