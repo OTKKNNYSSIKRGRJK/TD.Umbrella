@@ -1,0 +1,92 @@
+{
+    "aggressiveness": 0.0,
+    "aggroRadius": 0.0,
+    "animationMap": {
+        "Attack": "",
+        "AttackDash": "",
+        "AttackRecovery": "",
+        "AttackWindup": "",
+        "Death": "",
+        "DropLanding": "",
+        "Enrage": "",
+        "FacePlayer": "",
+        "Idle": "Idle",
+        "JumpUp": "",
+        "Landing": "",
+        "Squash": "",
+        "TrackAbove": "",
+        "Walk": ""
+    },
+    "attackCooldown": 0.0,
+    "attackRange": 0.0,
+    "attackType": "Melee",
+    "collisionVertices": [],
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
+    "hp": -1,
+    "links": [],
+    "motionMap": {
+        "Attack": "",
+        "AttackDash": "",
+        "AttackRecovery": "",
+        "AttackWindup": "",
+        "Death": "",
+        "DropLanding": "",
+        "Enrage": "",
+        "FacePlayer": "",
+        "Idle": "",
+        "JumpUp": "",
+        "Landing": "",
+        "Squash": "",
+        "TrackAbove": "",
+        "Walk": ""
+    },
+    "moveSpeed": 0.0,
+    "name": "TutorialSlime",
+    "nodes": [
+        {
+            "animationName": "Idle",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "facePlayer": false,
+            "id": 1,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "name": "Idle",
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Idle",
+            "velocityFrictionX": 1.0,
+            "x": 40.0,
+            "y": 100.0
+        }
+    ],
+    "patrolRadius": 0.0,
+    "power": 0.0,
+    "projectile": {
+        "actorName": "",
+        "colliderRadius": 0.15000000596046448,
+        "damage": 10,
+        "homingStrength": 3.0,
+        "isHoming": false,
+        "lifetime": 5.0
+    },
+    "retreatThreshold": 0.0,
+    "sizeTiers": [
+        {
+            "hp": -1,
+            "power": 0.0,
+            "scale": 0.800000011920929
+        },
+        {
+            "hp": -1,
+            "power": 0.0,
+            "scale": 1.0
+        },
+        {
+            "hp": -1,
+            "power": 0.0,
+            "scale": 1.2000000476837158
+        }
+    ]
+}
