@@ -255,6 +255,7 @@ namespace Game::Scene::Impl {
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
+           pe.RenderFacingYaw = pe.FacingRight ? 0.0f : 3.14159265f;
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
@@ -394,6 +395,7 @@ namespace Game::Scene::Impl {
 			pe.IsDead = inst.isDead;
           pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
+            pe.RenderFacingYaw = inst.renderFacingYaw;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
 			// pull debug flag from behavior if available

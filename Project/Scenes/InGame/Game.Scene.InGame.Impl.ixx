@@ -163,6 +163,7 @@ namespace Game::Scene::Impl {
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
 			bool FacingRight = true;
+           float RenderFacingYaw = 0.0f;
 			int SizeTier = 1;
 			float Scale = 1.0f;
 			bool WalkActive = false; // debug flag from behavior

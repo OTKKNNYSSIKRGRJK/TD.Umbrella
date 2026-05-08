@@ -83,6 +83,7 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+          , renderFacingYaw(other.renderFacingYaw)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -115,6 +116,7 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+              renderFacingYaw = other.renderFacingYaw;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -149,6 +151,7 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+          , renderFacingYaw(other.renderFacingYaw)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -182,6 +185,7 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+              renderFacingYaw = other.renderFacingYaw;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -217,6 +221,7 @@ export namespace Game {
 		int currentHP = 0;
 		bool isDead = false;
 		bool facingRight = true;
+       float renderFacingYaw = 0.0f;
 		int sizeTier = 1;
 		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;

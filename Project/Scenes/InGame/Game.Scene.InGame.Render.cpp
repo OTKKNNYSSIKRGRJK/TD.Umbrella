@@ -94,9 +94,7 @@ namespace Game::Scene::Impl {
 				}
 
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
-				if (!e.FacingRight) {
-					rot.Y = 3.14159265f; // 反転
-				}
+               rot.Y = e.RenderFacingYaw;
              auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				
 				// マルチメッシュ対応: 全サブメッシュを描画

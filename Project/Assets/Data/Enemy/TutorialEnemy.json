@@ -77,7 +77,7 @@
             "boundBool": "",
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
-            "facePlayer": false,
+            "facePlayer": true,
             "id": 1,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,

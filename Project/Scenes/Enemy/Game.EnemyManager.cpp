@@ -22,6 +22,8 @@ namespace {
 	using Vector2 = std::pair<float, float>;
 	constexpr int kMinEnemySizeTier = 0;
 	constexpr int kMaxEnemySizeTier = 2;
+ constexpr float kTurnedFacingYaw = 3.14159265f;
+	constexpr float kEnemyFacingTurnSpeed = 8.0f;
 	constexpr int kSplitChildCount = 2;
 	constexpr float kSplitHorizontalVelocity = 1.2f;
 	constexpr float kSplitVerticalVelocity = 2.5f;
@@ -729,6 +731,7 @@ namespace Game {
 		inst.id = GenerateId();
 		inst.position = position;
 		inst.facingRight = facingRight;
+       inst.renderFacingYaw = facingRight ? 0.0f : kTurnedFacingYaw;
 		inst.sizeTier = sizeTier;
 		inst.InitFromBase();
 		ConfigureEnemyBehaviorBySize(inst);
@@ -1218,6 +1221,14 @@ namespace Game {
 				// ステートマシンで駆動されているのでデフォルトAIを上書き
 				// (Chase等に入らないようにする)
 				enemy.aiState = EnemyInstance::AIState::Idle;
+			}
+
+            float targetFacingYaw = enemy.facingRight ? 0.0f : kTurnedFacingYaw;
+			float turnStep = kEnemyFacingTurnSpeed * deltaTime;
+			if (enemy.renderFacingYaw < targetFacingYaw) {
+				enemy.renderFacingYaw = (std::min)(enemy.renderFacingYaw + turnStep, targetFacingYaw);
+			} else if (enemy.renderFacingYaw > targetFacingYaw) {
+				enemy.renderFacingYaw = (std::max)(enemy.renderFacingYaw - turnStep, targetFacingYaw);
 			}
 
 			// --- コライダー位置更新 ---
