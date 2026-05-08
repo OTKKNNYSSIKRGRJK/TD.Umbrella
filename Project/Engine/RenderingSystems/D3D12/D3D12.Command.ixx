@@ -102,6 +102,7 @@ namespace Lumina::D3D12 {
 		D3D12_COMMAND_LIST_TYPE Type_{};
 
 		std::vector<ID3D12CommandList*> BatchedCommandLists_{};
+		std::mutex Mutex_BatchedCommandLists_{};
 
 		Fence* Fence_{ nullptr };
 	};
@@ -212,10 +213,13 @@ namespace Lumina::D3D12 {
 		};
 		#endif
 
+		std::lock_guard lock{ Mutex_BatchedCommandLists_ };
 		BatchedCommandLists_.emplace_back(cmdList_.Get());
 	}
 
 	uint64_t CommandQueue::ExecuteBatchedCommandLists() {
+		std::lock_guard lock{ Mutex_BatchedCommandLists_ };
+
 		Wrapped_->ExecuteCommandLists(
 			static_cast<uint32_t>(BatchedCommandLists_.size()),
 			BatchedCommandLists_.data()
