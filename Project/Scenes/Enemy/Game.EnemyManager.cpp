@@ -40,7 +40,24 @@ namespace {
 	constexpr float kLargeLandingImpactThreshold = 3.0f;
 
 	int GetScaledEnemyHp(int baseHp) {
+     if (baseHp < 0) {
+			return baseHp;
+		}
 		return (std::max)(1, static_cast<int>(std::round(static_cast<float>(baseHp) * kEnemyHpScale)));
+	}
+
+	bool HasInvulnerableHpSetting(const Game::Editor::EnemyData& data) {
+		if (data.hp < 0) {
+			return true;
+		}
+
+		return std::any_of(
+			data.sizeTiers.cbegin(),
+			data.sizeTiers.cend(),
+			[](const auto& tier) {
+				return tier.hp < 0;
+			}
+		);
 	}
 
 	void ConfigureEnemyBehaviorBySize(Game::EnemyInstance& enemy) {
@@ -307,6 +324,7 @@ namespace {
 		const Lumina::Math::F32x3& parentVelocity,
 		bool facingRight,
 		int parentSizeTier) {
+        if (HasInvulnerableHpSetting(data)) return;
 		if (parentSizeTier <= kMinEnemySizeTier) return;
 
 		int childSizeTier = parentSizeTier - 1;
@@ -522,24 +540,22 @@ namespace Game {
 						}
 					}
 				}
-             else if (other->GetMyType() == COL_Player) {
-					Player* player = static_cast<Player*>(other->GetUserData());
-					if (player != nullptr) {
+           else if (other->GetMyType() == COL_Player) {
+				Player* player = static_cast<Player*>(other->GetUserData());
+				if (player != nullptr) {
+					// Do not damage player for tutorial/invulnerable-configured enemies
+					if (!HasInvulnerableHpSetting(this->baseData)) {
 						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power));
 					}
 				}
+			}
 				else if (other->GetMyType() == COL_Player_Attack) {
-					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
-						this->recentlyDamagedThisFrame = true;
-						float knockbackX = 3.2f;
-						if (other->GetWorldPosition().X < this->position.X) {
-							this->velocity.X = knockbackX;
-						} else {
-							this->velocity.X = -knockbackX;
+                        if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
+							this->recentlyDamagedThisFrame = true;
+							// Do not apply horizontal knockback on player attack; only apply damage.
+							Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
+							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 						}
-						Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
-					Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
-					}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
 					Player* player = static_cast<Player*>(other->GetUserData());
@@ -1243,6 +1259,7 @@ namespace Game {
 	bool EnemyManager::DealDamage(uint32_t enemyId, int damage) {
 		EnemyInstance* enemy = GetInstance(enemyId);
 		if (!enemy || enemy->isDead) return false;
+		if (enemy->currentHP < 0 || HasInvulnerableHpSetting(enemy->baseData)) return false;
 
 		enemy->currentHP -= damage;
 		enemy->hurtTimer = 0.2f;
@@ -1280,6 +1297,7 @@ namespace Game {
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+			if (enemy.currentHP < 0 || HasInvulnerableHpSetting(enemy.baseData)) continue;
 
 			float dx = enemy.position.X - origin.X;
 			float dy = enemy.position.Y - origin.Y;
@@ -1295,7 +1313,7 @@ namespace Game {
 
 			enemy.currentHP -= damage;
 			enemy.hurtTimer = 0.2f;
-			enemy.velocity.X = (dx >= 0.0f) ? 1.2f : -1.2f;
+            // Prevent horizontal knockback from area damage; only apply vertical impulse via DealDamage.
 			enemy.velocity.Y = std::max(enemy.velocity.Y, 3.5f);
 
 			if (enemy.currentHP <= 0) {
