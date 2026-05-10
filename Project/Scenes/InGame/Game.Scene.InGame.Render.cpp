@@ -2,12 +2,15 @@ module Game.Scene.InGame;
 
 import : Impl;
 
+import <cmath>;
+
 import Lumina.Main;
 import Lumina.D3D12;
 import Lumina.MeshManager;
 import Lumina.Primitive;
 import Game.MathUtils;
 import Game.ProjectileManager;
+import Game.TutorialManager;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -70,12 +73,31 @@ namespace Game::Scene::Impl {
 					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
 				}
 
+             Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
+					float hurtRatio = e.HurtTimer / 0.2f;
+					if (hurtRatio > 1.0f) {
+						hurtRatio = 1.0f;
+					}
+
+					float const pulse = 0.5f + 0.5f * std::sin(hurtRatio * 18.0f);
+					float const stretch = 1.0f + hurtRatio * 0.18f;
+					float const squash = 1.0f - hurtRatio * 0.12f;
+					float const shakeDir = e.FacingRight ? -1.0f : 1.0f;
+
+					renderPos.X += shakeDir * pulse * 0.18f;
+					renderPos.Y += hurtRatio * 0.08f;
+					scale.X *= stretch;
+					scale.Y *= squash;
+					scale.Z *= stretch;
+				}
+
 				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 				if (!e.FacingRight) {
 					rot.Y = 3.14159265f; // 反転
 				}
-				auto worldMat = Game::MathUtils::SRT(scale, rot, { e.Position.X, e.Position.Y, e.Position.Z });
+             auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				
 				// マルチメッシュ対応: 全サブメッシュを描画
 				for (size_t i = 0; i < range.count; ++i) {
@@ -271,5 +293,32 @@ namespace Game::Scene::Impl {
 
 		Render_Geometry();
 		Render_Merge();
+
+		// チュートリアルオーバーレイ描画（バックバッファに直接描画）
+		if (TutorialManager_ && TutorialManager_->IsActive() && PrimitiveManager_Tutorial_) {
+			auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+			auto rtv = swapChain.BackBufferRTVCPUHandle();
+			cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
+
+			D3D12_VIEWPORT viewport{
+				.TopLeftX{ 0.0f }, .TopLeftY{ 0.0f },
+				.Width{ 1280.0f }, .Height{ 720.0f },
+				.MinDepth{ 0.0f }, .MaxDepth{ 1.0f },
+			};
+			D3D12_RECT scissor{
+				.left{ 0 }, .top{ 0 }, .right{ 1280 }, .bottom{ 720 },
+			};
+			cmdList->RSSetViewports(1U, &viewport);
+			cmdList->RSSetScissorRects(1U, &scissor);
+
+			PrimitiveManager_Tutorial_->Begin(cmdList);
+			TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
+			PrimitiveManager_Tutorial_->Render(
+				cmdList,
+				GlobalTable_SRV_ImageTexture_,
+				Lumina::Math::F32x4x4<>::Identity,
+				1
+			);
+		}
 	}
 }

@@ -13,6 +13,7 @@ import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
 import Game.Editor.AudioEditor;
 import Game.Editor.ObjMotionEditor;
+import Game.TutorialManager;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -61,6 +62,8 @@ namespace Game::Scene::Impl {
 		auto Initialize_(_ARGs&&...args_) -> void;
 
 		void SyncPlayEnemiesFromManager();
+		bool HasBossEncounterInCurrentArea() const;
+		void StartBossEncounterPresentation();
 
 	public:
 		void Initialize();
@@ -138,6 +141,10 @@ namespace Game::Scene::Impl {
 		Game::Editor::AudioEditor audioEditor_;
 		Game::Editor::ObjMotionEditor objMotionEditor_;
 
+		// チュートリアルシステム
+		std::unique_ptr<Game::TutorialManager> TutorialManager_;
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Tutorial_;
+
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
 			Lumina::Math::F32x3 Velocity{ 0.0f, 0.0f, 0.0f };
@@ -182,6 +189,10 @@ namespace Game::Scene::Impl {
 			
 			float TransitionCooldownTimer = 0.0f;
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
+           bool IsBossPresentationActive = false;
+			float BossPresentationTimer = 0.0f;
+			float BossPresentationDuration = 0.0f;
+			Lumina::Math::F32x3 BossPresentationFocusPosition{ 0.0f, 0.0f, 0.0f };
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);

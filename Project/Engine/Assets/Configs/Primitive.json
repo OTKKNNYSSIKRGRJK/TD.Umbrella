@@ -163,5 +163,67 @@
       "DepthEnable": 0,
       "StencilEnable": 0
     }
+  },
+
+  "Triangle.PSO.Overlay": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "InvSrcAlpha",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "RasterizerState": {
+      "FillMode": "Solid",
+      "CullMode": "None"
+    },
+    "DepthStencilState": {
+      "DepthEnable": 0,
+      "StencilEnable": 0
+    },
+    "InputLayout": [
+      [ "POSITION", 0, "float4" ],
+      [ "COLOR", 0, "float4" ],
+      [ "TEXCOORD", 0, "float2" ],
+      [ "TEXID", 0, "uint" ]
+    ],
+    "PrimitiveTopologyType": "Triangle"
+  },
+  
+  "Line.PSO.Overlay": {
+    "BlendState": [
+      {
+        "BlendEnable": 1,
+        "LogicOpEnable": 0,
+        "SrcBlend": "SrcAlpha",
+        "DestBlend": "InvSrcAlpha",
+        "BlendOp": "Src+Dst",
+        "SrcBlendAlpha": "One",
+        "DestBlendAlpha": "One",
+        "BlendOpAlpha": "Src+Dst",
+        "LogicOp": "None"
+      }
+    ],
+    "RasterizerState": {
+      "FillMode": "Solid",
+      "CullMode": "None"
+    },
+    "DepthStencilState": {
+      "DepthEnable": 0,
+      "StencilEnable": 0
+    },
+    "InputLayout": [
+      [ "POSITION", 0, "float4" ],
+      [ "COLOR", 0, "float4" ],
+      [ "TEXCOORD", 0, "float2" ],
+      [ "TEXID", 0, "uint" ]
+    ],
+    "PrimitiveTopologyType": "Line"
   }
 }

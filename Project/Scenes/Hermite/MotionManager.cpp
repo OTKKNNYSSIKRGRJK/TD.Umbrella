@@ -61,12 +61,21 @@ void MotionManager::LoadMotions(const std::string& directoryPath) {
 }
 
 const MotionData& MotionManager::GetMotion(const std::string& name) const {
-	auto it = motions_.find(name);
-	if (it != motions_.end()) {
-		return it->second;
-	}
-	/*throw std::runtime_error("Motion not found: " + name);*/
-	return motions_.begin()->second; // データがないときは先頭のデータを返す（要注意）
+  // If no motions were loaded, return a static empty MotionData to avoid
+    // dereferencing motions_.begin() when the map is empty.
+    if (motions_.empty()) {
+        static MotionData kEmptyMotion{};
+        return kEmptyMotion;
+    }
+
+    auto it = motions_.find(name);
+    if (it != motions_.end()) {
+        return it->second;
+    }
+
+    // Fallback: return the first available motion when the requested one
+    // is not found.
+    return motions_.begin()->second;
 }
 
 void MotionController::Play(const std::string& motionName, const Vector3& startPosition, float motionDuration) {

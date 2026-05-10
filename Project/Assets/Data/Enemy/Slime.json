@@ -2,9 +2,9 @@
     "aggressiveness": 0.5,
     "aggroRadius": 8.0,
     "animationMap": {
-        "Walk": "",
+        "Hop": "",
         "Idle": "",
-        "Hop": ""
+        "Walk": ""
     },
     "attackCooldown": 1.5,
     "attackRange": 2.0,
@@ -37,25 +37,13 @@
     ],
     "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
     "hp": 100,
-    "links": [
-        { "from": 1, "to": 2, "condition": "Dist<=100.0" },
-        { "from": 2, "to": 3, "condition": "Time>=0.25" },
-        { "from": 3, "to": 4, "condition": "Time>=0.15" },
-        { "from": 4, "to": 5, "condition": "Time>=1.5" },
-        { "from": 5, "to": 1, "condition": "Time>=0.5" }
-    ],
+    "links": [],
     "motionMap": {
         "Walk": "Slime_Jump"
     },
     "moveSpeed": 3.0,
     "name": "Slime",
-    "nodes": [
-        { "id": 1, "name": "Idle", "state": "Idle", "x": 20, "y": 20, "animationName": "", "facePlayer": false, "velocityFrictionX": 0.85, "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "splineMotionName": "", "splineDuration": 1.0 },
-        { "id": 2, "name": "FacePlayer", "state": "FacePlayer", "x": 220, "y": 20, "animationName": "", "facePlayer": true, "velocityFrictionX": 0.85, "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "splineMotionName": "", "splineDuration": 1.0 },
-        { "id": 3, "name": "Squash", "state": "Squash", "x": 420, "y": 20, "animationName": "", "facePlayer": false, "velocityFrictionX": 0.5, "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "splineMotionName": "", "splineDuration": 1.0 },
-        { "id": 4, "name": "Hop", "state": "Hop", "x": 220, "y": 180, "animationName": "", "facePlayer": false, "velocityFrictionX": 1.0, "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "splineMotionName": "Slime_Jump", "splineDuration": 1.5 },
-        { "id": 5, "name": "Landing", "state": "Landing", "x": 20, "y": 180, "animationName": "", "facePlayer": false, "velocityFrictionX": 0.7, "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "splineMotionName": "", "splineDuration": 1.0 }
-    ],
+    "nodes": [],
     "patrolRadius": 10.0,
     "power": 1.0,
     "projectile": {

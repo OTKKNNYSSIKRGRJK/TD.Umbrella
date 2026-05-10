@@ -30,9 +30,9 @@ namespace {
 	constexpr float kLargeAttackWindup = 0.75f;
 	constexpr float kMediumAttackWindup = 0.45f;
 	constexpr float kSmallAttackWindup = 0.2f;
-	constexpr float kLargeBurstSpeed = 2.8f;
+    constexpr float kLargeBurstSpeed = 3.4f;
 	constexpr float kMediumBurstSpeed = 1.9f;
-	constexpr float kSmallBurstSpeed = 1.25f;
+   constexpr float kSmallBurstSpeed = 1.0f;
 	constexpr float kSmallStrafeAmplitude = 1.8f;
 	constexpr float kLargeLandingStunDuration = 0.3f;
 	constexpr float kLargeLandingImpactThreshold = 3.0f;
@@ -518,6 +518,12 @@ namespace Game {
 						if (isBlockedForward && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
 							this->velocity.Y = 6.5f; // 脱出用ジャンプ
 						}
+					}
+				}
+             else if (other->GetMyType() == COL_Player) {
+					Player* player = static_cast<Player*>(other->GetUserData());
+					if (player != nullptr) {
+						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power));
 					}
 				}
 				else if (other->GetMyType() == COL_Player_Attack) {
@@ -1104,10 +1110,46 @@ namespace Game {
 						enemy.facingRight = (dx > 0.0f);
 					}
 
-					// Spline Motionの再生開始判定（ステートに入った瞬間に再生開始）
-					// enemy.stateTimerは直前で deltaTime が足されていても、遷移した際は 0.0f が代入されている
-					if (enemy.stateTimer == 0.0f && !currentNodeInfo->splineMotionName.empty()) {
-						enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+                    // Node entry handling: allow nodes to trigger actions on entering.
+					// - If a node's `boundBool` contains a firing token (e.g. "FireProjectile"),
+					//   spawn a projectile immediately on entry. This enables node-driven
+					//   flows like: Charge -> Time>=X -> Shoot (where Shoot node triggers fire).
+					// - Also start spline motion on entry if specified.
+					if (enemy.stateTimer == 0.0f) {
+             const std::string& fb = currentNodeInfo->boundBool;
+				// If entering a Charge state for a ranged enemy, spawn a visual attached projectile
+				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+					Game::ProjectileData pd = enemy.baseData.projectile;
+					pd.spawnAttached = true;
+					pd.scaleOnCharge = true; // チャージエフェクト（弾の巨大化）を有効にする
+                        // offset relative to the enemy model (tunable). place the visual
+						// bullet well above the slime's head so it is clearly separated
+						// and ensure activation (firing) originates from that position.
+						pd.attachOffset = { 0.0f, 1.2f * enemy.modelScale, 0.0f };
+					ProjectileManager::GetInstance()->Fire(
+						enemy.position,
+						playerPosition,
+						pd,
+						enemy.id
+					);
+				}
+				// If the node requests a fire action via boundBool, attempt to activate any attached projectile;
+				// if none exists, fall back to spawning a new projectile.
+				else if (!fb.empty() && (fb == "FireProjectile" || fb == "fireProjectile" || fb == "Shoot" || fb == "shoot" || fb == "Fire" || fb == "fire")) {
+					bool activated = ProjectileManager::GetInstance()->ActivateAttachedProjectile(enemy.id, playerPosition);
+					if (!activated) {
+						ProjectileManager::GetInstance()->Fire(
+							enemy.position,
+							playerPosition,
+							enemy.baseData.projectile,
+							enemy.id
+						);
+					}
+				}
+
+						if (!currentNodeInfo->splineMotionName.empty()) {
+							enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+						}
 					}
 
 					// SplineMotion再生中なら物理演算をオーバーライド
@@ -1136,12 +1178,21 @@ namespace Game {
 						enemy.position.X = posBeforePhysics.X + delta.X;
 						enemy.position.Y = posBeforePhysics.Y + delta.Y;
 						enemy.position.Z = posBeforePhysics.Z + delta.Z;
-					} else {
+                    } else {
+						// If the node is marked with a boolean "walk" trigger, drive horizontal
+						// movement via velocity so node-driven state machines can make enemies walk
+						// without relying on spline motions.
+						bool nodeWalk = (currentNodeInfo->boundBool == "walk" || currentNodeInfo->boundBool == "Walk");
+						if (nodeWalk) {
+							float moveDir = enemy.facingRight ? 1.0f : -1.0f;
+							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
+						}
+
 						// 継続的な摩擦/ブレーキ
 						// 空中にいるときは横方向の摩擦を軽減し、落下中の慣性を保つ
 						float expectedGroundedVelY = -9.8f * deltaTime;
 						bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
-						
+
 						if (isGrounded) {
 							enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
 						} else {

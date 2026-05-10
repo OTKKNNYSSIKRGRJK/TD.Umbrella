@@ -58,6 +58,7 @@ namespace Game::Editor {
 #if defined(_DEBUG)
 	void AreaEditor::DrawEditorUI() {
 		bool openConvexError = false;
+		static float saveNotificationTimer = 0.0f;
 		auto centerCameraOnArea = [&]() {
 			ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * 0.5f) * zoom_;
@@ -71,6 +72,7 @@ namespace Game::Editor {
 				}
 			}
 			SaveArea(areaToSave, sync);
+			saveNotificationTimer = 2.0f;
 			return true;
 		};
 
@@ -664,14 +666,17 @@ namespace Game::Editor {
 			strncpy_s(musicBuf, editingArea_.backgroundMusic.c_str(), sizeof(musicBuf));
 			if (ImGui::InputText("Background Music", musicBuf, sizeof(musicBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
 				editingArea_.backgroundMusic = musicBuf;
+				trySaveArea(editingArea_, true);
 			} else if (ImGui::IsItemDeactivatedAfterEdit()) {
 				editingArea_.backgroundMusic = musicBuf;
+				trySaveArea(editingArea_, true);
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Area Connections", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Add Connection", ImVec2(-1, 0))) {
 				editingArea_.connections.push_back({});
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -690,9 +695,11 @@ namespace Game::Editor {
 
 					ImGui::Text("Portal Coordinates");
 					ImGui::DragFloat2("Position", &editingArea_.connections[i].position.x, 1.0f);
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					if (ImGui::Button("Remove Connection")) {
 						editingArea_.connections.erase(editingArea_.connections.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::TreePop();
 						ImGui::PopID();
 						break;
@@ -708,6 +715,7 @@ namespace Game::Editor {
 				EnemyPlacement newEnemy;
 				newEnemy.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 				editingArea_.enemies.push_back(newEnemy);
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -733,6 +741,7 @@ namespace Game::Editor {
 								bool isSelected = (currentItem == k);
 								if (ImGui::Selectable(enemyFiles_[k].c_str(), isSelected)) {
 									editingArea_.enemies[i].enemyName = enemyFiles_[k];
+									trySaveArea(editingArea_, true);
 								}
 								if (isSelected) ImGui::SetItemDefaultFocus();
 							}
@@ -744,18 +753,23 @@ namespace Game::Editor {
 						if (ImGui::InputText("Enemy Name", nameBuf, sizeof(nameBuf))) {
 							editingArea_.enemies[i].enemyName = nameBuf;
 						}
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 					}
 
 					// サイズ段階選択
 					const char* sizeNames[] = { "Small", "Medium", "Large" };
-					ImGui::Combo("Size", &editingArea_.enemies[i].sizeCategory, sizeNames, 3);
+					if (ImGui::Combo("Size", &editingArea_.enemies[i].sizeCategory, sizeNames, 3)) {
+						trySaveArea(editingArea_, true);
+					}
 
 					ImGui::DragFloat2("Position", &editingArea_.enemies[i].position.x, 1.0f);
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					// 向き設定
 					bool facingRight = editingArea_.enemies[i].facingRight;
 					if (ImGui::Checkbox("Facing Right", &facingRight)) {
 						editingArea_.enemies[i].facingRight = facingRight;
+						trySaveArea(editingArea_, true);
 					}
 					ImGui::SameLine();
 					ImGui::TextDisabled(facingRight ? "(->)" : "(<-)");
@@ -763,6 +777,7 @@ namespace Game::Editor {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
 					if (ImGui::Button("Remove Enemy")) {
 						editingArea_.enemies.erase(editingArea_.enemies.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::PopStyleColor();
 						ImGui::TreePop();
 						ImGui::PopID();
@@ -780,6 +795,7 @@ namespace Game::Editor {
 				CollisionGroup newGroup;
 				newGroup.name = "Group_" + std::to_string(editingArea_.collisionGroups.size());
 				editingArea_.collisionGroups.push_back(newGroup);
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -792,11 +808,13 @@ namespace Game::Editor {
 					if (ImGui::InputText("Group Name", nameBuf, sizeof(nameBuf))) {
 						editingArea_.collisionGroups[i].name = nameBuf;
 					}
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					if (ImGui::Button("Add Point")) {
 						CollisionPoint p;
 						p.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 						editingArea_.collisionGroups[i].points.push_back(p);
+						trySaveArea(editingArea_, true);
 					}
 					
 					ImGui::Separator();
@@ -805,9 +823,12 @@ namespace Game::Editor {
 						ImGui::PushID(static_cast<int>(p) + 30000);
 						ImGui::Text("Point %llu", p);
 						ImGui::DragFloat2("Position", &editingArea_.collisionGroups[i].points[p].position.x, 1.0f);
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 						ImGui::DragFloat("Radius", &editingArea_.collisionGroups[i].points[p].radius, 1.0f, 1.0f, 1000.0f);
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 						if (ImGui::Button("Remove Point")) {
 							editingArea_.collisionGroups[i].points.erase(editingArea_.collisionGroups[i].points.begin() + p);
+							trySaveArea(editingArea_, true);
 							ImGui::PopID();
 							break;
 						}
@@ -818,6 +839,7 @@ namespace Game::Editor {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
 					if (ImGui::Button("Remove Group")) {
 						editingArea_.collisionGroups.erase(editingArea_.collisionGroups.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::PopStyleColor();
 						ImGui::TreePop();
 						ImGui::PopID();
@@ -838,9 +860,11 @@ namespace Game::Editor {
 				if (hasGoal) {
 					editingArea_.goalPosition = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 				}
+				trySaveArea(editingArea_, true);
 			}
 			if (editingArea_.hasGoal) {
 				ImGui::DragFloat2("Goal Position", &editingArea_.goalPosition.x, 1.0f);
+				if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 				ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "Goal marker is shown on canvas.");
 				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "(Drag the marker to reposition)");
 			}
@@ -849,6 +873,11 @@ namespace Game::Editor {
 		ImGui::Separator();
 		if (ImGui::Button("SAVE AREA", ImVec2(-1, 40))) {
 			trySaveArea(editingArea_, true);
+		}
+
+		if (saveNotificationTimer > 0.0f) {
+			saveNotificationTimer -= ImGui::GetIO().DeltaTime;
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "  Saved Successfully!");
 		}
 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));

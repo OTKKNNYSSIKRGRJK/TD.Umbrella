@@ -35,6 +35,9 @@ namespace {
 
 namespace {
 	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
+	constexpr float BossPresentationDuration{ 2.0f };
+	constexpr float BossPresentationCameraZoom{ 6.0f };
+	constexpr char BossEnemyName[]{ "KingSlime" };
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
 		p_.Translate.X += p_.Velocity.X;
@@ -49,6 +52,45 @@ namespace {
 }
 
 namespace Game::Scene::Impl {
+   bool InGame::HasBossEncounterInCurrentArea() const {
+		return std::any_of(
+			playState_.CurrentArea.enemies.cbegin(),
+			playState_.CurrentArea.enemies.cend(),
+			[] (auto const& enemy_) {
+				return enemy_.enemyName == BossEnemyName;
+			}
+		);
+	}
+
+	void InGame::StartBossEncounterPresentation() {
+		playState_.IsBossPresentationActive = false;
+		playState_.BossPresentationTimer = 0.0f;
+		playState_.BossPresentationDuration = 0.0f;
+
+		if (!HasBossEncounterInCurrentArea()) {
+			return;
+		}
+
+		auto const bossIt = std::find_if(
+			playState_.Enemies.cbegin(),
+			playState_.Enemies.cend(),
+			[] (auto const& enemy_) {
+				return enemy_.BaseData.name == BossEnemyName;
+			}
+		);
+
+		if (bossIt == playState_.Enemies.cend()) {
+			return;
+		}
+
+		playState_.IsBossPresentationActive = true;
+		playState_.BossPresentationTimer = BossPresentationDuration;
+		playState_.BossPresentationDuration = BossPresentationDuration;
+		playState_.BossPresentationFocusPosition = bossIt->Position;
+		playState_.TransitionCooldownTimer = (std::max)(playState_.TransitionCooldownTimer, BossPresentationDuration);
+		Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 20);
+	}
+
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
@@ -105,6 +147,17 @@ namespace Game::Scene::Impl {
 					spawnedAtConnection = true;
 					break;
 				}
+			}
+		}
+
+		if (TutorialManager_) {
+			// エリア遷移時に現在アクティブなチュートリアルを中断
+			TutorialManager_->Skip();
+
+			if (areaIndex == 0) {
+				TutorialManager_->TryStartSequence("BasicControls");
+			} else if (areaIndex == 2) {
+				TutorialManager_->TryStartSequence("Parachute");
 			}
 		}
 
@@ -214,6 +267,14 @@ namespace Game::Scene::Impl {
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
+		if (previousAreaIndex != -1) {
+			StartBossEncounterPresentation();
+		}
+		else {
+			playState_.IsBossPresentationActive = false;
+			playState_.BossPresentationTimer = 0.0f;
+			playState_.BossPresentationDuration = 0.0f;
+		}
 		
 		if (CollisionManager_) {
 			CollisionManager_->Begin();
@@ -270,6 +331,13 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"Player">() {
+		// チュートリアル入力制限の適用
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			Player_->InputMask = TutorialManager_->GetAllowedInputs();
+		} else {
+			Player_->InputMask = 0xFFFF; // 全入力許可
+		}
+
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
@@ -331,6 +399,7 @@ namespace Game::Scene::Impl {
 			pe.Position = inst.position;
 			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
 			pe.IsDead = inst.isDead;
+          pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
@@ -404,11 +473,24 @@ namespace Game::Scene::Impl {
 
 		Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
 		auto const& playerPos = Player_->GetPosition();
-		Lumina::Math::F32x3 newCameraPos{
-			cameraPos.X * 0.95f + playerPos.X * 0.05f,
-			cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
-			-30.0f
-		};
+       Lumina::Math::F32x3 newCameraPos{};
+		if (playState_.IsBossPresentationActive && playState_.BossPresentationDuration > 0.0f) {
+			float const progress = 1.0f - playState_.BossPresentationTimer / playState_.BossPresentationDuration;
+			float const bossFocusWeight = std::sin(progress * std::numbers::pi_v<float>);
+			newCameraPos = {
+				playerPos.X + (playState_.BossPresentationFocusPosition.X - playerPos.X) * bossFocusWeight,
+				playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
+				-30.0f + BossPresentationCameraZoom * bossFocusWeight
+			};
+			Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+		}
+		else {
+			newCameraPos = {
+				cameraPos.X * 0.95f + playerPos.X * 0.05f,
+				cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
+				-30.0f
+			};
+		}
 		if (Event::CameraShakingTimer > 0) {
 			auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
 			angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
@@ -1301,54 +1383,43 @@ namespace Game::Scene::Impl {
 #endif
 
 	void InGame::Update() {
-#if defined(_DEBUG)
-		// ポーズメニュー処理（常に最初にチェック）
-		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
-			DrawPauseMenu();
-
-			// ポーズ中はゲーム更新をスキップ（カメラとエディタUIだけ更新）
-			if (Event::IsPaused) {
-				Update_<"Camera">();
-				Update_<"[Debug] Editor">();
-				return;
-			}
-
-			// リスタート処理
-			if (Event::IsRestartRequested) {
-				Event::IsRestartRequested = false;
-				Event::CurrentPhase = Event::GamePhase::Startup;
-				Event::PhaseTimer = 0.0f;
-				Event::ElapsedBattleTime = 0.0f;
-				Event::EnemiesDefeated = 0;
-				if (Player_) {
-					Player_->GetStatusComponent().Heal(999.0f); // HP全回復
-				}
-				CheckAndLoadArea(playState_.CurrentArea.index);
+/// dev-Kouda-4.1
+        if (playState_.IsBossPresentationActive) {
+			playState_.BossPresentationTimer -= 1.0f / 60.0f;
+			if (playState_.BossPresentationTimer <= 0.0f) {
+				playState_.IsBossPresentationActive = false;
+				playState_.BossPresentationTimer = 0.0f;
+				playState_.BossPresentationDuration = 0.0f;
 			}
 		}
-#endif
-
-		// ゲームフェーズがStartupならプレイヤー操作はしない
-		bool allowGameplay = true;
-#if defined(_DEBUG)
-		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
-			if (Event::CurrentPhase == Event::GamePhase::Startup ||
-				Event::CurrentPhase == Event::GamePhase::Win ||
-				Event::CurrentPhase == Event::GamePhase::Lose) {
-				allowGameplay = false;
-			}
+///ここまで
+		bool tutorialActive = false;
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			tutorialActive = true;
 		}
-#endif
 
-		if (allowGameplay) {
-			Update_<"Player">();
+		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ
+		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
+			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+			
 			Update_<"Enemies-1">(1.0f / 60.0f);
-			Update_<"Collision">();
+			
+			Update_<"Collision">(); // 地形との当たり判定のため実行
+			
 			Update_<"Enemies-2">();
+			
+			Update_<"[Debug] Area">();
 		}
 
+		// ツール系の更新はポーズ等に関わらず実行
 		Update_<"[Debug] TerrainEditor">();
-		Update_<"[Debug] Area">();
+
+		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
+		if (tutorialActive) {
+			TutorialManager_->Update(1.0f / 60.0f);
+		}
+
+/// dev-Takanaga-temporary
 		Update_<"Camera">();
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();
