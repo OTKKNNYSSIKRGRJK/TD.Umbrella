@@ -1195,6 +1195,7 @@ namespace Game {
 
 			enemy->currentHP = 0;
 			enemy->isDead = true;
+			++Event::EnemiesDefeated;
 			if (onDeathCallback_) {
 				onDeathCallback_(*enemy);
 			}
@@ -1246,6 +1247,7 @@ namespace Game {
 				});
 				enemy.currentHP = 0;
 				enemy.isDead = true;
+				++Event::EnemiesDefeated;
 				if (onDeathCallback_) {
 					onDeathCallback_(enemy);
 				}

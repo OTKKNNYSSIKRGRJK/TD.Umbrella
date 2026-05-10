@@ -187,6 +187,10 @@ namespace Game::Scene::Impl {
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
 #if defined(_DEBUG)
 		void DrawPlayMode();
+		void DrawPauseMenu();
+		void DrawGamePhaseUI();
+		void DrawEnemyHPBars();
+		void HandleFallDeath();
 #endif
 
 		/// パーティクル・ライティング
