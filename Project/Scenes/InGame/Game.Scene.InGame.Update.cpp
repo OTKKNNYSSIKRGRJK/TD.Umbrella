@@ -1399,7 +1399,8 @@ namespace Game::Scene::Impl {
 		Update_<"[Debug] TerrainEditor">();
 
 		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
-		if (tutorialActive) {
+		// ポーズ中やボス登場演出中はチュートリアルも進めない
+		if (tutorialActive && !playState_.IsPaused && !playState_.IsBossPresentationActive) {
 			TutorialManager_->Update(1.0f / 60.0f);
 		}
 
