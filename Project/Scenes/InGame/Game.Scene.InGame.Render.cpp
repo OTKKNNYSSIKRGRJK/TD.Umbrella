@@ -387,11 +387,15 @@ namespace Game::Scene::Impl {
 						float ndcX = clipPos.X() / clipPos.W();
 						float ndcY = clipPos.Y() / clipPos.W();
 
-						// スケール計算（遠くにあるほど小さく）
+                       // スケール計算（遠くにあるほど小さく）
+                     // 敵HPバーの全体スケール (見た目調整)
+						constexpr float EnemyHpBarScale = 3.0f; // 以前は2.0f
 						float hw = 0.8f / clipPos.W(); // half width
 						if (hw > 0.08f) hw = 0.08f;
 						if (hw < 0.02f) hw = 0.02f;
-						float hh = hw * 0.15f; // half height
+						hw *= EnemyHpBarScale;
+                       // 高さは幅に対して比率で決定。より太く見せるため倍率を増加
+						float hh = hw * 0.20f; // half height (was 0.15f)
 
 						float ratio = static_cast<float>(e.CurrentHP) / e.BaseData.hp;
 
