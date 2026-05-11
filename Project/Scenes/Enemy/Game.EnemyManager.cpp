@@ -550,18 +550,22 @@ namespace Game {
 				}
 			}
 				else if (other->GetMyType() == COL_Player_Attack) {
-                        if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
+						Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
+						uint32_t attackId = umbrellaTop->GetStatusComponent().GetAttackInstanceId();
+                        if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
 							this->recentlyDamagedThisFrame = true;
+							this->lastHitAttackId = attackId;
 							// Do not apply horizontal knockback on player attack; only apply damage.
-							Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
 							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 							Game::Event::AddHitStop(umbrellaTop->GetStatusComponent().GetHitStop());
 						}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
 					Player* player = static_cast<Player*>(other->GetUserData());
-					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
+					uint32_t attackId = player->GetUmbrella().top_->GetStatusComponent().GetAttackInstanceId();
+					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
 						this->recentlyDamagedThisFrame = true;
+						this->lastHitAttackId = attackId;
 						Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)(player->GetUmbrella().top_->GetStatusComponent().GetAttack()));
 						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
 					}
