@@ -989,6 +989,13 @@ namespace Game::Editor {
 		}
 
 		ImGui::SameLine();
+        if (ImGui::Button("Save Nodes##toolbar")) {
+			SaveEnemy(editingEnemy_);
+			AddLog("[EnemyEditor] Saved nodes");
+			s_actionSaveNotificationTimer = 2.0f;
+		}
+
+		ImGui::SameLine();
 		if (ImGui::Button("Start First Node")) {
 			if (!editingEnemy_.nodes.empty()) {
 				previousStateId_ = currentStateId_;
@@ -1004,6 +1011,11 @@ namespace Game::Editor {
 				}
 				AddLog("[EnemyEditor] Started first node");
 			}
+		}
+
+		if (s_actionSaveNotificationTimer > 0.0f) {
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Saved Successfully!");
 		}
 
 		ImGui::SameLine();

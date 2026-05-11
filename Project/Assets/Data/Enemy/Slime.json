@@ -37,13 +37,54 @@
     ],
     "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
     "hp": 100,
-    "links": [],
+    "links": [
+        {
+            "condition": "Time>=3.000000",
+            "from": 1,
+            "to": 2
+        }
+    ],
     "motionMap": {
         "Walk": "Slime_Jump"
     },
     "moveSpeed": 3.0,
     "name": "Slime",
-    "nodes": [],
+    "nodes": [
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "facePlayer": false,
+            "id": 1,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "name": "State1",
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Idle",
+            "velocityFrictionX": 1.0,
+            "x": 40.0,
+            "y": 40.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "Walk",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "facePlayer": false,
+            "id": 2,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "name": "State2",
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Walk",
+            "velocityFrictionX": 1.0,
+            "x": 285.0,
+            "y": 30.0
+        }
+    ],
     "patrolRadius": 10.0,
     "power": 1.0,
     "projectile": {
