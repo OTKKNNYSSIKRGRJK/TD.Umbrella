@@ -150,6 +150,15 @@
             "enemyName": "TutorialEnemy",
             "facingRight": false,
             "position": {
+                "x": 301.0399169921875,
+                "y": 183.6824188232422
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
                 "x": 560.0,
                 "y": 172.0
             },
