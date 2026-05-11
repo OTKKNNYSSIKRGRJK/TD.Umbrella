@@ -11,6 +11,7 @@ import Lumina.Primitive;
 import Game.MathUtils;
 import Game.ProjectileManager;
 import Game.TutorialManager;
+import Game.UIMenu;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -439,6 +440,9 @@ namespace Game::Scene::Impl {
 				if (drawTutorial) {
 					TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
 				}
+
+				// ゲームオーバーUIメニュー描画
+				GameOverMenu_.Render(*PrimitiveManager_Tutorial_);
 
 				PrimitiveManager_Tutorial_->Render(
 					cmdList,

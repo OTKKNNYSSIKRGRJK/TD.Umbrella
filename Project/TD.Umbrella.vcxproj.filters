@@ -263,6 +263,7 @@
       <Filter>Scenes\Title-InGame</Filter>
     </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Game\Game.UIMenu.ixx" />
     <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />

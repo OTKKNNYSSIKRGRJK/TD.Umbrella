@@ -50,4 +50,18 @@ export namespace Game::Event {
 	//  ポーズ用パッド前回状態
 	// ==============================
 	inline bool PrevPadStart = false;
+
+	// ==============================
+	//  フェーズリセット
+	// ==============================
+	inline void ResetPhase() {
+		CurrentPhase = GamePhase::InBattle;
+		PhaseTimer = 0.0f;
+		ElapsedBattleTime = 0.0f;
+		EnemiesDefeated = 0;
+		FallDeathCount = 0;
+		IsPaused = false;
+		IsRestartRequested = false;
+		HitStopTimer = 0.0f;
+	}
 }
