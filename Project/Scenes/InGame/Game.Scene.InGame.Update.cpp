@@ -265,6 +265,8 @@ namespace Game::Scene::Impl {
 		if (Player_) {
 			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
 			Event::RespawnPos = Player_->GetPosition();
+			Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+			Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
@@ -282,6 +284,13 @@ namespace Game::Scene::Impl {
 		}
 
 		playState_.IsGoalReached = false;
+
+		// ゲームフェーズをリセット
+		Event::CurrentPhase = Event::GamePhase::Startup;
+		Event::PhaseTimer = 0.0f;
+		Event::ElapsedBattleTime = 0.0f;
+		Event::EnemiesDefeated = 0;
+		Event::FallDeathCount = 0;
 	}
 
 #if defined(_DEBUG)
@@ -905,21 +914,7 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
-			ImGui::SetNextWindowPos(ImVec2(10, 140), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowSize(ImVec2(320, 220), ImGuiCond_FirstUseEver);
-			ImGui::Begin("Enemy HP");
-			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
-				const auto& enemy = playState_.Enemies[i];
-			ImGui::Text("Enemy[%d] HP: %d / %d %s  Walk:%s Motion:%s Node:%d",
-				static_cast<int>(i),
-				enemy.CurrentHP,
-				enemy.BaseData.hp,
-				enemy.IsDead ? "(Dead)" : "",
-				enemy.WalkActive ? "true" : "false",
-				enemy.MotionPlaying ? "playing" : "stopped",
-				enemy.ActiveNodeIndex);
-			}
-			ImGui::End();
+			// Enemy HP ImGui removed
 
 			// ミニマップ（エリア構成図）描画
 			if (playState_.IsPlaying) {
@@ -1105,6 +1100,264 @@ namespace Game::Scene::Impl {
 		#endif
 	}
 
+	// ==============================
+	//  ⑥ ポーズ・リスタート
+	// ==============================
+#if defined(_DEBUG)
+	void InGame::DrawPauseMenu() {
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		auto const& keyboard{ inputMngr.Keyboard() };
+		auto const& pad{ inputMngr.Pad() };
+		using Lumina::OS::Windows::KEY;
+
+		// ESC or Start ボタンでポーズ切り替え
+		bool padStartNow = pad.IsHold(0x0010);
+		bool padStartJust = padStartNow && !Event::PrevPadStart;
+		Event::PrevPadStart = padStartNow;
+
+		if (keyboard.IsJustPressed(KEY::ESC) || padStartJust) {
+			Event::IsPaused = !Event::IsPaused;
+		}
+
+		if (!Event::IsPaused) return;
+
+		// ポーズ画面オーバーレイ
+		ImVec2 windowSize(400, 260);
+		ImVec2 screenCenter(640.0f - windowSize.x * 0.5f, 360.0f - windowSize.y * 0.5f);
+		ImGui::SetNextWindowPos(screenCenter, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+		ImGui::Begin("##PauseMenu", nullptr,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX((windowSize.x - ImGui::CalcTextSize("PAUSED").x) * 0.5f);
+		ImGui::TextColored(ImVec4{ 1.0f, 0.85f, 0.2f, 1.0f }, "PAUSED");
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		float btnWidth = 200.0f;
+		float btnX = (windowSize.x - btnWidth) * 0.5f;
+
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Resume", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+		}
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Restart Area", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+			Event::IsRestartRequested = true;
+		}
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Return to Title", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+			playState_.IsPlaying = false;
+			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Activate("Title");
+		}
+
+		ImGui::End();
+	}
+
+	// ==============================
+	//  ⑦ 落下時の対処
+	// ==============================
+	void InGame::HandleFallDeath() {
+		if (!Player_ || !playState_.IsPlaying) return;
+		auto const& pos = Player_->GetPosition();
+
+		if (pos.Y < Event::FallDeathThresholdY) {
+			++Event::FallDeathCount;
+
+			// HPを少し減らす (落下ペナルティ)
+			Player_->GetStatusComponent().TakeDamage(10.0f);
+
+			// リスポーン地点へ戻す
+			Player_->SetPosition(Event::RespawnPos);
+			Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
+			Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+
+			// カメラシェイク演出
+			Event::CameraShakingTimer = 10;
+		}
+	}
+
+	// ==============================
+	//  ⑤ ゲームフェーズ管理UI
+	// ==============================
+	void InGame::DrawGamePhaseUI() {
+		float dt = 1.0f / 60.0f;
+
+		switch (Event::CurrentPhase) {
+		case Event::GamePhase::Startup:
+		{
+			Event::PhaseTimer += dt;
+
+			// カウントダウン表示
+			float remaining = Event::StartupDuration - Event::PhaseTimer;
+			ImGui::SetNextWindowPos(ImVec2(540, 280), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(200, 80), ImGuiCond_Always);
+			ImGui::Begin("##Countdown", nullptr,
+				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoBackground);
+
+			if (remaining > 0.0f) {
+				char buf[8];
+				snprintf(buf, sizeof(buf), "%d", static_cast<int>(remaining) + 1);
+				ImGui::SetCursorPosX(80.0f);
+				ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.3f, 1.0f}, "%s", buf);
+			} else {
+				ImGui::SetCursorPosX(60.0f);
+				ImGui::TextColored(ImVec4{0.3f, 1.0f, 0.3f, 1.0f}, "GO!");
+			}
+			ImGui::End();
+
+			if (Event::PhaseTimer >= Event::StartupDuration + 0.5f) {
+				Event::CurrentPhase = Event::GamePhase::InBattle;
+				Event::PhaseTimer = 0.0f;
+			}
+			break;
+		}
+		case Event::GamePhase::InBattle:
+		{
+			Event::ElapsedBattleTime += dt;
+
+			// 全敵撃破で勝利
+			int aliveCount = 0;
+			for (const auto& e : playState_.Enemies) {
+				if (!e.IsDead) ++aliveCount;
+			}
+			if (!playState_.Enemies.empty() && aliveCount == 0) {
+				Event::CurrentPhase = Event::GamePhase::Win;
+				Event::PhaseTimer = 0.0f;
+			}
+
+			// プレイヤー死亡で敗北
+			if (Player_ && Player_->GetStatusComponent().IsDead()) {
+				Event::CurrentPhase = Event::GamePhase::Lose;
+				Event::PhaseTimer = 0.0f;
+			}
+			break;
+		}
+		case Event::GamePhase::Win:
+		{
+			Event::PhaseTimer += dt;
+			// Area Clear ImGui removed
+			break;
+		}
+		case Event::GamePhase::Lose:
+		{
+			Event::PhaseTimer += dt;
+			ImGui::SetNextWindowPos(ImVec2(440, 280), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(400, 120), ImGuiCond_Always);
+			ImGui::Begin("##LoseScreen", nullptr,
+				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoMove);
+			ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "GAME OVER");
+			ImGui::Spacing();
+
+			float btnW = 160.0f;
+			ImGui::SetCursorPosX((400.0f - btnW) * 0.5f);
+			if (ImGui::Button("Retry", ImVec2(btnW, 32))) {
+				Event::IsRestartRequested = true;
+			}
+			ImGui::SetCursorPosX((400.0f - btnW) * 0.5f);
+			if (ImGui::Button("Return to Title", ImVec2(btnW, 32))) {
+				playState_.IsPlaying = false;
+				auto& sceneMngr{ Lumina::SceneManager::Instance() };
+				sceneMngr.Activate("Title");
+			}
+			ImGui::End();
+			break;
+		}
+		}
+	}
+
+	// ==============================
+	//  ⑩ Enemy HP UI (ゲーム画面上のHPバー)
+	// ==============================
+	void InGame::DrawEnemyHPBars() {
+		if (!playState_.IsPlaying || !Camera_Player_) return;
+
+		auto const& viewProj = *WorldToHomogeneous_;
+		float vpW = 1280.0f;
+		float vpH = 720.0f;
+
+		// オーバーレイウィンドウ
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(vpW, vpH));
+		ImGui::Begin("##EnemyHPOverlay", nullptr,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs |
+			ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		for (const auto& enemy : playState_.Enemies) {
+			if (enemy.IsDead) continue;
+
+			// ワールド座標 → NDC → スクリーン座標
+			Lumina::Math::F32x4 worldPos{
+				enemy.Position.X,
+				enemy.Position.Y + 2.0f * enemy.Scale, // 頭の上に表示
+				enemy.Position.Z,
+				1.0f
+			};
+			auto clip = worldPos * viewProj;
+			if (clip.W() <= 0.0f) continue; // カメラ後方
+
+			float ndcX = clip.X() / clip.W();
+			float ndcY = clip.Y() / clip.W();
+
+			float screenX = (ndcX * 0.5f + 0.5f) * vpW;
+			float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * vpH;
+
+			// 画面外なら描画しない
+			if (screenX < -50.0f || screenX > vpW + 50.0f ||
+				screenY < -50.0f || screenY > vpH + 50.0f) continue;
+
+			float barWidth = 50.0f * enemy.Scale;
+			barWidth = (std::max)(30.0f, (std::min)(80.0f, barWidth));
+			float barHeight = 6.0f;
+			float hpRatio = static_cast<float>(enemy.CurrentHP) /
+				static_cast<float>((std::max)(1, enemy.BaseData.hp));
+			hpRatio = (std::max)(0.0f, (std::min)(1.0f, hpRatio));
+
+			float left = screenX - barWidth * 0.5f;
+			float top = screenY - barHeight;
+
+			// 背景 (暗いグレー)
+			drawList->AddRectFilled(
+				ImVec2(left - 1, top - 1),
+				ImVec2(left + barWidth + 1, top + barHeight + 1),
+				MakeCol32(20, 20, 20, 180), 2.0f);
+
+			// HP バー
+			ImU32 barColor;
+			if (hpRatio > 0.5f)
+				barColor = MakeCol32(50, 220, 80, 230);   // 緑
+			else if (hpRatio > 0.25f)
+				barColor = MakeCol32(240, 200, 40, 230);   // 黄
+			else
+				barColor = MakeCol32(230, 50, 50, 230);    // 赤
+
+			drawList->AddRectFilled(
+				ImVec2(left, top),
+				ImVec2(left + barWidth * hpRatio, top + barHeight),
+				barColor, 2.0f);
+		}
+
+		ImGui::End();
+	}
+#endif
+
 	void InGame::Update() {
 /// dev-Kouda-4.1
         if (playState_.IsBossPresentationActive) {
@@ -1147,5 +1400,16 @@ namespace Game::Scene::Impl {
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();
 		Update_<"[Debug] Manual">();
+
+#if defined(_DEBUG)
+		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
+			// ⑦ 落下処理
+			HandleFallDeath();
+			// ⑤ ゲームフェーズUI
+			DrawGamePhaseUI();
+			// ⑩ 敵HPバー
+			// DrawEnemyHPBars(); // ImGui実装は廃止、Render側の2Dオーバーレイへ移行
+		}
+#endif
 	}
 }
