@@ -231,7 +231,6 @@
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp">
       <Filter>Game\Debug</Filter>
     </ClCompile>
-
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Update.cpp">
       <Filter>Scenes\Title</Filter>
     </ClCompile>

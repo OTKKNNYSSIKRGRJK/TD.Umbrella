@@ -3,6 +3,7 @@
     "NormalCombo1": {
       "name": "通常コンボ1段目",
       "motion": "SwingFirst",
+      "animation": "ATKX1",
       "duration": 0.2,
       "damage": 10.0,
       "manaCost": 0.0,
@@ -35,6 +36,7 @@
     "NormalCombo2": {
       "name": "通常コンボ2段目",
       "motion": "SwingSecond",
+      "animation": "ATKX2",
       "duration": 0.3,
       "damage": 20.0,
       "physics": {
@@ -59,6 +61,7 @@
     "NormalCombo3": {
       "name": "通常コンボ3段目（通常フィニッシュ）",
       "motion": "SwingLast",
+      "animation": "ATKX3",
       "duration": 0.6,
       "damage": 30.0,
       "physics": {

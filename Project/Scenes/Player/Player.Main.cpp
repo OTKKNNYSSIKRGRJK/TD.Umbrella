@@ -150,8 +150,11 @@ void Player::LoadAnimation() {
 	PlayerSkinnedInstance_->MeshRotate_ = { 0.0f, 0.0f, 0.0f };
 	PlayerSkinnedInstance_->MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
 
-	auto animations_Idle{ Lumina::CG3D::LoadAnimationFile("run.gltf", "Assets/Neki") };
-	animDatabase_["Idle"] = animations_Idle[0];
+	animDatabase_["Run"] = Lumina::CG3D::LoadAnimationFile("run.gltf", "Assets/Neki")[0];
+	animDatabase_["Idle"] = Lumina::CG3D::LoadAnimationFile("idle.gltf", "Assets/Neki")[0];
+	animDatabase_["ATKX1"] = Lumina::CG3D::LoadAnimationFile("atkX1.gltf", "Assets/Neki")[0];
+	animDatabase_["ATKX2"] = Lumina::CG3D::LoadAnimationFile("atkX2.gltf", "Assets/Neki")[0];
+	animDatabase_["ATKX3"] = Lumina::CG3D::LoadAnimationFile("atkX3.gltf", "Assets/Neki")[0];
 }
 
 void Player::Initialize() {

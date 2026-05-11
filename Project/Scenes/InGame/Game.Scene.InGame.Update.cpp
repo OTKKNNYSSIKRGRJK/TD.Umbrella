@@ -381,13 +381,13 @@ namespace Game::Scene::Impl {
 
 		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
-			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
+			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_Player_->Projection();
 		}
 		else {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		}
 		#else
-		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		*WorldToHomogeneous_ = Camera_Player_->View() * Camera_Player_->Projection();
 		#endif
 	}
 

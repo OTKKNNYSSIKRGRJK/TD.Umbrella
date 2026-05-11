@@ -126,6 +126,9 @@
     <Filter Include="Game\CG3D">
       <UniqueIdentifier>{327fb877-b353-4077-abfd-9a14ad42ed2a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Watercolor">
+      <UniqueIdentifier>{fcf9582e-8d08-424c-abe7-18458f7aace7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\ImGui\backends\imgui_impl_dx12.h">
