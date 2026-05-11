@@ -368,6 +368,17 @@ namespace Game {
 		enemy.currentAction = "Idle";
 		walk_ = false;
 		followPhase_ = FollowPhase::None;
+     // Adjust jump-above cooldown according to spawn scale/size.
+		// Larger modelScale => longer cooldown, smaller => shorter.
+		// Base interval is 6.0s for a medium-sized slime (scale ~= 0.5).
+		jumpCooldownInterval_ = 6.0f * (enemy.modelScale / 0.5f);
+
+		// Make the follow-above behavior more dramatic for boss-sized slimes.
+		float scaleFactor = (enemy.modelScale / 0.5f);
+		followDuration_ = 1.2f * scaleFactor * 1.2f; // longer hover for bigger slimes
+		hoverHeight_ = 5.0f * scaleFactor * 1.3f;    // hover higher for dramatic drop
+		riseDuration_ = 0.45f;                      // slightly snappier rise
+		dropSpeed_ = -18.0f * scaleFactor * 1.25f;  // harder impact for larger slimes
 	}
 
 	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
@@ -448,6 +459,15 @@ namespace Game {
 				float expectedGroundedVelY = -9.8f * deltaTime;
 				bool isGrounded = (enemy.velocity.Y >= expectedGroundedVelY - 0.5f) && (enemy.velocity.Y <= 0.0f);
 				if (isGrounded && enemy.position.Y < playerPosition.Y + hoverHeight_) {
+					// Dramatic landing: apply small area damage and hitstop, and stamina/stun based on scale
+					float areaRadius = 1.2f * enemy.modelScale; // scale with model
+					int areaDamage = static_cast<int>(std::max(1.0f, enemy.baseData.power * 4.0f * enemy.modelScale));
+					// Deal area damage (non-directional)
+					EnemyManager::GetInstance()->DealAreaDamage(enemy.position, areaRadius, areaDamage, enemy.facingRight, false);
+					// Small hit stop for impact feel
+					Game::Event::AddHitStop(0.08f * (enemy.modelScale / 0.5f));
+					// Apply a landing stun scaled by model size (but clamp)
+					enemy.landingStunTimer = (std::min)(1.0f, 0.35f * (enemy.modelScale / 0.5f));
 					followPhase_ = FollowPhase::None;
 					enemy.runtimeBoolFlags["followAboveDone"] = true;
 				}
@@ -988,7 +1008,15 @@ namespace Game {
 			case EnemyInstance::AIState::Attack:
 				enemy.currentAction = "Attack";
 				if (enemy.attackTimer <= 0.0f) {
+              // Base cooldown, extended for melee burst/sliding attacks to prevent
+				// spammy horizontal slides. Scale extra cooldown with burstSpeedMultiplier.
+				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Melee) {
+					float extra = (enemy.burstSpeedMultiplier - 1.0f) * 0.8f; // tuned factor
+					if (extra < 0.0f) extra = 0.0f;
+					enemy.attackCooldownTimer = enemy.baseData.attackCooldown + extra;
+				} else {
 					enemy.attackCooldownTimer = enemy.baseData.attackCooldown;
+				}
 					enemy.aiState = EnemyInstance::AIState::Chase;
 					enemy.velocity.X *= 0.35f;
 				}
