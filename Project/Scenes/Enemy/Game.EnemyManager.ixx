@@ -100,6 +100,7 @@ export namespace Game {
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
 			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
+			, lastHitAttackId(other.lastHitAttackId)
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -133,6 +134,7 @@ export namespace Game {
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
 				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
+				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -168,6 +170,7 @@ export namespace Game {
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
 			, runtimeBoolFlags(other.runtimeBoolFlags)
+			, lastHitAttackId(other.lastHitAttackId)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -202,6 +205,7 @@ export namespace Game {
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
 				runtimeBoolFlags = other.runtimeBoolFlags;
+				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -236,6 +240,9 @@ export namespace Game {
 		// ガード: 同一フレーム中の重複ダメージを防ぐ
 		bool recentlyDamagedThisFrame = false;
 
+		// 攻撃インスタンスIDガード: 同一アクション中の重複ヒットを防ぐ
+		uint32_t lastHitAttackId = 0;
+
 		// --- AI 状態 ---
 		enum class AIState { Idle, Patrol, Chase, PreAttack, Attack, Retreat };
 		AIState aiState = AIState::Idle;
@@ -268,6 +275,7 @@ export namespace Game {
 			currentAction = "Idle";
 			burstSpeedMultiplier = 1.0f;
 			runtimeBoolFlags.clear();
+			lastHitAttackId = 0;
 			preferredCombatDistance = baseData.attackRange;
 			attackWindupDuration = 0.4f;
 			attackDuration = 0.25f;

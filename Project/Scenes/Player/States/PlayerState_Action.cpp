@@ -251,6 +251,7 @@ namespace PlayerStates::Action {
 		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
 		player_->GetUmbrella().top_->GetStatusComponent().SetHitStop(currentAttackData_.feel.hitStop);
+		player_->GetUmbrella().top_->GetStatusComponent().IncrementAttackInstanceId();
 
 		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
@@ -450,6 +451,7 @@ namespace PlayerStates::Action {
 
 		// 傘の StatusComponent の攻撃力を一時的に書き換える
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(finalAttack);
+		player_->GetUmbrella().top_->GetStatusComponent().IncrementAttackInstanceId();
 
 		// 傘自体を「攻撃ステート」にして当たり判定をONにする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
