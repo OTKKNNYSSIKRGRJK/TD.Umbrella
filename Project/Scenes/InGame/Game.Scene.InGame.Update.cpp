@@ -264,6 +264,8 @@ namespace Game::Scene::Impl {
 		if (Player_) {
 			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
 			Event::RespawnPos = Player_->GetPosition();
+			Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+			Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
@@ -910,21 +912,7 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
-			ImGui::SetNextWindowPos(ImVec2(10, 140), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowSize(ImVec2(320, 220), ImGuiCond_FirstUseEver);
-			ImGui::Begin("Enemy HP");
-			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
-				const auto& enemy = playState_.Enemies[i];
-			ImGui::Text("Enemy[%d] HP: %d / %d %s  Walk:%s Motion:%s Node:%d",
-				static_cast<int>(i),
-				enemy.CurrentHP,
-				enemy.BaseData.hp,
-				enemy.IsDead ? "(Dead)" : "",
-				enemy.WalkActive ? "true" : "false",
-				enemy.MotionPlaying ? "playing" : "stopped",
-				enemy.ActiveNodeIndex);
-			}
-			ImGui::End();
+			// Enemy HP ImGui removed
 
 			// ミニマップ（エリア構成図）描画
 			if (playState_.IsPlaying) {
@@ -1258,21 +1246,7 @@ namespace Game::Scene::Impl {
 		case Event::GamePhase::Win:
 		{
 			Event::PhaseTimer += dt;
-			ImGui::SetNextWindowPos(ImVec2(440, 280), ImGuiCond_Always);
-			ImGui::SetNextWindowSize(ImVec2(400, 100), ImGuiCond_Always);
-			ImGui::Begin("##WinScreen", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove);
-			ImGui::TextColored(ImVec4{1.0f, 0.85f, 0.2f, 1.0f}, "AREA CLEAR!");
-			ImGui::Text("Time: %.1f sec", Event::ElapsedBattleTime);
-			ImGui::Text("Enemies Defeated: %d", Event::EnemiesDefeated);
-
-			if (Event::PhaseTimer > 2.0f) {
-				float blink = std::sin(Event::PhaseTimer * 3.0f);
-				if (blink > 0.0f)
-					ImGui::TextColored(ImVec4{0.5f,1.0f,0.5f,1.0f}, "Press Enter to continue");
-			}
-			ImGui::End();
+			// Area Clear ImGui removed
 			break;
 		}
 		case Event::GamePhase::Lose:
@@ -1432,7 +1406,7 @@ namespace Game::Scene::Impl {
 			// ⑤ ゲームフェーズUI
 			DrawGamePhaseUI();
 			// ⑩ 敵HPバー
-			DrawEnemyHPBars();
+			// DrawEnemyHPBars(); // ImGui実装は廃止、Render側の2Dオーバーレイへ移行
 		}
 #endif
 	}

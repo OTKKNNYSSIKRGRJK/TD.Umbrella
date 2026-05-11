@@ -294,31 +294,159 @@ namespace Game::Scene::Impl {
 		Render_Geometry();
 		Render_Merge();
 
-		// チュートリアルオーバーレイ描画（バックバッファに直接描画）
-		if (TutorialManager_ && TutorialManager_->IsActive() && PrimitiveManager_Tutorial_) {
-			auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
-			auto rtv = swapChain.BackBufferRTVCPUHandle();
-			cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
+			// オーバーレイ描画（プレイヤーHPバー、敵HPバー、チュートリアル等）
+		if (PrimitiveManager_Tutorial_) {
+			bool drawTutorial = (TutorialManager_ && TutorialManager_->IsActive());
+			// プレイ中、またはチュートリアル等があれば描画パスを回す
+			if (drawTutorial || !playState_.Enemies.empty() || playState_.IsPlaying) {
+				auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+				auto rtv = swapChain.BackBufferRTVCPUHandle();
+				cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
 
-			D3D12_VIEWPORT viewport{
-				.TopLeftX{ 0.0f }, .TopLeftY{ 0.0f },
-				.Width{ 1280.0f }, .Height{ 720.0f },
-				.MinDepth{ 0.0f }, .MaxDepth{ 1.0f },
-			};
-			D3D12_RECT scissor{
-				.left{ 0 }, .top{ 0 }, .right{ 1280 }, .bottom{ 720 },
-			};
-			cmdList->RSSetViewports(1U, &viewport);
-			cmdList->RSSetScissorRects(1U, &scissor);
+				D3D12_VIEWPORT viewport{
+					.TopLeftX{ 0.0f }, .TopLeftY{ 0.0f },
+					.Width{ 1280.0f }, .Height{ 720.0f },
+					.MinDepth{ 0.0f }, .MaxDepth{ 1.0f },
+				};
+				D3D12_RECT scissor{
+					.left{ 0 }, .top{ 0 }, .right{ 1280 }, .bottom{ 720 },
+				};
+				cmdList->RSSetViewports(1U, &viewport);
+				cmdList->RSSetScissorRects(1U, &scissor);
 
-			PrimitiveManager_Tutorial_->Begin(cmdList);
-			TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
-			PrimitiveManager_Tutorial_->Render(
-				cmdList,
-				GlobalTable_SRV_ImageTexture_,
-				Lumina::Math::F32x4x4<>::Identity,
-				1
-			);
+				PrimitiveManager_Tutorial_->Begin(cmdList);
+
+				// ---------------------------------
+				// プレイヤーHPバー描画（左上）
+				// ---------------------------------
+				if (playState_.IsPlaying && Player_) {
+					float p_hp = Player_->GetStatusComponent().GetHp();
+					float p_maxHp = Player_->GetStatusComponent().GetMaxHp();
+					float p_ratio = p_hp / (std::max)(1.0f, p_maxHp);
+
+					// NDCでの左上の座標・サイズ
+					float base_x = -0.95f;
+					float base_y = 0.9f;
+					float width = 0.4f;  // バーの長さ
+					float height = 0.04f; // バーの太さ
+
+					// 背景（暗いグレー）
+					Lumina::F32x4 bgCol{ 0.1f, 0.1f, 0.1f, 0.8f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { base_x, base_y, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U },
+						{ { base_x + width, base_y, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U },
+						{ { base_x, base_y - height, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { base_x + width, base_y, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U },
+						{ { base_x + width, base_y - height, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U },
+						{ { base_x, base_y - height, 0.0f, 1.0f }, bgCol, {0.0f, 0.0f}, 0U }
+					);
+
+					// 前景（プレイヤーHP色：シアン系や緑系）
+					Lumina::F32x4 hpCol{ 0.2f, 0.8f, 0.4f, 0.9f }; // デフォルト緑
+					if (p_ratio <= 0.3f) hpCol = { 0.9f, 0.2f, 0.2f, 0.9f }; // ピンチで赤
+
+					float current_width = width * p_ratio;
+					float padX = 0.005f;
+					float padY = 0.008f;
+					
+					if (current_width > 0.0f) {
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { base_x + padX, base_y - padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U },
+							{ { base_x + padX + current_width - padX * 2.0f, base_y - padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U },
+							{ { base_x + padX, base_y - height + padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { base_x + padX + current_width - padX * 2.0f, base_y - padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U },
+							{ { base_x + padX + current_width - padX * 2.0f, base_y - height + padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U },
+							{ { base_x + padX, base_y - height + padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U }
+						);
+					}
+				}
+
+				// ---------------------------------
+				// 敵HPバー描画
+				// ---------------------------------
+				auto const& m = *WorldToHomogeneous_;
+				for (const auto& e : playState_.Enemies) {
+					if (e.IsDead || e.CurrentHP <= 0 || e.CurrentHP >= e.BaseData.hp) continue; // MAXHP時や死亡時は非表示
+
+					// 敵の頭上の座標
+					Lumina::Math::F32x4 pos(e.Position.X, e.Position.Y + e.Scale * 1.5f + 1.0f, e.Position.Z, 1.0f);
+					
+					// 3D -> 2D (Clip Space)
+					Lumina::Math::F32x4 clipPos(
+						pos.X() * m[0].X() + pos.Y() * m[1].X() + pos.Z() * m[2].X() + pos.W() * m[3].X(),
+						pos.X() * m[0].Y() + pos.Y() * m[1].Y() + pos.Z() * m[2].Y() + pos.W() * m[3].Y(),
+						pos.X() * m[0].Z() + pos.Y() * m[1].Z() + pos.Z() * m[2].Z() + pos.W() * m[3].Z(),
+						pos.X() * m[0].W() + pos.Y() * m[1].W() + pos.Z() * m[2].W() + pos.W() * m[3].W()
+					);
+
+					// カメラ前方にあるかチェック
+					if (clipPos.W() > 0.1f) {
+						float ndcX = clipPos.X() / clipPos.W();
+						float ndcY = clipPos.Y() / clipPos.W();
+
+						// スケール計算（遠くにあるほど小さく）
+						float hw = 0.8f / clipPos.W(); // half width
+						if (hw > 0.08f) hw = 0.08f;
+						if (hw < 0.02f) hw = 0.02f;
+						float hh = hw * 0.15f; // half height
+
+						float ratio = static_cast<float>(e.CurrentHP) / e.BaseData.hp;
+
+						// 背景（黒・半透明）
+						Lumina::F32x4 bgColor{ 0.0f, 0.0f, 0.0f, 0.6f };
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { ndcX - hw, ndcY + hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U },
+							{ { ndcX + hw, ndcY + hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U },
+							{ { ndcX - hw, ndcY - hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { ndcX + hw, ndcY + hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U },
+							{ { ndcX + hw, ndcY - hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U },
+							{ { ndcX - hw, ndcY - hh, 0.0f, 1.0f }, bgColor, {0.0f, 0.0f}, 0U }
+						);
+
+						// 前景（HP色）
+						Lumina::F32x4 barColor{ 0.2f, 1.0f, 0.2f, 0.9f }; // 緑
+						if (ratio < 0.3f) barColor = { 1.0f, 0.2f, 0.2f, 0.9f }; // 赤
+						else if (ratio < 0.6f) barColor = { 1.0f, 1.0f, 0.2f, 0.9f }; // 黄
+
+						// パディング考慮
+						float pad = hw * 0.05f;
+						float p_startX = ndcX - hw + pad;
+						float p_endX = p_startX + (hw * 2.0f - pad * 2.0f) * ratio;
+						float p_top = ndcY + hh - pad;
+						float p_bottom = ndcY - hh + pad;
+
+						if (ratio > 0.0f) {
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { p_startX, p_top, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U },
+								{ { p_endX,   p_top, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U },
+								{ { p_startX, p_bottom, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { p_endX,   p_top, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U },
+								{ { p_endX,   p_bottom, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U },
+								{ { p_startX, p_bottom, 0.0f, 1.0f }, barColor, {0.0f, 0.0f}, 0U }
+							);
+						}
+					}
+				}
+
+				if (drawTutorial) {
+					TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
+				}
+
+				PrimitiveManager_Tutorial_->Render(
+					cmdList,
+					GlobalTable_SRV_ImageTexture_,
+					Lumina::Math::F32x4x4<>::Identity,
+					1
+				);
+			}
 		}
 	}
 }
