@@ -446,6 +446,45 @@ namespace Game::Scene::Impl {
 				// ゲームオーバーUIメニュー描画
 				GameOverMenu_.Render(*PrimitiveManager_Tutorial_);
 
+				if (playState_.IsPaused) {
+					// 画面全体を少し暗くする
+					Lumina::F32x4 darkenCol{ 0.0f, 0.0f, 0.0f, 0.5f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+
+					// pause.png を描画 (Index = 2)
+					// pause.pngは 480x120
+					// 画面解像度は 1280x720 なので、NDC座標でのサイズを計算
+					// NDC全体は幅2.0、高さ2.0。中央(X=0)で上端(Y=1.0)に配置
+					float halfW = (480.0f / 1280.0f);
+					float h = (120.0f / 720.0f) * 2.0f;
+					
+					float topY = 0.9f;
+					float bottomY = topY - h;
+					float leftX = -halfW;
+					float rightX = halfW;
+					
+					Lumina::F32x4 pauseCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { leftX,  topY, 0.0f, 1.0f }, pauseCol, {0.0f, 0.0f}, 2U },
+						{ { rightX, topY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
+						{ { leftX,  bottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { rightX, topY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
+						{ { rightX, bottomY, 0.0f, 1.0f }, pauseCol, {1.0f, 1.0f}, 2U },
+						{ { leftX,  bottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
+					);
+				}
+
 				PrimitiveManager_Tutorial_->Render(
 					cmdList,
 					GlobalTable_SRV_ImageTexture_,

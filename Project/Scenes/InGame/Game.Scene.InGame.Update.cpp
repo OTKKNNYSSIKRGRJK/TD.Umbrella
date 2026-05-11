@@ -476,36 +476,38 @@ namespace Game::Scene::Impl {
 		ImGui::End();
 		#endif
 
-		Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
-		auto const& playerPos = Player_->GetPosition();
-       Lumina::Math::F32x3 newCameraPos{};
-		if (playState_.IsBossPresentationActive && playState_.BossPresentationDuration > 0.0f) {
-			float const progress = 1.0f - playState_.BossPresentationTimer / playState_.BossPresentationDuration;
-			float const bossFocusWeight = std::sin(progress * std::numbers::pi_v<float>);
-			newCameraPos = {
-				playerPos.X + (playState_.BossPresentationFocusPosition.X - playerPos.X) * bossFocusWeight,
-				playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
-				-30.0f + BossPresentationCameraZoom * bossFocusWeight
-			};
-			Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+		if (!playState_.IsPaused) {
+			Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
+			auto const& playerPos = Player_->GetPosition();
+			Lumina::Math::F32x3 newCameraPos{};
+			if (playState_.IsBossPresentationActive && playState_.BossPresentationDuration > 0.0f) {
+				float const progress = 1.0f - playState_.BossPresentationTimer / playState_.BossPresentationDuration;
+				float const bossFocusWeight = std::sin(progress * std::numbers::pi_v<float>);
+				newCameraPos = {
+					playerPos.X + (playState_.BossPresentationFocusPosition.X - playerPos.X) * bossFocusWeight,
+					playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
+					-30.0f + BossPresentationCameraZoom * bossFocusWeight
+				};
+				Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+			}
+			else {
+				newCameraPos = {
+					cameraPos.X * 0.95f + playerPos.X * 0.05f,
+					cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
+					-30.0f
+				};
+			}
+			if (Event::CameraShakingTimer > 0) {
+				auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
+				angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
+				float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
+				Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
+				float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
+				newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
+				--Event::CameraShakingTimer;
+			}
+			Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		}
-		else {
-			newCameraPos = {
-				cameraPos.X * 0.95f + playerPos.X * 0.05f,
-				cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
-				-30.0f
-			};
-		}
-		if (Event::CameraShakingTimer > 0) {
-			auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
-			angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
-			float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
-			Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
-			float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
-			newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
-			--Event::CameraShakingTimer;
-		}
-		Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 
 		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
