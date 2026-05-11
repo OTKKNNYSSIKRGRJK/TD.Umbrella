@@ -38,6 +38,7 @@ namespace Game::Editor {
 			{"boundMotion", n.boundMotion},
 			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
 			{"boundBool", n.boundBool},
+            {"loop", n.loop}, {"loopCooldown", n.loopCooldown},
 			{"facePlayer", n.facePlayer},
 			{"velocityFrictionX", n.velocityFrictionX},
 			{"jumpVelocityXMult", n.jumpVelocityXMult},
@@ -56,6 +57,9 @@ namespace Game::Editor {
 		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+
+        if (j.contains("loop")) j.at("loop").get_to(n.loop);
+		if (j.contains("loopCooldown")) j.at("loopCooldown").get_to(n.loopCooldown);
 
 		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
 		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);

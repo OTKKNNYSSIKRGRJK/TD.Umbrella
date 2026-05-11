@@ -35,6 +35,12 @@ export namespace Game::Editor {
 		float jumpVelocityY = 0.0f;
 		std::string splineMotionName = "";
 		float splineDuration = 1.0f;
+
+		// When true, the editor runtime will re-trigger this node (reset timer)
+		// when no outgoing transition is currently satisfied, effectively
+		// looping the node until an external condition becomes true.
+		bool loop = false;
+      float loopCooldown = 0.0f; // seconds to wait after motion before next loop
 	};
 
 	struct Link {

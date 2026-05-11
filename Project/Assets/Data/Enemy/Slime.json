@@ -71,6 +71,8 @@
             "animationName": "",
             "boundBool": "Walk",
             "boundMotion": "",
+            "loop": true,
+            "loopCooldown": 2.0,
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "id": 2,

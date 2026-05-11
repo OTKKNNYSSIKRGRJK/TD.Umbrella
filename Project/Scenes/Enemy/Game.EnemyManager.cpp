@@ -1032,19 +1032,21 @@ namespace Game {
 					enemy.stateTimer = 0.0f;
 				}
 
-				// リンク条件を評価して遷移
+                // リンク条件を評価して遷移
+				bool transitioned = false;
 				for (const auto& link : enemy.baseData.links) {
 					if (link.from != currentNodeId) continue;
 					std::string c = link.condition;
 					if (c.rfind("Time>=", 0) == 0) {
 						try {
 							float threshold = std::stof(c.substr(6));
-							if (enemy.stateTimer >= threshold) {
+                                if (enemy.stateTimer >= threshold) {
 								// 遷移先のノードを探す
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
 										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
 										break;
 									}
 								}
@@ -1056,11 +1058,12 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist<=");
 							float threshold = std::stof(c.substr(pos + 6));
-							if (dist <= threshold) {
+                                if (dist <= threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
 										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
 										break;
 									}
 								}
@@ -1072,11 +1075,12 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist>");
 							float threshold = std::stof(c.substr(pos + 5));
-							if (dist > threshold) {
+                                if (dist > threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
 										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
 										break;
 									}
 								}
@@ -1085,10 +1089,11 @@ namespace Game {
 						} catch (...) {}
 					}
 					else if (c.find("Always") != std::string::npos) {
-						for (const auto& n : enemy.baseData.nodes) {
+                        for (const auto& n : enemy.baseData.nodes) {
 							if (n.id == link.to) {
 								enemy.currentAction = n.state;
 								enemy.stateTimer = 0.0f;
+								transitioned = true;
 								break;
 							}
 						}
@@ -1113,12 +1118,46 @@ namespace Game {
 					}
 				}
 
-				// ステート遷移が発生した場合はその場で currentNodeId を更新する
+                // ステート遷移が発生した場合はその場で currentNodeId を更新する
 				if (enemy.stateTimer == 0.0f) {
 					for (const auto& n : enemy.baseData.nodes) {
 						if (n.state == enemy.currentAction) {
 							currentNodeId = n.id;
 							break;
+						}
+					}
+				}
+
+				// Editor-style per-node loop support: if no transition fired and the
+				// node requests looping, re-trigger the node after its splineDuration
+				// (or 1s) by resetting the timer and firing any boundBool and replaying
+				// any bound motion/spline. This makes in-game node looping behave like
+				// the editor's Loop checkbox.
+				if (!transitioned) {
+					const Game::Editor::Node* curNodeInfo = nullptr;
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.id == currentNodeId) { curNodeInfo = &n; break; }
+					}
+                    if (curNodeInfo && curNodeInfo->loop) {
+						float base = (curNodeInfo->splineDuration > 0.0f) ? curNodeInfo->splineDuration : 1.0f;
+						float loopInterval = base + curNodeInfo->loopCooldown;
+						if (enemy.stateTimer >= loopInterval) {
+							// reset timer and re-fire boundBool
+							enemy.stateTimer = 0.0f;
+							if (!curNodeInfo->boundBool.empty()) {
+								enemy.runtimeBoolFlags[curNodeInfo->boundBool] = true;
+							}
+							// replay motion if available (prefer node splineMotion/boundMotion/motionMap)
+							std::string motionToPlay;
+							if (!curNodeInfo->splineMotionName.empty()) motionToPlay = curNodeInfo->splineMotionName;
+							else if (!curNodeInfo->boundMotion.empty()) motionToPlay = curNodeInfo->boundMotion;
+							else {
+								auto mit = enemy.baseData.motionMap.find(curNodeInfo->state);
+								if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) motionToPlay = mit->second;
+							}
+							if (!motionToPlay.empty()) {
+								enemy.motionController.Play(motionToPlay, enemy.position, curNodeInfo->splineDuration);
+							}
 						}
 					}
 				}
@@ -1175,8 +1214,24 @@ namespace Game {
 					}
 				}
 
+                        // Start spline motion on node entry if specified. Prefer explicit per-node
+						// `splineMotionName`, then `boundMotion`, then the file-level `motionMap`
+						// mapping keyed by the node `state`.
+                        std::string motionToPlay;
 						if (!currentNodeInfo->splineMotionName.empty()) {
-							enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+							motionToPlay = currentNodeInfo->splineMotionName;
+						} else if (!currentNodeInfo->boundMotion.empty()) {
+							motionToPlay = currentNodeInfo->boundMotion;
+						} else {
+							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
+							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
+								motionToPlay = mit->second;
+							}
+						}
+						// Face the player when starting a motion so the spline is applied toward player
+						enemy.facingRight = (dx > 0.0f);
+						if (!motionToPlay.empty()) {
+							enemy.motionController.Play(motionToPlay, enemy.position, currentNodeInfo->splineDuration);
 						}
 					}
 
@@ -1210,14 +1265,26 @@ namespace Game {
 						// `state: "Walk"` はそのまま移動ステートとして扱う。
 						// これまでは boundBool 側の walk 指定しか見ていなかったため、
 						// アニメーションだけ Walk になっても実際の移動速度が入らなかった。
-						bool nodeWalk =
+                        bool nodeWalk =
 							(currentNodeInfo->state == "Walk") ||
 							(currentNodeInfo->name == "Walk") ||
 							(currentNodeInfo->animationName == "Walk") ||
 							(currentNodeInfo->boundBool == "walk") ||
 							(currentNodeInfo->boundBool == "Walk");
-						if (nodeWalk) {
-							float moveDir = enemy.facingRight ? 1.0f : -1.0f;
+
+						// If a spline/motion is available for this node, prefer playing it
+						// (entry logic above already starts it). Only fall back to simple
+						// horizontal velocity when no spline motion exists.
+						bool hasMotion = !currentNodeInfo->splineMotionName.empty() || !currentNodeInfo->boundMotion.empty();
+						if (!hasMotion) {
+							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
+							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
+						}
+
+                        if (nodeWalk && !hasMotion) {
+							// move toward player instead of using facingRight blindly
+							float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+							enemy.facingRight = (dx > 0.0f);
 							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
 						}
 
