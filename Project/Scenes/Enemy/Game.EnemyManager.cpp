@@ -1207,10 +1207,15 @@ namespace Game {
 						enemy.position.Y = posBeforePhysics.Y + delta.Y;
 						enemy.position.Z = posBeforePhysics.Z + delta.Z;
                     } else {
-						// If the node is marked with a boolean "walk" trigger, drive horizontal
-						// movement via velocity so node-driven state machines can make enemies walk
-						// without relying on spline motions.
-						bool nodeWalk = (currentNodeInfo->boundBool == "walk" || currentNodeInfo->boundBool == "Walk");
+						// `state: "Walk"` はそのまま移動ステートとして扱う。
+						// これまでは boundBool 側の walk 指定しか見ていなかったため、
+						// アニメーションだけ Walk になっても実際の移動速度が入らなかった。
+						bool nodeWalk =
+							(currentNodeInfo->state == "Walk") ||
+							(currentNodeInfo->name == "Walk") ||
+							(currentNodeInfo->animationName == "Walk") ||
+							(currentNodeInfo->boundBool == "walk") ||
+							(currentNodeInfo->boundBool == "Walk");
 						if (nodeWalk) {
 							float moveDir = enemy.facingRight ? 1.0f : -1.0f;
 							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
