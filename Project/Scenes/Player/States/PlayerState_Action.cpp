@@ -250,6 +250,7 @@ namespace PlayerStates::Action {
 		// 4. JSONのデータ通りにモーションと威力をセット
 		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
 		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
+		player_->GetUmbrella().top_->GetStatusComponent().SetHitStop(currentAttackData_.feel.hitStop);
 
 		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());

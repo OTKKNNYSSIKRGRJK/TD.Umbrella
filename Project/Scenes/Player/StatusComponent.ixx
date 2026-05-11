@@ -37,9 +37,14 @@ public:
     // ※マナ消費で攻撃力を上げたりする時に使う
     void SetAttack(float attack) { attack_ = attack; }
     void SetDefense(float defense) { defense_ = defense; }
+
+    // ヒットストップ
+    void SetHitStop(float hitStop) { hitStop_ = hitStop; }
+    float GetHitStop() const { return hitStop_; }
 private:
     float maxHp_;
     float currentHp_;
     float attack_;
     float defense_;
+    float hitStop_ = 0.0f;
 };

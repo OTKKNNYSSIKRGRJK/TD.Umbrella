@@ -285,7 +285,7 @@ namespace Game::Scene::Impl {
 		playState_.IsGoalReached = false;
 
 		// ゲームフェーズをリセット
-		Event::CurrentPhase = Event::GamePhase::Startup;
+		Event::CurrentPhase = Event::GamePhase::InBattle;
 		Event::PhaseTimer = 0.0f;
 		Event::ElapsedBattleTime = 0.0f;
 		Event::EnemiesDefeated = 0;
@@ -1194,32 +1194,9 @@ namespace Game::Scene::Impl {
 		switch (Event::CurrentPhase) {
 		case Event::GamePhase::Startup:
 		{
-			Event::PhaseTimer += dt;
-
-			// カウントダウン表示
-			float remaining = Event::StartupDuration - Event::PhaseTimer;
-			ImGui::SetNextWindowPos(ImVec2(540, 280), ImGuiCond_Always);
-			ImGui::SetNextWindowSize(ImVec2(200, 80), ImGuiCond_Always);
-			ImGui::Begin("##Countdown", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoBackground);
-
-			if (remaining > 0.0f) {
-				char buf[8];
-				snprintf(buf, sizeof(buf), "%d", static_cast<int>(remaining) + 1);
-				ImGui::SetCursorPosX(80.0f);
-				ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.3f, 1.0f}, "%s", buf);
-			} else {
-				ImGui::SetCursorPosX(60.0f);
-				ImGui::TextColored(ImVec4{0.3f, 1.0f, 0.3f, 1.0f}, "GO!");
-			}
-			ImGui::End();
-
-			if (Event::PhaseTimer >= Event::StartupDuration + 0.5f) {
-				Event::CurrentPhase = Event::GamePhase::InBattle;
-				Event::PhaseTimer = 0.0f;
-			}
+			// カウントダウン演出を廃止し、即座にInBattleへ移行
+			Event::CurrentPhase = Event::GamePhase::InBattle;
+			Event::PhaseTimer = 0.0f;
 			break;
 		}
 		case Event::GamePhase::InBattle:
@@ -1374,13 +1351,25 @@ namespace Game::Scene::Impl {
 
 		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ
 		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
-			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+			float deltaTime = 1.0f / 60.0f;
 			
-			Update_<"Enemies-1">(1.0f / 60.0f);
-			
-			Update_<"Collision">(); // 地形との当たり判定のため実行
-			
-			Update_<"Enemies-2">();
+			if (Event::HitStopTimer > 0.0f) {
+				Event::HitStopTimer -= deltaTime;
+				if (Event::HitStopTimer < 0.0f) {
+					Event::HitStopTimer = 0.0f;
+				}
+				deltaTime = 0.0f; // 物理等の進行を停止
+			}
+
+			if (deltaTime > 0.0f) {
+				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+				
+				Update_<"Enemies-1">(1.0f / 60.0f);
+				
+				Update_<"Collision">(); // 地形との当たり判定のため実行
+				
+				Update_<"Enemies-2">();
+			}
 			
 			Update_<"[Debug] Area">();
 		}
