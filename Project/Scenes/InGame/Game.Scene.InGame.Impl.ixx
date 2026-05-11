@@ -14,6 +14,7 @@ import Game.Editor.ActorEditor;
 import Game.Editor.AudioEditor;
 import Game.Editor.ObjMotionEditor;
 import Game.TutorialManager;
+import Game.UIMenu;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
@@ -197,13 +198,16 @@ namespace Game::Scene::Impl {
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
+		void DrawGamePhaseUI();
+		void HandleFallDeath();
 #if defined(_DEBUG)
 		void DrawPlayMode();
 		void DrawPauseMenu();
-		void DrawGamePhaseUI();
 		void DrawEnemyHPBars();
-		void HandleFallDeath();
 #endif
+
+		// ゲームオーバー用UIメニュー
+		Game::UIMenu GameOverMenu_;
 
 		/// パーティクル・ライティング
 

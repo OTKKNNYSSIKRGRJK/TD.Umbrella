@@ -555,11 +555,16 @@ namespace Game {
 							// Do not apply horizontal knockback on player attack; only apply damage.
 							Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
 							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
+							Game::Event::AddHitStop(umbrellaTop->GetStatusComponent().GetHitStop());
 						}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
 					Player* player = static_cast<Player*>(other->GetUserData());
-					Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)(player->GetUmbrella().top_->GetStatusComponent().GetAttack()));
+					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame) {
+						this->recentlyDamagedThisFrame = true;
+						Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)(player->GetUmbrella().top_->GetStatusComponent().GetAttack()));
+						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
+					}
 				}
 			};
 

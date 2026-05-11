@@ -23,6 +23,7 @@ import Game.EnemyManager;
 import Game.ProjectileManager;
 
 import Game.Events;
+import Game.UIMenu;
 import Lumina.Scene;
 
 #if defined(_DEBUG)
@@ -286,7 +287,7 @@ namespace Game::Scene::Impl {
 		playState_.IsGoalReached = false;
 
 		// ゲームフェーズをリセット
-		Event::CurrentPhase = Event::GamePhase::Startup;
+		Event::CurrentPhase = Event::GamePhase::InBattle;
 		Event::PhaseTimer = 0.0f;
 		Event::ElapsedBattleTime = 0.0f;
 		Event::EnemiesDefeated = 0;
@@ -1149,20 +1150,24 @@ namespace Game::Scene::Impl {
 		ImGui::SetCursorPosX(btnX);
 		if (ImGui::Button("Restart Area", ImVec2(btnWidth, 36))) {
 			Event::IsPaused = false;
-			Event::IsRestartRequested = true;
+			Event::ResetPhase();
+			CheckAndLoadArea(playState_.CurrentArea.index);
 		}
 
 		ImGui::Spacing();
 		ImGui::SetCursorPosX(btnX);
 		if (ImGui::Button("Return to Title", ImVec2(btnWidth, 36))) {
 			Event::IsPaused = false;
+			Event::ResetPhase();
 			playState_.IsPlaying = false;
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Deactivate("InGame");
 			sceneMngr.Activate("Title");
 		}
 
 		ImGui::End();
 	}
+#endif
 
 	// ==============================
 	//  ⑦ 落下時の対処
@@ -1196,32 +1201,9 @@ namespace Game::Scene::Impl {
 		switch (Event::CurrentPhase) {
 		case Event::GamePhase::Startup:
 		{
-			Event::PhaseTimer += dt;
-
-			// カウントダウン表示
-			float remaining = Event::StartupDuration - Event::PhaseTimer;
-			ImGui::SetNextWindowPos(ImVec2(540, 280), ImGuiCond_Always);
-			ImGui::SetNextWindowSize(ImVec2(200, 80), ImGuiCond_Always);
-			ImGui::Begin("##Countdown", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
-				ImGuiWindowFlags_NoBackground);
-
-			if (remaining > 0.0f) {
-				char buf[8];
-				snprintf(buf, sizeof(buf), "%d", static_cast<int>(remaining) + 1);
-				ImGui::SetCursorPosX(80.0f);
-				ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.3f, 1.0f}, "%s", buf);
-			} else {
-				ImGui::SetCursorPosX(60.0f);
-				ImGui::TextColored(ImVec4{0.3f, 1.0f, 0.3f, 1.0f}, "GO!");
-			}
-			ImGui::End();
-
-			if (Event::PhaseTimer >= Event::StartupDuration + 0.5f) {
-				Event::CurrentPhase = Event::GamePhase::InBattle;
-				Event::PhaseTimer = 0.0f;
-			}
+			// カウントダウン演出を廃止し、即座にInBattleへ移行
+			Event::CurrentPhase = Event::GamePhase::InBattle;
+			Event::PhaseTimer = 0.0f;
 			break;
 		}
 		case Event::GamePhase::InBattle:
@@ -1254,26 +1236,37 @@ namespace Game::Scene::Impl {
 		case Event::GamePhase::Lose:
 		{
 			Event::PhaseTimer += dt;
-			ImGui::SetNextWindowPos(ImVec2(440, 280), ImGuiCond_Always);
-			ImGui::SetNextWindowSize(ImVec2(400, 120), ImGuiCond_Always);
-			ImGui::Begin("##LoseScreen", nullptr,
-				ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove);
-			ImGui::TextColored(ImVec4{1.0f, 0.3f, 0.3f, 1.0f}, "GAME OVER");
-			ImGui::Spacing();
 
-			float btnW = 160.0f;
-			ImGui::SetCursorPosX((400.0f - btnW) * 0.5f);
-			if (ImGui::Button("Retry", ImVec2(btnW, 32))) {
-				Event::IsRestartRequested = true;
+			// 初回のみメニューを表示
+			if (!GameOverMenu_.IsVisible()) {
+				GameOverMenu_.Setup(
+					{
+						// Retry (緑系)
+						{ { 0.15f, 0.4f, 0.15f, 0.8f }, { 0.2f, 0.8f, 0.3f, 1.0f } },
+						// Return to Title (青系)
+						{ { 0.15f, 0.15f, 0.4f, 0.8f }, { 0.3f, 0.3f, 0.9f, 1.0f } }
+					},
+					{ 0.9f, 0.15f, 0.15f, 0.9f } // タイトル矩形: 赤
+				);
+				GameOverMenu_.Show();
 			}
-			ImGui::SetCursorPosX((400.0f - btnW) * 0.5f);
-			if (ImGui::Button("Return to Title", ImVec2(btnW, 32))) {
+
+			int decided = GameOverMenu_.Update(dt);
+			if (decided == 0) {
+				// Retry
+				GameOverMenu_.Hide();
+				Event::ResetPhase();
+				CheckAndLoadArea(playState_.CurrentArea.index);
+			}
+			else if (decided == 1) {
+				// Return to Title
+				GameOverMenu_.Hide();
+				Event::ResetPhase();
 				playState_.IsPlaying = false;
 				auto& sceneMngr{ Lumina::SceneManager::Instance() };
+				sceneMngr.Deactivate("InGame");
 				sceneMngr.Activate("Title");
 			}
-			ImGui::End();
 			break;
 		}
 		}
@@ -1282,6 +1275,7 @@ namespace Game::Scene::Impl {
 	// ==============================
 	//  ⑩ Enemy HP UI (ゲーム画面上のHPバー)
 	// ==============================
+#if defined(_DEBUG)
 	void InGame::DrawEnemyHPBars() {
 		if (!playState_.IsPlaying || !Camera_Player_) return;
 
@@ -1376,13 +1370,25 @@ namespace Game::Scene::Impl {
 
 		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ
 		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
-			Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+			float deltaTime = 1.0f / 60.0f;
 			
-			Update_<"Enemies-1">(1.0f / 60.0f);
-			
-			Update_<"Collision">(); // 地形との当たり判定のため実行
-			
-			Update_<"Enemies-2">();
+			if (Event::HitStopTimer > 0.0f) {
+				Event::HitStopTimer -= deltaTime;
+				if (Event::HitStopTimer < 0.0f) {
+					Event::HitStopTimer = 0.0f;
+				}
+				deltaTime = 0.0f; // 物理等の進行を停止
+			}
+
+			if (deltaTime > 0.0f) {
+				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+				
+				Update_<"Enemies-1">(1.0f / 60.0f);
+				
+				Update_<"Collision">(); // 地形との当たり判定のため実行
+				
+				Update_<"Enemies-2">();
+			}
 			
 			Update_<"[Debug] Area">();
 		}
@@ -1401,15 +1407,14 @@ namespace Game::Scene::Impl {
 		Update_<"[Debug] Editor">();
 		Update_<"[Debug] Manual">();
 
+		// ⑦ 落下処理 & ⑤ ゲームフェーズUI（Release でも動作）
 #if defined(_DEBUG)
 		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
-			// ⑦ 落下処理
-			HandleFallDeath();
-			// ⑤ ゲームフェーズUI
-			DrawGamePhaseUI();
-			// ⑩ 敵HPバー
-			// DrawEnemyHPBars(); // ImGui実装は廃止、Render側の2Dオーバーレイへ移行
-		}
+#else
+		if (playState_.IsPlaying) {
 #endif
+			HandleFallDeath();
+			DrawGamePhaseUI();
+		}
 	}
 }

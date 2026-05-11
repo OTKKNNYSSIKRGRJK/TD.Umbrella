@@ -10,6 +10,16 @@ export namespace Game::Event {
 	inline Lumina::Math::F32x3 RespawnPos = {};
 
 	// ==============================
+	//  ヒットストップ
+	// ==============================
+	inline float HitStopTimer = 0.0f;
+	inline void AddHitStop(float duration) {
+		if (duration > HitStopTimer) {
+			HitStopTimer = duration;
+		}
+	}
+
+	// ==============================
 	//  ポーズ・リスタート
 	// ==============================
 	inline bool IsPaused = false;
@@ -24,7 +34,7 @@ export namespace Game::Event {
 		Win,        // 勝利
 		Lose        // 敗北
 	};
-	inline GamePhase CurrentPhase = GamePhase::Startup;
+	inline GamePhase CurrentPhase = GamePhase::InBattle;
 	inline float PhaseTimer = 0.0f;       // フェーズ内タイマー
 	inline float StartupDuration = 3.0f;  // スタートアップカウントダウン秒数
 	inline int EnemiesDefeated = 0;       // リザルト用: 撃破数
@@ -40,4 +50,18 @@ export namespace Game::Event {
 	//  ポーズ用パッド前回状態
 	// ==============================
 	inline bool PrevPadStart = false;
+
+	// ==============================
+	//  フェーズリセット
+	// ==============================
+	inline void ResetPhase() {
+		CurrentPhase = GamePhase::InBattle;
+		PhaseTimer = 0.0f;
+		ElapsedBattleTime = 0.0f;
+		EnemiesDefeated = 0;
+		FallDeathCount = 0;
+		IsPaused = false;
+		IsRestartRequested = false;
+		HitStopTimer = 0.0f;
+	}
 }
