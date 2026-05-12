@@ -95,6 +95,7 @@ namespace Game::Scene::Impl {
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
+		playState_.VisitedAreas.insert(areaIndex);
 		
 		try {
 			// Load Terrain (which reads "Polygons" and "GroundPoints" stored inside area json)
@@ -912,9 +913,9 @@ namespace Game::Scene::Impl {
 			// Enemy HP ImGui removed
 
 			// ミニマップ（エリア構成図）描画
-			if (playState_.IsPlaying) {
-				areaEditor_.DrawAreaMap(playState_.CurrentArea.index);
-			}
+			// if (playState_.IsPlaying) {
+			// 	areaEditor_.DrawAreaMap(playState_.CurrentArea.index);
+			// }
 			break;
 		default:
 			break;

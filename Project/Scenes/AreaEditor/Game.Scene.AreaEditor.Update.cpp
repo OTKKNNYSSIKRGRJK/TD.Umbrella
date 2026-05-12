@@ -397,7 +397,7 @@ namespace Game::Editor {
 				drawList->AddText(ImVec2(areaMin.x + 5, areaMin.y + 20), MakeCol32(100, 255, 100, 255), "[Editing]");
 			}
 
-			// Draw TerrainEditor Polygons
+
 			if (drawData.originalJson.contains("Polygons") && drawData.originalJson["Polygons"].is_array()) {
 				for (const auto& poly : drawData.originalJson["Polygons"]) {
 					if (poly.contains("Vertices") && poly["Vertices"].is_array()) {
@@ -425,7 +425,7 @@ namespace Game::Editor {
 				}
 			}
 
-			// Draw TerrainEditor GroundPoints
+
 			if (drawData.originalJson.contains("GroundPoints") && drawData.originalJson["GroundPoints"].is_array()) {
 				const auto& gp = drawData.originalJson["GroundPoints"];
 				for (const auto& pt : gp) {
@@ -468,7 +468,7 @@ namespace Game::Editor {
 				ImU32 fillColor = isPlayerStart ? MakeCol32(255, 120, 0, isEditing ? 100 : 50) : MakeCol32(0, 150, 255, isEditing ? 100 : 50);
 				ImU32 outlineColor = isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(0, 255, 255, 255);
 
-				// Draw Diamond shaped
+
 				ImVec2 diamond[4] = {
 					ImVec2(ccx, ccy - ms),
 					ImVec2(ccx + ms, ccy),

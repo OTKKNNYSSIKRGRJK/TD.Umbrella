@@ -4,6 +4,7 @@ import <memory>;
 
 import <vector>;
 import <map>;
+import <set>;
 
 #if defined(_DEBUG)
 import Game.TerrainEditor;
@@ -182,6 +183,7 @@ namespace Game::Scene::Impl {
 			bool PrevPauseDecideHeld = false;
 			bool IsGoalReached = false;
 			Game::Editor::AreaData CurrentArea;
+			std::set<int> VisitedAreas;
 			Character Player;
 			std::vector<PlayEnemy> Enemies;
 

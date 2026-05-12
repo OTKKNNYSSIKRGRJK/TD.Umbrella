@@ -79,6 +79,7 @@ export namespace Game::Editor {
 		void Update();
 		void LoadArea(AreaData& area, const std::string& filename);
 		void DrawAreaMap(int currentAreaIndex);
+		const std::vector<AreaData>& GetAllAreas() const { return allAreas_; }
 
 	private:
 		void DrawEditorUI();

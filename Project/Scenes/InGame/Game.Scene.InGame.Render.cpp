@@ -3,6 +3,7 @@ module Game.Scene.InGame;
 import : Impl;
 
 import <cmath>;
+import <algorithm>;
 
 import Lumina.Main;
 import Lumina.D3D12;
@@ -523,6 +524,342 @@ namespace Game::Scene::Impl {
 							{ { rightX, bottomY, 0.0f, 1.0f }, color, {1.0f, 1.0f}, texID },
 							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
 						);
+					}
+				}
+
+				// --- Ender Lilies Style Minimap ---
+				if (playState_.IsPlaying && !areaEditor_.GetAllAreas().empty()) {
+					const auto& allAreas = areaEditor_.GetAllAreas();
+					
+					// BFS Layout Calculation
+					struct GridPos {
+						int x, y;
+						bool operator<(const GridPos& other) const {
+							if (x != other.x) return x < other.x;
+							return y < other.y;
+						}
+					};
+
+					std::map<int, std::vector<int>> adjList;
+					for (const auto& a : allAreas) {
+						for (const auto& conn : a.connections) {
+							int targetIdx = conn.targetAreaIndex;
+							if (a.index == 0 && targetIdx == 0) continue;
+							adjList[a.index].push_back(targetIdx);
+							adjList[targetIdx].push_back(a.index);
+						}
+					}
+					for (auto& pair : adjList) {
+						auto& vec = pair.second;
+						std::sort(vec.begin(), vec.end());
+						vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+					}
+
+					std::vector<int> startNodes;
+					auto hasNode = [&](int idx) {
+						for (const auto& a : allAreas) if (a.index == idx) return true;
+						return false;
+					};
+					if (hasNode(0)) startNodes.push_back(0);
+					for (const auto& a : allAreas) {
+						if (std::find(startNodes.begin(), startNodes.end(), a.index) == startNodes.end()) {
+							startNodes.push_back(a.index);
+						}
+					}
+
+					std::map<int, GridPos> gridLayout;
+					std::map<GridPos, int> gridOccupancy;
+
+					for (int startIdx : startNodes) {
+						if (gridLayout.count(startIdx) > 0) continue;
+						std::vector<int> queue = { startIdx };
+						
+						int startX = 0, startY = 0;
+						while (gridOccupancy.count({startX, startY}) > 0) startY++;
+						gridLayout[startIdx] = {startX, startY};
+						gridOccupancy[{startX, startY}] = startIdx;
+
+						size_t head = 0;
+						while (head < queue.size()) {
+							int curr = queue[head++];
+							GridPos cPos = gridLayout[curr];
+							int yOffset = 0;
+							for (int neighbor : adjList[curr]) {
+								if (gridLayout.count(neighbor) == 0) {
+									int nx = cPos.x + 1;
+									int ny = cPos.y + yOffset;
+									while (gridOccupancy.count({nx, ny}) > 0) {
+										yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
+										ny = cPos.y + yOffset;
+									}
+									gridLayout[neighbor] = {nx, ny};
+									gridOccupancy[{nx, ny}] = neighbor;
+									queue.push_back(neighbor);
+									yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
+								}
+							}
+						}
+					}
+
+					struct AreaNode {
+						int index;
+						float cx, cy;
+						float w, h; // for rectangles
+					};
+					std::vector<AreaNode> nodes;
+					float minCX = 1e9f, minCY = 1e9f, maxCX = -1e9f, maxCY = -1e9f;
+					
+					// Spacing needs to be larger than max width/height to avoid overlaps
+					constexpr float gridSpacingX = 2.2f;
+					constexpr float gridSpacingY = 1.8f;
+
+					for (const auto& a : allAreas) {
+						// Only calculate bounds and nodes for visited areas
+						if (playState_.VisitedAreas.count(a.index) == 0) continue;
+
+						GridPos gp = gridLayout[a.index];
+						float cx = gp.x * gridSpacingX;
+						float cy = gp.y * gridSpacingY;
+						float aw = (std::max)(1.0f, a.width / 1280.0f);
+						float ah = (std::max)(1.0f, a.height / 720.0f);
+
+						if (aw > 2.0f) aw = 2.0f;
+						if (ah > 1.5f) ah = 1.5f;
+
+						nodes.push_back({ a.index, cx, cy, aw, ah });
+						
+						minCX = (std::min)(minCX, cx - aw * 0.5f);
+						minCY = (std::min)(minCY, cy - ah * 0.5f);
+						maxCX = (std::max)(maxCX, cx + aw * 0.5f);
+						maxCY = (std::max)(maxCY, cy + ah * 0.5f);
+					}
+
+					if (!nodes.empty()) {
+						float rangeX = maxCX - minCX;
+						float rangeY = maxCY - minCY;
+						if (rangeX < 1e-3f) rangeX = 1.0f;
+						if (rangeY < 1e-3f) rangeY = 1.0f;
+
+
+						float mapLeft = 0.4f;
+						float mapRight = 0.95f;
+						float mapBottom = -0.95f;
+						float mapTop = -0.3f;
+						
+						float mapW = mapRight - mapLeft;
+						float mapH = mapTop - mapBottom;
+
+
+						rangeX *= 1.2f;
+						rangeY *= 1.2f;
+
+						float scaleX = mapW / rangeX;
+						float scaleY = mapH / rangeY;
+						float scale = (std::min)(scaleX, scaleY);
+
+						float scaledW = rangeX * scale;
+						float scaledH = rangeY * scale;
+						float offsetX = mapLeft + (mapW - scaledW) * 0.5f;
+						float offsetY = mapTop - (mapH - scaledH) * 0.5f;
+
+						auto ToScreen = [&](float ex, float ey) -> std::pair<float, float> {
+							return {
+								offsetX + (ex - minCX) * scale,
+								offsetY - (ey - minCY) * scale
+							};
+						};
+
+						std::map<int, std::pair<float, float>> nodeScreenPos;
+						std::map<int, AreaNode> nodeData;
+						for (const auto& n : nodes) {
+							nodeScreenPos[n.index] = ToScreen(n.cx, n.cy);
+							nodeData[n.index] = n;
+						}
+
+						auto findArea = [&](int id) -> const Game::Editor::AreaData* {
+							for(const auto& ar : allAreas) if(ar.index == id) return &ar;
+							return nullptr;
+						};
+
+
+						std::vector<std::pair<int,int>> drawnEdges;
+						auto edgeDrawn = [&](int a, int b) -> bool {
+							for (const auto& e : drawnEdges) {
+								if ((e.first == a && e.second == b) || (e.first == b && e.second == a)) return true;
+							}
+							return false;
+						};
+
+						Lumina::F32x4 lineCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+						float lineThickness = 0.003f;
+
+						for (const auto& a : allAreas) {
+
+							if (playState_.VisitedAreas.count(a.index) == 0) continue;
+
+							auto itFrom = nodeData.find(a.index);
+							if (itFrom == nodeData.end()) continue;
+
+							for (const auto& conn : a.connections) {
+								int targetIdx = conn.targetAreaIndex;
+								if (a.index == 0 && targetIdx == 0) continue;
+
+								if (playState_.VisitedAreas.count(targetIdx) == 0) continue;
+
+								auto itTo = nodeData.find(targetIdx);
+								if (itTo == nodeData.end()) continue;
+
+								if (edgeDrawn(a.index, targetIdx)) continue;
+								drawnEdges.push_back({ a.index, targetIdx });
+
+
+								float localX1 = (conn.position.x / (std::max)(1.0f, static_cast<float>(a.width))) - 0.5f;
+								float localY1 = (conn.position.y / (std::max)(1.0f, static_cast<float>(a.height))) - 0.5f;
+								float gateA_cx = itFrom->second.cx + localX1 * itFrom->second.w;
+								float gateA_cy = itFrom->second.cy + localY1 * itFrom->second.h;
+
+
+								const Game::Editor::AreaData* bData = findArea(targetIdx);
+								float gateB_cx = itTo->second.cx;
+								float gateB_cy = itTo->second.cy;
+								
+								if (bData) {
+									for (const auto& bConn : bData->connections) {
+										if (bConn.targetAreaIndex == a.index) {
+											float localX2 = (bConn.position.x / (std::max)(1.0f, static_cast<float>(bData->width))) - 0.5f;
+											float localY2 = (bConn.position.y / (std::max)(1.0f, static_cast<float>(bData->height))) - 0.5f;
+											gateB_cx = itTo->second.cx + localX2 * itTo->second.w;
+											gateB_cy = itTo->second.cy + localY2 * itTo->second.h;
+											break;
+										}
+									}
+								}
+
+								auto screenA = ToScreen(gateA_cx, gateA_cy);
+								auto screenB = ToScreen(gateB_cx, gateB_cy);
+
+								float x1 = screenA.first;
+								float y1 = screenA.second;
+								float x2 = screenB.first;
+								float y2 = screenB.second;
+
+
+								float xA = nodeScreenPos[a.index].first;
+								float yA = nodeScreenPos[a.index].second;
+								float hwA = itFrom->second.w * scale * 0.5f;
+								float hhA = itFrom->second.h * scale * 0.5f;
+								float lA = xA - hwA, rA = xA + hwA, tA = yA + hhA, bA = yA - hhA;
+
+
+								float xB = nodeScreenPos[targetIdx].first;
+								float yB = nodeScreenPos[targetIdx].second;
+								float hwB = itTo->second.w * scale * 0.5f;
+								float hhB = itTo->second.h * scale * 0.5f;
+								float lB = xB - hwB, rB = xB + hwB, tB = yB + hhB, bB = yB - hhB;
+
+								auto getExitPoint = [](float px, float py, float dirX, float dirY, float l, float r, float t, float b) {
+									float t_x = 1.0f;
+									if (dirX > 1e-4f) t_x = (r - px) / dirX;
+									else if (dirX < -1e-4f) t_x = (l - px) / dirX;
+									
+									float t_y = 1.0f;
+									if (dirY > 1e-4f) t_y = (t - py) / dirY;
+									else if (dirY < -1e-4f) t_y = (b - py) / dirY;
+									
+									float t_min = (std::min)(1.0f, (std::min)(t_x, t_y));
+									t_min = (std::max)(0.0f, t_min);
+									return std::pair<float, float>{ px + dirX * t_min, py + dirY * t_min };
+								};
+
+								auto pA = getExitPoint(x1, y1, x2 - x1, y2 - y1, lA, rA, tA, bA);
+								auto pB = getExitPoint(x2, y2, x1 - x2, y1 - y2, lB, rB, tB, bB);
+
+								float dx = pB.first - pA.first;
+								float dy = pB.second - pA.second;
+								float len = std::sqrt(dx*dx + dy*dy);
+								if (len > 1e-4f) {
+									float nx = -dy / len * lineThickness;
+									float ny = dx / len * lineThickness;
+
+									PrimitiveManager_Tutorial_->BatchTriangle(
+										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U }
+									);
+									PrimitiveManager_Tutorial_->BatchTriangle(
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
+										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U }
+									);
+								}
+							}
+						}
+
+
+						for (const auto& n : nodes) {
+							bool isCurrent = (n.index == playState_.CurrentArea.index);
+							float x = nodeScreenPos[n.index].first;
+							float y = nodeScreenPos[n.index].second;
+
+							float hw = (n.w * scale) * 0.5f;
+							float hh = (n.h * scale) * 0.5f;
+							
+							float left = x - hw;
+							float right = x + hw;
+							float top = y + hh;
+							float bottom = y - hh;
+
+
+							Lumina::F32x4 fillCol = isCurrent ? Lumina::F32x4{0.2f, 0.4f, 1.0f, 0.9f} : Lumina::F32x4{0.0f, 0.0f, 0.0f, 0.9f};
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { left,  top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
+								{ { right, bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U }
+							);
+
+
+							Lumina::F32x4 borderCol{1.0f, 1.0f, 1.0f, 1.0f};
+							float bt = 0.003f;
+							
+							auto addRect = [&](float l, float r, float t, float b) {
+								PrimitiveManager_Tutorial_->BatchTriangle(
+									{ { l, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U }
+								);
+								PrimitiveManager_Tutorial_->BatchTriangle(
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
+									{ { r, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U }
+								);
+							};
+							
+							addRect(left, right, top + bt, top);
+							addRect(left, right, bottom, bottom - bt);
+							addRect(left - bt, left, top, bottom);
+							addRect(right, right + bt, top, bottom);
+
+							const Game::Editor::AreaData* aData = findArea(n.index);
+							if (aData && aData->hasGoal) {
+								Lumina::F32x4 goalCol{ 0.1f, 0.8f, 0.1f, 1.0f };
+								float gw = 0.012f, gh = 0.012f * 1280.0f / 720.0f;
+								PrimitiveManager_Tutorial_->BatchTriangle(
+									{ { x, y + gh, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U }
+								);
+								PrimitiveManager_Tutorial_->BatchTriangle(
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
+									{ { x, y - gh, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U }
+								);
+							}
+						}
 					}
 				}
 
