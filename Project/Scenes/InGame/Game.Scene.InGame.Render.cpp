@@ -448,7 +448,7 @@ namespace Game::Scene::Impl {
 
 				if (playState_.IsPaused) {
 					// 画面全体を少し暗くする
-					Lumina::F32x4 darkenCol{ 0.0f, 0.0f, 0.0f, 0.5f };
+					Lumina::F32x4 darkenCol{ 0.0f, 0.0f, 0.0f, 0.8f };
 					PrimitiveManager_Tutorial_->BatchTriangle(
 						{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
 						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
@@ -464,25 +464,66 @@ namespace Game::Scene::Impl {
 					// pause.pngは 480x120
 					// 画面解像度は 1280x720 なので、NDC座標でのサイズを計算
 					// NDC全体は幅2.0、高さ2.0。中央(X=0)で上端(Y=1.0)に配置
-					float halfW = (480.0f / 1280.0f);
-					float h = (120.0f / 720.0f) * 2.0f;
+					float pauseHalfW = (480.0f / 1280.0f);
+					float pauseH = (120.0f / 720.0f) * 2.0f;
 					
-					float topY = 0.9f;
-					float bottomY = topY - h;
-					float leftX = -halfW;
-					float rightX = halfW;
+					float pauseTopY = 0.9f;
+					float pauseBottomY = pauseTopY - pauseH;
+					float pauseLeftX = -pauseHalfW;
+					float pauseRightX = pauseHalfW;
 					
 					Lumina::F32x4 pauseCol{ 1.0f, 1.0f, 1.0f, 1.0f };
 					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ { leftX,  topY, 0.0f, 1.0f }, pauseCol, {0.0f, 0.0f}, 2U },
-						{ { rightX, topY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
-						{ { leftX,  bottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
+						{ { pauseLeftX,  pauseTopY, 0.0f, 1.0f }, pauseCol, {0.0f, 0.0f}, 2U },
+						{ { pauseRightX, pauseTopY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
+						{ { pauseLeftX,  pauseBottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
 					);
 					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ { rightX, topY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
-						{ { rightX, bottomY, 0.0f, 1.0f }, pauseCol, {1.0f, 1.0f}, 2U },
-						{ { leftX,  bottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
+						{ { pauseRightX, pauseTopY, 0.0f, 1.0f }, pauseCol, {1.0f, 0.0f}, 2U },
+						{ { pauseRightX, pauseBottomY, 0.0f, 1.0f }, pauseCol, {1.0f, 1.0f}, 2U },
+						{ { pauseLeftX,  pauseBottomY, 0.0f, 1.0f }, pauseCol, {0.0f, 1.0f}, 2U }
 					);
+
+					// 新しいポーズメニュー画像の描画
+					float itemW = (360.0f / 1280.0f) * 2.0f;
+					float itemH = (120.0f / 720.0f) * 2.0f;
+					float startY = 0.4f;
+					float gap = 0.05f;
+
+					for (int i = 0; i < 3; ++i) {
+						Lumina::F32x4 color;
+						float scale = 1.0f;
+						if (playState_.PauseSelectedIndex == i) {
+							color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 選択中は明るく
+							// 拡縮アニメーション (1.0 ~ 1.08)
+							scale = 1.0f + 0.08f * (0.5f + 0.5f * std::sin(playState_.PauseAnimationTimer * 8.0f));
+						} else {
+							color = { 0.4f, 0.4f, 0.4f, 0.9f }; // 非選択は少し暗く・半透明
+						}
+
+						float currentItemW = itemW * scale;
+						float currentItemH = itemH * scale;
+
+						float centerY = startY - i * (itemH + gap) - itemH * 0.5f;
+						
+						float topY = centerY + currentItemH * 0.5f;
+						float bottomY = centerY - currentItemH * 0.5f;
+						float leftX = -currentItemW * 0.5f;
+						float rightX = currentItemW * 0.5f;
+
+						uint32_t texID = 3U + i; // 3: resume, 4: restart, 5: title
+
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { leftX,  topY, 0.0f, 1.0f }, color, {0.0f, 0.0f}, texID },
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { rightX, bottomY, 0.0f, 1.0f }, color, {1.0f, 1.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
+					}
 				}
 
 				PrimitiveManager_Tutorial_->Render(

@@ -175,6 +175,11 @@ namespace Game::Scene::Impl {
 		struct PlayState {
 			bool IsPlaying = false;
 			bool IsPaused = false;
+			int PauseSelectedIndex = 0;
+			float PauseAnimationTimer = 0.0f;
+			bool PrevPauseUpHeld = false;
+			bool PrevPauseDownHeld = false;
+			bool PrevPauseDecideHeld = false;
 			bool IsGoalReached = false;
 			Game::Editor::AreaData CurrentArea;
 			Character Player;

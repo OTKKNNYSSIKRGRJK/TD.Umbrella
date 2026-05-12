@@ -319,15 +319,7 @@ namespace Game::Scene::Impl {
 			CheckAndLoadArea(0);
 		}
 
-		// Pキーでポーズトグル
-		{
-			auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
-			auto const& keyboard{ inputMngr.Keyboard() };
-			using Lumina::OS::Windows::KEY;
-			if (keyboard.IsJustPressed(KEY::P)) {
-				playState_.IsPaused = !playState_.IsPaused;
-			}
-		}
+		// Pキーによるポーズは InGame::Update で処理するように変更済み
 
 		ImGui::End();
 	}
@@ -1368,6 +1360,69 @@ namespace Game::Scene::Impl {
 		bool tutorialActive = false;
 		if (TutorialManager_ && TutorialManager_->IsActive()) {
 			tutorialActive = true;
+		}
+
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		auto const& keyboard{ inputMngr.Keyboard() };
+		auto const& pad{ inputMngr.Pad() };
+		using Lumina::OS::Windows::KEY;
+
+		bool padStartNow = pad.IsHold(0x0010);
+		bool padStartJust = padStartNow && !Event::PrevPadStart;
+		Event::PrevPadStart = padStartNow;
+
+		if (keyboard.IsJustPressed(KEY::ESC) || padStartJust || keyboard.IsJustPressed(KEY::P)) {
+			playState_.IsPaused = !playState_.IsPaused;
+			if (playState_.IsPaused) {
+				playState_.PauseSelectedIndex = 0;
+				playState_.PauseAnimationTimer = 0.0f;
+				playState_.PrevPauseUpHeld = true;
+				playState_.PrevPauseDownHeld = true;
+				playState_.PrevPauseDecideHeld = true;
+			}
+		}
+
+		if (playState_.IsPaused) {
+			playState_.PauseAnimationTimer += 1.0f / 60.0f;
+			bool upHeld = keyboard.IsPressed(KEY::W) || keyboard.IsPressed(KEY::ARROW_UP) || pad.IsHold(0x0001);
+			bool downHeld = keyboard.IsPressed(KEY::S) || keyboard.IsPressed(KEY::ARROW_DOWN) || pad.IsHold(0x0002);
+			
+			bool upJust = upHeld && !playState_.PrevPauseUpHeld;
+			bool downJust = downHeld && !playState_.PrevPauseDownHeld;
+			
+			playState_.PrevPauseUpHeld = upHeld;
+			playState_.PrevPauseDownHeld = downHeld;
+
+			if (upJust) {
+				playState_.PauseSelectedIndex = (playState_.PauseSelectedIndex - 1 + 3) % 3;
+			}
+			if (downJust) {
+				playState_.PauseSelectedIndex = (playState_.PauseSelectedIndex + 1) % 3;
+			}
+
+			bool decideHeld = keyboard.IsPressed(KEY::ENTER) || keyboard.IsPressed(KEY::SPACE) || pad.IsHold(0x1000);
+			bool decideJust = decideHeld && !playState_.PrevPauseDecideHeld;
+			playState_.PrevPauseDecideHeld = decideHeld;
+
+			if (decideJust) {
+				if (playState_.PauseSelectedIndex == 0) {
+					// Resume
+					playState_.IsPaused = false;
+				} else if (playState_.PauseSelectedIndex == 1) {
+					// Restart from the beginning (Area 0)
+					playState_.IsPaused = false;
+					Event::ResetPhase();
+					CheckAndLoadArea(0);
+				} else if (playState_.PauseSelectedIndex == 2) {
+					// Title
+					playState_.IsPaused = false;
+					Event::ResetPhase();
+					playState_.IsPlaying = false;
+					auto& sceneMngr{ Lumina::SceneManager::Instance() };
+					sceneMngr.Deactivate("InGame");
+					sceneMngr.Activate("Title");
+				}
+			}
 		}
 
 		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ

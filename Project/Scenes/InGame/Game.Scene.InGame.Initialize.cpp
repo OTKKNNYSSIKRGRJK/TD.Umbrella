@@ -64,6 +64,9 @@ namespace Game::Scene::Impl {
 			{ "uvChecker", "Assets/Img/uvChecker.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
 			{ "pause", "Assets/Img/UI/pause.png" },
+			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
+			{ "pause_restart", "Assets/Img/UI/pause_restart.png" },
+			{ "pause_title", "Assets/Img/UI/pause_title.png" },
 		};
 		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
@@ -223,8 +226,8 @@ namespace Game::Scene::Impl {
 							if (!validMeshes.empty()) {
 								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
 								if (!diffuseTexName.empty()) {
-									// 既存の基本テクスチャ3枚の後に登録される前提でインデックスを計算
-									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(3 + AdditionalTextures_.size());
+									// 既存の基本テクスチャ6枚の後に登録される前提でインデックスを計算
+									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(6 + AdditionalTextures_.size());
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 								}
 								addMeshesToBeUploaded(validMeshes);
@@ -708,8 +711,8 @@ namespace Game::Scene::Impl {
 		TutorialManager_ = std::make_unique<Game::TutorialManager>();
 		TutorialManager_->Initialize();
 		TutorialManager_->RegisterSequences();
-		// チュートリアルテクスチャは基本テクスチャ3枚 + 追加テクスチャの直後に配置
-		TutorialManager_->TutorialTextureStartIndex = 3U + static_cast<uint32_t>(AdditionalTextures_.size());
+		// チュートリアルテクスチャは基本テクスチャ6枚 + 追加テクスチャの直後に配置
+		TutorialManager_->TutorialTextureStartIndex = 6U + static_cast<uint32_t>(AdditionalTextures_.size());
 		TutorialManager_->TutorialTextureCount = 4U;
 
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
