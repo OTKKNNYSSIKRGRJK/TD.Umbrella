@@ -1037,18 +1037,29 @@ namespace Game {
 					if (link.from != currentNodeId) continue;
 					std::string c = link.condition;
 					if (c.rfind("Time>=", 0) == 0) {
+						bool requiresGrounded = false;
+						if (c.find("&Grounded") != std::string::npos) {
+							requiresGrounded = true;
+							c = c.substr(0, c.find("&Grounded"));
+						}
+
 						try {
 							float threshold = std::stof(c.substr(6));
 							if (enemy.stateTimer >= threshold) {
-								// 遷移先のノードを探す
-								for (const auto& n : enemy.baseData.nodes) {
-									if (n.id == link.to) {
-										enemy.currentAction = n.state;
-										enemy.stateTimer = 0.0f;
-										break;
+								float expectedGroundedVelY = -9.8f * deltaTime;
+								bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
+
+								if (!requiresGrounded || isGrounded) {
+									// 遷移先のノードを探す
+									for (const auto& n : enemy.baseData.nodes) {
+										if (n.id == link.to) {
+											enemy.currentAction = n.state;
+											enemy.stateTimer = 0.0f;
+											break;
+										}
 									}
+									break;
 								}
-								break;
 							}
 						} catch (...) {}
 					}
@@ -1243,6 +1254,7 @@ namespace Game {
 							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
 							if (currentNodeInfo->jumpVelocityY != 0.0f) {
 								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
+								EmitJumpEvent(enemy.position, enemy.modelScale);
 							}
 						}
 					}

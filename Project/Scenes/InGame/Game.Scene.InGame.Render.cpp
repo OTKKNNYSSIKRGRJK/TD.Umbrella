@@ -211,6 +211,32 @@ namespace Game::Scene::Impl {
 		);
 		GeometryPass_.End();
 
+		{
+			auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+			auto dsv{ Canvas_GeometryPass_.DSV() };
+			cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+
+			EnemyEffects_->Render(
+				cmdList,
+				RS_ParticleSystem_,
+				GraphicsPSO_BasicParticle_AdditiveMode_,
+				LocalHeap_Scene_.CPUHandle(0U),
+				LocalHeap_Scene_.CPUHandle(0U),
+				GlobalTable_SRV_ImageTexture_,
+				GlobalTable_SRV_ImageTexture_
+			);
+
+			PlayerEffects_->Render(
+				cmdList,
+				RS_ParticleSystem_,
+				GraphicsPSO_BasicParticle_AdditiveMode_,
+				LocalHeap_Scene_.CPUHandle(0U),
+				LocalHeap_Scene_.CPUHandle(0U),
+				GlobalTable_SRV_ImageTexture_,
+				GlobalTable_SRV_ImageTexture_
+			);
+		}
+
 		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
 		auto dsv{ Canvas_GeometryPass_.DSV() };
 		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);

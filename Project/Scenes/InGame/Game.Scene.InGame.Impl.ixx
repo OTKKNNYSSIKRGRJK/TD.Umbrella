@@ -231,6 +231,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> AmbientSparkles_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
 
 	};
 }

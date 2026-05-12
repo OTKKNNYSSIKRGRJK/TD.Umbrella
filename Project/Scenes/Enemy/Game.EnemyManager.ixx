@@ -478,5 +478,21 @@ export namespace Game {
 
 		// コールバック
 		OnEnemyDeathCallback onDeathCallback_;
+
+	public:
+		struct JumpEvent {
+			Lumina::Math::F32x3 position;
+			float scale;
+		};
+		std::vector<JumpEvent> ConsumeJumpEvents() {
+			std::vector<JumpEvent> events;
+			std::swap(events, jumpEvents_);
+			return events;
+		}
+		void EmitJumpEvent(const Lumina::Math::F32x3& pos, float scale) {
+			jumpEvents_.push_back({ pos, scale });
+		}
+	private:
+		std::vector<JumpEvent> jumpEvents_;
 	};
 }

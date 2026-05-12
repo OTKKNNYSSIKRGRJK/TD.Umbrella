@@ -680,6 +680,9 @@ namespace Game::Scene::Impl {
 
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		KnockEffects_->Initialize(d3d12Context_, 256U);
+
+		EnemyEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		EnemyEffects_->Initialize(d3d12Context_, 512U);
 	}
 
 	void InGame::Initialize() {

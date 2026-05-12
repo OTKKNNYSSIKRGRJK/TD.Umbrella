@@ -39,9 +39,14 @@
     "hp": 100,
     "links": [
         {
-            "condition": "Time>=3.000000",
+            "condition": "Time>=1.0&Grounded",
             "from": 1,
             "to": 2
+        },
+        {
+            "condition": "Time>=1.0",
+            "from": 2,
+            "to": 1
         }
     ],
     "motionMap": {
@@ -55,7 +60,7 @@
             "boundBool": "",
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
-            "facePlayer": false,
+            "facePlayer": true,
             "id": 1,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
@@ -63,26 +68,26 @@
             "splineDuration": 1.0,
             "splineMotionName": "",
             "state": "Idle",
-            "velocityFrictionX": 1.0,
-            "x": 40.0,
-            "y": 40.0
+            "velocityFrictionX": 0.8,
+            "x": 39.0,
+            "y": 0.0
         },
         {
             "animationName": "",
-            "boundBool": "Walk",
-            "boundMotion": "",
+            "boundBool": "Hop",
+            "boundMotion": "Slime_Jump",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "id": 2,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
+            "jumpVelocityXMult": 1.2,
+            "jumpVelocityY": 5.0,
             "name": "State2",
             "splineDuration": 1.0,
             "splineMotionName": "",
             "state": "Walk",
             "velocityFrictionX": 1.0,
-            "x": 285.0,
-            "y": 30.0
+            "x": 286.0,
+            "y": 0.0
         }
     ],
     "patrolRadius": 10.0,

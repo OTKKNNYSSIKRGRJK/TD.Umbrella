@@ -304,23 +304,19 @@ namespace Game::Scene::Impl {
 			auto const& pos = Player_->GetPosition();
 			ImGui::Text("Player 3D Position: %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
 		}
+
 		ImGui::Separator();
-
-		// ポーズ・リスタートUI
-		if (playState_.IsPaused) {
-			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "== PAUSED ==");
+		ImGui::Text("Enemy Node States:");
+		auto aliveEnemies = Game::EnemyManager::GetInstance()->GetAliveInstances();
+		if (aliveEnemies.empty()) {
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No enemies present.");
+		} else {
+			for (auto* enemy : aliveEnemies) {
+				ImGui::Text("[%d] %s: State='%s', Timer=%.2f", 
+					enemy->id, enemy->baseData.name.c_str(), 
+					enemy->currentAction.c_str(), enemy->stateTimer);
+			}
 		}
-
-		if (ImGui::Button(playState_.IsPaused ? "Resume (P)" : "Pause (P)", ImVec2(140, 0))) {
-			playState_.IsPaused = !playState_.IsPaused;
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Restart", ImVec2(140, 0))) {
-			playState_.IsPaused = false;
-			CheckAndLoadArea(0);
-		}
-
-		// Pキーによるポーズは InGame::Update で処理するように変更済み
 
 		ImGui::End();
 	}
@@ -706,6 +702,55 @@ namespace Game::Scene::Impl {
 
 		//	AmbientSparkles_->Update(cmdList_, viewToWorld, UpdateAmbientSparkle);
 		//}
+
+		// Enemy jump smoke particles
+		{
+			auto jumpEvents = Game::EnemyManager::GetInstance()->ConsumeJumpEvents();
+			for (const auto& evt : jumpEvents) {
+				int particleCount = 6 + (rndEngine() % 5);
+				for (int i = 0; i < particleCount; ++i) {
+					Lumina::Particle smoke{};
+					float angle = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> * 2.0f;
+					float spread = 0.3f + rndEngine() * Inv_0xFFFFFFFF * 0.5f;
+					smoke.Translate = {
+						evt.position.X + std::cos(angle) * spread * evt.scale,
+						evt.position.Y,
+						evt.position.Z + std::sin(angle) * spread * evt.scale
+					};
+					smoke.Velocity = {
+						std::cos(angle) * (0.02f + rndEngine() * Inv_0xFFFFFFFF * 0.03f),
+						0.01f + rndEngine() * Inv_0xFFFFFFFF * 0.02f,
+						std::sin(angle) * (0.02f + rndEngine() * Inv_0xFFFFFFFF * 0.03f)
+					};
+					smoke.Scale = {
+						0.4f * evt.scale + rndEngine() * Inv_0xFFFFFFFF * 0.3f,
+						0.4f * evt.scale + rndEngine() * Inv_0xFFFFFFFF * 0.3f,
+						1.0f
+					};
+					smoke.Life = 20.0f + rndEngine() * Inv_0xFFFFFFFF * 15.0f;
+					float brightness = 0.7f + rndEngine() * Inv_0xFFFFFFFF * 0.3f;
+					smoke.RenderData.RGBA = { brightness, brightness, brightness, 0.4f };
+					smoke.RenderData.DiffuseID = 1U;
+					smoke.RenderData.DiffuseAtlasID = 3U;
+					EnemyEffects_->Emit(std::move(smoke));
+				}
+			}
+
+			auto UpdateEnemySmoke = [](Lumina::Particle& p, void const*) -> bool {
+				p.Life -= 1.0f;
+				if (p.Life <= 0.0f) return false;
+				p.Translate.X += p.Velocity.X;
+				p.Translate.Y += p.Velocity.Y;
+				p.Translate.Z += p.Velocity.Z;
+				p.Velocity.Y += 0.001f;
+				float lifeRatio = p.Life / 35.0f;
+				p.Scale.X += 0.015f;
+				p.Scale.Y += 0.015f;
+				p.RenderData.RGBA.W = lifeRatio * 0.4f;
+				return true;
+			};
+			EnemyEffects_->Update(cmdList_, viewToWorld_, UpdateEnemySmoke);
+		}
 
 		//KnockEffects_->Update(cmdList_, viewToWorld, UpdateKnockEffect);
 	}
