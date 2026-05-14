@@ -13,6 +13,7 @@ import Game.MathUtils;
 import Game.ProjectileManager;
 import Game.TutorialManager;
 import Game.UIMenu;
+import Game.Events;
 
 namespace Game::Scene::Impl {
 	void InGame::Render_Geometry() {
@@ -471,7 +472,59 @@ namespace Game::Scene::Impl {
 				}
 
 				// ゲームオーバーUIメニュー描画
-				GameOverMenu_.Render(*PrimitiveManager_Tutorial_);
+				if (GameOverMenu_.IsVisible()) {
+					// 画面全体を少し赤暗くする
+					Lumina::F32x4 darkenCol{ 0.15f, 0.0f, 0.0f, 0.8f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+
+					float itemW = (360.0f / 1280.0f) * 2.0f;
+					float itemH = (120.0f / 720.0f) * 2.0f;
+					float startY = 0.2f;
+					float gap = 0.05f;
+
+					for (int i = 0; i < 2; ++i) {
+						Lumina::F32x4 color;
+						float scale = 1.0f;
+						if (GameOverMenu_.SelectedIndex() == i) {
+							color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 選択中は明るく
+							scale = 1.0f + 0.08f * (0.5f + 0.5f * std::sin(Event::PhaseTimer * 8.0f));
+						} else {
+							color = { 0.4f, 0.4f, 0.4f, 0.9f }; // 非選択は少し暗く
+						}
+
+						float currentItemW = itemW * scale;
+						float currentItemH = itemH * scale;
+
+						float centerY = startY - i * (itemH + gap) - itemH * 0.5f;
+						
+						float topY = centerY + currentItemH * 0.5f;
+						float bottomY = centerY - currentItemH * 0.5f;
+						float leftX = -currentItemW * 0.5f;
+						float rightX = currentItemW * 0.5f;
+
+						uint32_t texID = 6U + i; // 6: Retry, 7: returntotitle
+
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { leftX,  topY, 0.0f, 1.0f }, color, {0.0f, 0.0f}, texID },
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { rightX, bottomY, 0.0f, 1.0f }, color, {1.0f, 1.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
+					}
+				}
 
 				if (playState_.IsPaused) {
 					// 画面全体を少し暗くする
