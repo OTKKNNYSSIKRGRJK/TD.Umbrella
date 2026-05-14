@@ -49,83 +49,310 @@
     "attackRange": 4.0,
     "attackType": "Melee",
     "collisionVertices": [
-        { "x": -0.7444444298744202, "y": 1.0888888835906982 },
-        { "x": -1.4333332777023315, "y": -0.4555555582046509 },
-        { "x": -0.08888889104127884, "y": -0.9666666388511658 },
-        { "x": 1.2333333492279053, "y": -0.5333333611488342 },
-        { "x": 0.5333333611488342, "y": 1.1666666269302368 },
-        { "x": -0.10000000149011612, "y": 1.3222222328186035 }
+        {
+            "x": -0.7444444298744202,
+            "y": 1.0888888835906982
+        },
+        {
+            "x": -1.4333332777023315,
+            "y": -0.4555555582046509
+        },
+        {
+            "x": -0.08888889104127884,
+            "y": -0.9666666388511658
+        },
+        {
+            "x": 1.2333333492279053,
+            "y": -0.5333333611488342
+        },
+        {
+            "x": 0.5333333611488342,
+            "y": 1.1666666269302368
+        },
+        {
+            "x": -0.10000000149011612,
+            "y": 1.3222222328186035
+        }
     ],
     "gltfPath": "Assets\\Enemy\\KingSlime\\Kingslime.obj",
     "hp": 360,
     "noSplit": true,
     "links": [
-        { "from": 1, "to": 15, "condition": "BOOL:phaseShiftReady" },
-        { "from": 1, "to": 2, "condition": "Time>=0.3" },
-
-        { "from": 2, "to": 15, "condition": "BOOL:phaseShiftReady" },
-        { "from": 2, "to": 3, "condition": "Dist<=1.2" },
-        { "from": 2, "to": 39, "condition": "Dist<=1.05" },
-        { "from": 2, "to": 4, "condition": "Dist<=2.1" },
-        { "from": 2, "to": 38, "condition": "Dist<=2.8" },
-        { "from": 2, "to": 7, "condition": "Dist<=3.2" },
-        { "from": 2, "to": 10, "condition": "Dist<=4.5" },
-        { "from": 2, "to": 13, "condition": "Dist<=6.2" },
-
-        { "from": 3, "to": 4, "condition": "Time>=0.36" },
-        { "from": 4, "to": 5, "condition": "Time>=0.50" },
-        { "from": 39, "to": 40, "condition": "Time>=0.36" },
-        { "from": 40, "to": 14, "condition": "Time>=0.40" },
-        { "from": 5, "to": 6, "condition": "BOOL:shadowStepDone" },
-        { "from": 6, "to": 14, "condition": "Time>=0.40" },
-
-        { "from": 7, "to": 8, "condition": "Time>=0.40" },
-        { "from": 8, "to": 9, "condition": "BOOL:shadowStepDone" },
-        { "from": 9, "to": 14, "condition": "Time>=0.36" },
-
-        { "from": 10, "to": 11, "condition": "Time>=0.40" },
-        { "from": 11, "to": 12, "condition": "BOOL:shadowStepDone" },
-        { "from": 12, "to": 14, "condition": "Time>=0.34" },
-
-        { "from": 13, "to": 14, "condition": "Time>=0.60" },
-        { "from": 14, "to": 2, "condition": "Time>=0.86" },
-        { "from": 38, "to": 14, "condition": "Time>=0.44" },
-
-        { "from": 15, "to": 16, "condition": "BOOL:phaseShiftDone" },
-
-        { "from": 16, "to": 34, "condition": "BOOL:airDiveReady" },
-        { "from": 16, "to": 17, "condition": "Dist<=1.35" },
-        { "from": 16, "to": 18, "condition": "Dist<=2.3" },
-        { "from": 16, "to": 24, "condition": "Dist<=3.4" },
-        { "from": 16, "to": 27, "condition": "Dist<=4.4" },
-        { "from": 16, "to": 30, "condition": "Dist<=5.8" },
-
-        { "from": 17, "to": 18, "condition": "Time>=0.36" },
-        { "from": 18, "to": 19, "condition": "Time>=0.40" },
-        { "from": 19, "to": 20, "condition": "BOOL:shadowStepDone" },
-        { "from": 20, "to": 21, "condition": "Time>=0.34" },
-        { "from": 21, "to": 22, "condition": "Time>=0.34" },
-        { "from": 22, "to": 23, "condition": "Time>=0.36" },
-        { "from": 23, "to": 37, "condition": "Time>=0.50" },
-
-        { "from": 24, "to": 25, "condition": "Time>=0.36" },
-        { "from": 25, "to": 26, "condition": "BOOL:shadowStepDone" },
-        { "from": 26, "to": 37, "condition": "Time>=0.34" },
-
-        { "from": 27, "to": 28, "condition": "Time>=0.42" },
-        { "from": 28, "to": 29, "condition": "Time>=0.40" },
-        { "from": 29, "to": 37, "condition": "Time>=0.44" },
-
-        { "from": 30, "to": 31, "condition": "Time>=0.36" },
-        { "from": 31, "to": 32, "condition": "BOOL:shadowStepDone" },
-        { "from": 32, "to": 33, "condition": "Time>=0.34" },
-        { "from": 33, "to": 37, "condition": "Time>=0.40" },
-
-        { "from": 34, "to": 35, "condition": "Time>=0.50" },
-        { "from": 35, "to": 36, "condition": "BOOL:airDiveDone" },
-        { "from": 36, "to": 37, "condition": "Time>=0.80" },
-
-        { "from": 37, "to": 16, "condition": "Time>=0.92" }
+        {
+            "from": 2,
+            "to": 15,
+            "condition": "BOOL:phaseShiftReady"
+        },
+        {
+            "from": 2,
+            "to": 41,
+            "condition": "Dist<=1.05"
+        },
+        {
+            "from": 2,
+            "to": 3,
+            "condition": "Dist<=1.2"
+        },
+        {
+            "from": 2,
+            "to": 4,
+            "condition": "Dist<=2.1"
+        },
+        {
+            "from": 2,
+            "to": 13,
+            "condition": "Dist<=2.8"
+        },
+        {
+            "from": 2,
+            "to": 7,
+            "condition": "Dist<=3.2"
+        },
+        {
+            "from": 2,
+            "to": 10,
+            "condition": "Dist<=4.5"
+        },
+        {
+            "from": 2,
+            "to": 38,
+            "condition": "Dist<=6.2"
+        },
+        {
+            "from": 1,
+            "to": 15,
+            "condition": "BOOL:phaseShiftReady"
+        },
+        {
+            "from": 1,
+            "to": 2,
+            "condition": "Time>=0.3"
+        },
+        {
+            "from": 3,
+            "to": 4,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 4,
+            "to": 5,
+            "condition": "Time>=0.50"
+        },
+        {
+            "from": 39,
+            "to": 40,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 40,
+            "to": 14,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 5,
+            "to": 6,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 6,
+            "to": 14,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 7,
+            "to": 8,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 8,
+            "to": 9,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 9,
+            "to": 14,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 10,
+            "to": 11,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 11,
+            "to": 12,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 12,
+            "to": 14,
+            "condition": "Time>=0.34"
+        },
+        {
+            "from": 13,
+            "to": 42,
+            "condition": "Time>=0.60"
+        },
+        {
+            "from": 14,
+            "to": 2,
+            "condition": "Time>=0.86"
+        },
+        {
+            "from": 38,
+            "to": 39,
+            "condition": "Time>=0.44"
+        },
+        {
+            "from": 15,
+            "to": 16,
+            "condition": "BOOL:phaseShiftDone"
+        },
+        {
+            "from": 16,
+            "to": 34,
+            "condition": "BOOL:airDiveReady"
+        },
+        {
+            "from": 16,
+            "to": 17,
+            "condition": "Dist<=1.35"
+        },
+        {
+            "from": 16,
+            "to": 18,
+            "condition": "Dist<=2.3"
+        },
+        {
+            "from": 16,
+            "to": 24,
+            "condition": "Dist<=3.4"
+        },
+        {
+            "from": 16,
+            "to": 27,
+            "condition": "Dist<=4.4"
+        },
+        {
+            "from": 16,
+            "to": 30,
+            "condition": "Dist<=5.8"
+        },
+        {
+            "from": 17,
+            "to": 18,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 18,
+            "to": 19,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 19,
+            "to": 20,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 20,
+            "to": 21,
+            "condition": "Time>=0.34"
+        },
+        {
+            "from": 21,
+            "to": 22,
+            "condition": "Time>=0.34"
+        },
+        {
+            "from": 22,
+            "to": 23,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 23,
+            "to": 37,
+            "condition": "Time>=0.50"
+        },
+        {
+            "from": 24,
+            "to": 25,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 25,
+            "to": 26,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 26,
+            "to": 37,
+            "condition": "Time>=0.34"
+        },
+        {
+            "from": 27,
+            "to": 28,
+            "condition": "Time>=0.42"
+        },
+        {
+            "from": 28,
+            "to": 29,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 29,
+            "to": 37,
+            "condition": "Time>=0.44"
+        },
+        {
+            "from": 30,
+            "to": 31,
+            "condition": "Time>=0.36"
+        },
+        {
+            "from": 31,
+            "to": 32,
+            "condition": "BOOL:shadowStepDone"
+        },
+        {
+            "from": 32,
+            "to": 33,
+            "condition": "Time>=0.34"
+        },
+        {
+            "from": 33,
+            "to": 37,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 34,
+            "to": 35,
+            "condition": "Time>=0.50"
+        },
+        {
+            "from": 35,
+            "to": 36,
+            "condition": "BOOL:airDiveDone"
+        },
+        {
+            "from": 36,
+            "to": 37,
+            "condition": "Time>=0.80"
+        },
+        {
+            "from": 37,
+            "to": 16,
+            "condition": "Time>=0.92"
+        },
+        {
+            "from": 42,
+            "to": 14,
+            "condition": "Time>=0.40"
+        },
+        {
+            "from": 41,
+            "to": 14,
+            "condition": "Time>=0.50"
+        }
     ],
     "motionMap": {
         "Idle": "",
@@ -171,7 +398,7 @@
         "RecoverP2": "",
         "Death": ""
     },
-    "moveSpeed": 1.9,
+    "moveSpeed": 2.28,
     "name": "Boss",
     "nodes": [
         {
@@ -222,7 +449,7 @@
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
             "velocityFrictionX": 0.92,
-            "jumpVelocityXMult": -0.95,
+            "jumpVelocityXMult": -1.28,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -241,7 +468,11 @@
             "velocityFrictionX": 0.35,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.12, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.32,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -273,8 +504,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.96,
-            "jumpVelocityXMult": 1.4,
+            "velocityFrictionX": 0.976,
+            "jumpVelocityXMult": 1.89,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -293,7 +524,11 @@
             "velocityFrictionX": 0.28,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.10, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.3,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -325,8 +560,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.98,
-            "jumpVelocityXMult": 0.9,
+            "velocityFrictionX": 0.988,
+            "jumpVelocityXMult": 1.22,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -345,7 +580,11 @@
             "velocityFrictionX": 0.3,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.12, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.32,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -377,8 +616,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.99,
-            "jumpVelocityXMult": 1.9,
+            "velocityFrictionX": 0.994,
+            "jumpVelocityXMult": 2.56,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -397,7 +636,28 @@
             "velocityFrictionX": 0.22,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.18, "duration": 0.6 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.38,
+                "duration": 0.6
+            },
+            "splineMotionName": "",
+            "splineDuration": 1.0
+        },
+        {
+            "id": 42,
+            "name": "HeavySlashP1",
+            "state": "HeavySlashP1",
+            "x": 940.0,
+            "y": 470.0,
+            "animationName": "Attack",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "facePlayer": true,
+            "velocityFrictionX": 0.964,
+            "jumpVelocityXMult": 1.28,
+            "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -415,7 +675,11 @@
             "velocityFrictionX": 0.3,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.12, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.32,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -467,7 +731,7 @@
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
             "velocityFrictionX": 0.94,
-            "jumpVelocityXMult": -1.1,
+            "jumpVelocityXMult": -1.49,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -517,8 +781,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.98,
-            "jumpVelocityXMult": 1.25,
+            "velocityFrictionX": 0.988,
+            "jumpVelocityXMult": 1.69,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -537,7 +801,11 @@
             "velocityFrictionX": 0.26,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.12, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.32,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -552,8 +820,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
-            "velocityFrictionX": 0.98,
-            "jumpVelocityXMult": 1.08,
+            "velocityFrictionX": 0.988,
+            "jumpVelocityXMult": 1.46,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -572,7 +840,11 @@
             "velocityFrictionX": 0.22,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.15, "duration": 0.6 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.35,
+                "duration": 0.6
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -590,7 +862,11 @@
             "velocityFrictionX": 0.28,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.10, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.3,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -622,8 +898,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.99,
-            "jumpVelocityXMult": 2.05,
+            "velocityFrictionX": 0.994,
+            "jumpVelocityXMult": 2.77,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -642,7 +918,11 @@
             "velocityFrictionX": 0.22,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.18, "duration": 0.6 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.38,
+                "duration": 0.6
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -657,8 +937,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
-            "velocityFrictionX": 0.94,
-            "jumpVelocityXMult": 0.95,
+            "velocityFrictionX": 0.964,
+            "jumpVelocityXMult": 1.28,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -674,8 +954,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
-            "velocityFrictionX": 0.94,
-            "jumpVelocityXMult": 1.45,
+            "velocityFrictionX": 0.964,
+            "jumpVelocityXMult": 1.96,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -694,7 +974,11 @@
             "velocityFrictionX": 0.28,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.10, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.3,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -726,8 +1010,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.99,
-            "jumpVelocityXMult": 1.1,
+            "velocityFrictionX": 0.994,
+            "jumpVelocityXMult": 1.49,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -763,7 +1047,11 @@
             "velocityFrictionX": 0.18,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.08, "duration": 0.6 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.28,
+                "duration": 0.6
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -779,7 +1067,7 @@
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "velocityFrictionX": 1.0,
-            "jumpVelocityXMult": 1.8,
+            "jumpVelocityXMult": 2.43,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -832,7 +1120,11 @@
             "velocityFrictionX": 0.4,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
-            "prepScale": { "start": 1.0, "peak": 1.10, "duration": 0.5 },
+            "prepScale": {
+                "start": 1.0,
+                "peak": 1.3,
+                "duration": 0.5
+            },
             "splineMotionName": "",
             "splineDuration": 1.0
         },
@@ -848,7 +1140,7 @@
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "velocityFrictionX": 1.0,
-            "jumpVelocityXMult": 2.2,
+            "jumpVelocityXMult": 2.97,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -864,8 +1156,8 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
-            "velocityFrictionX": 0.98,
-            "jumpVelocityXMult": 1.6,
+            "velocityFrictionX": 0.988,
+            "jumpVelocityXMult": 2.16,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
             "splineDuration": 1.0
@@ -881,7 +1173,7 @@
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "facePlayer": true,
-            "velocityFrictionX": 0.0,
+            "velocityFrictionX": 0.4,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
             "splineMotionName": "",
@@ -900,8 +1192,20 @@
     },
     "retreatThreshold": 0.0,
     "sizeTiers": [
-        { "hp": 300, "power": 3.5, "scale": 0.6 },
-        { "hp": 520, "power": 6.0, "scale": 0.85 },
-        { "hp": 840, "power": 9.0, "scale": 1.05 }
+        {
+            "hp": 300,
+            "power": 3.5,
+            "scale": 0.6
+        },
+        {
+            "hp": 520,
+            "power": 6.0,
+            "scale": 0.85
+        },
+        {
+            "hp": 840,
+            "power": 9.0,
+            "scale": 1.05
+        }
     ]
 }
