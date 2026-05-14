@@ -1294,28 +1294,16 @@ namespace Game::Scene::Impl {
 
 			int decided = GameOverMenu_.Update(dt);
 			if (decided == 0) {
-				// Retry
+				// Retry (Fade Out)
 				GameOverMenu_.Hide();
-				Event::ResetPhase();
-				if (Player_) {
-					Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
-				}
-				if (TutorialManager_) {
-					TutorialManager_->CompletedSequences_.clear();
-				}
-				playState_.VisitedAreas.clear();
-				CheckAndLoadArea(0);
+				playState_.ScreenFadeState = 1;
+				playState_.ScreenFadeNextAction = 1;
 			}
 			else if (decided == 1) {
-				// Return to Title
+				// Return to Title (Fade Out)
 				GameOverMenu_.Hide();
-				Event::ResetPhase();
-				playState_.IsPlaying = false;
-				auto& sceneMngr{ Lumina::SceneManager::Instance() };
-				sceneMngr.Deactivate("InGame");
-				sceneMngr.Load<"Title">();
-				sceneMngr.Activate("Title");
-				return;
+				playState_.ScreenFadeState = 1;
+				playState_.ScreenFadeNextAction = 2;
 			}
 			break;
 		}
@@ -1403,6 +1391,53 @@ namespace Game::Scene::Impl {
 #endif
 
 	void InGame::Update() {
+		float dt = 1.0f / 60.0f;
+
+		// --- Screen Fade Logic ---
+		if (playState_.ScreenFadeState == 1) { // FadeOut
+			playState_.ScreenFadeAlpha += dt * playState_.ScreenFadeSpeed;
+			if (playState_.ScreenFadeAlpha >= 1.0f) {
+				playState_.ScreenFadeAlpha = 1.0f;
+				
+				// Execute the deferred action
+				if (playState_.ScreenFadeNextAction == 1 || playState_.ScreenFadeNextAction == 2) {
+					Event::ResetPhase();
+					playState_.IsPlaying = true;
+					if (Player_) {
+						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
+					}
+					if (TutorialManager_) {
+						TutorialManager_->CompletedSequences_.clear();
+					}
+					playState_.VisitedAreas.clear();
+					CheckAndLoadArea(0);
+				}
+				
+				int action = playState_.ScreenFadeNextAction;
+				playState_.ScreenFadeNextAction = 0;
+				playState_.ScreenFadeState = 2; // Transition to FadeIn
+				playState_.ScreenFadeAlpha = 1.0f; // Ensure it starts fully black
+
+				if (action == 2) { // Title
+					auto& sceneMngr{ Lumina::SceneManager::Instance() };
+					sceneMngr.Deactivate("InGame");
+					sceneMngr.Load<"Title">();
+					sceneMngr.Activate("Title");
+					return;
+				}
+			}
+			// Continue updating camera/lighting so the screen doesn't freeze weirdly, but skip game logic
+			Update_<"Camera">();
+			Update_<"Lighting">();
+			return; 
+		} else if (playState_.ScreenFadeState == 2) { // FadeIn
+			playState_.ScreenFadeAlpha -= dt * playState_.ScreenFadeSpeed;
+			if (playState_.ScreenFadeAlpha <= 0.0f) {
+				playState_.ScreenFadeAlpha = 0.0f;
+				playState_.ScreenFadeState = 0; // Finish fade
+			}
+		}
+
 /// dev-Kouda-4.1
         if (playState_.IsBossPresentationActive) {
 			playState_.BossPresentationTimer -= 1.0f / 60.0f;
@@ -1465,27 +1500,15 @@ namespace Game::Scene::Impl {
 					// Resume
 					playState_.IsPaused = false;
 				} else if (playState_.PauseSelectedIndex == 1) {
-					// Restart from the beginning (Area 0)
+					// Restart from the beginning (Area 0) -> Fade Out
 					playState_.IsPaused = false;
-					Event::ResetPhase();
-					if (Player_) {
-						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
-					}
-					if (TutorialManager_) {
-						TutorialManager_->CompletedSequences_.clear();
-					}
-					playState_.VisitedAreas.clear();
-					CheckAndLoadArea(0);
+					playState_.ScreenFadeState = 1;
+					playState_.ScreenFadeNextAction = 1;
 				} else if (playState_.PauseSelectedIndex == 2) {
-					// Title
+					// Title -> Fade Out
 					playState_.IsPaused = false;
-					Event::ResetPhase();
-					playState_.IsPlaying = false;
-					auto& sceneMngr{ Lumina::SceneManager::Instance() };
-					sceneMngr.Deactivate("InGame");
-					sceneMngr.Load<"Title">();
-					sceneMngr.Activate("Title");
-					return;
+					playState_.ScreenFadeState = 1;
+					playState_.ScreenFadeNextAction = 2;
 				}
 			}
 		}

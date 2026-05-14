@@ -964,6 +964,64 @@ namespace Game::Scene::Impl {
 					}
 				}
 
+				// --- Screen Fade Overlay (Iris Effect) ---
+				if (playState_.ScreenFadeState != 0 || playState_.ScreenFadeAlpha > 0.0f) {
+					float targetNdcX = 0.0f;
+					float targetNdcY = 0.0f;
+					if (Player_ && WorldToHomogeneous_) {
+						Lumina::Math::F32x4 playerPos{
+							playState_.Player.Position.X,
+							playState_.Player.Position.Y + 1.0f,
+							playState_.Player.Position.Z,
+							1.0f
+						};
+						auto clip = playerPos * (*WorldToHomogeneous_);
+						if (clip.W() > 0.0f) {
+							targetNdcX = clip.X() / clip.W();
+							targetNdcY = clip.Y() / clip.W();
+						}
+					}
+
+					// Easing: make it feel slightly snappy
+					float t = playState_.ScreenFadeAlpha;
+					float easeT = t * t * (3.0f - 2.0f * t); // Smoothstep
+					float r = 2.5f * (1.0f - easeT);
+					
+					Lumina::F32x4 fadeCol{ 0.0f, 0.0f, 0.0f, 1.0f }; // Solid black
+					
+					const int segments = 32;
+					float aspect = 1280.0f / 720.0f;
+					float outR = 4.0f; // Large enough to cover the screen corners
+					
+					for (int i = 0; i < segments; ++i) {
+						float theta1 = (2.0f * 3.14159265f * i) / segments;
+						float theta2 = (2.0f * 3.14159265f * (i + 1)) / segments;
+						
+						// Inner circle points
+						float inX1 = targetNdcX + (r * std::cos(theta1)) / aspect;
+						float inY1 = targetNdcY + (r * std::sin(theta1));
+						float inX2 = targetNdcX + (r * std::cos(theta2)) / aspect;
+						float inY2 = targetNdcY + (r * std::sin(theta2));
+						
+						// Outer bounding circle points
+						float outX1 = targetNdcX + (outR * std::cos(theta1)) / aspect;
+						float outY1 = targetNdcY + (outR * std::sin(theta1));
+						float outX2 = targetNdcX + (outR * std::cos(theta2)) / aspect;
+						float outY2 = targetNdcY + (outR * std::sin(theta2));
+						
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { inX1, inY1, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U },
+							{ { outX1, outY1, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U },
+							{ { inX2, inY2, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { outX1, outY1, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U },
+							{ { outX2, outY2, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U },
+							{ { inX2, inY2, 0.0f, 1.0f }, fadeCol, {0.0f, 0.0f}, 0U }
+						);
+					}
+				}
+
 				PrimitiveManager_Tutorial_->Render(
 					cmdList,
 					GlobalTable_SRV_ImageTexture_,

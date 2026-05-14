@@ -202,6 +202,12 @@ namespace Game::Scene::Impl {
 			float BossPresentationTimer = 0.0f;
 			float BossPresentationDuration = 0.0f;
 			Lumina::Math::F32x3 BossPresentationFocusPosition{ 0.0f, 0.0f, 0.0f };
+			
+			// Screen Fade properties
+			int ScreenFadeState = 2; // 0: None, 1: FadeOut, 2: FadeIn (Start with FadeIn on load)
+			float ScreenFadeAlpha = 1.0f;
+			int ScreenFadeNextAction = 0;
+			float ScreenFadeSpeed = 1.5f;
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
