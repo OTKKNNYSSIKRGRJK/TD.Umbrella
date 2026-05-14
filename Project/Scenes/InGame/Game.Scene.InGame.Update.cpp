@@ -1202,6 +1202,7 @@ namespace Game::Scene::Impl {
 			playState_.IsPlaying = false;
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
 			sceneMngr.Deactivate("InGame");
+			sceneMngr.Load<"Title">();
 			sceneMngr.Activate("Title");
 		}
 
@@ -1305,6 +1306,7 @@ namespace Game::Scene::Impl {
 				playState_.IsPlaying = false;
 				auto& sceneMngr{ Lumina::SceneManager::Instance() };
 				sceneMngr.Deactivate("InGame");
+				sceneMngr.Load<"Title">();
 				sceneMngr.Activate("Title");
 			}
 			break;
@@ -1466,6 +1468,7 @@ namespace Game::Scene::Impl {
 					playState_.IsPlaying = false;
 					auto& sceneMngr{ Lumina::SceneManager::Instance() };
 					sceneMngr.Deactivate("InGame");
+					sceneMngr.Load<"Title">();
 					sceneMngr.Activate("Title");
 				}
 			}

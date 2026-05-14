@@ -50,8 +50,9 @@ namespace Game::Scene::Impl {
 
         // タイトル画面でスペースキーまたはXBOXのAボタンが押されたらゲーム開始
 		// XBOX Aボタンは GamePad のボタンマスク 0x1000（GamePadButton::A）を使用
-        if (keyboard.IsJustPressed(KEY::SPACE) || inputMngr.Pad().IsHold(0x1000)) {
+        if (keyboard.IsJustPressed(KEY::SPACE) || inputMngr.Pad().IsPressed(0x1000)) {
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Unload("Title->InGame");
 			sceneMngr.Load<"Title->InGame">();
 			sceneMngr.Activate("Title->InGame");
 		}
