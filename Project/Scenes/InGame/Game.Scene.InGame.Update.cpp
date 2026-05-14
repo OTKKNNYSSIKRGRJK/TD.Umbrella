@@ -1297,7 +1297,14 @@ namespace Game::Scene::Impl {
 				// Retry
 				GameOverMenu_.Hide();
 				Event::ResetPhase();
-				CheckAndLoadArea(playState_.CurrentArea.index);
+				if (Player_) {
+					Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
+				}
+				if (TutorialManager_) {
+					TutorialManager_->CompletedSequences_.clear();
+				}
+				playState_.VisitedAreas.clear();
+				CheckAndLoadArea(0);
 			}
 			else if (decided == 1) {
 				// Return to Title
@@ -1308,6 +1315,7 @@ namespace Game::Scene::Impl {
 				sceneMngr.Deactivate("InGame");
 				sceneMngr.Load<"Title">();
 				sceneMngr.Activate("Title");
+				return;
 			}
 			break;
 		}
@@ -1460,6 +1468,13 @@ namespace Game::Scene::Impl {
 					// Restart from the beginning (Area 0)
 					playState_.IsPaused = false;
 					Event::ResetPhase();
+					if (Player_) {
+						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
+					}
+					if (TutorialManager_) {
+						TutorialManager_->CompletedSequences_.clear();
+					}
+					playState_.VisitedAreas.clear();
 					CheckAndLoadArea(0);
 				} else if (playState_.PauseSelectedIndex == 2) {
 					// Title
@@ -1470,6 +1485,7 @@ namespace Game::Scene::Impl {
 					sceneMngr.Deactivate("InGame");
 					sceneMngr.Load<"Title">();
 					sceneMngr.Activate("Title");
+					return;
 				}
 			}
 		}

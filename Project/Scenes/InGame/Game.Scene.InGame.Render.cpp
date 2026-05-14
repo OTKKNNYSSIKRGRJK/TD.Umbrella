@@ -486,6 +486,28 @@ namespace Game::Scene::Impl {
 						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
 					);
 
+					// gameover.png を描画 (Index = 8)
+					// gameover.pngは 480x120
+					float titleHalfW = (480.0f / 1280.0f);
+					float titleH = (120.0f / 720.0f) * 2.0f;
+					
+					float titleTopY = 0.9f;
+					float titleBottomY = titleTopY - titleH;
+					float titleLeftX = -titleHalfW;
+					float titleRightX = titleHalfW;
+					
+					Lumina::F32x4 titleCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { titleLeftX,  titleTopY, 0.0f, 1.0f }, titleCol, {0.0f, 0.0f}, 8U },
+						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
+						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
+						{ { titleRightX, titleBottomY, 0.0f, 1.0f }, titleCol, {1.0f, 1.0f}, 8U },
+						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
+					);
+
 					float itemW = (360.0f / 1280.0f) * 2.0f;
 					float itemH = (120.0f / 720.0f) * 2.0f;
 					float startY = 0.2f;

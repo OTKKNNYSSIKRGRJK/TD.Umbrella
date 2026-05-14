@@ -218,7 +218,8 @@ namespace Lumina::D3D12 {
 	}
 
 	uint64_t CommandQueue::ExecuteBatchedCommandLists() {
-		std::lock_guard lock{ Mutex_BatchedCommandLists_ };
+	
+	std::lock_guard lock{ Mutex_BatchedCommandLists_ };
 
 		if (!BatchedCommandLists_.empty()) {
 			Wrapped_->ExecuteCommandLists(
