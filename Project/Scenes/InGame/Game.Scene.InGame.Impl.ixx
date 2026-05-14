@@ -2,6 +2,7 @@ export module Game.Scene.InGame : Impl;
 
 import <memory>;
 
+import <string>;
 import <vector>;
 import <map>;
 
@@ -160,6 +161,7 @@ namespace Game::Scene::Impl {
 		struct PlayEnemy {
 			Game::Editor::EnemyData BaseData;
 			Lumina::Math::F32x3 Position{ 0.0f, 0.0f, 0.0f };
+            std::string CurrentAction = "Idle";
 			int CurrentHP = 100;
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
@@ -167,6 +169,9 @@ namespace Game::Scene::Impl {
            float RenderFacingYaw = 0.0f;
 			int SizeTier = 1;
 			float Scale = 1.0f;
+            // Visual-only transform applied during prep/windup (copied from runtime instance)
+			Lumina::Math::F32x3 VisualOffset{ 0.0f, 0.0f, 0.0f };
+			float VisualYaw = 0.0f;
 			bool WalkActive = false; // debug flag from behavior
 			bool MotionPlaying = false;
 			int ActiveNodeIndex = -1;

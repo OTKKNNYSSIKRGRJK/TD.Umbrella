@@ -38,7 +38,7 @@ namespace {
 	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
 	constexpr float BossPresentationDuration{ 2.0f };
 	constexpr float BossPresentationCameraZoom{ 6.0f };
-	constexpr char BossEnemyName[]{ "KingSlime" };
+  constexpr char BossEnemyName[]{ "Boss" };
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
 		p_.Translate.X += p_.Velocity.X;
@@ -401,6 +401,7 @@ namespace Game::Scene::Impl {
 			PlayEnemy pe;
 			pe.BaseData = inst.baseData;
 			pe.Position = inst.position;
+            pe.CurrentAction = inst.currentAction;
 			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
 			pe.IsDead = inst.isDead;
           pe.HurtTimer = inst.hurtTimer;
@@ -408,6 +409,10 @@ namespace Game::Scene::Impl {
             pe.RenderFacingYaw = inst.renderFacingYaw;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
+            // visualOffset/visualYaw may not be present on all builds of EnemyInstance;
+			// fall back to neutral values to avoid compile errors and missing data.
+			pe.VisualOffset = { 0.0f, 0.0f, 0.0f };
+			pe.VisualYaw = 0.0f;
 			// pull debug flag from behavior if available
 			if (inst.behavior) {
 				pe.WalkActive = inst.behavior->IsWalkActive();

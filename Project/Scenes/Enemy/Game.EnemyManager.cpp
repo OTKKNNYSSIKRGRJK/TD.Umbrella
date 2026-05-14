@@ -43,6 +43,9 @@ namespace {
      if (baseHp < 0) {
 			return baseHp;
 		}
+
+
+
 		return (std::max)(1, static_cast<int>(std::round(static_cast<float>(baseHp) * kEnemyHpScale)));
 	}
 
@@ -886,10 +889,50 @@ namespace Game {
 				enemy.landingStunTimer -= deltaTime;
 			}
 
-			// --- プレイヤーとの距離計算 ---
+            // --- プレイヤーとの距離計算 ---
 			float dx = playerPosition.X - enemy.position.X;
 			float dy = playerPosition.Y - enemy.position.Y;
 			float dist = std::sqrt(dx * dx + dy * dy);
+
+			// Always orient the enemy toward the player so the visual facing
+			// remains correct even when the enemy momentarily stops.
+			enemy.facingRight = (dx > 0.0f);
+
+				// Debug: for Boss instances, log AI state and timers to file for diagnosis
+				if (enemy.baseData.name == "Boss") {
+					try {
+						static std::ofstream bossLog("boss_debug.log", std::ios::app);
+						if (bossLog) {
+							bossLog << "posX=" << enemy.position.X
+								<< " posY=" << enemy.position.Y
+								<< " aiState=" << static_cast<int>(enemy.aiState)
+								<< " preAttack=" << enemy.preAttackTimer
+								<< " attack=" << enemy.attackTimer
+								<< " cooldown=" << enemy.attackCooldownTimer
+								<< " motionPlaying=" << enemy.motionController.IsPlaying()
+								<< " velX=" << enemy.velocity.X
+								<< " dist=" << dist
+								<< " currentAction=" << enemy.currentAction
+								<< "\n";
+						}
+                    } catch (...) {}
+				}
+
+				// If enemy began PreAttack but the player immediately left beyond a
+				// safe cancel distance, cancel PreAttack and resume Chase so the
+				// enemy does not remain stuck waiting for a player who moved away.
+               if (enemy.aiState == EnemyInstance::AIState::PreAttack) {
+					float cancelDist = enemy.preferredCombatDistance * 1.35f;
+					if (dist > cancelDist) {
+						// revert to Chase and give a small movement impulse
+						enemy.aiState = EnemyInstance::AIState::Chase;
+						enemy.preAttackTimer = 0.0f;
+						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
+						// small cooldown to avoid immediate re-entering PreAttack
+						enemy.attackCooldownTimer = (std::max)(enemy.attackCooldownTimer, 0.25f);
+					}
+				}
 
 			if (enemy.landingStunTimer > 0.0f) {
 				enemy.currentAction = "Idle";
@@ -955,13 +998,25 @@ namespace Game {
 					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
 					float moveSpeed = enemy.baseData.moveSpeed;
 					
-					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+                    if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
 						// 遠距離タイプは適正距離の範囲内で姿勢を保つ
+						// Use hysteresis so the enemy does not stick when the player
+						// moves slightly in/out of preferred range.
 						float keepDistanceMin = enemy.preferredCombatDistance * 0.8f;
+                        // Stop/resume thresholds (hysteresis). Keep resume threshold close
+						// to avoid enemies getting stuck when the player jiggles near the
+						// boundary.
+						float stopThreshold = enemy.preferredCombatDistance * 0.95f;
+						float resumeThreshold = enemy.preferredCombatDistance * 1.02f;
 						if (dist < keepDistanceMin) {
 							moveDir = (dx > 0.0f) ? -1.0f : 1.0f; // 少し近いので離れる
-						} else if (dist <= enemy.preferredCombatDistance) {
-							moveSpeed = 0.0f; // 適正距離に入っているので止まって待機
+                        } else if (dist <= stopThreshold) {
+							// Instead of fully stopping, keep a small idle movement so the
+							// enemy doesn't get permanently stuck due to micro-movements.
+							moveSpeed = enemy.baseData.moveSpeed * 0.18f;
+						} else if (dist >= resumeThreshold) {
+							// player moved away enough: resume following
+							moveSpeed = enemy.baseData.moveSpeed;
 						}
 					} else if (enemy.sizeTier == kMinEnemySizeTier) {
 						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
@@ -1356,7 +1411,19 @@ namespace Game {
 				enemy.renderFacingYaw = (std::max)(enemy.renderFacingYaw - turnStep, targetFacingYaw);
 			}
 
-			// --- コライダー位置更新 ---
+            // --- コライダー位置更新 ---
+			// If an enemy is in Chase state but has effectively zero horizontal
+			// velocity while the player is outside preferred range, it's likely
+			// stuck due to small thresholding or motion cancellation. Apply a
+			// gentle forced resume to avoid permanent sticking.
+			if (enemy.aiState == EnemyInstance::AIState::Chase) {
+				if (std::abs(enemy.velocity.X) < 0.05f && !enemy.motionController.IsPlaying()) {
+					if (dist > enemy.preferredCombatDistance * 1.05f) {
+						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
+					}
+				}
+			}
 			enemy.UpdateCollider();
 		}
 	}

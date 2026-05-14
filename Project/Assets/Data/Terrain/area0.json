@@ -156,7 +156,7 @@
             "sizeCategory": 1
         },
         {
-            "enemyName": "KingSlime",
+            "enemyName": "Boss",
             "facingRight": true,
             "position": {
                 "x": 560.0,

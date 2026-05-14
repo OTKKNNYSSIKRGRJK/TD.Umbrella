@@ -98,6 +98,7 @@
   <ItemGroup>
     <None Include=".editorconfig" />
     <None Include="Assets\Data\Enemies\TutorialEnemy.json" />
+    <None Include="Assets\Data\Enemy\Boss.json" />
     <None Include="Assets\Data\Enemy\TutorialEnemy.json" />
     <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
     <None Include="KingSlime.json" />

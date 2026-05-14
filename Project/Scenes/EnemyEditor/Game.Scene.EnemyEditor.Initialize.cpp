@@ -41,8 +41,14 @@ namespace Game::Editor {
             {"loop", n.loop}, {"loopCooldown", n.loopCooldown},
 			{"facePlayer", n.facePlayer},
 			{"velocityFrictionX", n.velocityFrictionX},
-			{"jumpVelocityXMult", n.jumpVelocityXMult},
+         {"jumpVelocityXMult", n.jumpVelocityXMult},
 			{"jumpVelocityY", n.jumpVelocityY},
+			{"prepScale", { {"start", n.prepScale.start}, {"peak", n.prepScale.peak}, {"duration", n.prepScale.duration} }},
+       {"prepOffset", { {"x", n.prepOffset.x}, {"y", n.prepOffset.y} }},
+		{"prepYaw", n.prepYaw},
+		{"prepHold", n.prepHold},
+		{"prepSound", n.prepSound},
+		{"prepParticle", n.prepParticle},
 			{"splineMotionName", n.splineMotionName},
 			{"splineDuration", n.splineDuration}
 		};
@@ -65,6 +71,22 @@ namespace Game::Editor {
 		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
 		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
 		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+
+		if (j.contains("prepScale") && j["prepScale"].is_object()) {
+			auto const & ps = j["prepScale"];
+			if (ps.contains("start")) ps.at("start").get_to(n.prepScale.start);
+			if (ps.contains("peak")) ps.at("peak").get_to(n.prepScale.peak);
+			if (ps.contains("duration")) ps.at("duration").get_to(n.prepScale.duration);
+		}
+        if (j.contains("prepOffset") && j["prepOffset"].is_object()) {
+			auto const & po = j["prepOffset"];
+			if (po.contains("x")) po.at("x").get_to(n.prepOffset.x);
+			if (po.contains("y")) po.at("y").get_to(n.prepOffset.y);
+		}
+		if (j.contains("prepYaw")) j.at("prepYaw").get_to(n.prepYaw);
+		if (j.contains("prepHold")) j.at("prepHold").get_to(n.prepHold);
+		if (j.contains("prepSound")) j.at("prepSound").get_to(n.prepSound);
+		if (j.contains("prepParticle")) j.at("prepParticle").get_to(n.prepParticle);
 		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
 		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
 
@@ -97,7 +119,8 @@ namespace Game::Editor {
 			{"moveSpeed", e.moveSpeed}, {"attackCooldown", e.attackCooldown},
 			{"retreatThreshold", e.retreatThreshold},
 			{"patrolRadius", e.patrolRadius}, {"aggressiveness", e.aggressiveness},
-			{"attackType", (e.attackType == EnemyData::AttackType::Ranged) ? "Ranged" : "Melee"},
+           {"attackType", (e.attackType == EnemyData::AttackType::Ranged) ? "Ranged" : "Melee"},
+			{"noSplit", e.noSplit},
 			{"nodes", e.nodes},
 			{"links", e.links},
 		};
@@ -154,6 +177,7 @@ namespace Game::Editor {
 
 		if (j.contains("nodes")) j.at("nodes").get_to(e.nodes);
 		if (j.contains("links")) j.at("links").get_to(e.links);
+       if (j.contains("noSplit")) j.at("noSplit").get_to(e.noSplit);
 	}
 
 	void EnemyEditor::Initialize() {
