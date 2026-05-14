@@ -57,7 +57,7 @@ namespace Game {
 			basicControls.push_back(step);
 		}
 
-		// ステップ3: 抜刀・攻撃（Yボタン / J）— 攻撃のみ許可（移動やジャンプ不可）
+		// ステップ3: 抜刀・攻撃（Yボタン / J）— 移動・ジャンプ・攻撃を許可
 		{
 			TutorialStep step;
 			step.TextureIndex = 2U;
@@ -68,7 +68,7 @@ namespace Game {
 			step.RequiredKey = static_cast<uint16_t>(Lumina::OS::Windows::KEY::J); // Jキー
 			step.HighlightCenter = { 0.0f, 0.0f };
 			step.HighlightSize = { 0.0f, 0.0f };
-			step.AllowedInputs = AI::Input_Attack;
+			step.AllowedInputs = AI::Input_Move | AI::Input_Jump | AI::Input_Attack;
 			basicControls.push_back(step);
 		}
 		

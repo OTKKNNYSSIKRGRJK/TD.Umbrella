@@ -353,7 +353,7 @@ namespace Game::Scene::Impl {
 					// NDCでの左上の座標・サイズ
 					float base_x = -0.95f;
 					float base_y = 0.9f;
-					float width = 0.7f;  // バーの長さ (元: 0.4f)
+					float width = 1.06f;  // バーの長さ (元: 0.4f, 53%程度)
 					float height = 0.08f; // バーの太さ (元: 0.04f)
 
 					// 背景（暗いグレー）
