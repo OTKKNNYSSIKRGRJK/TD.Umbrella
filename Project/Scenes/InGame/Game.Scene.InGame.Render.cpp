@@ -152,9 +152,10 @@ namespace Game::Scene::Impl {
 					float renderFacingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
 
                     if (e.CurrentAction.find("Prep") != std::string::npos) {
-						// small action-specific tweak added on top of aimed rotation
-						swordRot.Z += renderFacingSign * -1.15f;
-						swordOffset.Y += 0.18f * e.Scale;
+						// 振りかぶる (raise overhead)
+						swordRot.Z += renderFacingSign * -2.4f;
+						swordOffset.X += renderFacingSign * -0.5f * e.Scale;
+						swordOffset.Y += 1.0f * e.Scale;
 					}
 				  else if (e.CurrentAction.find("Step") != std::string::npos) {
 						swordRot.Z += renderFacingSign * 0.35f;
@@ -180,10 +181,10 @@ namespace Game::Scene::Impl {
 						swordOffset.Y += 0.2f * e.Scale;
 					}
 					else if (e.CurrentAction.find("Slash") != std::string::npos) {
-					  swordScale.Y = 1.75f * e.Scale;
-						swordRot.Z += renderFacingSign * 0.85f;
-						swordOffset.X += renderFacingSign * 0.22f * e.Scale;
-						swordOffset.Y += 0.1f * e.Scale;
+					  swordScale.Y = 2.0f * e.Scale;
+						swordRot.Z += renderFacingSign * 1.5f;
+						swordOffset.X += renderFacingSign * 0.8f * e.Scale;
+						swordOffset.Y += -0.2f * e.Scale;
 					}
 					else if (e.CurrentAction.find("Recover") != std::string::npos || e.CurrentAction.find("Backstep") != std::string::npos) {
 						swordRot.Z += renderFacingSign * -0.1f;
