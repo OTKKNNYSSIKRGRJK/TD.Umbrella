@@ -1211,6 +1211,14 @@ namespace Game {
 					}
 				}
 
+				// If a node transition fired while a spline/motion was playing, cancel
+				// the currently playing motion so the instance can immediately respond
+				// to the newly-entered node (or resume AI). This prevents the boss
+				// from remaining frozen mid-motion when the player moves away.
+				if (transitioned && enemy.motionController.IsPlaying()) {
+					enemy.motionController.Stop();
+				}
+
 				// Editor-style per-node loop support: if no transition fired and the
 				// node requests looping, re-trigger the node after its splineDuration
 				// (or 1s) by resetting the timer and firing any boundBool and replaying

@@ -116,4 +116,6 @@ public:
     int GetActiveNodeIndex() const { return prevActiveNodeIndex_; }
 	Vector3 GetLastLocalOffset() const { return lastLocalOffset_; }
 	void SetLastLocalOffset(const Vector3& offset) { lastLocalOffset_ = offset; }
+    // Immediately stop playback and reset internal state
+	void Stop();
 };

@@ -146,6 +146,14 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 	return actionStartPosition_ + localOffset;
 }
 
+void MotionController::Stop() {
+    isPlaying_ = false;
+    motionTimer_ = 0.0f;
+    prevActiveNodeIndex_ = -1;
+    lastLocalOffset_ = Vector3{};
+    currentMotionName_.clear();
+}
+
 #if defined(_DEBUG)
 namespace {
     constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
