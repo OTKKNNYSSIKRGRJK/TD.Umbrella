@@ -147,7 +147,21 @@ namespace Game::Scene::Impl {
 
 					// Offset X should be placed toward the player in local X
 					float offsetX = std::copysign(0.92f * e.Scale, local_dx);
+                    // Base sword local offset (in enemy-local space)
 					Lumina::Math::F32x3 swordOffset{ offsetX, 0.78f * e.Scale, 0.0f };
+
+                    // Apply visual-only offset copied from runtime (motion-driven)
+					// but transform it from world-space into enemy-local space
+					// before adding to the sword's local offset. This decouples
+					// weapon motion from the body while keeping orientation.
+                    {
+						float vx = e.VisualOffset.X;
+						float vy = e.VisualOffset.Y;
+						float local_vx = cy * vx + sy * vy;
+						float local_vy = -sy * vx + cy * vy;
+						swordOffset.X += local_vx;
+						swordOffset.Y += local_vy;
+					}
 					// Determine actual rendered facing sign for additive action tweaks
 					float renderFacingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
 

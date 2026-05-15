@@ -6,6 +6,7 @@ import <cmath>;
 import <numbers>;
 import <algorithm>;
 import <string>;
+import <unordered_map>;
 
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
@@ -394,7 +395,17 @@ namespace Game::Scene::Impl {
 		// 死亡済みプロジェクタイルを除去
 		Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
-		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+        const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+		// Preserve previous-frame visual offsets keyed by enemy id so we can
+		// apply simple exponential smoothing. This creates a slight lag on
+		// attachment visuals (e.g. sword) so they appear more independent from
+		// the rigid body motion.
+		std::unordered_map<uint32_t, Lumina::Math::F32x3> oldVisualOffsets;
+		oldVisualOffsets.reserve(playState_.Enemies.size());
+		for (const auto& oldPe : playState_.Enemies) {
+			oldVisualOffsets[oldPe.Id] = oldPe.VisualOffset;
+		}
+
 		playState_.Enemies.clear();
 		playState_.Enemies.reserve(enemyInstances.size());
 		for (const auto& inst : enemyInstances) {
@@ -411,8 +422,26 @@ namespace Game::Scene::Impl {
 			pe.Scale = inst.modelScale;
             // visualOffset/visualYaw may not be present on all builds of EnemyInstance;
 			// fall back to neutral values to avoid compile errors and missing data.
-			pe.VisualOffset = { 0.0f, 0.0f, 0.0f };
-			pe.VisualYaw = 0.0f;
+            // Copy id for frame-to-frame matching
+			pe.Id = inst.id;
+
+			// Get current motion offset produced by MotionController (world-space)
+			Lumina::Math::F32x3 currentMotionOffset = inst.motionController.GetLastLocalOffset();
+			// Apply exponential smoothing against previous visual offset to
+			// produce a lagged visual transform for attachments. If we have no
+			// previous value, use the raw motion offset.
+			auto itOld = oldVisualOffsets.find(pe.Id);
+			if (itOld != oldVisualOffsets.end()) {
+				constexpr float alpha = 0.32f; // smoothing factor: lower -> more lag
+				pe.VisualOffset.X = itOld->second.X * (1.0f - alpha) + currentMotionOffset.X * alpha;
+				pe.VisualOffset.Y = itOld->second.Y * (1.0f - alpha) + currentMotionOffset.Y * alpha;
+				pe.VisualOffset.Z = itOld->second.Z * (1.0f - alpha) + currentMotionOffset.Z * alpha;
+			} else {
+				pe.VisualOffset = currentMotionOffset;
+			}
+
+			// Visual yaw: simple lerp towards runtime render yaw for smoothing
+			pe.VisualYaw = inst.renderFacingYaw;
 			// pull debug flag from behavior if available
 			if (inst.behavior) {
 				pe.WalkActive = inst.behavior->IsWalkActive();
