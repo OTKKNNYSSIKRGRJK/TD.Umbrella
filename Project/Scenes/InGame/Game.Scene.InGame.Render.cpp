@@ -829,7 +829,7 @@ namespace Game::Scene::Impl {
 						};
 
 						Lumina::F32x4 lineCol{ 1.0f, 1.0f, 1.0f, 1.0f };
-						float lineThickness = 0.003f;
+						float lineThickness = 0.005f;
 
 						for (const auto& a : allAreas) {
 
@@ -895,28 +895,35 @@ namespace Game::Scene::Impl {
 								float hhB = itTo->second.h * scale * 0.5f;
 								float lB = xB - hwB, rB = xB + hwB, tB = yB + hhB, bB = yB - hhB;
 
-								auto getExitPoint = [](float px, float py, float dirX, float dirY, float l, float r, float t, float b) {
-									float t_x = 1.0f;
-									if (dirX > 1e-4f) t_x = (r - px) / dirX;
-									else if (dirX < -1e-4f) t_x = (l - px) / dirX;
-									
-									float t_y = 1.0f;
-									if (dirY > 1e-4f) t_y = (t - py) / dirY;
-									else if (dirY < -1e-4f) t_y = (b - py) / dirY;
-									
-									float t_min = (std::min)(1.0f, (std::min)(t_x, t_y));
-									t_min = (std::max)(0.0f, t_min);
-									return std::pair<float, float>{ px + dirX * t_min, py + dirY * t_min };
-								};
+								float deltaX = std::abs(xB - xA);
+								float deltaY = std::abs(yB - yA);
 
-								auto pA = getExitPoint(x1, y1, x2 - x1, y2 - y1, lA, rA, tA, bA);
-								auto pB = getExitPoint(x2, y2, x1 - x2, y1 - y2, lB, rB, tB, bB);
+								float pxA = xA, pyA = yA;
+								float pxB = xB, pyB = yB;
+								
+								// Clamp exit points strictly to the faces based on routing
+								if (deltaX > deltaY) {
+									pxA = (xB > xA) ? rA : lA;
+									pxB = (xA > xB) ? rB : lB;
+									pyA = y1;
+									pyB = y2;
+								} else {
+									pxA = x1;
+									pxB = x2;
+									pyA = (yB > yA) ? tA : bA;
+									pyB = (yA > yB) ? tB : bB;
+								}
 
-								auto drawSegment = [&](float sx, float sy, float ex, float ey) {
+								auto drawSegment = [&](float sx, float sy, float ex, float ey, bool extS, bool extE) {
 									float dx = ex - sx;
 									float dy = ey - sy;
 									float len = std::sqrt(dx*dx + dy*dy);
 									if (len > 1e-4f) {
+										float tx = (dx / len) * lineThickness;
+										float ty = (dy / len) * lineThickness;
+										if (extS) { sx -= tx; sy -= ty; }
+										if (extE) { ex += tx; ey += ty; }
+										
 										float nx = -dy / len * lineThickness;
 										float ny = dx / len * lineThickness;
 										PrimitiveManager_Tutorial_->BatchTriangle(
@@ -932,19 +939,26 @@ namespace Game::Scene::Impl {
 									}
 								};
 
-								float deltaX = std::abs(xB - xA);
-								float deltaY = std::abs(yB - yA);
-
 								if (deltaX > deltaY) {
-									float midX = (pA.first + pB.first) * 0.5f;
-									drawSegment(pA.first, pA.second, midX, pA.second);
-									drawSegment(midX, pA.second, midX, pB.second);
-									drawSegment(midX, pB.second, pB.first, pB.second);
+									if (deltaY < 1e-3f) {
+										float avgY = (pyA + pyB) * 0.5f;
+										pyA = avgY;
+										pyB = avgY;
+									}
+									float midX = (pxA + pxB) * 0.5f;
+									drawSegment(pxA, pyA, midX, pyA, false, true);
+									drawSegment(midX, pyA, midX, pyB, true, true);
+									drawSegment(midX, pyB, pxB, pyB, true, false);
 								} else {
-									float midY = (pA.second + pB.second) * 0.5f;
-									drawSegment(pA.first, pA.second, pA.first, midY);
-									drawSegment(pA.first, midY, pB.first, midY);
-									drawSegment(pB.first, midY, pB.first, pB.second);
+									if (deltaX < 1e-3f) {
+										float avgX = (pxA + pxB) * 0.5f;
+										pxA = avgX;
+										pxB = avgX;
+									}
+									float midY = (pyA + pyB) * 0.5f;
+									drawSegment(pxA, pyA, pxA, midY, false, true);
+									drawSegment(pxA, midY, pxB, midY, true, true);
+									drawSegment(pxB, midY, pxB, pyB, true, false);
 								}
 							}
 						}
