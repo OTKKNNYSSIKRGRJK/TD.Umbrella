@@ -828,6 +828,20 @@ namespace Game::Scene::Impl {
 							return false;
 						};
 
+						if (minimapExpanded_) {
+							Lumina::F32x4 darkenCol{ 0.0f, 0.0f, 0.0f, 0.8f };
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 9U },
+								{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {1.0f, 0.0f}, 9U },
+								{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 1.0f}, 9U }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {1.0f, 0.0f}, 9U },
+								{ {  1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {1.0f, 1.0f}, 9U },
+								{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 1.0f}, 9U }
+							);
+						}
+
 						Lumina::F32x4 lineCol{ 1.0f, 1.0f, 1.0f, 1.0f };
 						float lineThickness = 0.005f;
 
@@ -1027,6 +1041,48 @@ namespace Game::Scene::Impl {
 									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U }
 								);
 							}
+						}
+
+						// --- Minimap UI Labels ---
+						float texW = 0.375f;
+						float texH = 0.222f;
+						Lumina::F32x4 uiCol{1.0f, 1.0f, 1.0f, 1.0f};
+						
+						if (minimapExpanded_) {
+							uint32_t texID = 11U; // minimap_close_ui
+							float cx = 0.0f;
+							float bottom = -0.9f;
+							float left = cx - texW * 0.5f;
+							float right = cx + texW * 0.5f;
+							float top = bottom + texH;
+							
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { left,  top, 0.0f, 1.0f }, uiCol, {0.0f, 0.0f}, texID },
+								{ { right, top, 0.0f, 1.0f }, uiCol, {1.0f, 0.0f}, texID },
+								{ { left,  bottom, 0.0f, 1.0f }, uiCol, {0.0f, 1.0f}, texID }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { right, top, 0.0f, 1.0f }, uiCol, {1.0f, 0.0f}, texID },
+								{ { right, bottom, 0.0f, 1.0f }, uiCol, {1.0f, 1.0f}, texID },
+								{ { left,  bottom, 0.0f, 1.0f }, uiCol, {0.0f, 1.0f}, texID }
+							);
+						} else {
+							uint32_t texID = 10U; // minimap_ui
+							float right = 0.95f;
+							float bottom = -0.95f;
+							float left = right - texW;
+							float top = bottom + texH;
+							
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { left,  top, 0.0f, 1.0f }, uiCol, {0.0f, 0.0f}, texID },
+								{ { right, top, 0.0f, 1.0f }, uiCol, {1.0f, 0.0f}, texID },
+								{ { left,  bottom, 0.0f, 1.0f }, uiCol, {0.0f, 1.0f}, texID }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { right, top, 0.0f, 1.0f }, uiCol, {1.0f, 0.0f}, texID },
+								{ { right, bottom, 0.0f, 1.0f }, uiCol, {1.0f, 1.0f}, texID },
+								{ { left,  bottom, 0.0f, 1.0f }, uiCol, {0.0f, 1.0f}, texID }
+							);
 						}
 					}
 				}
