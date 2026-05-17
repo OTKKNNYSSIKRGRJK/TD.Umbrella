@@ -588,10 +588,12 @@ namespace Game::Scene::Impl {
 		TerrainEditor_->SetShapes(*Terrain_);
 		TerrainEditor_->SetCamera(*Camera_);
 		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
-		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 		objMotionEditor_.Initialize();
 		#endif
+
+		// Release ビルドでもミニマップ用にエリアデータを読み込む
+		areaEditor_.Initialize();
 
 		playState_.IsPlaying = true;
 		CheckAndLoadArea(0);
@@ -724,6 +726,16 @@ namespace Game::Scene::Impl {
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
 		PrimitiveManager_Tutorial_ = std::make_unique<Lumina::PrimitiveManager>();
 		PrimitiveManager_Tutorial_->Initialize(
+			d3d12Context,
+			L"Assets/Shaders/Primitive.VS.hlsl",
+			L"Assets/Shaders/Primitive.PS.hlsl",
+			false,
+			false  // 深度テスト無効
+		);
+
+		// ミニマップ専用PrimitiveManager（深度テストなし）
+		PrimitiveManager_Minimap_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager_Minimap_->Initialize(
 			d3d12Context,
 			L"Assets/Shaders/Primitive.VS.hlsl",
 			L"Assets/Shaders/Primitive.PS.hlsl",

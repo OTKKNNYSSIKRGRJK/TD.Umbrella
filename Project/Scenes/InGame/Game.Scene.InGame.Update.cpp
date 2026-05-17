@@ -1473,6 +1473,11 @@ namespace Game::Scene::Impl {
 			}
 		}
 
+		// M キーでミニマップ拡大表示トグル
+		if (keyboard.IsJustPressed(KEY::M)) {
+			minimapExpanded_ = !minimapExpanded_;
+		}
+
 		if (playState_.IsPaused) {
 			playState_.PauseAnimationTimer += 1.0f / 60.0f;
 			bool upHeld = keyboard.IsPressed(KEY::W) || keyboard.IsPressed(KEY::ARROW_UP) || pad.IsHold(0x0001);

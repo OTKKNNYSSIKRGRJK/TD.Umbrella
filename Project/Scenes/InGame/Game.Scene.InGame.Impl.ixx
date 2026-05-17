@@ -147,6 +147,10 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Game::TutorialManager> TutorialManager_;
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Tutorial_;
 
+		// ミニマップ専用
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Minimap_;
+		bool minimapExpanded_ = false;
+
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
 			Lumina::Math::F32x3 Velocity{ 0.0f, 0.0f, 0.0f };

@@ -631,8 +631,7 @@ namespace Game::Scene::Impl {
 				// --- Ender Lilies Style Minimap ---
 				if (playState_.IsPlaying && !areaEditor_.GetAllAreas().empty()) {
 					const auto& allAreas = areaEditor_.GetAllAreas();
-					
-					// BFS Layout Calculation
+
 					struct GridPos {
 						int x, y;
 						bool operator<(const GridPos& other) const {
@@ -715,9 +714,6 @@ namespace Game::Scene::Impl {
 					constexpr float gridSpacingY = 1.8f;
 
 					for (const auto& a : allAreas) {
-						// Only calculate bounds and nodes for visited areas
-						if (playState_.VisitedAreas.count(a.index) == 0) continue;
-
 						GridPos gp = gridLayout[a.index];
 						float cx = gp.x * gridSpacingX;
 						float cy = gp.y * gridSpacingY;
@@ -727,12 +723,16 @@ namespace Game::Scene::Impl {
 						if (aw > 2.0f) aw = 2.0f;
 						if (ah > 1.5f) ah = 1.5f;
 
-						nodes.push_back({ a.index, cx, cy, aw, ah });
-						
+						// Calculate bounds for ALL areas to keep scale fixed
 						minCX = (std::min)(minCX, cx - aw * 0.5f);
 						minCY = (std::min)(minCY, cy - ah * 0.5f);
 						maxCX = (std::max)(maxCX, cx + aw * 0.5f);
 						maxCY = (std::max)(maxCY, cy + ah * 0.5f);
+
+						// Only draw visited areas
+						if (playState_.VisitedAreas.count(a.index) == 0) continue;
+
+						nodes.push_back({ a.index, cx, cy, aw, ah });
 					}
 
 					if (!nodes.empty()) {
@@ -742,10 +742,14 @@ namespace Game::Scene::Impl {
 						if (rangeY < 1e-3f) rangeY = 1.0f;
 
 
-						float mapLeft = 0.4f;
-						float mapRight = 0.95f;
-						float mapBottom = -0.95f;
-						float mapTop = -0.3f;
+						float mapLeft, mapRight, mapBottom, mapTop;
+						if (minimapExpanded_) {
+							mapLeft = -0.85f; mapRight = 0.85f;
+							mapBottom = -0.85f; mapTop = 0.85f;
+						} else {
+							mapLeft = 0.4f; mapRight = 0.95f;
+							mapBottom = -0.95f; mapTop = -0.3f;
+						}
 						
 						float mapW = mapRight - mapLeft;
 						float mapH = mapTop - mapBottom;
@@ -883,14 +887,14 @@ namespace Game::Scene::Impl {
 									float ny = dx / len * lineThickness;
 
 									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U }
+										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U }
 									);
 									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
-										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.0f, 0.0f}, 0U }
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
+										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U }
 									);
 								}
 							}
@@ -913,14 +917,14 @@ namespace Game::Scene::Impl {
 
 							Lumina::F32x4 fillCol = isCurrent ? Lumina::F32x4{0.2f, 0.4f, 1.0f, 0.9f} : Lumina::F32x4{0.0f, 0.0f, 0.0f, 0.9f};
 							PrimitiveManager_Tutorial_->BatchTriangle(
-								{ { left,  top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
-								{ { right, top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
-								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U }
+								{ { left,  top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U }
 							);
 							PrimitiveManager_Tutorial_->BatchTriangle(
-								{ { right, top, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
-								{ { right, bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U },
-								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.0f, 0.0f}, 0U }
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
+								{ { right, bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U }
 							);
 
 
@@ -929,14 +933,14 @@ namespace Game::Scene::Impl {
 							
 							auto addRect = [&](float l, float r, float t, float b) {
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { l, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
-									{ { r, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
-									{ { l, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U }
+									{ { l, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U }
 								);
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { r, t, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
-									{ { r, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U },
-									{ { l, b, 0.0f, 1.0f }, borderCol, {0.0f, 0.0f}, 0U }
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
+									{ { r, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U }
 								);
 							};
 							
@@ -950,14 +954,14 @@ namespace Game::Scene::Impl {
 								Lumina::F32x4 goalCol{ 0.1f, 0.8f, 0.1f, 1.0f };
 								float gw = 0.012f, gh = 0.012f * 1280.0f / 720.0f;
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { x, y + gh, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
-									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
-									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U }
+									{ { x, y + gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U }
 								);
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
-									{ { x, y - gh, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U },
-									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.0f, 0.0f}, 0U }
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
+									{ { x, y - gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U }
 								);
 							}
 						}
