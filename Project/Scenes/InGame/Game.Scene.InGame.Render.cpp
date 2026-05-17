@@ -887,14 +887,14 @@ namespace Game::Scene::Impl {
 									float ny = dx / len * lineThickness;
 
 									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U }
+										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
 									);
 									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
-										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 0U }
+										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
 									);
 								}
 							}
@@ -917,14 +917,14 @@ namespace Game::Scene::Impl {
 
 							Lumina::F32x4 fillCol = isCurrent ? Lumina::F32x4{0.2f, 0.4f, 1.0f, 0.9f} : Lumina::F32x4{0.0f, 0.0f, 0.0f, 0.9f};
 							PrimitiveManager_Tutorial_->BatchTriangle(
-								{ { left,  top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
-								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
-								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U }
+								{ { left,  top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U },
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U }
 							);
 							PrimitiveManager_Tutorial_->BatchTriangle(
-								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
-								{ { right, bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U },
-								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 0U }
+								{ { right, top, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U },
+								{ { right, bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U },
+								{ { left,  bottom, 0.0f, 1.0f }, fillCol, {0.5f, 0.5f}, 9U }
 							);
 
 
@@ -933,14 +933,14 @@ namespace Game::Scene::Impl {
 							
 							auto addRect = [&](float l, float r, float t, float b) {
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { l, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
-									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
-									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U }
+									{ { l, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U },
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U }
 								);
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
-									{ { r, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U },
-									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 0U }
+									{ { r, t, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U },
+									{ { r, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U },
+									{ { l, b, 0.0f, 1.0f }, borderCol, {0.5f, 0.5f}, 9U }
 								);
 							};
 							
@@ -954,14 +954,14 @@ namespace Game::Scene::Impl {
 								Lumina::F32x4 goalCol{ 0.1f, 0.8f, 0.1f, 1.0f };
 								float gw = 0.012f, gh = 0.012f * 1280.0f / 720.0f;
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { x, y + gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
-									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
-									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U }
+									{ { x, y + gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U },
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U }
 								);
 								PrimitiveManager_Tutorial_->BatchTriangle(
-									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
-									{ { x, y - gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U },
-									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 0U }
+									{ { x + gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U },
+									{ { x, y - gh, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U },
+									{ { x - gw, y, 0.0f, 1.0f }, goalCol, {0.5f, 0.5f}, 9U }
 								);
 							}
 						}

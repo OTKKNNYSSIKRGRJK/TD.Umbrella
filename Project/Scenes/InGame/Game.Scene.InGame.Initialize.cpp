@@ -70,6 +70,7 @@ namespace Game::Scene::Impl {
 			{ "gameover_retry", "Assets/Img/UI/Retry.png" },
 			{ "gameover_returntotitle", "Assets/Img/UI/returntotitle.png" },
 			{ "gameover", "Assets/Img/UI/gameover.png" },
+			{ "White16x16", "Assets/Img/White16x16.png" },
 		};
 		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
@@ -720,7 +721,7 @@ namespace Game::Scene::Impl {
 		TutorialManager_->Initialize();
 		TutorialManager_->RegisterSequences();
 		// チュートリアルテクスチャは基本テクスチャ9枚 + 追加テクスチャの直後に配置
-		TutorialManager_->TutorialTextureStartIndex = 9U + static_cast<uint32_t>(AdditionalTextures_.size());
+		TutorialManager_->TutorialTextureStartIndex = 10U + static_cast<uint32_t>(AdditionalTextures_.size());
 		TutorialManager_->TutorialTextureCount = 4U;
 
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
