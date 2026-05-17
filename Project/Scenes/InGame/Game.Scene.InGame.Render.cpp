@@ -683,19 +683,52 @@ namespace Game::Scene::Impl {
 						while (head < queue.size()) {
 							int curr = queue[head++];
 							GridPos cPos = gridLayout[curr];
-							int yOffset = 0;
+
+							const Game::Editor::AreaData* currData = nullptr;
+							for (const auto& a : allAreas) {
+								if (a.index == curr) {
+									currData = &a;
+									break;
+								}
+							}
+
 							for (int neighbor : adjList[curr]) {
 								if (gridLayout.count(neighbor) == 0) {
-									int nx = cPos.x + 1;
-									int ny = cPos.y + yOffset;
+									int dirX = 1;
+									int dirY = 0;
+									if (currData) {
+										for (const auto& conn : currData->connections) {
+											if (conn.targetAreaIndex == neighbor) {
+												float cx = currData->width / 2.0f;
+												float cy = currData->height / 2.0f;
+												float rx = (conn.position.x - cx) / currData->width;
+												float ry = (conn.position.y - cy) / currData->height;
+												if (std::abs(rx) > std::abs(ry)) {
+													dirX = (rx > 0) ? 1 : -1;
+													dirY = 0;
+												} else {
+													dirX = 0;
+													dirY = (ry > 0) ? 1 : -1;
+												}
+												break;
+											}
+										}
+									}
+
+									int nx = cPos.x + dirX;
+									int ny = cPos.y + dirY;
+									int step = 1;
 									while (gridOccupancy.count({nx, ny}) > 0) {
-										yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
-										ny = cPos.y + yOffset;
+										if (dirX != 0) {
+											ny = cPos.y + dirY + ((step % 2 == 0) ? step / 2 : -(step + 1) / 2);
+										} else {
+											nx = cPos.x + dirX + ((step % 2 == 0) ? step / 2 : -(step + 1) / 2);
+										}
+										step++;
 									}
 									gridLayout[neighbor] = {nx, ny};
 									gridOccupancy[{nx, ny}] = neighbor;
 									queue.push_back(neighbor);
-									yOffset = (yOffset <= 0) ? -yOffset + 1 : -yOffset;
 								}
 							}
 						}
@@ -879,23 +912,39 @@ namespace Game::Scene::Impl {
 								auto pA = getExitPoint(x1, y1, x2 - x1, y2 - y1, lA, rA, tA, bA);
 								auto pB = getExitPoint(x2, y2, x1 - x2, y1 - y2, lB, rB, tB, bB);
 
-								float dx = pB.first - pA.first;
-								float dy = pB.second - pA.second;
-								float len = std::sqrt(dx*dx + dy*dy);
-								if (len > 1e-4f) {
-									float nx = -dy / len * lineThickness;
-									float ny = dx / len * lineThickness;
+								auto drawSegment = [&](float sx, float sy, float ex, float ey) {
+									float dx = ex - sx;
+									float dy = ey - sy;
+									float len = std::sqrt(dx*dx + dy*dy);
+									if (len > 1e-4f) {
+										float nx = -dy / len * lineThickness;
+										float ny = dx / len * lineThickness;
+										PrimitiveManager_Tutorial_->BatchTriangle(
+											{ { sx + nx, sy + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+											{ { ex + nx, ey + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+											{ { sx - nx, sy - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
+										);
+										PrimitiveManager_Tutorial_->BatchTriangle(
+											{ { ex + nx, ey + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+											{ { ex - nx, ey - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
+											{ { sx - nx, sy - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
+										);
+									}
+								};
 
-									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pA.first + nx, pA.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
-									);
-									PrimitiveManager_Tutorial_->BatchTriangle(
-										{ { pB.first + nx, pB.second + ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
-										{ { pB.first - nx, pB.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U },
-										{ { pA.first - nx, pA.second - ny, 0.0f, 1.0f }, lineCol, {0.5f, 0.5f}, 9U }
-									);
+								float deltaX = std::abs(xB - xA);
+								float deltaY = std::abs(yB - yA);
+
+								if (deltaX > deltaY) {
+									float midX = (pA.first + pB.first) * 0.5f;
+									drawSegment(pA.first, pA.second, midX, pA.second);
+									drawSegment(midX, pA.second, midX, pB.second);
+									drawSegment(midX, pB.second, pB.first, pB.second);
+								} else {
+									float midY = (pA.second + pB.second) * 0.5f;
+									drawSegment(pA.first, pA.second, pA.first, midY);
+									drawSegment(pA.first, midY, pB.first, midY);
+									drawSegment(pB.first, midY, pB.first, pB.second);
 								}
 							}
 						}
