@@ -93,6 +93,8 @@ private:
 	bool isPlaying_ = false;// 再生中かどうか
 	Vector3 actionStartPosition_;// モーション開始時の座標(相対的に動かすため)
 	Vector3 lastLocalOffset_;// 前回の相対オフセット
+	float playbackDirectionSign_ = 1.0f;
+	bool hasLockedPlaybackDirection_ = false;
 
     // Node event support
     NodeEventCallback nodeEventCallback_{};
