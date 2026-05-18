@@ -834,7 +834,7 @@ namespace Game {
 
 	void EnemyManager::RegisterCollidersTo(CollisionManager& cm) {
 		for (auto& enemy : instances_) {
-			if (enemy.isDead) continue;
+         if (enemy.isDead || enemy.spawnTimer > 0.0f) continue;
 			for (auto& col : enemy.colliders) {
 				cm.SetColliders(col.get());
 			}
@@ -861,6 +861,14 @@ namespace Game {
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+
+			if (enemy.spawnTimer > 0.0f) {
+				enemy.spawnTimer = (std::max)(0.0f, enemy.spawnTimer - deltaTime);
+				enemy.velocity = { 0.0f, 0.0f, 0.0f };
+				enemy.currentAction = "Idle";
+				enemy.UpdateCollider();
+				continue;
+			}
 
 			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
 
@@ -1443,6 +1451,7 @@ namespace Game {
 	bool EnemyManager::DealDamage(uint32_t enemyId, int damage) {
 		EnemyInstance* enemy = GetInstance(enemyId);
 		if (!enemy || enemy->isDead) return false;
+        if (enemy->spawnTimer > 0.0f) return false;
 		if (enemy->currentHP < 0 || HasInvulnerableHpSetting(enemy->baseData)) return false;
 
 		enemy->currentHP -= damage;
@@ -1482,6 +1491,7 @@ namespace Game {
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+          if (enemy.spawnTimer > 0.0f) continue;
 			if (enemy.currentHP < 0 || HasInvulnerableHpSetting(enemy.baseData)) continue;
 
 			float dx = enemy.position.X - origin.X;

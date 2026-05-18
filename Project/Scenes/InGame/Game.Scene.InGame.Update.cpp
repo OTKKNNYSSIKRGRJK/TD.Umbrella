@@ -39,6 +39,8 @@ namespace {
 	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
 	constexpr float BossPresentationDuration{ 2.0f };
 	constexpr float BossPresentationCameraZoom{ 6.0f };
+   constexpr float EnemySpawnPresentationDuration{ 0.8f };
+ constexpr float BossShowcaseSpawnDuration{ 1.35f };
   constexpr char BossEnemyName[]{ "Boss" };
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
@@ -89,8 +91,29 @@ namespace Game::Scene::Impl {
 		playState_.BossPresentationTimer = BossPresentationDuration;
 		playState_.BossPresentationDuration = BossPresentationDuration;
 		playState_.BossPresentationFocusPosition = bossIt->Position;
-		playState_.TransitionCooldownTimer = (std::max)(playState_.TransitionCooldownTimer, BossPresentationDuration);
-		Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 20);
+
+		for (auto& enemy : playState_.Enemies) {
+			if (enemy.BaseData.name == BossEnemyName) {
+				enemy.SpawnTimer = BossShowcaseSpawnDuration;
+				enemy.SpawnDuration = BossShowcaseSpawnDuration;
+				break;
+			}
+		}
+
+		for (auto& enemy : Game::EnemyManager::GetInstance()->GetAllInstances()) {
+			if (enemy.baseData.name == BossEnemyName) {
+				enemy.spawnTimer = BossShowcaseSpawnDuration;
+				enemy.spawnDuration = BossShowcaseSpawnDuration;
+				break;
+			}
+		}
+
+      if (playState_.TransitionCooldownTimer < BossPresentationDuration) {
+			playState_.TransitionCooldownTimer = BossPresentationDuration;
+		}
+		if (Event::CameraShakingTimer < 20) {
+			Event::CameraShakingTimer = 20;
+		}
 	}
 
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
@@ -258,10 +281,23 @@ namespace Game::Scene::Impl {
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
            pe.RenderFacingYaw = pe.FacingRight ? 0.0f : 3.14159265f;
+           pe.SpawnTimer = EnemySpawnPresentationDuration;
+			pe.SpawnDuration = EnemySpawnPresentationDuration;
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
+          auto* spawnedEnemy = Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
+			if (spawnedEnemy) {
+				spawnedEnemy->spawnTimer = EnemySpawnPresentationDuration;
+				spawnedEnemy->spawnDuration = EnemySpawnPresentationDuration;
+               playState_.Enemies.back().Id = spawnedEnemy->id;
+			}
+		}
+
+		if (!playState_.CurrentArea.enemies.empty()) {
+         if (Event::CameraShakingTimer < 8) {
+				Event::CameraShakingTimer = 8;
+			}
 		}
 
 		if (Player_) {
@@ -418,6 +454,8 @@ namespace Game::Scene::Impl {
           pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
             pe.RenderFacingYaw = inst.renderFacingYaw;
+            pe.SpawnTimer = inst.spawnTimer;
+			pe.SpawnDuration = inst.spawnDuration;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
             // visualOffset/visualYaw may not be present on all builds of EnemyInstance;
@@ -521,7 +559,9 @@ namespace Game::Scene::Impl {
 				playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
 				-30.0f + BossPresentationCameraZoom * bossFocusWeight
 			};
-			Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+           if (Event::CameraShakingTimer < 2) {
+				Event::CameraShakingTimer = 2;
+			}
 		}
 		else {
 			newCameraPos = {
@@ -1390,6 +1430,20 @@ namespace Game::Scene::Impl {
 /// dev-Kouda-4.1
         if (playState_.IsBossPresentationActive) {
 			playState_.BossPresentationTimer -= 1.0f / 60.0f;
+
+			for (auto& enemy : Game::EnemyManager::GetInstance()->GetAllInstances()) {
+				if (enemy.spawnTimer > 0.0f) {
+					enemy.spawnTimer -= 1.0f / 60.0f;
+					if (enemy.spawnTimer < 0.0f) {
+						enemy.spawnTimer = 0.0f;
+					}
+					enemy.velocity = { 0.0f, 0.0f, 0.0f };
+					enemy.currentAction = "Idle";
+					enemy.UpdateCollider();
+				}
+			}
+			Update_<"Enemies-2">();
+
 			if (playState_.BossPresentationTimer <= 0.0f) {
 				playState_.IsBossPresentationActive = false;
 				playState_.BossPresentationTimer = 0.0f;
