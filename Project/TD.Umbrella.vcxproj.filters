@@ -286,5 +286,6 @@
     <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
     <None Include="Assets\Data\Enemy\TutorialEnemy.json" />
     <None Include="Assets\Data\Enemies\TutorialEnemy.json" />
+    <None Include="Assets\Data\Enemy\Boss.json" />
   </ItemGroup>
 </Project>

@@ -43,6 +43,9 @@ namespace {
      if (baseHp < 0) {
 			return baseHp;
 		}
+
+
+
 		return (std::max)(1, static_cast<int>(std::round(static_cast<float>(baseHp) * kEnemyHpScale)));
 	}
 
@@ -368,6 +371,17 @@ namespace Game {
 		enemy.currentAction = "Idle";
 		walk_ = false;
 		followPhase_ = FollowPhase::None;
+     // Adjust jump-above cooldown according to spawn scale/size.
+		// Larger modelScale => longer cooldown, smaller => shorter.
+		// Base interval is 6.0s for a medium-sized slime (scale ~= 0.5).
+		jumpCooldownInterval_ = 6.0f * (enemy.modelScale / 0.5f);
+
+		// Make the follow-above behavior more dramatic for boss-sized slimes.
+		float scaleFactor = (enemy.modelScale / 0.5f);
+		followDuration_ = 1.2f * scaleFactor * 1.2f; // longer hover for bigger slimes
+		hoverHeight_ = 5.0f * scaleFactor * 1.3f;    // hover higher for dramatic drop
+		riseDuration_ = 0.45f;                      // slightly snappier rise
+		dropSpeed_ = -18.0f * scaleFactor * 1.25f;  // harder impact for larger slimes
 	}
 
 	void KingSlimeBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
@@ -404,14 +418,14 @@ namespace Game {
 		// --- Follow-above phase handling ---
 		switch (followPhase_) {
 		case FollowPhase::Rising:
-			// Update target every frame so it follows the moving player
+           // Update target every frame so it follows the moving player
 			riseTargetPos_.X = playerPosition.X;
 			riseTargetPos_.Y = playerPosition.Y + hoverHeight_;
 			// Linear interpolation from start to target position
 			riseTimer_ += deltaTime;
 			{
 				float t = (std::min)(riseTimer_ / riseDuration_, 1.0f);
-				enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
+                enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
 				enemy.position.Y = riseStartPos_.Y + (riseTargetPos_.Y - riseStartPos_.Y) * t;
 				enemy.position.Z = riseStartPos_.Z;
 				// Override velocity to prevent gravity interference
@@ -421,12 +435,12 @@ namespace Game {
 			if (riseTimer_ >= riseDuration_) {
 				followPhase_ = FollowPhase::Tracking;
 				followTimer_ = followDuration_;
-				lastTrackedX_ = playerPosition.X;
+                lastTrackedX_ = playerPosition.X;
 			}
 			break;
 
 		case FollowPhase::Tracking:
-			// Track player X while hovering at fixed height, invisible (off-screen)
+           // Track player X while hovering at fixed height, invisible (off-screen)
 			lastTrackedX_ = playerPosition.X;
 			enemy.position.X = playerPosition.X;
 			enemy.position.Y = playerPosition.Y + hoverHeight_;
@@ -448,6 +462,15 @@ namespace Game {
 				float expectedGroundedVelY = -9.8f * deltaTime;
 				bool isGrounded = (enemy.velocity.Y >= expectedGroundedVelY - 0.5f) && (enemy.velocity.Y <= 0.0f);
 				if (isGrounded && enemy.position.Y < playerPosition.Y + hoverHeight_) {
+					// Dramatic landing: apply small area damage and hitstop, and stamina/stun based on scale
+					float areaRadius = 1.2f * enemy.modelScale; // scale with model
+					int areaDamage = static_cast<int>(std::max(1.0f, enemy.baseData.power * 4.0f * enemy.modelScale));
+					// Deal area damage (non-directional)
+					EnemyManager::GetInstance()->DealAreaDamage(enemy.position, areaRadius, areaDamage, enemy.facingRight, false);
+					// Small hit stop for impact feel
+					Game::Event::AddHitStop(0.08f * (enemy.modelScale / 0.5f));
+					// Apply a landing stun scaled by model size (but clamp)
+					enemy.landingStunTimer = (std::min)(1.0f, 0.35f * (enemy.modelScale / 0.5f));
 					followPhase_ = FollowPhase::None;
 					enemy.runtimeBoolFlags["followAboveDone"] = true;
 				}
@@ -602,7 +625,7 @@ namespace Game {
 	}
 
 	void EnemyInstance::UpdateCollider() {
-		Lumina::Math::F32x3 scale{ modelScale, modelScale, modelScale };
+        Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
 		Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 		if (!facingRight) {
 			rot.Y = 3.14159265f; // rotate 180 degrees
@@ -811,7 +834,7 @@ namespace Game {
 
 	void EnemyManager::RegisterCollidersTo(CollisionManager& cm) {
 		for (auto& enemy : instances_) {
-			if (enemy.isDead) continue;
+            if (enemy.isDead || enemy.spawnTimer > 0.0f) continue;
 			for (auto& col : enemy.colliders) {
 				cm.SetColliders(col.get());
 			}
@@ -839,10 +862,18 @@ namespace Game {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
 
+			if (enemy.spawnTimer > 0.0f) {
+				enemy.spawnTimer = (std::max)(0.0f, enemy.spawnTimer - deltaTime);
+				enemy.velocity = { 0.0f, 0.0f, 0.0f };
+				enemy.currentAction = "Idle";
+				enemy.UpdateCollider();
+				continue;
+			}
+
 			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
 
 			// --- 物理挙動（重力） ---
-			enemy.velocity.Y -= 9.8f * deltaTime;
+          enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;
@@ -866,10 +897,50 @@ namespace Game {
 				enemy.landingStunTimer -= deltaTime;
 			}
 
-			// --- プレイヤーとの距離計算 ---
+            // --- プレイヤーとの距離計算 ---
 			float dx = playerPosition.X - enemy.position.X;
 			float dy = playerPosition.Y - enemy.position.Y;
 			float dist = std::sqrt(dx * dx + dy * dy);
+
+			// Always orient the enemy toward the player so the visual facing
+			// remains correct even when the enemy momentarily stops.
+			enemy.facingRight = (dx > 0.0f);
+
+				// Debug: for Boss instances, log AI state and timers to file for diagnosis
+				if (enemy.baseData.name == "Boss") {
+					try {
+						static std::ofstream bossLog("boss_debug.log", std::ios::app);
+						if (bossLog) {
+							bossLog << "posX=" << enemy.position.X
+								<< " posY=" << enemy.position.Y
+								<< " aiState=" << static_cast<int>(enemy.aiState)
+								<< " preAttack=" << enemy.preAttackTimer
+								<< " attack=" << enemy.attackTimer
+								<< " cooldown=" << enemy.attackCooldownTimer
+								<< " motionPlaying=" << enemy.motionController.IsPlaying()
+								<< " velX=" << enemy.velocity.X
+								<< " dist=" << dist
+								<< " currentAction=" << enemy.currentAction
+								<< "\n";
+						}
+                    } catch (...) {}
+				}
+
+				// If enemy began PreAttack but the player immediately left beyond a
+				// safe cancel distance, cancel PreAttack and resume Chase so the
+				// enemy does not remain stuck waiting for a player who moved away.
+               if (enemy.aiState == EnemyInstance::AIState::PreAttack) {
+					float cancelDist = enemy.preferredCombatDistance * 1.35f;
+					if (dist > cancelDist) {
+						// revert to Chase and give a small movement impulse
+						enemy.aiState = EnemyInstance::AIState::Chase;
+						enemy.preAttackTimer = 0.0f;
+						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
+						// small cooldown to avoid immediate re-entering PreAttack
+						enemy.attackCooldownTimer = (std::max)(enemy.attackCooldownTimer, 0.25f);
+					}
+				}
 
 			if (enemy.landingStunTimer > 0.0f) {
 				enemy.currentAction = "Idle";
@@ -935,13 +1006,25 @@ namespace Game {
 					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
 					float moveSpeed = enemy.baseData.moveSpeed;
 					
-					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
+                    if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
 						// 遠距離タイプは適正距離の範囲内で姿勢を保つ
+						// Use hysteresis so the enemy does not stick when the player
+						// moves slightly in/out of preferred range.
 						float keepDistanceMin = enemy.preferredCombatDistance * 0.8f;
+                        // Stop/resume thresholds (hysteresis). Keep resume threshold close
+						// to avoid enemies getting stuck when the player jiggles near the
+						// boundary.
+						float stopThreshold = enemy.preferredCombatDistance * 0.95f;
+						float resumeThreshold = enemy.preferredCombatDistance * 1.02f;
 						if (dist < keepDistanceMin) {
 							moveDir = (dx > 0.0f) ? -1.0f : 1.0f; // 少し近いので離れる
-						} else if (dist <= enemy.preferredCombatDistance) {
-							moveSpeed = 0.0f; // 適正距離に入っているので止まって待機
+                        } else if (dist <= stopThreshold) {
+							// Instead of fully stopping, keep a small idle movement so the
+							// enemy doesn't get permanently stuck due to micro-movements.
+							moveSpeed = enemy.baseData.moveSpeed * 0.18f;
+						} else if (dist >= resumeThreshold) {
+							// player moved away enough: resume following
+							moveSpeed = enemy.baseData.moveSpeed;
 						}
 					} else if (enemy.sizeTier == kMinEnemySizeTier) {
 						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
@@ -988,7 +1071,15 @@ namespace Game {
 			case EnemyInstance::AIState::Attack:
 				enemy.currentAction = "Attack";
 				if (enemy.attackTimer <= 0.0f) {
+              // Base cooldown, extended for melee burst/sliding attacks to prevent
+				// spammy horizontal slides. Scale extra cooldown with burstSpeedMultiplier.
+				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Melee) {
+					float extra = (enemy.burstSpeedMultiplier - 1.0f) * 0.8f; // tuned factor
+					if (extra < 0.0f) extra = 0.0f;
+					enemy.attackCooldownTimer = enemy.baseData.attackCooldown + extra;
+				} else {
 					enemy.attackCooldownTimer = enemy.baseData.attackCooldown;
+				}
 					enemy.aiState = EnemyInstance::AIState::Chase;
 					enemy.velocity.X *= 0.35f;
 				}
@@ -1032,34 +1123,25 @@ namespace Game {
 					enemy.stateTimer = 0.0f;
 				}
 
-				// リンク条件を評価して遷移
+                // リンク条件を評価して遷移
+				bool transitioned = false;
 				for (const auto& link : enemy.baseData.links) {
 					if (link.from != currentNodeId) continue;
 					std::string c = link.condition;
 					if (c.rfind("Time>=", 0) == 0) {
-						bool requiresGrounded = false;
-						if (c.find("&Grounded") != std::string::npos) {
-							requiresGrounded = true;
-							c = c.substr(0, c.find("&Grounded"));
-						}
-
 						try {
 							float threshold = std::stof(c.substr(6));
-							if (enemy.stateTimer >= threshold) {
-								float expectedGroundedVelY = -9.8f * deltaTime;
-								bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
-
-								if (!requiresGrounded || isGrounded) {
-									// 遷移先のノードを探す
-									for (const auto& n : enemy.baseData.nodes) {
-										if (n.id == link.to) {
-											enemy.currentAction = n.state;
-											enemy.stateTimer = 0.0f;
-											break;
-										}
+                                if (enemy.stateTimer >= threshold) {
+								// 遷移先のノードを探す
+								for (const auto& n : enemy.baseData.nodes) {
+									if (n.id == link.to) {
+										enemy.currentAction = n.state;
+										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
+										break;
 									}
-									break;
 								}
+								break;
 							}
 						} catch (...) {}
 					}
@@ -1067,11 +1149,12 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist<=");
 							float threshold = std::stof(c.substr(pos + 6));
-							if (dist <= threshold) {
+                                if (dist <= threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
 										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
 										break;
 									}
 								}
@@ -1083,11 +1166,12 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist>");
 							float threshold = std::stof(c.substr(pos + 5));
-							if (dist > threshold) {
+                                if (dist > threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
 										enemy.stateTimer = 0.0f;
+                                            transitioned = true;
 										break;
 									}
 								}
@@ -1096,10 +1180,11 @@ namespace Game {
 						} catch (...) {}
 					}
 					else if (c.find("Always") != std::string::npos) {
-						for (const auto& n : enemy.baseData.nodes) {
+                        for (const auto& n : enemy.baseData.nodes) {
 							if (n.id == link.to) {
 								enemy.currentAction = n.state;
 								enemy.stateTimer = 0.0f;
+								transitioned = true;
 								break;
 							}
 						}
@@ -1124,12 +1209,54 @@ namespace Game {
 					}
 				}
 
-				// ステート遷移が発生した場合はその場で currentNodeId を更新する
+                // ステート遷移が発生した場合はその場で currentNodeId を更新する
 				if (enemy.stateTimer == 0.0f) {
 					for (const auto& n : enemy.baseData.nodes) {
 						if (n.state == enemy.currentAction) {
 							currentNodeId = n.id;
 							break;
+						}
+					}
+				}
+
+				// If a node transition fired while a spline/motion was playing, cancel
+				// the currently playing motion so the instance can immediately respond
+				// to the newly-entered node (or resume AI). This prevents the boss
+				// from remaining frozen mid-motion when the player moves away.
+				if (transitioned && enemy.motionController.IsPlaying()) {
+					enemy.motionController.Stop();
+				}
+
+				// Editor-style per-node loop support: if no transition fired and the
+				// node requests looping, re-trigger the node after its splineDuration
+				// (or 1s) by resetting the timer and firing any boundBool and replaying
+				// any bound motion/spline. This makes in-game node looping behave like
+				// the editor's Loop checkbox.
+				if (!transitioned) {
+					const Game::Editor::Node* curNodeInfo = nullptr;
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.id == currentNodeId) { curNodeInfo = &n; break; }
+					}
+                    if (curNodeInfo && curNodeInfo->loop) {
+						float base = (curNodeInfo->splineDuration > 0.0f) ? curNodeInfo->splineDuration : 1.0f;
+						float loopInterval = base + curNodeInfo->loopCooldown;
+						if (enemy.stateTimer >= loopInterval) {
+							// reset timer and re-fire boundBool
+							enemy.stateTimer = 0.0f;
+							if (!curNodeInfo->boundBool.empty()) {
+								enemy.runtimeBoolFlags[curNodeInfo->boundBool] = true;
+							}
+							// replay motion if available (prefer node splineMotion/boundMotion/motionMap)
+							std::string motionToPlay;
+							if (!curNodeInfo->splineMotionName.empty()) motionToPlay = curNodeInfo->splineMotionName;
+							else if (!curNodeInfo->boundMotion.empty()) motionToPlay = curNodeInfo->boundMotion;
+							else {
+								auto mit = enemy.baseData.motionMap.find(curNodeInfo->state);
+								if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) motionToPlay = mit->second;
+							}
+							if (!motionToPlay.empty()) {
+								enemy.motionController.Play(motionToPlay, enemy.position, curNodeInfo->splineDuration);
+							}
 						}
 					}
 				}
@@ -1143,7 +1270,7 @@ namespace Game {
 					}
 				}
 
-				if (currentNodeInfo) {
+              if (currentNodeInfo) {
 					// プレイヤーのほうを向く
 					if (currentNodeInfo->facePlayer) {
 						enemy.facingRight = (dx > 0.0f);
@@ -1154,7 +1281,7 @@ namespace Game {
 					//   spawn a projectile immediately on entry. This enables node-driven
 					//   flows like: Charge -> Time>=X -> Shoot (where Shoot node triggers fire).
 					// - Also start spline motion on entry if specified.
-					if (enemy.stateTimer == 0.0f) {
+                   if (enemy.stateTimer == 0.0f) {
              const std::string& fb = currentNodeInfo->boundBool;
 				// If entering a Charge state for a ranged enemy, spawn a visual attached projectile
 				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
@@ -1186,13 +1313,29 @@ namespace Game {
 					}
 				}
 
+                        // Start spline motion on node entry if specified. Prefer explicit per-node
+						// `splineMotionName`, then `boundMotion`, then the file-level `motionMap`
+						// mapping keyed by the node `state`.
+                        std::string motionToPlay;
 						if (!currentNodeInfo->splineMotionName.empty()) {
-							enemy.motionController.Play(currentNodeInfo->splineMotionName, enemy.position, currentNodeInfo->splineDuration);
+							motionToPlay = currentNodeInfo->splineMotionName;
+						} else if (!currentNodeInfo->boundMotion.empty()) {
+							motionToPlay = currentNodeInfo->boundMotion;
+						} else {
+							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
+							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
+								motionToPlay = mit->second;
+							}
+						}
+						// Face the player when starting a motion so the spline is applied toward player
+						enemy.facingRight = (dx > 0.0f);
+						if (!motionToPlay.empty()) {
+							enemy.motionController.Play(motionToPlay, enemy.position, currentNodeInfo->splineDuration);
 						}
 					}
 
 					// SplineMotion再生中なら物理演算をオーバーライド
-					if (enemy.motionController.IsPlaying()) {
+                    if (enemy.motionController.IsPlaying()) {
 						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
 						
 						Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
@@ -1217,18 +1360,30 @@ namespace Game {
 						enemy.position.X = posBeforePhysics.X + delta.X;
 						enemy.position.Y = posBeforePhysics.Y + delta.Y;
 						enemy.position.Z = posBeforePhysics.Z + delta.Z;
-                    } else {
+                  } else {
 						// `state: "Walk"` はそのまま移動ステートとして扱う。
 						// これまでは boundBool 側の walk 指定しか見ていなかったため、
 						// アニメーションだけ Walk になっても実際の移動速度が入らなかった。
-						bool nodeWalk =
+                        bool nodeWalk =
 							(currentNodeInfo->state == "Walk") ||
 							(currentNodeInfo->name == "Walk") ||
 							(currentNodeInfo->animationName == "Walk") ||
 							(currentNodeInfo->boundBool == "walk") ||
 							(currentNodeInfo->boundBool == "Walk");
-						if (nodeWalk) {
-							float moveDir = enemy.facingRight ? 1.0f : -1.0f;
+
+						// If a spline/motion is available for this node, prefer playing it
+						// (entry logic above already starts it). Only fall back to simple
+						// horizontal velocity when no spline motion exists.
+						bool hasMotion = !currentNodeInfo->splineMotionName.empty() || !currentNodeInfo->boundMotion.empty();
+						if (!hasMotion) {
+							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
+							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
+						}
+
+                        if (nodeWalk && !hasMotion) {
+							// move toward player instead of using facingRight blindly
+							float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+							enemy.facingRight = (dx > 0.0f);
 							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
 						}
 
@@ -1254,7 +1409,6 @@ namespace Game {
 							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
 							if (currentNodeInfo->jumpVelocityY != 0.0f) {
 								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
-								EmitJumpEvent(enemy.position, enemy.modelScale);
 							}
 						}
 					}
@@ -1273,7 +1427,19 @@ namespace Game {
 				enemy.renderFacingYaw = (std::max)(enemy.renderFacingYaw - turnStep, targetFacingYaw);
 			}
 
-			// --- コライダー位置更新 ---
+            // --- コライダー位置更新 ---
+			// If an enemy is in Chase state but has effectively zero horizontal
+			// velocity while the player is outside preferred range, it's likely
+			// stuck due to small thresholding or motion cancellation. Apply a
+			// gentle forced resume to avoid permanent sticking.
+			if (enemy.aiState == EnemyInstance::AIState::Chase) {
+				if (std::abs(enemy.velocity.X) < 0.05f && !enemy.motionController.IsPlaying()) {
+					if (dist > enemy.preferredCombatDistance * 1.05f) {
+						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
+					}
+				}
+			}
 			enemy.UpdateCollider();
 		}
 	}
@@ -1285,6 +1451,7 @@ namespace Game {
 	bool EnemyManager::DealDamage(uint32_t enemyId, int damage) {
 		EnemyInstance* enemy = GetInstance(enemyId);
 		if (!enemy || enemy->isDead) return false;
+        if (enemy->spawnTimer > 0.0f) return false;
 		if (enemy->currentHP < 0 || HasInvulnerableHpSetting(enemy->baseData)) return false;
 
 		enemy->currentHP -= damage;
@@ -1324,6 +1491,7 @@ namespace Game {
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+          if (enemy.spawnTimer > 0.0f) continue;
 			if (enemy.currentHP < 0 || HasInvulnerableHpSetting(enemy.baseData)) continue;
 
 			float dx = enemy.position.X - origin.X;

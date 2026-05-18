@@ -111,13 +111,13 @@
             "sizeCategory": 1
         },
         {
-            "enemyName": "KingSlime",
+            "enemyName": "Boss",
             "facingRight": true,
             "position": {
                 "x": 1726.0,
                 "y": 292.0
             },
-            "sizeCategory": 0
+            "sizeCategory": 2
         }
     ],
     "goalPosition": {

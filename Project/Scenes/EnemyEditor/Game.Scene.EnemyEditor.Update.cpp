@@ -1407,6 +1407,22 @@ namespace Game::Editor {
 			if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				ImGui::OpenPopup("node_bool_popup");
 			}
+
+			// Loop checkbox: when enabled, the node will re-trigger (reset timer) in the
+			// editor runtime when no outgoing transition is satisfied, effectively
+			// looping the node until some external condition becomes true.
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 116.0f));
+			ImGui::SetNextItemWidth(80.0f);
+			if (ImGui::Checkbox("Loop", &n.loop)) {
+				// immediate visual feedback logged
+				char dbg[128]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Node %d Loop=%s", n.id, n.loop ? "ON" : "OFF"); AddLog(dbg);
+			}
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(90.0f);
+		if (ImGui::DragFloat("Cooldown##node_loop_cd", &n.loopCooldown, 0.1f, 0.0f, 10.0f, "%.1fs")) {
+			char dbg2[128]; snprintf(dbg2, sizeof(dbg2), "[EnemyEditor] Node %d LoopCooldown=%.2f", n.id, n.loopCooldown); AddLog(dbg2);
+		}
 			if (ImGui::BeginPopup("node_bool_popup")) {
 				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 					bool isSel = (bi == boolIdx);
@@ -1608,9 +1624,11 @@ namespace Game::Editor {
 		const int firstId = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
 		if (requireManualStart_ && currentStateId_ == firstId && !firstNodeStarted_) return;
 
+        bool transitioned = false;
 		for (const auto& link : editingEnemy_.links) {
 			if (link.from != currentStateId_) continue;
 			if (CheckLinkCondition(link)) {
+				transitioned = true;
 				if (link.to != currentStateId_) {
 					int old = currentStateId_;
 					previousStateId_ = old;
@@ -1625,8 +1643,36 @@ namespace Game::Editor {
 						}
 					}
 					if (requireManualStart_ && old == firstId) firstNodeStarted_ = false;
+				} else {
+					// Self-loop: re-trigger the current node (loop) by resetting its timer and
+					// optionally firing its boundBool so editor/runtime can observe repeated entry.
+					currentStateElapsedTime_ = 0.0f;
+					transitionFlashTimer_ = 0.5f;
+					char buf[256]; snprintf(buf, sizeof(buf), "[StateMachine] Self-loop id=%d (%s)", currentStateId_, link.condition.c_str()); AddLog(buf);
+					auto curNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
+					if (curNodeIt != editingEnemy_.nodes.end() && !curNodeIt->boundBool.empty()) {
+						runtimeBoolFlags_[curNodeIt->boundBool] = true;
+					}
 				}
 				break;
+			}
+		}
+
+		// If no transition occurred and the current node is marked `loop`, then
+		// periodically re-trigger the node (reset its timer and fire boundBool)
+		// so it repeats until some outgoing condition becomes true. Use the
+		// node's `splineDuration` as the loop interval when available.
+		if (!transitioned) {
+			auto curNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
+                if (curNodeIt != editingEnemy_.nodes.end() && curNodeIt->loop) {
+					float base = (curNodeIt->splineDuration > 0.0f) ? curNodeIt->splineDuration : 1.0f;
+					float loopInterval = base + curNodeIt->loopCooldown;
+					if (currentStateElapsedTime_ >= loopInterval) {
+					currentStateElapsedTime_ = 0.0f;
+					transitionFlashTimer_ = 0.5f;
+					char dbg[256]; snprintf(dbg, sizeof(dbg), "[StateMachine] Looping node id=%d", currentStateId_); AddLog(dbg);
+					if (!curNodeIt->boundBool.empty()) runtimeBoolFlags_[curNodeIt->boundBool] = true;
+				}
 			}
 		}
 	}

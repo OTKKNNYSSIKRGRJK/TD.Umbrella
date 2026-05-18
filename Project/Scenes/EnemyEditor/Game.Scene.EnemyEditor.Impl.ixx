@@ -33,8 +33,34 @@ export namespace Game::Editor {
 		float velocityFrictionX = 1.0f;
 		float jumpVelocityXMult = 0.0f;
 		float jumpVelocityY = 0.0f;
+        // Visual prep/windup scale (data-only). When present, runtime may
+		// interpolate entity/model scale from start -> peak over duration.
+		struct PrepScale {
+			float start = 1.0f;
+			float peak = 1.0f;
+			float duration = 0.0f;
+		} prepScale;
+
+		// Visual prep offset/yaw and hold time (editor-only metadata used by runtime)
+		struct PrepOffset {
+			float x = 0.0f; // offset in model units (right-positive)
+			float y = 0.0f; // offset in model units (up-positive)
+		} prepOffset;
+		// yaw rotation applied during prep (radians). Positive rotates around Y.
+		float prepYaw = 0.0f;
+		// Seconds to hold at peak before transitioning
+		float prepHold = 0.0f;
+		// Optional audio/particle resource names to trigger at prep peak
+		std::string prepSound = "";
+		std::string prepParticle = "";
 		std::string splineMotionName = "";
 		float splineDuration = 1.0f;
+
+		// When true, the editor runtime will re-trigger this node (reset timer)
+		// when no outgoing transition is currently satisfied, effectively
+		// looping the node until an external condition becomes true.
+		bool loop = false;
+      float loopCooldown = 0.0f; // seconds to wait after motion before next loop
 	};
 
 	struct Link {
@@ -55,6 +81,7 @@ export namespace Game::Editor {
 		int hp = 100;
 		float power = 1.0f;
 		std::string gltfPath = "Models/Enemy/default.gltf";
+		bool noSplit = false; // if true, do not spawn split children on death
 
 		// --- サイズ段階 (0=Small, 1=Medium, 2=Large) ---
 		std::array<SizeTier, 3> sizeTiers = {{
@@ -100,6 +127,7 @@ export namespace Game::Editor {
 			hp = 100;
 			power = 1.0f;
 			gltfPath = "Models/Enemy/default.gltf";
+            noSplit = false;
 			sizeTiers = {{
 				{  35, 0.8f, 0.3f },
 				{  70, 1.0f, 0.5f },

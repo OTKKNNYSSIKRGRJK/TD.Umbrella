@@ -4,6 +4,7 @@ import : Impl;
 
 import <cmath>;
 import <algorithm>;
+import <string>;
 
 import Lumina.Main;
 import Lumina.D3D12;
@@ -78,6 +79,31 @@ namespace Game::Scene::Impl {
 
              Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+               Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+             if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
+					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
+					if (spawnT < 0.0f) {
+						spawnT = 0.0f;
+					} else if (spawnT > 1.0f) {
+						spawnT = 1.0f;
+					}
+
+                   float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
+					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
+					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
+					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
+
+					renderPos.Y -= (1.0f - riseEase) * (2.8f * e.Scale);
+					renderPos.Y += overshoot * (0.95f * e.Scale);
+					renderPos.X += shake * (0.16f * e.Scale);
+
+					scale.X *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+					scale.Y *= 0.06f + 0.94f * riseEase + overshoot * 0.42f;
+					scale.Z *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+
+					rot.Z += twist * 0.28f;
+					rot.X += std::abs(twist) * 0.12f;
+				}
 				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
 					float hurtRatio = e.HurtTimer / 0.2f;
 					if (hurtRatio > 1.0f) {
@@ -96,7 +122,6 @@ namespace Game::Scene::Impl {
 					scale.Z *= stretch;
 				}
 
-				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
                rot.Y = e.RenderFacingYaw;
              auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				
@@ -111,6 +136,113 @@ namespace Game::Scene::Impl {
 							worldMat
 						);
 					}
+				}
+
+				if (e.BaseData.name == "Boss" && CubeMeshIdx_ < MeshShaderAssets_.size()) {
+                    Lumina::Math::F32x3 swordScale{ 0.22f * e.Scale, 1.9f * e.Scale, 0.15f * e.Scale };
+
+                    // Aim sword toward player: compute player direction in enemy-local space
+					// and use that to set local Z rotation and offset sign so it works for both
+					// facing directions (including smooth render-facing yaw).
+					Lumina::Math::F32x3 playerPos{ 0.0f, 0.0f, 0.0f };
+					if (Player_) playerPos = Player_->GetPosition();
+					float dx = playerPos.X - e.Position.X;
+					float dy = playerPos.Y - e.Position.Y;
+					// Transform world vector (dx,dy) into enemy-local coordinates by applying R(-yaw)
+					float cy = std::cos(e.RenderFacingYaw);
+					float sy = std::sin(e.RenderFacingYaw);
+					float local_dx =  cy * dx + sy * dy;
+					float local_dy = -sy * dx + cy * dy;
+
+                    float localAngle = std::atan2(local_dy, local_dx); // angle in enemy-local space
+
+					// Compute distance and use it to decide how precisely the boss aims.
+					float distToPlayer = std::sqrt(dx * dx + dy * dy);
+					// Precision: closer -> higher precision. Range tuned heuristically.
+					float precision = 1.0f - std::min(distToPlayer / (e.Scale * 4.0f + e.BaseData.attackRange), 1.0f);
+					float lerpFactor = 0.3f + 0.6f * precision; // between 0.3 and 0.9
+
+					// Smooth aim by blending between previous visual yaw and the newly computed angle.
+					float prevYaw = e.VisualYaw; // visual-only yaw from runtime
+					float smoothed = prevYaw * (1.0f - lerpFactor) + localAngle * lerpFactor;
+
+					// Slightly dampen perfect precision so it feels more human
+					smoothed *= 0.92f;
+
+					Lumina::Math::F32x3 swordRot{ 0.0f, 0.0f, smoothed };
+
+					// Offset X should be placed toward the player in local X
+					float offsetX = std::copysign(0.92f * e.Scale, local_dx);
+                    // Base sword local offset (in enemy-local space)
+					Lumina::Math::F32x3 swordOffset{ offsetX, 0.78f * e.Scale, 0.0f };
+
+                    // Apply visual-only offset copied from runtime (motion-driven)
+					// but transform it from world-space into enemy-local space
+					// before adding to the sword's local offset. This decouples
+					// weapon motion from the body while keeping orientation.
+                    {
+						float vx = e.VisualOffset.X;
+						float vy = e.VisualOffset.Y;
+						float local_vx = cy * vx + sy * vy;
+						float local_vy = -sy * vx + cy * vy;
+						swordOffset.X += local_vx;
+						swordOffset.Y += local_vy;
+					}
+					// Determine actual rendered facing sign for additive action tweaks
+					float renderFacingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
+
+                    if (e.CurrentAction.find("Prep") != std::string::npos) {
+						// 振りかぶる (raise overhead)
+						swordRot.Z += renderFacingSign * -2.4f;
+						swordOffset.X += renderFacingSign * -0.5f * e.Scale;
+						swordOffset.Y += 1.0f * e.Scale;
+					}
+				  else if (e.CurrentAction.find("Step") != std::string::npos) {
+						swordRot.Z += renderFacingSign * 0.35f;
+						swordOffset.X += renderFacingSign * 0.28f * e.Scale;
+						swordOffset.Y += 0.06f * e.Scale;
+					}
+				  else if (e.CurrentAction.find("Thrust") != std::string::npos) {
+					  swordScale.Y = 2.15f * e.Scale;
+						swordRot.Z += renderFacingSign * 1.45f;
+						swordOffset.X += renderFacingSign * 0.65f * e.Scale;
+						swordOffset.Y += 0.04f * e.Scale;
+					}
+					else if (e.CurrentAction.find("Heavy") != std::string::npos) {
+					 swordScale.Y = 2.25f * e.Scale;
+						swordRot.Z += renderFacingSign * 1.1f;
+						swordOffset.X += renderFacingSign * 0.34f * e.Scale;
+						swordOffset.Y += 0.16f * e.Scale;
+					}
+				  else if (e.CurrentAction.find("Finisher") != std::string::npos) {
+					  swordScale.Y = 2.45f * e.Scale;
+						swordRot.Z += renderFacingSign * 1.25f;
+						swordOffset.X += renderFacingSign * 0.42f * e.Scale;
+						swordOffset.Y += 0.2f * e.Scale;
+					}
+					else if (e.CurrentAction.find("Slash") != std::string::npos) {
+					  swordScale.Y = 2.0f * e.Scale;
+						swordRot.Z += renderFacingSign * 1.5f;
+						swordOffset.X += renderFacingSign * 0.8f * e.Scale;
+						swordOffset.Y += -0.2f * e.Scale;
+					}
+					else if (e.CurrentAction.find("Recover") != std::string::npos || e.CurrentAction.find("Backstep") != std::string::npos) {
+						swordRot.Z += renderFacingSign * -0.1f;
+						swordOffset.Y -= 0.08f * e.Scale;
+					}
+					else if (e.CurrentAction == "PhaseShift") {
+						swordRot.Z += renderFacingSign * -1.45f;
+						swordOffset.Y += 0.28f * e.Scale;
+					}
+
+					auto swordLocalMat = Game::MathUtils::SRT(swordScale, swordRot, swordOffset);
+					auto swordWorldMat = swordLocalMat * worldMat;
+					meshMngr.Batch(
+						MeshShaderAssets_[CubeMeshIdx_],
+						1U,
+						LocalHeap_Materials_.CPUHandle(materialIdx),
+						swordWorldMat
+					);
 				}
 			}
 		}

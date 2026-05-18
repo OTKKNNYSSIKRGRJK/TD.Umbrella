@@ -76,6 +76,8 @@
             "animationName": "",
             "boundBool": "Hop",
             "boundMotion": "Slime_Jump",
+            "loop": true,
+            "loopCooldown": 2.0,
             "boundMotionNodeIndex": -1,
             "facePlayer": false,
             "id": 2,
