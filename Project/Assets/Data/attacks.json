@@ -1,186 +1,208 @@
 {
   "attacks": {
-    "NormalCombo1": {
-      "name": "通常コンボ1段目",
-      "motion": "SwingFirst",
-      "duration": 0.2,
+    "Close_Y1": {
+      "name": "水平斬り（Y 1段目）",
+      "stance": "Close",
+      "animation": "AtkX1",
+      "motion": "Motion_StepForward_Light",
+      "duration": 1.4,
       "damage": 10.0,
-      "manaCost": 0.0,
-      "physics": {
-        "velocityX": 10.0,
-        "velocityY": 0.0,
-        "gravityScale": 1.0
-      },
-      "feel": {
-        "hitStop": 0.05,
-        "cameraShake": 0.1
-      },
+      "physics": { "velocityX": 20.0, "velocityY": 0.0, "gravityScale": 1.0 },
       "branches": [
-        {
-          "type": "Input",
-          "input": "Attack",
-          "timeMin": 0.15,
-          "timeMax": 0.5,
-          "nextAttack": "NormalCombo2"
-        },
-        {
-          "type": "Input",
-          "input": "Evasion",
-          "timeMin": 0.1,
-          "timeMax": 0.5,
-          "nextAttack": "Evasion"
-        }
+        { "type": "Input", "input": "Attack", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y2" }
       ]
     },
-    "NormalCombo2": {
-      "name": "通常コンボ2段目",
-      "motion": "SwingSecond",
-      "duration": 0.3,
-      "damage": 20.0,
-      "physics": {
-        "velocityX": 0.0,
-        "velocityY": 0.0,
-        "gravityScale": 1.0
-      },
-      "branches": [
-        {
-          "type": "Input",
-          "input": "Attack",
-          "timeMin": 0.1,
-          "timeMax": 0.5,
-          "condition": {
-            "minMana": 30.0
-          },
-          "consumeMana": 30.0,
-          "nextAttack": "ManaBurstStrike"
-        }
-      ]
-    },
-    "NormalCombo3": {
-      "name": "通常コンボ3段目（通常フィニッシュ）",
-      "motion": "SwingLast",
-      "duration": 0.6,
-      "damage": 30.0,
-      "physics": {
-        "velocityX": 40.0,
-        "velocityY": 0.0,
-        "gravityScale": 1.0
-      }
-    },
-    "ManaBurstStrike": {
-      "name": "マナ消費コンボ（超強化フィニッシュ）",
-      "motion": "SwingMana",
-      "duration": 0.6,
-      "damage": 60.0,
-      "physics": {
-        "velocityX": 55.0,
-        "velocityY": 0.0,
-        "gravityScale": 1.0
-      },
-      "feel": {
-        "hitStop": 0.15,
-        "cameraShake": 0.3
-      }
-    },
-    "DiveAttack_Rise": {
-      "name": "落下攻撃（上昇）",
-      "motion": "JumpRiseMotion",
-      "duration": 0.4,
-      "damage": 10.0,
-      "physics": {
-        "velocityX": 5.0,
-        "velocityY": 25.0,
-        "gravityScale": 0.3
-      },
-      "branches": [
-        {
-          "type": "Auto",
-          "timeMin": 0.4,
-          "timeMax": 0.4,
-          "nextAttack": "DiveAttack_Fall"
-        }
-      ]
-    },
-    "DiveAttack_Fall": {
-      "name": "落下攻撃（急降下）",
-      "motion": "DiveMotion",
+    "Close_Y2": {
+      "name": "逆水平斬り（Y 2段目）",
+      "stance": "Close",
+      "animation": "AtkX2",
+      "motion": "Motion_StepForward_Light",
       "duration": 0.5,
-      "damage": 50.0,
-      "physics": {
-        "velocityX": 40.0,
-        "velocityY": -50.0,
-        "gravityScale": 0.0
-      }
+      "damage": 12.0,
+      "physics": { "velocityX": 15.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "branches": [
+        { "type": "Input", "input": "AttackY", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y3" },
+        { "type": "Input", "input": "AttackX", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y2_X1" }
+      ]
     },
-    "DashThrust": {
-      "name": "突進突き（スティンガー）",
-      "motion": "DashThrustMotion",
-      "duration": 0.5,
+    "Close_Y3": {
+      "name": "縦斬り下ろし（Y 3段目）",
+      "stance": "Close",
+      "animation": "AtkX3",
+      "motion": "Motion_StepForward_Medium",
+      "duration": 1.6,
       "damage": 15.0,
-      "physics": {
-        "velocityX": 70.0,
-        "velocityY": 0.0,
-        "gravityScale": 1.0
-      },
-      "feel": {
-        "hitStop": 0.1,
-        "cameraShake": 0.2
-      }
-    },
-    "AerialCombo1": {
-      "name": "空中コンボ1段目",
-      "motion": "SwingSecond",
-      "duration": 0.4,
-      "damage": 1.0,
-      "physics": {
-        "velocityX": 5.0,
-        "velocityY": 2.0, 
-        "gravityScale": 0.1
-      },
+      "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.05 },
       "branches": [
-        {
-          "type": "Input",
-          "input": "Attack",
-          "timeMin": 0.15,
-          "timeMax": 0.5,
-          "nextAttack": "AerialComboFinal_Down"
-        }
+        { "type": "Input", "input": "AttackX", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y3_X1" }
       ]
     },
-    "AerialCombo2": {
-      "name": "空中コンボ2段目",
-      "motion": "SwingMana",
+
+    "Close_Y1_X1": {
+      "name": "垂直斬り上げ",
+      "stance": "Close",
+      "animation": "Anim_Close_Upper",
+      "motion": "Motion_Launch_Up",
       "duration": 0.4,
-      "damage": 1.0,
-      "physics": {
-        "velocityX": 5.0,
-        "velocityY": 2.0,
-        "gravityScale": 0.1
-      },
+      "damage": 15.0,
+      "physics": { "velocityX": 5.0, "velocityY": 10.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.08 },
       "branches": [
-        {
-          "type": "Input",
-          "input": "Attack",
-          "timeMin": 0.15,
-          "timeMax": 0.5,
-          "nextAttack": "AerialComboFinal_Down"
-        }
+        { "type": "Input", "input": "AttackX", "timeMin": 0.2, "timeMax": 0.5, "nextAttack": "Close_Y1_X2" }
       ]
     },
-    "AerialComboFinal_Down": {
-      "name": "空中叩きつけ",
-      "motion": "DiveAttack",
-      "duration": 0.3,
+    "Close_Y1_X2": {
+      "name": "鋭い突き刺し（溜め）",
+      "stance": "Close",
+      "animation": "Anim_Close_Pierce_Hold",
+      "motion": "Motion_Thrust_Heavy",
+      "duration": 0.5,
+      "damage": 20.0,
+      "physics": { "velocityX": 30.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.1, "cameraShake": 0.1 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.3, "timeMax": 0.7, "nextAttack": "Transform_Y1_Smash" }
+      ]
+    },
+    "Transform_Y1_Smash": {
+      "name": "変形叩きつけ（Close→Open）",
+      "stance": "Close",
+      "transformEvent": { "time": 0.3, "targetStance": "Open" },
+      "animation": "Anim_Transform_Smash",
+      "motion": "Motion_Slam_Ground",
+      "duration": 0.8,
+      "damage": 40.0,
+      "physics": { "velocityX": 10.0, "velocityY": -15.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.15, "cameraShake": 0.3 }
+    },
+
+    "Close_Y2_X1": {
+      "name": "ぐるぐる攻撃",
+      "stance": "Close",
+      "animation": "AtkRot",
+      "motion": "Motion_Spin_Continuous",
+      "duration": 0.6,
+      "damage": 5.0,
+      "physics": { "velocityX": 5.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.3, "timeMax": 0.7, "nextAttack": "Close_Y2_X2" }
+      ]
+    },
+    "Close_Y2_X2": {
+      "name": "突進",
+      "stance": "Close",
+      "animation": "Anim_Close_Dash_Thrust",
+      "motion": "Motion_Dash_Fast",
+      "duration": 0.4,
+      "damage": 25.0,
+      "physics": { "velocityX": 60.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.2, "timeMax": 0.5, "nextAttack": "Transform_Y2_Burst" }
+      ]
+    },
+    "Transform_Y2_Burst": {
+      "name": "解放範囲攻撃（Close→Open）",
+      "stance": "Close",
+      "transformEvent": { "time": 0.4, "targetStance": "Open" },
+      "animation": "Anim_Transform_Burst",
+      "motion": "Motion_Burst_AOE",
+      "duration": 0.9,
+      "damage": 50.0,
+      "physics": { "velocityX": 0.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.2, "cameraShake": 0.4 }
+    },
+
+    "Close_Y3_X1": {
+      "name": "百裂突き（強力コンボ1）",
+      "stance": "Close",
+      "animation": "Anim_Close_MultiThrust",
+      "motion": "Motion_MultiHit_Stationary",
+      "duration": 0.7,
       "damage": 30.0,
-      "physics": {
-        "velocityX": 0.0,
-        "velocityY": -60.0, 
-        "gravityScale": 0.0
-      },
-      "feel": {
-        "hitStop": 0.15,
-        "cameraShake": 0.4
-      }
+      "physics": { "velocityX": 2.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.4, "timeMax": 0.8, "nextAttack": "Close_Y3_X2" }
+      ]
+    },
+    "Close_Y3_X2": {
+      "name": "飛燕斬り（強力コンボ2）",
+      "stance": "Close",
+      "animation": "Anim_Close_Roundhouse",
+      "motion": "Motion_Wide_Sweep",
+      "duration": 0.5,
+      "damage": 35.0,
+      "physics": { "velocityX": 15.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.12 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.3, "timeMax": 0.6, "nextAttack": "Transform_Y3_Ultimate" }
+      ]
+    },
+    "Transform_Y3_Ultimate": {
+      "name": "超変形フィニッシュ（Close→Open）",
+      "stance": "Close",
+      "transformEvent": { "time": 0.5, "targetStance": "Open" },
+      "animation": "Anim_Transform_Ultimate_Smash",
+      "motion": "Motion_Mega_Slam",
+      "duration": 1.2,
+      "damage": 70.0,
+      "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.3, "cameraShake": 0.6 }
+    },
+    "Open_Y1": {
+      "name": "パラソル・回転",
+      "stance": "Open",
+      "animation": "AtkRot",
+      "motion": "Motion_HeavySwing",
+      "duration": 0.5,
+      "damage": 25.0,
+      "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.1, "cameraShake": 0.15 },
+      "branches": [
+        { "type": "Input", "input": "AttackX_Hold", "timeMin": 0.3, "timeMax": 0.9, "nextAttack": "Open_Y1" }
+      ]
+    },
+    "Open_X2": {
+      "name": "パラソル・スイング反転（X 2段目）",
+      "stance": "Open",
+      "animation": "Anim_Open_Swing_L",
+      "motion": "Motion_HeavySwing",
+      "duration": 0.6,
+      "damage": 25.0,
+      "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.1, "cameraShake": 0.15 },
+      "branches": [
+        { "type": "Input", "input": "AttackX", "timeMin": 0.4, "timeMax": 0.8, "nextAttack": "Open_X1" },
+        { "type": "Input", "input": "AttackY", "timeMin": 0.4, "timeMax": 0.8, "nextAttack": "Open_X2_Y_SpinClose" },
+        { "type": "Input", "input": "AttackX_Hold", "timeMin": 0.4, "timeMax": 0.8, "nextAttack": "Transform_Open_To_Reverse" } 
+      ]
+    },
+
+    "Open_X2_Y_SpinClose": {
+      "name": "勢いそのまま回転斬り（Open→Close）",
+      "stance": "Open",
+      "transformEvent": { "time": 0.2, "targetStance": "Close" },
+      "animation": "Anim_OpenToClose_SpinSlash",
+      "motion": "Motion_Spin_Transition",
+      "duration": 0.5,
+      "damage": 20.0,
+      "physics": { "velocityX": 30.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "nextAttack": "Close_Y1"
+    },
+
+    "Transform_Open_To_Reverse": {
+      "name": "デッカチャン回転〜起き上がりリバース（Open→Reverse）",
+      "stance": "Open",
+      "transformEvent": { "time": 0.7, "targetStance": "Reverse" },
+      "animation": "Anim_OpenToReverse_RollAndFlip",
+      "motion": "Motion_Rolling_Rise",
+      "duration": 1.3,
+      "damage": 35.0,
+      "physics": { "velocityX": 40.0, "velocityY": 10.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.1, "cameraShake": 0.2, "guardPoint": true },
+      "branches": [
+        { "type": "Auto", "nextAttack": "Reverse_Charge_Start" }
+      ]
     }
   }
 }
