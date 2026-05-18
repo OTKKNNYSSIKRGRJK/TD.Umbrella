@@ -22,16 +22,15 @@ namespace {
 namespace Game::Scene::Impl {
 	template<>
 	auto Title::Update_<"Camera">() -> void {
-		#if defined(_DEBUG)
-		ImGui::Begin("Title::Camera");
 		static Lumina::Math::F32x3 eye{ 5.0f, 1.5f, 5.0f };
 		static Lumina::Math::F32x3 target{ 0.0f, 1.5f, 0.0f };
+		#if defined(_DEBUG)
+		ImGui::Begin("Title::Camera");
 		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
 		ImGui::DragFloat3("Target", &target.X, 0.1f);
-		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
 		ImGui::End();
 		#endif
-
+		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 	}
 
@@ -41,7 +40,6 @@ namespace Game::Scene::Impl {
 		using Lumina::OS::Windows::KEY;
 
 		Update_<"Camera">();
-
 		/// TODO : accumulate `AnimationTimer_` by actual delta time
 		AnimationTimer_ += INV_60;
 		/// Makes the animation repeating
