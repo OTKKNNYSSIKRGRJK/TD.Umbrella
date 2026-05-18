@@ -45,11 +45,11 @@ export namespace AttackData {
 
     // 攻撃1つ分のメインデータ
     struct AttackData {
-        std::string name;
-        std::string motion;
-        std::string animationName;
-        float duration = 0.0f;
-        float damage = 0.0f;
+        std::string name;      // 攻撃の名前
+        std::string motion;    // 今までは傘のモーション名だった
+        std::string animationName;  // Playerのアニメーション名
+        float duration = 0.0f;  // 攻撃の有効時間
+        float damage = 0.0f;    // 攻撃力
         float manaCost = 0.0f; // 攻撃そのものを出すのに必要なマナ
 
 		TransformEvent transformEvent; // 攻撃中にスタンス変化がある場合のイベント

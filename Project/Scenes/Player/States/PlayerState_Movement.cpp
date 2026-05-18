@@ -130,7 +130,7 @@ namespace PlayerStates::Movement {
 	// 
 	////////////////////////////
 	void Idle::Enter() {
-
+		
 	}
 
 	void Idle::Update(float deltaTime) {
@@ -153,7 +153,7 @@ namespace PlayerStates::Movement {
 		float deceleration = 15.0f; // ブレーキの強さ
 		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
 		player_->myVelocity_.Y = std::lerp(player_->myVelocity_.Y, 0.0f, deceleration * deltaTime);
-		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
+		//player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
 
 		if (input.debugRevive) {
 			player_->ChangeMovementState(player_->idleState_.get());
@@ -172,7 +172,7 @@ namespace PlayerStates::Movement {
 	// 
 	////////////////////////////
 	void Walking::Enter() {
-
+		player_->PlayAnimation("Run",true);
 	}
 
 	void Walking::Update(float deltaTime) {
@@ -239,7 +239,7 @@ namespace PlayerStates::Movement {
 		// 攻撃などで付与された myVelocity_（踏み込み速度）を摩擦で減衰させる
 		float deceleration = 15.0f; // ※ここの値が踏み込みの「滑り具合」
 		player_->myVelocity_.X = std::lerp(player_->myVelocity_.X, 0.0f, deceleration * deltaTime);
-		player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
+		//player_->myVelocity_.Z = std::lerp(player_->myVelocity_.Z, 0.0f, deceleration * deltaTime);
 	}
 
 	void Restricted::Exit() {

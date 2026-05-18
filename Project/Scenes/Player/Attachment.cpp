@@ -27,16 +27,22 @@ Attachment::~Attachment() {
 void Attachment::Update() {
 
 	//Matrix4x4 scaleMat = Game::MathUtils::Scale({1.0f, 1.0f, 1.0f});
-	Matrix4x4 rotationMat = Game::MathUtils::RotateEulerXYZ(rotation_);
-	Matrix4x4 translateMat = Game::MathUtils::Translate(position_);
+	//Matrix4x4 rotationMat = Game::MathUtils::RotateEulerXYZ(rotation_);
+	//Matrix4x4 translateMat = Game::MathUtils::Translate(position_);
 
 	// S * R * T
 	// スケールは使わないからscaleMatは不要
 	//matWorld_ = Matrix4x4::Multiply(scaleMat, rotationMat);
-	Matrix4x4::Multiply(*matWorld_, rotationMat, translateMat);
+	//Matrix4x4::Multiply(*matWorld_, rotationMat, translateMat);
+	
+	*matWorld_ = Game::MathUtils::SRT({ 1.0f, 1.0f, 1.0f }, rotation_, position_);
+	//(*matWorld_)[3].Set(2, 0.0f);
 	// 親子関係なら
 	if (parent_) {
-		Matrix4x4::Multiply(*matWorld_, *matWorld_, parent_->GetMatrix());
+		Matrix4x4 aWholeNewWorld;
+		Matrix4x4::Multiply(aWholeNewWorld, *matWorld_, parent_->GetMatrix());
+		*matWorld_ = aWholeNewWorld;
+		//(*matWorld_)[3].Set(2, 0.0f);
 	}
 }
 //////////////////////
