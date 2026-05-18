@@ -1473,8 +1473,8 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		// M キーでミニマップ拡大表示トグル
-		if (keyboard.IsJustPressed(KEY::M)) {
+		// M キーでミニマップ拡大表示トグル（ポーズ中は無効）
+		if (!playState_.IsPaused && keyboard.IsJustPressed(KEY::M)) {
 			minimapExpanded_ = !minimapExpanded_;
 		}
 
