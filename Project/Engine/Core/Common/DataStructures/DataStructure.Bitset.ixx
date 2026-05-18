@@ -4,6 +4,7 @@ export module Lumina.Core.Common : DataStructure.Bitset;
 
 import <memory>;
 import <cassert>;
+import <cstdint>;
 
 //////	//////	//////	//////	//////	//////
 

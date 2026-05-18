@@ -147,20 +147,11 @@
     },
     "enemies": [
         {
-            "enemyName": "KingSlime",
-            "facingRight": true,
-            "position": {
-                "x": 736.0,
-                "y": 134.0
-            },
-            "sizeCategory": 1
-        },
-        {
-            "enemyName": "Slime",
+            "enemyName": "TutorialEnemy",
             "facingRight": false,
             "position": {
-                "x": 530.0,
-                "y": 152.0
+                "x": 301.0399169921875,
+                "y": 183.6824188232422
             },
             "sizeCategory": 1
         }

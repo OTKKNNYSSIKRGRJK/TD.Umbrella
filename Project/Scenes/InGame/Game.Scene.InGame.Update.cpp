@@ -23,6 +23,7 @@ import Game.EnemyManager;
 import Game.ProjectileManager;
 
 import Game.Events;
+import Game.UIMenu;
 import Lumina.Scene;
 
 #if defined(_DEBUG)
@@ -35,6 +36,9 @@ namespace {
 
 namespace {
 	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
+	constexpr float BossPresentationDuration{ 2.0f };
+	constexpr float BossPresentationCameraZoom{ 6.0f };
+	constexpr char BossEnemyName[]{ "KingSlime" };
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
 		p_.Translate.X += p_.Velocity.X;
@@ -49,10 +53,49 @@ namespace {
 }
 
 namespace Game::Scene::Impl {
-#if defined(_DEBUG)
+   bool InGame::HasBossEncounterInCurrentArea() const {
+		return std::any_of(
+			playState_.CurrentArea.enemies.cbegin(),
+			playState_.CurrentArea.enemies.cend(),
+			[] (auto const& enemy_) {
+				return enemy_.enemyName == BossEnemyName;
+			}
+		);
+	}
+
+	void InGame::StartBossEncounterPresentation() {
+		playState_.IsBossPresentationActive = false;
+		playState_.BossPresentationTimer = 0.0f;
+		playState_.BossPresentationDuration = 0.0f;
+
+		if (!HasBossEncounterInCurrentArea()) {
+			return;
+		}
+
+		auto const bossIt = std::find_if(
+			playState_.Enemies.cbegin(),
+			playState_.Enemies.cend(),
+			[] (auto const& enemy_) {
+				return enemy_.BaseData.name == BossEnemyName;
+			}
+		);
+
+		if (bossIt == playState_.Enemies.cend()) {
+			return;
+		}
+
+		playState_.IsBossPresentationActive = true;
+		playState_.BossPresentationTimer = BossPresentationDuration;
+		playState_.BossPresentationDuration = BossPresentationDuration;
+		playState_.BossPresentationFocusPosition = bossIt->Position;
+		playState_.TransitionCooldownTimer = (std::max)(playState_.TransitionCooldownTimer, BossPresentationDuration);
+		Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 20);
+	}
+
 	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
+		playState_.VisitedAreas.insert(areaIndex);
 		
 		try {
 			// Load Terrain (which reads "Polygons" and "GroundPoints" stored inside area json)
@@ -67,7 +110,9 @@ namespace Game::Scene::Impl {
 				*Camera_,
 				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
 			);
+#if defined(_DEBUG)
 			TerrainEditor_->SetShapes(*Terrain_);
+#endif
 		} catch (...) {
 			// Fallback or empty terrain if file has no terrain data yet
 			TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
@@ -104,6 +149,17 @@ namespace Game::Scene::Impl {
 					spawnedAtConnection = true;
 					break;
 				}
+			}
+		}
+
+		if (TutorialManager_) {
+			// エリア遷移時に現在アクティブなチュートリアルを中断
+			TutorialManager_->Skip();
+
+			if (areaIndex == 0) {
+				TutorialManager_->TryStartSequence("BasicControls");
+			} else if (areaIndex == 2) {
+				TutorialManager_->TryStartSequence("Parachute");
 			}
 		}
 
@@ -201,6 +257,7 @@ namespace Game::Scene::Impl {
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
+           pe.RenderFacingYaw = pe.FacingRight ? 0.0f : 3.14159265f;
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
@@ -210,28 +267,70 @@ namespace Game::Scene::Impl {
 		if (Player_) {
 			Player_->SetPosition({ playState_.Player.Position.X, playState_.Player.Position.Y, 0.0f });
 			Event::RespawnPos = Player_->GetPosition();
+			Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+			Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
 		}
 		
 		playState_.TransitionCooldownTimer = 0.5f; // Add delay
+		if (previousAreaIndex != -1) {
+			StartBossEncounterPresentation();
+		}
+		else {
+			playState_.IsBossPresentationActive = false;
+			playState_.BossPresentationTimer = 0.0f;
+			playState_.BossPresentationDuration = 0.0f;
+		}
 		
+		if (CollisionManager_) {
+			CollisionManager_->Begin();
+		}
+
 		playState_.IsGoalReached = false;
+
+		// ゲームフェーズをリセット
+		Event::CurrentPhase = Event::GamePhase::InBattle;
+		Event::PhaseTimer = 0.0f;
+		Event::ElapsedBattleTime = 0.0f;
+		Event::EnemiesDefeated = 0;
+		Event::FallDeathCount = 0;
 	}
 
-
+#if defined(_DEBUG)
 	void InGame::DrawPlayMode() {
 		ImGui::SetNextWindowPos(ImVec2(10, 30), ImGuiCond_FirstUseEver);
-		ImGui::SetNextWindowSize(ImVec2(300, 100), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(300, 160), ImGuiCond_FirstUseEver);
 		ImGui::Begin("Player Info");
 		if (Player_) {
 			auto const& pos = Player_->GetPosition();
 			ImGui::Text("Player 3D Position: %.2f, %.2f, %.2f", pos.X, pos.Y, pos.Z);
 		}
+
+		ImGui::Separator();
+		ImGui::Text("Enemy Node States:");
+		auto aliveEnemies = Game::EnemyManager::GetInstance()->GetAliveInstances();
+		if (aliveEnemies.empty()) {
+			ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "No enemies present.");
+		} else {
+			for (auto* enemy : aliveEnemies) {
+				ImGui::Text("[%d] %s: State='%s', Timer=%.2f", 
+					enemy->id, enemy->baseData.name.c_str(), 
+					enemy->currentAction.c_str(), enemy->stateTimer);
+			}
+		}
+
 		ImGui::End();
 	}
 #endif
 
 	template<>
 	void InGame::Update_<"Player">() {
+		// チュートリアル入力制限の適用
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			Player_->InputMask = TutorialManager_->GetAllowedInputs();
+		} else {
+			Player_->InputMask = 0xFFFF; // 全入力許可
+		}
+
 		Player_->Update(1.0f / 60.0f);
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
@@ -293,7 +392,9 @@ namespace Game::Scene::Impl {
 			pe.Position = inst.position;
 			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
 			pe.IsDead = inst.isDead;
+          pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
+            pe.RenderFacingYaw = inst.renderFacingYaw;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
 			// pull debug flag from behavior if available
@@ -317,9 +418,13 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"[Debug] Area">() {
-		#if defined(_DEBUG)
 		// エリアの移動処理
-		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
+#if defined(_DEBUG)
+		bool shouldProcessAreaTransition = (activeEditor_ == EditorTab::Play && playState_.IsPlaying);
+#else
+		bool shouldProcessAreaTransition = playState_.IsPlaying;
+#endif
+		if (shouldProcessAreaTransition) {
 			if (playState_.TransitionCooldownTimer > 0.0f) {
 				playState_.TransitionCooldownTimer -= 1.0f / 60.0f;
 			}
@@ -342,7 +447,6 @@ namespace Game::Scene::Impl {
 				}
 			}
 		}
-		#endif
 	}
 
 	template<>
@@ -361,23 +465,38 @@ namespace Game::Scene::Impl {
 		ImGui::End();
 		#endif
 
-		Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
-		auto const& playerPos = Player_->GetPosition();
-		Lumina::Math::F32x3 newCameraPos{
-			cameraPos.X * 0.95f + playerPos.X * 0.05f,
-			cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
-			-30.0f
-		};
-		if (Event::CameraShakingTimer > 0) {
-			auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
-			angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
-			float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
-			Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
-			float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
-			newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
-			--Event::CameraShakingTimer;
+		if (!playState_.IsPaused) {
+			Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
+			auto const& playerPos = Player_->GetPosition();
+			Lumina::Math::F32x3 newCameraPos{};
+			if (playState_.IsBossPresentationActive && playState_.BossPresentationDuration > 0.0f) {
+				float const progress = 1.0f - playState_.BossPresentationTimer / playState_.BossPresentationDuration;
+				float const bossFocusWeight = std::sin(progress * std::numbers::pi_v<float>);
+				newCameraPos = {
+					playerPos.X + (playState_.BossPresentationFocusPosition.X - playerPos.X) * bossFocusWeight,
+					playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
+					-30.0f + BossPresentationCameraZoom * bossFocusWeight
+				};
+				Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+			}
+			else {
+				newCameraPos = {
+					cameraPos.X * 0.95f + playerPos.X * 0.05f,
+					cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
+					-30.0f
+				};
+			}
+			if (Event::CameraShakingTimer > 0) {
+				auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
+				angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
+				float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
+				Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
+				float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
+				newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
+				--Event::CameraShakingTimer;
+			}
+			Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		}
-		Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 
 		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
@@ -387,7 +506,7 @@ namespace Game::Scene::Impl {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		}
 		#else
-		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
 		#endif
 	}
 
@@ -583,6 +702,55 @@ namespace Game::Scene::Impl {
 
 		//	AmbientSparkles_->Update(cmdList_, viewToWorld, UpdateAmbientSparkle);
 		//}
+
+		// Enemy jump smoke particles
+		{
+			auto jumpEvents = Game::EnemyManager::GetInstance()->ConsumeJumpEvents();
+			for (const auto& evt : jumpEvents) {
+				int particleCount = 6 + (rndEngine() % 5);
+				for (int i = 0; i < particleCount; ++i) {
+					Lumina::Particle smoke{};
+					float angle = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> * 2.0f;
+					float spread = 0.3f + rndEngine() * Inv_0xFFFFFFFF * 0.5f;
+					smoke.Translate = {
+						evt.position.X + std::cos(angle) * spread * evt.scale,
+						evt.position.Y,
+						evt.position.Z + std::sin(angle) * spread * evt.scale
+					};
+					smoke.Velocity = {
+						std::cos(angle) * (0.02f + rndEngine() * Inv_0xFFFFFFFF * 0.03f),
+						0.01f + rndEngine() * Inv_0xFFFFFFFF * 0.02f,
+						std::sin(angle) * (0.02f + rndEngine() * Inv_0xFFFFFFFF * 0.03f)
+					};
+					smoke.Scale = {
+						0.4f * evt.scale + rndEngine() * Inv_0xFFFFFFFF * 0.3f,
+						0.4f * evt.scale + rndEngine() * Inv_0xFFFFFFFF * 0.3f,
+						1.0f
+					};
+					smoke.Life = 20.0f + rndEngine() * Inv_0xFFFFFFFF * 15.0f;
+					float brightness = 0.7f + rndEngine() * Inv_0xFFFFFFFF * 0.3f;
+					smoke.RenderData.RGBA = { brightness, brightness, brightness, 0.4f };
+					smoke.RenderData.DiffuseID = 1U;
+					smoke.RenderData.DiffuseAtlasID = 3U;
+					EnemyEffects_->Emit(std::move(smoke));
+				}
+			}
+
+			auto UpdateEnemySmoke = [](Lumina::Particle& p, void const*) -> bool {
+				p.Life -= 1.0f;
+				if (p.Life <= 0.0f) return false;
+				p.Translate.X += p.Velocity.X;
+				p.Translate.Y += p.Velocity.Y;
+				p.Translate.Z += p.Velocity.Z;
+				p.Velocity.Y += 0.001f;
+				float lifeRatio = p.Life / 35.0f;
+				p.Scale.X += 0.015f;
+				p.Scale.Y += 0.015f;
+				p.RenderData.RGBA.W = lifeRatio * 0.4f;
+				return true;
+			};
+			EnemyEffects_->Update(cmdList_, viewToWorld_, UpdateEnemySmoke);
+		}
 
 		//KnockEffects_->Update(cmdList_, viewToWorld, UpdateKnockEffect);
 	}
@@ -787,26 +955,12 @@ namespace Game::Scene::Impl {
 			break;
 		case EditorTab::Play:
 			DrawPlayMode();
-			ImGui::SetNextWindowPos(ImVec2(10, 140), ImGuiCond_FirstUseEver);
-			ImGui::SetNextWindowSize(ImVec2(320, 220), ImGuiCond_FirstUseEver);
-			ImGui::Begin("Enemy HP");
-			for (size_t i = 0; i < playState_.Enemies.size(); ++i) {
-				const auto& enemy = playState_.Enemies[i];
-			ImGui::Text("Enemy[%d] HP: %d / %d %s  Walk:%s Motion:%s Node:%d",
-				static_cast<int>(i),
-				enemy.CurrentHP,
-				enemy.BaseData.hp,
-				enemy.IsDead ? "(Dead)" : "",
-				enemy.WalkActive ? "true" : "false",
-				enemy.MotionPlaying ? "playing" : "stopped",
-				enemy.ActiveNodeIndex);
-			}
-			ImGui::End();
+			// Enemy HP ImGui removed
 
 			// ミニマップ（エリア構成図）描画
-			if (playState_.IsPlaying) {
-				areaEditor_.DrawAreaMap(playState_.CurrentArea.index);
-			}
+			// if (playState_.IsPlaying) {
+			// 	areaEditor_.DrawAreaMap(playState_.CurrentArea.index);
+			// }
 			break;
 		default:
 			break;
@@ -987,16 +1141,431 @@ namespace Game::Scene::Impl {
 		#endif
 	}
 
+	// ==============================
+	//  ⑥ ポーズ・リスタート
+	// ==============================
+#if defined(_DEBUG)
+	void InGame::DrawPauseMenu() {
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		auto const& keyboard{ inputMngr.Keyboard() };
+		auto const& pad{ inputMngr.Pad() };
+		using Lumina::OS::Windows::KEY;
+
+		// ESC or Start ボタンでポーズ切り替え
+		bool padStartNow = pad.IsHold(0x0010);
+		bool padStartJust = padStartNow && !Event::PrevPadStart;
+		Event::PrevPadStart = padStartNow;
+
+		if (keyboard.IsJustPressed(KEY::ESC) || padStartJust) {
+			Event::IsPaused = !Event::IsPaused;
+		}
+
+		if (!Event::IsPaused) return;
+
+		// ポーズ画面オーバーレイ
+		ImVec2 windowSize(400, 260);
+		ImVec2 screenCenter(640.0f - windowSize.x * 0.5f, 360.0f - windowSize.y * 0.5f);
+		ImGui::SetNextWindowPos(screenCenter, ImGuiCond_Always);
+		ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+		ImGui::Begin("##PauseMenu", nullptr,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar);
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX((windowSize.x - ImGui::CalcTextSize("PAUSED").x) * 0.5f);
+		ImGui::TextColored(ImVec4{ 1.0f, 0.85f, 0.2f, 1.0f }, "PAUSED");
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
+
+		float btnWidth = 200.0f;
+		float btnX = (windowSize.x - btnWidth) * 0.5f;
+
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Resume", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+		}
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Restart Area", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+			Event::ResetPhase();
+			CheckAndLoadArea(playState_.CurrentArea.index);
+		}
+
+		ImGui::Spacing();
+		ImGui::SetCursorPosX(btnX);
+		if (ImGui::Button("Return to Title", ImVec2(btnWidth, 36))) {
+			Event::IsPaused = false;
+			Event::ResetPhase();
+			playState_.IsPlaying = false;
+			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Deactivate("InGame");
+			sceneMngr.Load<"Title">();
+			sceneMngr.Activate("Title");
+		}
+
+		ImGui::End();
+	}
+#endif
+
+	// ==============================
+	//  ⑦ 落下時の対処
+	// ==============================
+	void InGame::HandleFallDeath() {
+		if (!Player_ || !playState_.IsPlaying) return;
+		auto const& pos = Player_->GetPosition();
+
+		if (pos.Y < Event::FallDeathThresholdY) {
+			++Event::FallDeathCount;
+
+			// HPを少し減らす (落下ペナルティ)
+			Player_->GetStatusComponent().TakeDamage(10.0f);
+
+			// リスポーン地点へ戻す
+			Player_->SetPosition(Event::RespawnPos);
+			Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
+			Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+
+			// カメラシェイク演出
+			Event::CameraShakingTimer = 10;
+		}
+	}
+
+	// ==============================
+	//  ⑤ ゲームフェーズ管理UI
+	// ==============================
+	void InGame::DrawGamePhaseUI() {
+		float dt = 1.0f / 60.0f;
+
+		switch (Event::CurrentPhase) {
+		case Event::GamePhase::Startup:
+		{
+			// カウントダウン演出を廃止し、即座にInBattleへ移行
+			Event::CurrentPhase = Event::GamePhase::InBattle;
+			Event::PhaseTimer = 0.0f;
+			break;
+		}
+		case Event::GamePhase::InBattle:
+		{
+			Event::ElapsedBattleTime += dt;
+
+			// 全敵撃破で勝利
+			int aliveCount = 0;
+			for (const auto& e : playState_.Enemies) {
+				if (!e.IsDead) ++aliveCount;
+			}
+			if (!playState_.Enemies.empty() && aliveCount == 0) {
+				Event::CurrentPhase = Event::GamePhase::Win;
+				Event::PhaseTimer = 0.0f;
+			}
+
+			// プレイヤー死亡で敗北
+			if (Player_ && Player_->GetStatusComponent().IsDead()) {
+				Event::CurrentPhase = Event::GamePhase::Lose;
+				Event::PhaseTimer = 0.0f;
+			}
+			break;
+		}
+		case Event::GamePhase::Win:
+		{
+			Event::PhaseTimer += dt;
+			// Area Clear ImGui removed
+			break;
+		}
+		case Event::GamePhase::Lose:
+		{
+			Event::PhaseTimer += dt;
+
+			// 初回のみメニューを表示
+			if (!GameOverMenu_.IsVisible()) {
+				GameOverMenu_.Setup(
+					{
+						// Retry (緑系)
+						{ { 0.15f, 0.4f, 0.15f, 0.8f }, { 0.2f, 0.8f, 0.3f, 1.0f } },
+						// Return to Title (青系)
+						{ { 0.15f, 0.15f, 0.4f, 0.8f }, { 0.3f, 0.3f, 0.9f, 1.0f } }
+					},
+					{ 0.9f, 0.15f, 0.15f, 0.9f } // タイトル矩形: 赤
+				);
+				GameOverMenu_.Show();
+			}
+
+			int decided = GameOverMenu_.Update(dt);
+			if (decided == 0) {
+				// Retry (Fade Out)
+				GameOverMenu_.Hide();
+				playState_.ScreenFadeState = 1;
+				playState_.ScreenFadeNextAction = 1;
+			}
+			else if (decided == 1) {
+				// Return to Title (Fade Out)
+				GameOverMenu_.Hide();
+				playState_.ScreenFadeState = 1;
+				playState_.ScreenFadeNextAction = 2;
+			}
+			break;
+		}
+		}
+	}
+
+	// ==============================
+	//  ⑩ Enemy HP UI (ゲーム画面上のHPバー)
+	// ==============================
+#if defined(_DEBUG)
+	void InGame::DrawEnemyHPBars() {
+		if (!playState_.IsPlaying || !Camera_Player_) return;
+
+		auto const& viewProj = *WorldToHomogeneous_;
+		float vpW = 1280.0f;
+		float vpH = 720.0f;
+
+		// オーバーレイウィンドウ
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		ImGui::SetNextWindowSize(ImVec2(vpW, vpH));
+		ImGui::Begin("##EnemyHPOverlay", nullptr,
+			ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs |
+			ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+		for (const auto& enemy : playState_.Enemies) {
+			if (enemy.IsDead) continue;
+
+			// ワールド座標 → NDC → スクリーン座標
+			Lumina::Math::F32x4 worldPos{
+				enemy.Position.X,
+				enemy.Position.Y + 2.0f * enemy.Scale, // 頭の上に表示
+				enemy.Position.Z,
+				1.0f
+			};
+			auto clip = worldPos * viewProj;
+			if (clip.W() <= 0.0f) continue; // カメラ後方
+
+			float ndcX = clip.X() / clip.W();
+			float ndcY = clip.Y() / clip.W();
+
+			float screenX = (ndcX * 0.5f + 0.5f) * vpW;
+			float screenY = (1.0f - (ndcY * 0.5f + 0.5f)) * vpH;
+
+			// 画面外なら描画しない
+			if (screenX < -50.0f || screenX > vpW + 50.0f ||
+				screenY < -50.0f || screenY > vpH + 50.0f) continue;
+
+			float barWidth = 50.0f * enemy.Scale;
+			barWidth = (std::max)(30.0f, (std::min)(80.0f, barWidth));
+			float barHeight = 6.0f;
+			float hpRatio = static_cast<float>(enemy.CurrentHP) /
+				static_cast<float>((std::max)(1, enemy.BaseData.hp));
+			hpRatio = (std::max)(0.0f, (std::min)(1.0f, hpRatio));
+
+			float left = screenX - barWidth * 0.5f;
+			float top = screenY - barHeight;
+
+			// 背景 (暗いグレー)
+			drawList->AddRectFilled(
+				ImVec2(left - 1, top - 1),
+				ImVec2(left + barWidth + 1, top + barHeight + 1),
+				MakeCol32(20, 20, 20, 180), 2.0f);
+
+			// HP バー
+			ImU32 barColor;
+			if (hpRatio > 0.5f)
+				barColor = MakeCol32(50, 220, 80, 230);   // 緑
+			else if (hpRatio > 0.25f)
+				barColor = MakeCol32(240, 200, 40, 230);   // 黄
+			else
+				barColor = MakeCol32(230, 50, 50, 230);    // 赤
+
+			drawList->AddRectFilled(
+				ImVec2(left, top),
+				ImVec2(left + barWidth * hpRatio, top + barHeight),
+				barColor, 2.0f);
+		}
+
+		ImGui::End();
+	}
+#endif
+
 	void InGame::Update() {
-		Update_<"Player">();
-		Update_<"Enemies-1">(1.0f / 60.0f);
-		Update_<"Collision">();
-		Update_<"Enemies-2">();
+		float dt = 1.0f / 60.0f;
+
+		// --- Screen Fade Logic ---
+		if (playState_.ScreenFadeState == 1) { // FadeOut
+			playState_.ScreenFadeAlpha += dt * playState_.ScreenFadeSpeed;
+			if (playState_.ScreenFadeAlpha >= 1.0f) {
+				playState_.ScreenFadeAlpha = 1.0f;
+				
+				// Execute the deferred action
+				if (playState_.ScreenFadeNextAction == 1 || playState_.ScreenFadeNextAction == 2) {
+					Event::ResetPhase();
+					playState_.IsPlaying = true;
+					if (Player_) {
+						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
+					}
+					if (TutorialManager_) {
+						TutorialManager_->CompletedSequences_.clear();
+					}
+					playState_.VisitedAreas.clear();
+					CheckAndLoadArea(0);
+				}
+				
+				int action = playState_.ScreenFadeNextAction;
+				playState_.ScreenFadeNextAction = 0;
+				playState_.ScreenFadeState = 2; // Transition to FadeIn
+				playState_.ScreenFadeAlpha = 1.0f; // Ensure it starts fully black
+
+				if (action == 2) { // Title
+					auto& sceneMngr{ Lumina::SceneManager::Instance() };
+					sceneMngr.Deactivate("InGame");
+					sceneMngr.Load<"Title">();
+					sceneMngr.Activate("Title");
+					return;
+				}
+			}
+			// Continue updating camera/lighting so the screen doesn't freeze weirdly, but skip game logic
+			Update_<"Camera">();
+			Update_<"Lighting">();
+			return; 
+		} else if (playState_.ScreenFadeState == 2) { // FadeIn
+			playState_.ScreenFadeAlpha -= dt * playState_.ScreenFadeSpeed;
+			if (playState_.ScreenFadeAlpha <= 0.0f) {
+				playState_.ScreenFadeAlpha = 0.0f;
+				playState_.ScreenFadeState = 0; // Finish fade
+			}
+		}
+
+/// dev-Kouda-4.1
+        if (playState_.IsBossPresentationActive) {
+			playState_.BossPresentationTimer -= 1.0f / 60.0f;
+			if (playState_.BossPresentationTimer <= 0.0f) {
+				playState_.IsBossPresentationActive = false;
+				playState_.BossPresentationTimer = 0.0f;
+				playState_.BossPresentationDuration = 0.0f;
+			}
+		}
+///ここまで
+		bool tutorialActive = false;
+		if (TutorialManager_ && TutorialManager_->IsActive()) {
+			tutorialActive = true;
+		}
+
+		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		auto const& keyboard{ inputMngr.Keyboard() };
+		auto const& pad{ inputMngr.Pad() };
+		using Lumina::OS::Windows::KEY;
+
+		bool padStartNow = pad.IsHold(0x0010);
+		bool padStartJust = padStartNow && !Event::PrevPadStart;
+		Event::PrevPadStart = padStartNow;
+
+		if (keyboard.IsJustPressed(KEY::ESC) || padStartJust || keyboard.IsJustPressed(KEY::P)) {
+			playState_.IsPaused = !playState_.IsPaused;
+			if (playState_.IsPaused) {
+				playState_.PauseSelectedIndex = 0;
+				playState_.PauseAnimationTimer = 0.0f;
+				playState_.PrevPauseUpHeld = true;
+				playState_.PrevPauseDownHeld = true;
+				playState_.PrevPauseDecideHeld = true;
+			}
+		}
+
+		// M キーでミニマップ拡大表示トグル
+		if (keyboard.IsJustPressed(KEY::M)) {
+			minimapExpanded_ = !minimapExpanded_;
+		}
+
+		if (playState_.IsPaused) {
+			playState_.PauseAnimationTimer += 1.0f / 60.0f;
+			bool upHeld = keyboard.IsPressed(KEY::W) || keyboard.IsPressed(KEY::ARROW_UP) || pad.IsHold(0x0001);
+			bool downHeld = keyboard.IsPressed(KEY::S) || keyboard.IsPressed(KEY::ARROW_DOWN) || pad.IsHold(0x0002);
+			
+			bool upJust = upHeld && !playState_.PrevPauseUpHeld;
+			bool downJust = downHeld && !playState_.PrevPauseDownHeld;
+			
+			playState_.PrevPauseUpHeld = upHeld;
+			playState_.PrevPauseDownHeld = downHeld;
+
+			if (upJust) {
+				playState_.PauseSelectedIndex = (playState_.PauseSelectedIndex - 1 + 3) % 3;
+			}
+			if (downJust) {
+				playState_.PauseSelectedIndex = (playState_.PauseSelectedIndex + 1) % 3;
+			}
+
+			bool decideHeld = keyboard.IsPressed(KEY::ENTER) || keyboard.IsPressed(KEY::SPACE) || pad.IsHold(0x1000);
+			bool decideJust = decideHeld && !playState_.PrevPauseDecideHeld;
+			playState_.PrevPauseDecideHeld = decideHeld;
+
+			if (decideJust) {
+				if (playState_.PauseSelectedIndex == 0) {
+					// Resume
+					playState_.IsPaused = false;
+				} else if (playState_.PauseSelectedIndex == 1) {
+					// Restart from the beginning (Area 0) -> Fade Out
+					playState_.IsPaused = false;
+					playState_.ScreenFadeState = 1;
+					playState_.ScreenFadeNextAction = 1;
+				} else if (playState_.PauseSelectedIndex == 2) {
+					// Title -> Fade Out
+					playState_.IsPaused = false;
+					playState_.ScreenFadeState = 1;
+					playState_.ScreenFadeNextAction = 2;
+				}
+			}
+		}
+
+		// ポーズ中、またはボス登場演出中はゲームロジック更新をスキップ
+		if (!playState_.IsPaused && !playState_.IsBossPresentationActive) {
+			float deltaTime = 1.0f / 60.0f;
+			
+			if (Event::HitStopTimer > 0.0f) {
+				Event::HitStopTimer -= deltaTime;
+				if (Event::HitStopTimer < 0.0f) {
+					Event::HitStopTimer = 0.0f;
+				}
+				deltaTime = 0.0f; // 物理等の進行を停止
+			}
+
+			if (deltaTime > 0.0f) {
+				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+				
+				Update_<"Enemies-1">(1.0f / 60.0f);
+				
+				Update_<"Collision">(); // 地形との当たり判定のため実行
+				
+				Update_<"Enemies-2">();
+			}
+			
+			Update_<"[Debug] Area">();
+		}
+
+		// ツール系の更新はポーズ等に関わらず実行
 		Update_<"[Debug] TerrainEditor">();
-		Update_<"[Debug] Area">();
+
+		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
+		// ポーズ中やボス登場演出中はチュートリアルも進めない
+		if (tutorialActive && !playState_.IsPaused && !playState_.IsBossPresentationActive) {
+			TutorialManager_->Update(1.0f / 60.0f);
+		}
+
+/// dev-Takanaga-temporary
 		Update_<"Camera">();
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();
 		Update_<"[Debug] Manual">();
+
+		// ⑦ 落下処理 & ⑤ ゲームフェーズUI（Release でも動作）
+#if defined(_DEBUG)
+		if (activeEditor_ == EditorTab::Play && playState_.IsPlaying) {
+#else
+		if (playState_.IsPlaying) {
+#endif
+			HandleFallDeath();
+			DrawGamePhaseUI();
+		}
 	}
 }

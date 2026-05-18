@@ -140,7 +140,8 @@ namespace Lumina::D3D12 {
 				Uploader_ << (*reinterpret_cast<ImageTexture*>(res));
 			}
 		}
-		[[maybe_unused]] auto future_UploadTexs{ Uploader_.End(Context_->DirectQueue()) };
+		auto future_UploadTexs{ Uploader_.End(Context_->DirectQueue()) };
+		future_UploadTexs.wait();
 	}
 
 	void ResourceManager::Initialize(Context const& context_) {

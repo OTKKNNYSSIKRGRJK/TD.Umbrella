@@ -58,10 +58,17 @@ namespace Game::Editor {
 #if defined(_DEBUG)
 	void AreaEditor::DrawEditorUI() {
 		bool openConvexError = false;
+		static float saveNotificationTimer = 0.0f;
+		// 全エリアを固定表示サイズに正規化するスケール
+		constexpr float kFixedDisplaySize = 400.0f;
+		auto getDS = [](const AreaData& area) -> float {
+			return kFixedDisplaySize / (std::max)(static_cast<float>(area.width), static_cast<float>(area.height));
+		};
 		auto centerCameraOnArea = [&]() {
 			ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * 0.5f) * 0.5f;
-			cameraPos_.y = displaySize.y * 0.5f + (editingArea_.editorPos.y + editingArea_.height * 0.5f) * 0.5f;
+			float ds = getDS(editingArea_);
+			cameraPos_.x = displaySize.x * 0.5f - (editingArea_.editorPos.x + editingArea_.width * ds * 0.5f) * zoom_;
+			cameraPos_.y = displaySize.y * 0.5f + (editingArea_.editorPos.y + editingArea_.height * ds * 0.5f) * zoom_;
 		};
 		auto trySaveArea = [&](const AreaData& areaToSave, bool sync) {
 			for (const auto& cg : areaToSave.collisionGroups) {
@@ -71,6 +78,7 @@ namespace Game::Editor {
 				}
 			}
 			SaveArea(areaToSave, sync);
+			saveNotificationTimer = 2.0f;
 			return true;
 		};
 
@@ -79,6 +87,24 @@ namespace Game::Editor {
 			ImVec2 delta = ImGui::GetIO().MouseDelta;
 			cameraPos_.x += delta.x;
 			cameraPos_.y += delta.y;
+		}
+
+		// マウスホイールで拡縮（マウスカーソル位置を中心にズーム）
+		if (!ImGui::GetIO().WantCaptureMouse) {
+			float wheel = ImGui::GetIO().MouseWheel;
+			if (wheel != 0.0f) {
+				float oldZoom = zoom_;
+				constexpr float zoomSpeed = 0.1f;
+				constexpr float zoomMin = 0.05f;
+				constexpr float zoomMax = 5.0f;
+				zoom_ *= (1.0f + wheel * zoomSpeed);
+				zoom_ = (std::max)(zoomMin, (std::min)(zoomMax, zoom_));
+
+				// マウスカーソル位置を中心にズーム（カーソル下のワールド座標が変わらないように補正）
+				ImVec2 mPos = ImGui::GetMousePos();
+				cameraPos_.x = mPos.x - (mPos.x - cameraPos_.x) * (zoom_ / oldZoom);
+				cameraPos_.y = mPos.y - (mPos.y - cameraPos_.y) * (zoom_ / oldZoom);
+			}
 		}
 
 		// 敵JSONファイルリストをディレクトリ変更時のみ再スキャン
@@ -149,10 +175,28 @@ namespace Game::Editor {
 			}
 		} catch (...) {}
 
-		float scale = 0.5f;
+		float scale = zoom_;
 		float cx = cameraPos_.x;
 		float cy = cameraPos_.y;
 		ImVec2 mousePos = ImGui::GetMousePos();
+
+		// 編集中エリアの正規化スケール
+		float ds_e = getDS(editingArea_);
+
+		// ローカル座標→スクリーン座標
+		auto localToScreen = [&](const AreaData& area, float lx, float ly, float ds) -> ImVec2 {
+			return ImVec2(
+				cx + (area.editorPos.x + lx * ds) * scale,
+				cy - (area.editorPos.y + ly * ds) * scale
+			);
+		};
+		// スクリーン座標→ローカル座標
+		auto screenToLocal = [&](const AreaData& area, float sx, float sy, float ds) -> Vector2 {
+			return Vector2{
+				((sx - cx) / scale - area.editorPos.x) / ds,
+				((cy - sy) / scale - area.editorPos.y) / ds
+			};
+		};
 
 		// エリア外に出ないように座標補正
 		for (auto& conn : editingArea_.connections) {
@@ -194,8 +238,9 @@ namespace Game::Editor {
 			constexpr float connectionMarkerSize = 16.0f;
 			for (int i = 0; i < static_cast<int>(editingArea_.connections.size()); ++i) {
 				const auto& conn = editingArea_.connections[i];
-				float ccx = cx + (editingArea_.editorPos.x + conn.position.x) * scale;
-				float ccy = cy - (editingArea_.editorPos.y + conn.position.y) * scale;
+				ImVec2 cc = localToScreen(editingArea_, conn.position.x, conn.position.y, ds_e);
+				float ccx = cc.x;
+				float ccy = cc.y;
 				float cxmin = ccx - connectionMarkerSize * scale;
 				float cxmax = ccx + connectionMarkerSize * scale;
 				float cymin = ccy - connectionMarkerSize * scale;
@@ -212,8 +257,9 @@ namespace Game::Editor {
 			if (draggingConnectionIndex_ == -1) {
 				for (int i = 0; i < static_cast<int>(editingArea_.enemies.size()); ++i) {
 					const auto& ep = editingArea_.enemies[i];
-					float ecx = cx + (editingArea_.editorPos.x + ep.position.x) * scale;
-					float ecy = cy - (editingArea_.editorPos.y + ep.position.y) * scale;
+					ImVec2 ec = localToScreen(editingArea_, ep.position.x, ep.position.y, ds_e);
+					float ecx = ec.x;
+					float ecy = ec.y;
 					float exmin = ecx - enemyMarkerSize * scale;
 					float exmax = ecx + enemyMarkerSize * scale;
 					float eymin = ecy - enemyMarkerSize * scale;
@@ -230,8 +276,9 @@ namespace Game::Editor {
 			// ゴールのドラッグ判定
 			if (draggingConnectionIndex_ == -1 && draggingEnemyIndex_ == -1 && editingArea_.hasGoal) {
 				constexpr float goalMarkerSize = 20.0f;
-				float gcx = cx + (editingArea_.editorPos.x + editingArea_.goalPosition.x) * scale;
-				float gcy = cy - (editingArea_.editorPos.y + editingArea_.goalPosition.y) * scale;
+				ImVec2 gc = localToScreen(editingArea_, editingArea_.goalPosition.x, editingArea_.goalPosition.y, ds_e);
+				float gcx = gc.x;
+				float gcy = gc.y;
 				float gxmin = gcx - goalMarkerSize * scale;
 				float gxmax = gcx + goalMarkerSize * scale;
 				float gymin = gcy - goalMarkerSize * scale;
@@ -249,8 +296,9 @@ namespace Game::Editor {
 					auto& cg = editingArea_.collisionGroups[g];
 					for (int p = 0; p < static_cast<int>(cg.points.size()); ++p) {
 						const auto& pt = cg.points[p];
-						float pcx = cx + (editingArea_.editorPos.x + pt.position.x) * scale;
-						float pcy = cy - (editingArea_.editorPos.y + pt.position.y) * scale;
+						ImVec2 pc = localToScreen(editingArea_, pt.position.x, pt.position.y, ds_e);
+						float pcx = pc.x;
+						float pcy = pc.y;
 						float pxmin = pcx - pt.radius * scale;
 						float pxmax = pcx + pt.radius * scale;
 						float pymin = pcy - pt.radius * scale;
@@ -269,8 +317,8 @@ namespace Game::Editor {
 
 			if (draggingConnectionIndex_ == -1 && draggingEnemyIndex_ == -1 && draggingCollisionGroupIndex_ == -1) {
 				float axmin = cx + editingArea_.editorPos.x * scale;
-				float aymin = cy - (editingArea_.editorPos.y + editingArea_.height) * scale;
-				float axmax = axmin + editingArea_.width * scale;
+				float aymin = cy - (editingArea_.editorPos.y + editingArea_.height * ds_e) * scale;
+				float axmax = axmin + editingArea_.width * ds_e * scale;
 				float aymax = cy - editingArea_.editorPos.y * scale;
 
 				if (mousePos.x >= axmin && mousePos.x <= axmax && mousePos.y >= aymin && mousePos.y <= aymax) {
@@ -279,9 +327,10 @@ namespace Game::Editor {
 				} else {
 					for (const auto& a : allAreas_) {
 						if (a.name == editingArea_.name) continue;
+						float ds_a = getDS(a);
 						float paxmin = cx + a.editorPos.x * scale;
-						float paymin = cy - (a.editorPos.y + a.height) * scale;
-						float paxmax = paxmin + a.width * scale;
+						float paymin = cy - (a.editorPos.y + a.height * ds_a) * scale;
+						float paxmax = paxmin + a.width * ds_a * scale;
 						float paymax = cy - a.editorPos.y * scale;
 						if (mousePos.x >= paxmin && mousePos.x <= paxmax && mousePos.y >= paymin && mousePos.y <= paymax) {
 							if (trySaveArea(editingArea_, true)) {
@@ -301,8 +350,9 @@ namespace Game::Editor {
 				auto& conn = editingArea_.connections[draggingConnectionIndex_];
 				float newCcx = mousePos.x - dragOffset_.x;
 				float newCcy = mousePos.y - dragOffset_.y;
-				conn.position.x = (newCcx - cx) / scale - editingArea_.editorPos.x;
-				conn.position.y = (cy - newCcy) / scale - editingArea_.editorPos.y;
+				Vector2 local = screenToLocal(editingArea_, newCcx, newCcy, ds_e);
+				conn.position.x = local.x;
+				conn.position.y = local.y;
 
 				conn.position.x = (std::max)(0.0f, (std::min)(conn.position.x, static_cast<float>(editingArea_.width)));
 				conn.position.y = (std::max)(0.0f, (std::min)(conn.position.y, static_cast<float>(editingArea_.height)));
@@ -310,16 +360,18 @@ namespace Game::Editor {
 				auto& ep = editingArea_.enemies[draggingEnemyIndex_];
 				float newEcx = mousePos.x - dragOffset_.x;
 				float newEcy = mousePos.y - dragOffset_.y;
-				ep.position.x = (newEcx - cx) / scale - editingArea_.editorPos.x;
-				ep.position.y = (cy - newEcy) / scale - editingArea_.editorPos.y;
+				Vector2 local = screenToLocal(editingArea_, newEcx, newEcy, ds_e);
+				ep.position.x = local.x;
+				ep.position.y = local.y;
 
 				ep.position.x = (std::max)(0.0f, (std::min)(ep.position.x, static_cast<float>(editingArea_.width)));
 				ep.position.y = (std::max)(0.0f, (std::min)(ep.position.y, static_cast<float>(editingArea_.height)));
 			} else if (draggingGoal_ != -1) {
 				float newGcx = mousePos.x - dragOffset_.x;
 				float newGcy = mousePos.y - dragOffset_.y;
-				editingArea_.goalPosition.x = (newGcx - cx) / scale - editingArea_.editorPos.x;
-				editingArea_.goalPosition.y = (cy - newGcy) / scale - editingArea_.editorPos.y;
+				Vector2 local = screenToLocal(editingArea_, newGcx, newGcy, ds_e);
+				editingArea_.goalPosition.x = local.x;
+				editingArea_.goalPosition.y = local.y;
 
 				editingArea_.goalPosition.x = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.x, static_cast<float>(editingArea_.width)));
 				editingArea_.goalPosition.y = (std::max)(0.0f, (std::min)(editingArea_.goalPosition.y, static_cast<float>(editingArea_.height)));
@@ -329,8 +381,9 @@ namespace Game::Editor {
 					auto& pt = cg.points[draggingCollisionPointIndex_];
 					float new_pcx = mousePos.x - dragOffset_.x;
 					float new_pcy = mousePos.y - dragOffset_.y;
-					pt.position.x = (new_pcx - cx) / scale - editingArea_.editorPos.x;
-					pt.position.y = (cy - new_pcy) / scale - editingArea_.editorPos.y;
+					Vector2 local = screenToLocal(editingArea_, new_pcx, new_pcy, ds_e);
+					pt.position.x = local.x;
+					pt.position.y = local.y;
 
 					pt.position.x = (std::max)(0.0f, (std::min)(pt.position.x, static_cast<float>(editingArea_.width)));
 					pt.position.y = (std::max)(0.0f, (std::min)(pt.position.y, static_cast<float>(editingArea_.height)));
@@ -339,7 +392,7 @@ namespace Game::Editor {
 				float new_axmin = mousePos.x - dragOffset_.x;
 				float new_aymin = mousePos.y - dragOffset_.y;
 				editingArea_.editorPos.x = (new_axmin - cx) / scale;
-				editingArea_.editorPos.y = (cy - new_aymin) / scale - editingArea_.height;
+				editingArea_.editorPos.y = (cy - new_aymin) / scale - editingArea_.height * ds_e;
 			}
 		}
 
@@ -363,8 +416,9 @@ namespace Game::Editor {
 			bool isEditing = (a.name == editingArea_.name);
 			const AreaData& drawData = isEditing ? editingArea_ : a;
 
-			ImVec2 areaMin(cx + drawData.editorPos.x * scale, cy - (drawData.editorPos.y + drawData.height) * scale);
-			ImVec2 areaMax(cx + (drawData.editorPos.x + drawData.width) * scale, cy - drawData.editorPos.y * scale);
+			float ds = getDS(drawData);
+			ImVec2 areaMin(cx + drawData.editorPos.x * scale, cy - (drawData.editorPos.y + drawData.height * ds) * scale);
+			ImVec2 areaMax(cx + (drawData.editorPos.x + drawData.width * ds) * scale, cy - drawData.editorPos.y * scale);
 
 			ImU32 bgColor = isEditing ? MakeCol32(80, 80, 80, 255) : MakeCol32(40, 40, 40, 255);
 			ImU32 borderColor = isEditing ? MakeCol32(255, 255, 255, 255) : MakeCol32(150, 150, 150, 255);
@@ -377,7 +431,7 @@ namespace Game::Editor {
 				drawList->AddText(ImVec2(areaMin.x + 5, areaMin.y + 20), MakeCol32(100, 255, 100, 255), "[Editing]");
 			}
 
-			// Draw TerrainEditor Polygons
+
 			if (drawData.originalJson.contains("Polygons") && drawData.originalJson["Polygons"].is_array()) {
 				for (const auto& poly : drawData.originalJson["Polygons"]) {
 					if (poly.contains("Vertices") && poly["Vertices"].is_array()) {
@@ -388,10 +442,12 @@ namespace Game::Editor {
 								if (v.contains("Pos") && v["Pos"].is_array() && v["Pos"].size() >= 2) {
 									float px = v["Pos"][0].get<float>();
 									float py = v["Pos"][1].get<float>();
-									points.push_back(ImVec2(
-										cx + (drawData.editorPos.x + px) * scale,
-										cy - (drawData.editorPos.y + drawData.height - py) * scale
-									));
+									//エリア外に点があった場合描画上はクランプ
+									float sx = cx + (drawData.editorPos.x + px * ds) * scale;
+									float sy = cy - (drawData.editorPos.y + (drawData.height - py) * ds) * scale;
+									sx = (std::max)(areaMin.x, (std::min)(sx, areaMax.x));
+									sy = (std::max)(areaMin.y, (std::min)(sy, areaMax.y));
+									points.push_back(ImVec2(sx, sy));
 								}
 							}
 							if (points.size() >= 3) {
@@ -403,7 +459,7 @@ namespace Game::Editor {
 				}
 			}
 
-			// Draw TerrainEditor GroundPoints
+
 			if (drawData.originalJson.contains("GroundPoints") && drawData.originalJson["GroundPoints"].is_array()) {
 				const auto& gp = drawData.originalJson["GroundPoints"];
 				for (const auto& pt : gp) {
@@ -418,12 +474,12 @@ namespace Game::Editor {
 									float y2 = npt["Pos"][1].template get<float>();
 									
 									ImVec2 startP(
-										cx + (drawData.editorPos.x + x1) * scale,
-										cy - (drawData.editorPos.y + drawData.height - y1) * scale
+										cx + (drawData.editorPos.x + x1 * ds) * scale,
+										cy - (drawData.editorPos.y + (drawData.height - y1) * ds) * scale
 									);
 									ImVec2 endP(
-										cx + (drawData.editorPos.x + x2) * scale,
-										cy - (drawData.editorPos.y + drawData.height - y2) * scale
+										cx + (drawData.editorPos.x + x2 * ds) * scale,
+										cy - (drawData.editorPos.y + (drawData.height - y2) * ds) * scale
 									);
 									drawList->AddLine(startP, endP, MakeCol32(100, 255, 100, isEditing ? 255 : 150), 4.0f * scale);
 									break;
@@ -438,15 +494,15 @@ namespace Game::Editor {
 			std::map<int, int> targetCount;
 			for (const auto& conn : drawData.connections) {
 				int currentIdx = targetCount[conn.targetAreaIndex]++;
-				float ccx = cx + (drawData.editorPos.x + conn.position.x) * scale;
-				float ccy = cy - (drawData.editorPos.y + conn.position.y) * scale;
+				float ccx = cx + (drawData.editorPos.x + conn.position.x * ds) * scale;
+				float ccy = cy - (drawData.editorPos.y + conn.position.y * ds) * scale;
 				float ms = connectionMarkerSize * scale;
 
 				bool isPlayerStart = (drawData.index == 0 && conn.targetAreaIndex == 0);
 				ImU32 fillColor = isPlayerStart ? MakeCol32(255, 120, 0, isEditing ? 100 : 50) : MakeCol32(0, 150, 255, isEditing ? 100 : 50);
 				ImU32 outlineColor = isPlayerStart ? MakeCol32(255, 200, 0, 255) : MakeCol32(0, 255, 255, 255);
 
-				// Draw Diamond shaped
+
 				ImVec2 diamond[4] = {
 					ImVec2(ccx, ccy - ms),
 					ImVec2(ccx + ms, ccy),
@@ -471,8 +527,9 @@ namespace Game::Editor {
 						for (const auto& tConn : tData.connections) {
 							if (tConn.targetAreaIndex == drawData.index) {
 								if (matchedCount == currentIdx) {
-									float tccx = cx + (tData.editorPos.x + tConn.position.x) * scale;
-									float tccy = cy - (tData.editorPos.y + tConn.position.y) * scale;
+									float tds = getDS(tData);
+									float tccx = cx + (tData.editorPos.x + tConn.position.x * tds) * scale;
+									float tccy = cy - (tData.editorPos.y + tConn.position.y * tds) * scale;
 									targetCenter = ImVec2(tccx, tccy);
 									foundMutualTarget = true;
 									break;
@@ -481,9 +538,10 @@ namespace Game::Editor {
 							}
 						}
 						if (!foundMutualTarget) {
+							float tds2 = getDS(tData);
 							targetCenter = ImVec2(
-								cx + (tData.editorPos.x + tData.width * 0.5f) * scale,
-								cy - (tData.editorPos.y + tData.height * 0.5f) * scale
+								cx + (tData.editorPos.x + tData.width * tds2 * 0.5f) * scale,
+								cy - (tData.editorPos.y + tData.height * tds2 * 0.5f) * scale
 							);
 						}
 						drawList->AddLine(triggerCenter, targetCenter, MakeCol32(255, 255, 0, 150), 2.0f);
@@ -496,8 +554,8 @@ namespace Game::Editor {
 			if (isEditing) {
 				for (int ei = 0; ei < static_cast<int>(drawData.enemies.size()); ++ei) {
 					const auto& ep = drawData.enemies[ei];
-					float ecx2 = cx + (drawData.editorPos.x + ep.position.x) * scale;
-					float ecy2 = cy - (drawData.editorPos.y + ep.position.y) * scale;
+					float ecx2 = cx + (drawData.editorPos.x + ep.position.x * ds) * scale;
+					float ecy2 = cy - (drawData.editorPos.y + ep.position.y * ds) * scale;
 					float ms = enemyMarkerSize * scale;
 
 					// ダイヤモンド型マーカー
@@ -545,10 +603,10 @@ namespace Game::Editor {
 							// ポイントが2つだけの時は戻りの重複線を描画しない
 							if (cg.points.size() == 2 && i == 1) continue;
 
-							float p1cx = cx + (drawData.editorPos.x + p1.position.x) * scale;
-							float p1cy = cy - (drawData.editorPos.y + p1.position.y) * scale;
-							float p2cx = cx + (drawData.editorPos.x + p2.position.x) * scale;
-							float p2cy = cy - (drawData.editorPos.y + p2.position.y) * scale;
+							float p1cx = cx + (drawData.editorPos.x + p1.position.x * ds) * scale;
+							float p1cy = cy - (drawData.editorPos.y + p1.position.y * ds) * scale;
+							float p2cx = cx + (drawData.editorPos.x + p2.position.x * ds) * scale;
+							float p2cy = cy - (drawData.editorPos.y + p2.position.y * ds) * scale;
 							
 							drawList->AddLine(ImVec2(p1cx, p1cy), ImVec2(p2cx, p2cy), MakeCol32(255, 100, 255, 180), 3.0f);
 						}
@@ -556,9 +614,9 @@ namespace Game::Editor {
 
 					for (int p = 0; p < static_cast<int>(cg.points.size()); ++p) {
 						const auto& pt = cg.points[p];
-						float pcx = cx + (drawData.editorPos.x + pt.position.x) * scale;
-						float pcy = cy - (drawData.editorPos.y + pt.position.y) * scale;
-						float radius = pt.radius * scale;
+						float pcx = cx + (drawData.editorPos.x + pt.position.x * ds) * scale;
+						float pcy = cy - (drawData.editorPos.y + pt.position.y * ds) * scale;
+						float radius = pt.radius * ds * scale;
 						ImU32 col = (draggingCollisionGroupIndex_ == g && draggingCollisionPointIndex_ == p) ? MakeCol32(255, 100, 255, 150) : MakeCol32(200, 50, 200, 100);
 						drawList->AddCircleFilled(ImVec2(pcx, pcy), radius, col);
 						drawList->AddCircle(ImVec2(pcx, pcy), radius, MakeCol32(255, 100, 255, 255), 0, 1.5f);
@@ -569,8 +627,8 @@ namespace Game::Editor {
 				// ゴールの描画
 				if (drawData.hasGoal) {
 					constexpr float goalMarkerSize = 20.0f;
-					float gcx2 = cx + (drawData.editorPos.x + drawData.goalPosition.x) * scale;
-					float gcy2 = cy - (drawData.editorPos.y + drawData.goalPosition.y) * scale;
+					float gcx2 = cx + (drawData.editorPos.x + drawData.goalPosition.x * ds) * scale;
+					float gcy2 = cy - (drawData.editorPos.y + drawData.goalPosition.y * ds) * scale;
 					float gms = goalMarkerSize * scale;
 
 					// 金色の円マーカー
@@ -644,14 +702,17 @@ namespace Game::Editor {
 			strncpy_s(musicBuf, editingArea_.backgroundMusic.c_str(), sizeof(musicBuf));
 			if (ImGui::InputText("Background Music", musicBuf, sizeof(musicBuf), ImGuiInputTextFlags_EnterReturnsTrue)) {
 				editingArea_.backgroundMusic = musicBuf;
+				trySaveArea(editingArea_, true);
 			} else if (ImGui::IsItemDeactivatedAfterEdit()) {
 				editingArea_.backgroundMusic = musicBuf;
+				trySaveArea(editingArea_, true);
 			}
 		}
 
 		if (ImGui::CollapsingHeader("Area Connections", ImGuiTreeNodeFlags_DefaultOpen)) {
 			if (ImGui::Button("Add Connection", ImVec2(-1, 0))) {
 				editingArea_.connections.push_back({});
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -670,9 +731,11 @@ namespace Game::Editor {
 
 					ImGui::Text("Portal Coordinates");
 					ImGui::DragFloat2("Position", &editingArea_.connections[i].position.x, 1.0f);
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					if (ImGui::Button("Remove Connection")) {
 						editingArea_.connections.erase(editingArea_.connections.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::TreePop();
 						ImGui::PopID();
 						break;
@@ -688,6 +751,7 @@ namespace Game::Editor {
 				EnemyPlacement newEnemy;
 				newEnemy.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 				editingArea_.enemies.push_back(newEnemy);
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -713,6 +777,7 @@ namespace Game::Editor {
 								bool isSelected = (currentItem == k);
 								if (ImGui::Selectable(enemyFiles_[k].c_str(), isSelected)) {
 									editingArea_.enemies[i].enemyName = enemyFiles_[k];
+									trySaveArea(editingArea_, true);
 								}
 								if (isSelected) ImGui::SetItemDefaultFocus();
 							}
@@ -724,18 +789,23 @@ namespace Game::Editor {
 						if (ImGui::InputText("Enemy Name", nameBuf, sizeof(nameBuf))) {
 							editingArea_.enemies[i].enemyName = nameBuf;
 						}
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 					}
 
 					// サイズ段階選択
 					const char* sizeNames[] = { "Small", "Medium", "Large" };
-					ImGui::Combo("Size", &editingArea_.enemies[i].sizeCategory, sizeNames, 3);
+					if (ImGui::Combo("Size", &editingArea_.enemies[i].sizeCategory, sizeNames, 3)) {
+						trySaveArea(editingArea_, true);
+					}
 
 					ImGui::DragFloat2("Position", &editingArea_.enemies[i].position.x, 1.0f);
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					// 向き設定
 					bool facingRight = editingArea_.enemies[i].facingRight;
 					if (ImGui::Checkbox("Facing Right", &facingRight)) {
 						editingArea_.enemies[i].facingRight = facingRight;
+						trySaveArea(editingArea_, true);
 					}
 					ImGui::SameLine();
 					ImGui::TextDisabled(facingRight ? "(->)" : "(<-)");
@@ -743,6 +813,7 @@ namespace Game::Editor {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
 					if (ImGui::Button("Remove Enemy")) {
 						editingArea_.enemies.erase(editingArea_.enemies.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::PopStyleColor();
 						ImGui::TreePop();
 						ImGui::PopID();
@@ -760,6 +831,7 @@ namespace Game::Editor {
 				CollisionGroup newGroup;
 				newGroup.name = "Group_" + std::to_string(editingArea_.collisionGroups.size());
 				editingArea_.collisionGroups.push_back(newGroup);
+				trySaveArea(editingArea_, true);
 			}
 			ImGui::Separator();
 
@@ -772,11 +844,13 @@ namespace Game::Editor {
 					if (ImGui::InputText("Group Name", nameBuf, sizeof(nameBuf))) {
 						editingArea_.collisionGroups[i].name = nameBuf;
 					}
+					if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 
 					if (ImGui::Button("Add Point")) {
 						CollisionPoint p;
 						p.position = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 						editingArea_.collisionGroups[i].points.push_back(p);
+						trySaveArea(editingArea_, true);
 					}
 					
 					ImGui::Separator();
@@ -785,9 +859,12 @@ namespace Game::Editor {
 						ImGui::PushID(static_cast<int>(p) + 30000);
 						ImGui::Text("Point %llu", p);
 						ImGui::DragFloat2("Position", &editingArea_.collisionGroups[i].points[p].position.x, 1.0f);
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 						ImGui::DragFloat("Radius", &editingArea_.collisionGroups[i].points[p].radius, 1.0f, 1.0f, 1000.0f);
+						if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 						if (ImGui::Button("Remove Point")) {
 							editingArea_.collisionGroups[i].points.erase(editingArea_.collisionGroups[i].points.begin() + p);
+							trySaveArea(editingArea_, true);
 							ImGui::PopID();
 							break;
 						}
@@ -798,6 +875,7 @@ namespace Game::Editor {
 					ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.2f, 0.2f, 1.0f));
 					if (ImGui::Button("Remove Group")) {
 						editingArea_.collisionGroups.erase(editingArea_.collisionGroups.begin() + i);
+						trySaveArea(editingArea_, true);
 						ImGui::PopStyleColor();
 						ImGui::TreePop();
 						ImGui::PopID();
@@ -818,9 +896,11 @@ namespace Game::Editor {
 				if (hasGoal) {
 					editingArea_.goalPosition = { static_cast<float>(editingArea_.width) / 2.0f, static_cast<float>(editingArea_.height) / 2.0f };
 				}
+				trySaveArea(editingArea_, true);
 			}
 			if (editingArea_.hasGoal) {
 				ImGui::DragFloat2("Goal Position", &editingArea_.goalPosition.x, 1.0f);
+				if (ImGui::IsItemDeactivatedAfterEdit()) trySaveArea(editingArea_, true);
 				ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.2f, 1.0f), "Goal marker is shown on canvas.");
 				ImGui::TextColored(ImVec4(0.6f, 0.6f, 0.6f, 1.0f), "(Drag the marker to reposition)");
 			}
@@ -829,6 +909,11 @@ namespace Game::Editor {
 		ImGui::Separator();
 		if (ImGui::Button("SAVE AREA", ImVec2(-1, 40))) {
 			trySaveArea(editingArea_, true);
+		}
+
+		if (saveNotificationTimer > 0.0f) {
+			saveNotificationTimer -= ImGui::GetIO().DeltaTime;
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "  Saved Successfully!");
 		}
 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.2f, 0.2f, 1.0f));
@@ -1027,6 +1112,7 @@ namespace Game::Editor {
 		struct AreaNode {
 			int index;
 			float cx, cy;
+			int areaW, areaH; // 実際のエリアサイズ
 		};
 		std::vector<AreaNode> nodes;
 		float minCX = 1e9f, minCY = 1e9f, maxCX = -1e9f, maxCY = -1e9f;
@@ -1038,7 +1124,7 @@ namespace Game::Editor {
 			GridPos gp = gridLayout[a.index];
 			float cx = gp.x * gridSpacingX;
 			float cy = gp.y * gridSpacingY;
-			nodes.push_back({ a.index, cx, cy });
+			nodes.push_back({ a.index, cx, cy, a.width, a.height });
 			
 			minCX = (std::min)(minCX, cx);
 			minCY = (std::min)(minCY, cy);
@@ -1077,10 +1163,28 @@ namespace Game::Editor {
 			);
 		};
 
+		// === エリアサイズに基づくノードサイズの計算 ===
+		// 全エリアの面積の最小/最大を求めて、ノードサイズを比例させる
+		float minArea = 1e9f, maxArea = -1e9f;
+		for (const auto& n : nodes) {
+			float area = static_cast<float>(n.areaW) * static_cast<float>(n.areaH);
+			minArea = (std::min)(minArea, area);
+			maxArea = (std::max)(maxArea, area);
+		}
+		float areaRange = maxArea - minArea;
+		if (areaRange < 1.0f) areaRange = 1.0f;
+
+		constexpr float nodeRadiusMin = 14.0f;
+		constexpr float nodeRadiusMax = 28.0f;
+
 		// 各ノードの画面座標を求めておく
 		std::map<int, ImVec2> nodeScreenPos;
+		std::map<int, float> nodeRadii;
 		for (const auto& n : nodes) {
 			nodeScreenPos[n.index] = ToScreen(n.cx, n.cy);
+			float area = static_cast<float>(n.areaW) * static_cast<float>(n.areaH);
+			float t = (area - minArea) / areaRange; // 0~1
+			nodeRadii[n.index] = nodeRadiusMin + t * (nodeRadiusMax - nodeRadiusMin);
 		}
 
 		// === 接続線の描画（重複排除） ===
@@ -1119,7 +1223,6 @@ namespace Game::Editor {
 		}
 
 		// === 各エリアノードの描画 ===
-		constexpr float nodeRadius = 20.0f;
 
 		// エリアごとの色テーブル（モンハン風に各エリアが異なる色）
 		constexpr int numColors = 12;
@@ -1138,38 +1241,53 @@ namespace Game::Editor {
 			MakeCol32(160, 160, 120, 200),  // 11: カーキ
 		};
 
+		// パルスアニメーション用の時間
+		static float pulseTimer = 0.0f;
+		pulseTimer += ImGui::GetIO().DeltaTime;
+		float pulse = 0.5f + 0.5f * sinf(pulseTimer * 3.0f); // 0~1を繰り返す
+
 		for (const auto& n : nodes) {
 			ImVec2 pos = nodeScreenPos[n.index];
 			bool isCurrent = (n.index == currentAreaIndex);
 			int colorIdx = n.index % numColors;
 			ImU32 fillColor = areaColors[colorIdx];
+			float nodeRadius = nodeRadii[n.index];
 
-			// 現在エリアのグロー
+			// 現在エリアのグロー（パルスアニメーション）
 			if (isCurrent) {
-				drawList->AddCircleFilled(pos, nodeRadius + 8.0f, MakeCol32(255, 200, 50, 60));
-				drawList->AddCircleFilled(pos, nodeRadius + 5.0f, MakeCol32(255, 220, 80, 80));
+				int glowAlpha1 = static_cast<int>(40.0f + 40.0f * pulse);
+				int glowAlpha2 = static_cast<int>(60.0f + 40.0f * pulse);
+				float glowExtra = 4.0f + 4.0f * pulse;
+				drawList->AddCircleFilled(pos, nodeRadius + glowExtra + 3.0f, MakeCol32(255, 200, 50, glowAlpha1));
+				drawList->AddCircleFilled(pos, nodeRadius + glowExtra, MakeCol32(255, 220, 80, glowAlpha2));
 			}
 
-			// 不規則形状風: 8角形で描画
-			constexpr int numSides = 8;
-			ImVec2 polyPoints[numSides];
-			float baseRadii[numSides] = { 1.0f, 0.88f, 1.05f, 0.92f, 0.97f, 0.85f, 1.02f, 0.90f };
-			for (int i = 0; i < numSides; ++i) {
-				float angle = (static_cast<float>(i) / numSides) * 2.0f * 3.14159265f;
-				float r = nodeRadius * baseRadii[i];
-				polyPoints[i] = ImVec2(pos.x + r * cosf(angle), pos.y + r * sinf(angle));
+			// エリアサイズに比例した矩形で描画（アスペクト比を反映）
+			float aspect = static_cast<float>(n.areaW) / (std::max)(1.0f, static_cast<float>(n.areaH));
+			float halfW, halfH;
+			if (aspect >= 1.0f) {
+				halfW = nodeRadius;
+				halfH = nodeRadius / aspect;
+			} else {
+				halfW = nodeRadius * aspect;
+				halfH = nodeRadius;
 			}
+			// 最小サイズを保証
+			halfW = (std::max)(halfW, 8.0f);
+			halfH = (std::max)(halfH, 8.0f);
 
-			drawList->AddConvexPolyFilled(polyPoints, numSides, fillColor);
+			ImVec2 rectMin(pos.x - halfW, pos.y - halfH);
+			ImVec2 rectMax(pos.x + halfW, pos.y + halfH);
+
+			drawList->AddRectFilled(rectMin, rectMax, fillColor, 3.0f);
 
 			// 境界線
 			ImU32 borderCol = isCurrent ? MakeCol32(255, 220, 80, 255) : MakeCol32(60, 50, 35, 255);
 			float borderThk = isCurrent ? 3.0f : 2.0f;
-			drawList->AddPolyline(polyPoints, numSides, borderCol, ImDrawFlags_Closed, borderThk);
+			drawList->AddRect(rectMin, rectMax, borderCol, 3.0f, 0, borderThk);
 
-			// エリア番号テキスト（大きめに中央表示）
+			// エリア番号テキスト（中央表示）
 			std::string numStr = std::to_string(n.index);
-			// ImGui デフォルトフォントは約7x13px
 			float textW = numStr.size() * 7.0f;
 			float textH = 13.0f;
 			ImU32 textCol = isCurrent ? MakeCol32(50, 30, 0, 255) : MakeCol32(230, 220, 200, 255);
@@ -1177,6 +1295,15 @@ namespace Game::Editor {
 				ImVec2(pos.x - textW * 0.5f, pos.y - textH * 0.5f),
 				textCol,
 				numStr.c_str()
+			);
+
+			// サイズラベル（ノード下部に表示）
+			std::string sizeStr = std::to_string(n.areaW) + "x" + std::to_string(n.areaH);
+			float sizeLabelW = sizeStr.size() * 7.0f;
+			drawList->AddText(
+				ImVec2(pos.x - sizeLabelW * 0.5f, rectMax.y + 2.0f),
+				MakeCol32(170, 150, 110, 200),
+				sizeStr.c_str()
 			);
 		}
 

@@ -42,5 +42,65 @@
         "isHoming": false,
         "lifetime": 5.0
     },
-    "retreatThreshold": 0.2
+    "retreatThreshold": 0.2,
+
+    "nodes": [
+        {
+            "id": 0,
+            "name": "Walk",
+            "state": "Walk",
+            "x": -100,
+            "y": 100,
+            "animationName": "Walk",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "boundBool": "",
+            "facePlayer": true,
+            "velocityFrictionX": 1.0,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "splineMotionName": "",
+            "splineDuration": 1.0
+        },
+        {
+            "id": 1,
+            "name": "Charge",
+            "state": "Charge",
+            "x": 100,
+            "y": 100,
+            "animationName": "Charge",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "boundBool": "",
+            "facePlayer": true,
+            "velocityFrictionX": 0.9,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "splineMotionName": "",
+            "splineDuration": 1.0
+        },
+        {
+            "id": 2,
+            "name": "Shoot",
+            "state": "Shoot",
+            "x": 300,
+            "y": 100,
+            "animationName": "Shoot",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "boundBool": "FireProjectile",
+            "facePlayer": true,
+            "velocityFrictionX": 1.0,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "splineMotionName": "",
+            "splineDuration": 1.0
+        }
+    ],
+
+    "links": [
+        { "from": 0, "to": 1, "condition": "Dist<=12.0" },
+        { "from": 1, "to": 2, "condition": "Time>=0.8" },
+        { "from": 2, "to": 0, "condition": "Time>=0.4" }
+    ]
 }

@@ -233,9 +233,8 @@ namespace Lumina {
 
 		//----	------	------	------	------	----//
 
-		auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
-
 		#if defined(_DEBUG)
+		auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
 		[[maybe_unused]] auto const& swapChain{ D3D12Context_.SwapChain() };
 		Lumina::Utils::ImGuiManager::Initialize(mainWindow.Handle(), device, swapChain, gpuDH);
 		WinAppContext_.RegisterCallback(Lumina::Utils::ImGuiManager::WindowProcedure);

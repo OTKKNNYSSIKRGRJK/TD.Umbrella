@@ -79,6 +79,7 @@ export namespace Game::Editor {
 		void Update();
 		void LoadArea(AreaData& area, const std::string& filename);
 		void DrawAreaMap(int currentAreaIndex);
+		const std::vector<AreaData>& GetAllAreas() const { return allAreas_; }
 
 	private:
 		void DrawEditorUI();
@@ -91,6 +92,7 @@ export namespace Game::Editor {
 		std::vector<std::string> recentFiles_{};
 		std::vector<AreaData> allAreas_{};
 		Vector2 cameraPos_ = { 0.0f, 0.0f };
+		float zoom_ = 0.5f;
 
 		int draggingAreaIndex_ = -1;
 		int draggingConnectionIndex_ = -1;

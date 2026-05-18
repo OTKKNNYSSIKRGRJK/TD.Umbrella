@@ -231,7 +231,6 @@
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp">
       <Filter>Game\Debug</Filter>
     </ClCompile>
-
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Update.cpp">
       <Filter>Scenes\Title</Filter>
     </ClCompile>
@@ -263,6 +262,7 @@
       <Filter>Scenes\Title-InGame</Filter>
     </ClCompile>
     <ClCompile Include="Game\Game.Events.ixx" />
+    <ClCompile Include="Game\Game.UIMenu.ixx" />
     <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Impl.ixx" />
     <ClCompile Include="Scenes\AudioEditor\Game.Scene.AudioEditor.Initialize.cpp" />
@@ -277,10 +277,15 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.cpp">
       <Filter>Scenes\InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Game.TutorialManager.ixx" />
+    <ClCompile Include="Game\Game.TutorialManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
     <None Include="KingSlime.json" />
     <None Include="Assets\Data\Motion\KingSlimeAttack.json" />
+    <None Include="Assets\Data\Enemy\TutorialEnemy.json" />
+    <None Include="Assets\Data\Enemies\TutorialEnemy.json" />
+    <None Include="Assets\Data\Enemy\Boss.json" />
   </ItemGroup>
 </Project>

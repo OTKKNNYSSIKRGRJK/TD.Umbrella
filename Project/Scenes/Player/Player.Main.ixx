@@ -284,6 +284,25 @@ public:
 	// Get・Set関係
 	void SetInputData(const PlayerInputData& input) { inputData_ = input; }
 	const PlayerInputData& GetInput()const { return inputData_; }
+
+	// チュートリアル等からの入力制限マスク
+	// ビットフラグ: bit0=Move, bit1=Jump, bit2=Attack, bit3=Sheathe,
+	//              bit4=Guard, bit5=Reverse, bit6=Aim, bit7=Shoot,
+	//              bit8=Repair, bit9=Mana
+	uint16_t InputMask{ 0xFFFF };
+	void ApplyInputMask() {
+		if (InputMask == 0xFFFF) return; // 全許可なら何もしない
+		if (!(InputMask & (1 << 0))) { inputData_.moveDirection = { 0.0f, 0.0f, 0.0f }; inputData_.aimingDirectionX = 0.0f; inputData_.aimingDirectionY = 0.0f; }
+		if (!(InputMask & (1 << 1))) { inputData_.jump = ButtonState::None; }
+		if (!(InputMask & (1 << 2))) { inputData_.attack = ButtonState::None; }
+		if (!(InputMask & (1 << 3))) { inputData_.sheathe = ButtonState::None; }
+		if (!(InputMask & (1 << 4))) { inputData_.guard = ButtonState::None; }
+		if (!(InputMask & (1 << 5))) { inputData_.reverse = ButtonState::None; }
+		if (!(InputMask & (1 << 6))) { inputData_.aim = ButtonState::None; }
+		if (!(InputMask & (1 << 7))) { inputData_.shoot = ButtonState::None; }
+		if (!(InputMask & (1 << 8))) { inputData_.repair = ButtonState::None; }
+		if (!(InputMask & (1 << 9))) { inputData_.useMana = false; }
+	}
 	// ====================
 	// 照準・発射
 	// ====================

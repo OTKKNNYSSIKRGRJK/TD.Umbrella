@@ -4,7 +4,9 @@ import <fstream>;
 import <filesystem>;
 
 import nlohmann.json;
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
 namespace {
     using Vector3 = Lumina::Math::F32x3;
@@ -59,12 +61,21 @@ void MotionManager::LoadMotions(const std::string& directoryPath) {
 }
 
 const MotionData& MotionManager::GetMotion(const std::string& name) const {
-	auto it = motions_.find(name);
-	if (it != motions_.end()) {
-		return it->second;
-	}
-	/*throw std::runtime_error("Motion not found: " + name);*/
-	return motions_.begin()->second; // データがないときは先頭のデータを返す（要注意）
+  // If no motions were loaded, return a static empty MotionData to avoid
+    // dereferencing motions_.begin() when the map is empty.
+    if (motions_.empty()) {
+        static MotionData kEmptyMotion{};
+        return kEmptyMotion;
+    }
+
+    auto it = motions_.find(name);
+    if (it != motions_.end()) {
+        return it->second;
+    }
+
+    // Fallback: return the first available motion when the requested one
+    // is not found.
+    return motions_.begin()->second;
 }
 
 void MotionController::Play(const std::string& motionName, const Vector3& startPosition, float motionDuration) {
@@ -74,6 +85,8 @@ void MotionController::Play(const std::string& motionName, const Vector3& startP
 	isPlaying_ = true;
 	actionStartPosition_ = startPosition;
 	lastLocalOffset_ = Vector3{};
+   playbackDirectionSign_ = 1.0f;
+    hasLockedPlaybackDirection_ = false;
 }
 
 Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
@@ -124,7 +137,11 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
     localOffset.Z -= startOffset.Z;
 
 	localOffset.Y *= -1.0f;
-	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
+ if (!hasLockedPlaybackDirection_) {
+        playbackDirectionSign_ = direction.X >= 0.0f ? 1.0f : -1.0f;
+        hasLockedPlaybackDirection_ = true;
+    }
+    localOffset.X *= playbackDirectionSign_; // 再生開始時の向きで固定して左右反転
 
 	lastLocalOffset_ = localOffset;
 
@@ -135,11 +152,23 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 	return actionStartPosition_ + localOffset;
 }
 
+void MotionController::Stop() {
+    isPlaying_ = false;
+    motionTimer_ = 0.0f;
+    prevActiveNodeIndex_ = -1;
+    lastLocalOffset_ = Vector3{};
+    playbackDirectionSign_ = 1.0f;
+    hasLockedPlaybackDirection_ = false;
+    currentMotionName_.clear();
+}
+
+#if defined(_DEBUG)
 namespace {
     constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
         return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
     }
 }
+#endif
 
 void MotionEditor::NodeImGui() {
 #if defined(_DEBUG)

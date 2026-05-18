@@ -2,8 +2,10 @@ export module Game.Scene.InGame : Impl;
 
 import <memory>;
 
+import <string>;
 import <vector>;
 import <map>;
+import <set>;
 
 #if defined(_DEBUG)
 import Game.TerrainEditor;
@@ -13,13 +15,14 @@ import Game.Editor.EnemyEditor;
 import Game.Editor.ActorEditor;
 import Game.Editor.AudioEditor;
 import Game.Editor.ObjMotionEditor;
+import Game.TutorialManager;
+import Game.UIMenu;
 
 import Lumina.Core.Common;
 import Lumina.Core.Math;
 import Lumina.Core.String;
 import Lumina.Utils.Data;
 import Lumina.D3D12;
-import Lumina.D3D12.Aux.View;
 import Lumina.MeshManager;
 
 import Game.Terrain;
@@ -32,8 +35,6 @@ import Game.Player;
 import CollisionManager;
 import Game.ConvexColliderDebug;
 import Collider;
-
-import Lumina.CG3D.Struct;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -52,9 +53,6 @@ namespace Game::Scene::Impl {
 		auto Update_(_ARGs&&...args_) -> void;
 
 	private:
-		template<Lumina::StringLiteral _Name, typename..._ARGs>
-		auto Render_(_ARGs&&...args_) -> void;
-
 		void Render_Geometry();
 		void Render_Merge();
 
@@ -67,6 +65,8 @@ namespace Game::Scene::Impl {
 		auto Initialize_(_ARGs&&...args_) -> void;
 
 		void SyncPlayEnemiesFromManager();
+		bool HasBossEncounterInCurrentArea() const;
+		void StartBossEncounterPresentation();
 
 	public:
 		void Initialize();
@@ -120,7 +120,9 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
+	#if defined(_DEBUG)
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
+#endif
 
 		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
@@ -142,6 +144,14 @@ namespace Game::Scene::Impl {
 		Game::Editor::AudioEditor audioEditor_;
 		Game::Editor::ObjMotionEditor objMotionEditor_;
 
+		// チュートリアルシステム
+		std::unique_ptr<Game::TutorialManager> TutorialManager_;
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Tutorial_;
+
+		// ミニマップ専用
+		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_Minimap_;
+		bool minimapExpanded_ = false;
+
 		struct Character {
 			Lumina::Math::F32x3 Position{ 100.0f, 0.0f, 0.0f }; // Y=0 is ground
 			Lumina::Math::F32x3 Velocity{ 0.0f, 0.0f, 0.0f };
@@ -156,12 +166,21 @@ namespace Game::Scene::Impl {
 		struct PlayEnemy {
 			Game::Editor::EnemyData BaseData;
 			Lumina::Math::F32x3 Position{ 0.0f, 0.0f, 0.0f };
+            std::string CurrentAction = "Idle";
 			int CurrentHP = 100;
 			bool IsDead = false;
 			float HurtTimer = 0.0f;
 			bool FacingRight = true;
+           float RenderFacingYaw = 0.0f;
+           float SpawnTimer = 0.0f;
+			float SpawnDuration = 0.0f;
 			int SizeTier = 1;
 			float Scale = 1.0f;
+            // Visual-only transform applied during prep/windup (copied from runtime instance)
+			Lumina::Math::F32x3 VisualOffset{ 0.0f, 0.0f, 0.0f };
+			float VisualYaw = 0.0f;
+            // Runtime id for matching across frames
+			uint32_t Id = 0;
 			bool WalkActive = false; // debug flag from behavior
 			bool MotionPlaying = false;
 			int ActiveNodeIndex = -1;
@@ -169,8 +188,15 @@ namespace Game::Scene::Impl {
 
 		struct PlayState {
 			bool IsPlaying = false;
+			bool IsPaused = false;
+			int PauseSelectedIndex = 0;
+			float PauseAnimationTimer = 0.0f;
+			bool PrevPauseUpHeld = false;
+			bool PrevPauseDownHeld = false;
+			bool PrevPauseDecideHeld = false;
 			bool IsGoalReached = false;
 			Game::Editor::AreaData CurrentArea;
+			std::set<int> VisitedAreas;
 			Character Player;
 			std::vector<PlayEnemy> Enemies;
 
@@ -185,12 +211,29 @@ namespace Game::Scene::Impl {
 			
 			float TransitionCooldownTimer = 0.0f;
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
+           bool IsBossPresentationActive = false;
+			float BossPresentationTimer = 0.0f;
+			float BossPresentationDuration = 0.0f;
+			Lumina::Math::F32x3 BossPresentationFocusPosition{ 0.0f, 0.0f, 0.0f };
+			
+			// Screen Fade properties
+			int ScreenFadeState = 2; // 0: None, 1: FadeOut, 2: FadeIn (Start with FadeIn on load)
+			float ScreenFadeAlpha = 1.0f;
+			int ScreenFadeNextAction = 0;
+			float ScreenFadeSpeed = 1.5f;
 		} playState_;
 
-		#if defined(_DEBUG)
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
+		void DrawGamePhaseUI();
+		void HandleFallDeath();
+#if defined(_DEBUG)
 		void DrawPlayMode();
-		#endif
+		void DrawPauseMenu();
+		void DrawEnemyHPBars();
+#endif
+
+		// ゲームオーバー用UIメニュー
+		Game::UIMenu GameOverMenu_;
 
 		/// パーティクル・ライティング
 
@@ -207,16 +250,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> AmbientSparkles_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
 
-	private:
-		Lumina::D3D12::RootSignature RS_Skinning_;
-		Lumina::D3D12::Shader VS_SkinnedMeshDeferredGeometry_;
-		Lumina::D3D12::Shader PS_SkinnedMeshDeferredGeometry_;
-		Lumina::D3D12::GraphicsPSO GraphicsPSO_SkinnedMeshDeferredGeometry_;
-
-		Lumina::D3D12::DescriptorTable GlobalTable_Materials_;
-		Lumina::D3D12::UploadBuffer UB_Transforms_;
-
-		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
 	};
 }

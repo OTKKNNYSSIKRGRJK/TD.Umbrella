@@ -30,6 +30,14 @@ export namespace Game {
 		int   damage = 10;               // ダメージ
 		float lifetime = 5.0f;           // 弾の生存時間（秒）
 		float colliderRadius = 0.15f;    // 当たり判定の半径（立方体で近似）
+        // If true, the projectile is spawned attached to its owner (no initial velocity)
+		// and will follow the owner's position until activated.
+		bool spawnAttached = false;
+		Lumina::Math::F32x3 attachOffset{ 0.0f, 0.0f, 0.0f };
+        // Charge/attach visual scaling
+		bool scaleOnCharge = false;         // whether to grow visually while attached
+		float initialScale = 0.25f;         // starting visual scale when attached
+		float chargeGrowDuration = 0.8f;    // seconds to reach target visual scale
 	};
 
 	/// <summary>
@@ -45,6 +53,15 @@ export namespace Game {
 		float aliveTime = 0.0f;
 		bool isDead = false;
 		uint32_t ownerEnemyId = 0;   // 発射した敵のID（自分に当たらないように）
+
+		// If true, this projectile is visually attached to its owner and
+		// will follow the owner's position until activated (shot).
+		bool isAttached = false;
+
+		// Visual scaling state used during charge/attach
+		float visualScale = 1.0f;
+		float targetVisualScale = 1.0f;
+		float chargeTimer = 0.0f;
 
 		// PingPong 用: 移動距離トラッキング
 		float traveledDistance = 0.0f;
@@ -79,6 +96,11 @@ export namespace Game {
 	class ProjectileManager {
 	public:
 		static ProjectileManager* GetInstance();
+
+		// Attempt to activate an attached projectile belonging to `ownerEnemyId`.
+		// If an attached projectile exists, convert it into a normal flying projectile
+		// aimed at `target` and return true. Otherwise return false.
+		bool ActivateAttachedProjectile(uint32_t ownerEnemyId, const Lumina::Math::F32x3& target);
 
 		// ============================
 		//  発射

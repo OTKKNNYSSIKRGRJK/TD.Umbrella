@@ -13,6 +13,7 @@ namespace Game {
 		for (auto const& collider : colliders_) {
 			auto const& verts{ static_cast<ConvexCollider*>(collider)->GetVertices() };
 			auto const& world{ static_cast<ConvexCollider*>(collider)->GetWorldMatrix() };
+			if (verts.empty()) continue;
 			if (verts.size() > 2) {
 				auto v0{ Lumina::Math::F32x4{ verts[0], 1.0f } * world };
 				Lumina::Math::F32x4 v1{ v0 }, v2{};

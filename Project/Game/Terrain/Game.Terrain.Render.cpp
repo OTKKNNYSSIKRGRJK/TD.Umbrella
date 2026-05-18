@@ -19,9 +19,9 @@ namespace Game {
 				auto const* verts{ polygon.Vertices.data() };
 				for (size_t i = 2; i < polygon.Vertices.size(); ++i) {
 					PrimitiveManager_->BatchTriangle(
-						{ { verts[0].Pos.X, verts[0].Pos.Y, verts[0].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-						{ { verts[i - 1].Pos.X, verts[i - 1].Pos.Y, verts[i - 1].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-						{ { verts[i].Pos.X, verts[i].Pos.Y, verts[i].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+						{ { verts[0].Pos.X, verts[0].Pos.Y, verts[0].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+						{ { verts[i - 1].Pos.X, verts[i - 1].Pos.Y, verts[i - 1].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+						{ { verts[i].Pos.X, verts[i].Pos.Y, verts[i].Pos.Z, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U }
 					);
 				}
 			}
@@ -31,14 +31,14 @@ namespace Game {
 		for (auto const& collider : ground.Colliders) {
 			auto const& verts{ collider->GetVertices() };
 			PrimitiveManager_->BatchTriangle(
-				{ { verts[0].X, verts[0].Y, verts[0].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+				{ { verts[0].X, verts[0].Y, verts[0].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U }
 			);
 			PrimitiveManager_->BatchTriangle(
-				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[2].X, verts[2].Y, verts[2].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 },
-				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0 }
+				{ { verts[1].X, verts[1].Y, verts[1].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+				{ { verts[2].X, verts[2].Y, verts[2].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U },
+				{ { verts[3].X, verts[3].Y, verts[3].Z - 0.05f, 1.0f }, { 0.5f, 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f }, 0U }
 			);
 		}
 

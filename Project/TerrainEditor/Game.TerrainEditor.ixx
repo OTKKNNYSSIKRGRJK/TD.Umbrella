@@ -11,6 +11,7 @@ import Game.Terrain;
 import Lumina.Utils.Camera;
 import Lumina.Utils.Misc;
 
+#if defined(_DEBUG)
 namespace Game {
 
 	export class TerrainEditor {
@@ -84,3 +85,4 @@ namespace Game {
 		Lumina::Math::F32x2 GroundOffset_;
 	};
 }
+#endif

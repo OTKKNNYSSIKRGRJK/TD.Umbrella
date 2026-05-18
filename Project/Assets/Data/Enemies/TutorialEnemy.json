@@ -1,0 +1,17 @@
+{
+  "id": "tutorial_slime",
+  "displayName": "Tutorial Slime (stationary, infinite HP)",
+  "model": "Slime.json",
+  "hp": -1,
+  "maxHp": -1,
+  "invulnerable": true,
+  "movable": false,
+  "moveSpeed": 0.0,
+  "ai": "none",
+  "collision": {
+    "radius": 0.5,
+    "height": 0.5
+  },
+  "drops": [],
+  "tags": ["tutorial", "immobile", "infinite_hp"]
+}

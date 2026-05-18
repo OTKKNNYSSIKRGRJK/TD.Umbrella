@@ -39,6 +39,7 @@ namespace Game::Scene::Impl {
 				FadeAlpha_ = 1.0f;
 				// タイトルシーンへ遷移
 				auto& sceneMngr{ Lumina::SceneManager::Instance() };
+				sceneMngr.Load<"Title">();
 				sceneMngr.Activate("Title");
 				return;
 			}

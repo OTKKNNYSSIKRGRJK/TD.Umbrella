@@ -7,6 +7,8 @@ import <fstream>;
 
 import nlohmann.json;
 
+import Game.TutorialManager;
+
 //import Lumina;
 
 import Lumina.Utils.Data;
@@ -64,10 +66,33 @@ namespace Game::Scene::Impl {
 		std::vector<std::pair<std::string, std::string>> texturesToLoad = {
 			{ "uvChecker", "Assets/Img/uvChecker.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
+			{ "pause", "Assets/Img/UI/pause.png" },
+			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
+			{ "pause_restart", "Assets/Img/UI/pause_restart.png" },
+			{ "pause_title", "Assets/Img/UI/pause_title.png" },
+			{ "gameover_retry", "Assets/Img/UI/Retry.png" },
+			{ "gameover_returntotitle", "Assets/Img/UI/returntotitle.png" },
+			{ "gameover", "Assets/Img/UI/gameover.png" },
+			{ "White16x16", "Assets/Img/White16x16.png" },
+			{ "minimap_ui", "Assets/Img/Tutorial/minimap.png" },
+			{ "minimap_close_ui", "Assets/Img/Tutorial/minimap_close.png" },
 		};
-		// 追加のテクスチャ（敵など）をマージ
+		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
 			texturesToLoad.push_back(addTex);
+		}
+
+		// チュートリアル用テクスチャ
+		std::vector<std::pair<std::string, std::string>> tutorialTextures = {
+			{ "tut_step1_move",   "Assets/Img/Tutorial/step1_move.png" },
+			{ "tut_step2_jump",   "Assets/Img/Tutorial/step2_jump.png" },
+			{ "tut_step3_attack", "Assets/Img/Tutorial/step3_attack.png" },
+			{ "tut_step_rakkasan", "Assets/Img/Tutorial/rakkasan.png" },
+		};
+		for (const auto& tutTex : tutorialTextures) {
+			if (std::filesystem::exists(tutTex.second)) {
+				texturesToLoad.push_back(tutTex);
+			}
 		}
 
 		resMngr.Graphics().LoadImageTextures(
@@ -87,6 +112,10 @@ namespace Game::Scene::Impl {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+
+		// Load spline motion assets at startup so MotionManager has data available
+		// Motion JSON files are expected under Assets/Data/Motion/*.json
+		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
 	}
 
 	// メッシュ読み込み
@@ -206,8 +235,8 @@ namespace Game::Scene::Impl {
 							if (!validMeshes.empty()) {
 								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
 								if (!diffuseTexName.empty()) {
-									// 既存の基本テクスチャ2枚の後に登録される前提でインデックスを計算
-									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(2 + AdditionalTextures_.size());
+									// 既存の基本テクスチャ12枚の後に登録される前提でインデックスを計算
+									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(12 + AdditionalTextures_.size());
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 								}
 								addMeshesToBeUploaded(validMeshes);
@@ -633,13 +662,15 @@ namespace Game::Scene::Impl {
 		TerrainEditor_->SetShapes(*Terrain_);
 		TerrainEditor_->SetCamera(*Camera_);
 		TerrainEditor_->SetViewport(reinterpret_cast<Lumina::Utils::Viewport const&>(Canvas_.Viewport(0U)));
-		areaEditor_.Initialize();
 		enemyEditor_.Initialize();
 		objMotionEditor_.Initialize();
+		#endif
+
+		// Release ビルドでもミニマップ用にエリアデータを読み込む
+		areaEditor_.Initialize();
 
 		playState_.IsPlaying = true;
 		CheckAndLoadArea(0);
-		#endif
 	}
 
 	template<>
@@ -728,6 +759,9 @@ namespace Game::Scene::Impl {
 
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		KnockEffects_->Initialize(d3d12Context_, 256U);
+
+		EnemyEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		EnemyEffects_->Initialize(d3d12Context_, 512U);
 	}
 
 	void InGame::Initialize() {
@@ -755,6 +789,39 @@ namespace Game::Scene::Impl {
 		TerrainRenderer_->Initialize();
 
 		Initialize_<"[Debug]">();
+
+		// チュートリアルマネージャー初期化
+		TutorialManager_ = std::make_unique<Game::TutorialManager>();
+		TutorialManager_->Initialize();
+		TutorialManager_->RegisterSequences();
+		// チュートリアルテクスチャは基本テクスチャ11枚 + 追加テクスチャの直後に配置
+		TutorialManager_->TutorialTextureStartIndex = 12U + static_cast<uint32_t>(AdditionalTextures_.size());
+		TutorialManager_->TutorialTextureCount = 4U;
+
+		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
+		PrimitiveManager_Tutorial_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager_Tutorial_->Initialize(
+			d3d12Context,
+			L"Assets/Shaders/Primitive.VS.hlsl",
+			L"Assets/Shaders/Primitive.PS.hlsl",
+			false,
+			false  // 深度テスト無効
+		);
+
+		// ミニマップ専用PrimitiveManager（深度テストなし）
+		PrimitiveManager_Minimap_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager_Minimap_->Initialize(
+			d3d12Context,
+			L"Assets/Shaders/Primitive.VS.hlsl",
+			L"Assets/Shaders/Primitive.PS.hlsl",
+			false,
+			false  // 深度テスト無効
+		);
+
+		// 初回（セッション内）かつエリア0ならチュートリアル開始
+		if (playState_.CurrentArea.index == 0) {
+			TutorialManager_->TryStartSequence("BasicControls");
+		}
 	}
 
 	InGame::InGame() = default;

@@ -9,7 +9,9 @@ import Lumina.Main;
 import Lumina.OS.Windows.RawInput;
 import Lumina.CG3D.Animation;
 
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
 import Game.MathUtils;
 
@@ -46,8 +48,11 @@ namespace Game::Scene::Impl {
 		AnimationTimer_ = std::fmod(AnimationTimer_, Animation_.DurationInSeconds);
 		Lumina::CG3D::Update(SkinCluster_, Skeleton_, Animation_, AnimationTimer_);
 
-		if (keyboard.IsJustPressed(KEY::NUM_0)) {
+        // タイトル画面でスペースキーまたはXBOXのAボタンが押されたらゲーム開始
+		// XBOX Aボタンは GamePad のボタンマスク 0x1000（GamePadButton::A）を使用
+        if (keyboard.IsJustPressed(KEY::SPACE) || inputMngr.Pad().IsPressed(0x1000)) {
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Unload("Title->InGame");
 			sceneMngr.Load<"Title->InGame">();
 			sceneMngr.Activate("Title->InGame");
 		}

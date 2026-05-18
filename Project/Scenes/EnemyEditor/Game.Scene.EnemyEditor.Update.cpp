@@ -103,6 +103,10 @@ namespace {
 #endif
 
 namespace Game::Editor {
+#if defined(_DEBUG)
+	static float s_actionSaveNotificationTimer = 0.0f;
+#endif
+
 	void EnemyEditor::Update() {
 #if defined(_DEBUG)
 		DrawEditorUI();
@@ -127,8 +131,6 @@ namespace Game::Editor {
 					bool isSelected = (editingEnemy_.name + ".json" == fName);
 					if (ImGui::Selectable(fName.c_str(), isSelected)) {
 						LoadEnemy(editingEnemy_, fName);
-						// also load into action editor per-file runtime
-						// note: enemyActionEditor_ is assumed available globally where used; if not, callers should load appropriately
 					}
 				}
 			}
@@ -272,6 +274,7 @@ namespace Game::Editor {
 				ImGui::TextColored(tierColors[t], "[%s]", tierNames[t]);
 				ImGui::SameLine();
 				ImGui::Text("  HP / Power / Scale");
+
 
 				auto& tier = editingEnemy_.sizeTiers[t];
 				ImGui::Indent(10.0f);
@@ -548,7 +551,6 @@ namespace Game::Editor {
 
 		// --- メッシュ描画（ソリッドポリゴン） ---
 		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
-			// 3D→ 2D投影 (ビューモードに応じた座標選択)
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
 				float px, py;
 				switch (meshViewMode_) {
@@ -564,7 +566,6 @@ namespace Game::Editor {
 				return ImVec2(center.x + px * scale, center.y - py * scale);
 			};
 
-			// 深度取得（奥にあるものから手前に描画するためのZソート用）
 			auto getDepth = [&](const std::array<float, 3>& pos) -> float {
 				switch (meshViewMode_) {
 				case 0: return -pos[2]; // Front: 奥方向は -Z
@@ -602,7 +603,6 @@ namespace Game::Editor {
 				if (p0.y < canvasP0.y - 50 && p1.y < canvasP0.y - 50 && p2.y < canvasP0.y - 50) continue;
 				if (p0.y > canvasP1.y + 50 && p1.y > canvasP1.y + 50 && p2.y > canvasP1.y + 50) continue;
 
-				// 法線計算と簡易Lighting（フラットシェーディング）
 				float dx1 = v1[0] - v0[0]; float dy1 = v1[1] - v0[1]; float dz1 = v1[2] - v0[2];
 				float dx2 = v2[0] - v0[0]; float dy2 = v2[1] - v0[1]; float dz2 = v2[2] - v0[2];
 				float nx = dy1*dz2 - dz1*dy2;
@@ -624,7 +624,6 @@ namespace Game::Editor {
 				renderFaces.push_back({ p0, p1, p2, d, faceColor });
 			}
 
-			// Zソート（奥から手前へPainter's Algorithm）
 			std::sort(renderFaces.begin(), renderFaces.end(), [](const SolidFace& a, const SolidFace& b) {
 				return a.depth > b.depth;
 			});
@@ -810,7 +809,6 @@ namespace Game::Editor {
 		ImGui::End();
 	}
 
-	// --- Helper: point-to-segment distance squared ---
 	float DistPtSegSq(float px, float py, float ax, float ay, float bx, float by) {
 		float abx = bx - ax, aby = by - ay;
 		float apx = px - ax, apy = py - ay;
@@ -848,7 +846,6 @@ namespace Game::Editor {
 			ImGui::EndMenuBar();
 		}
 
-	// Floating action file browser so it's visible even when other panes overlap
 	ImGui::SetNextWindowPos(ImVec2(320.0f, 10.0f), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(340.0f, 300.0f), ImGuiCond_FirstUseEver);
 	ImGui::Begin("Action File Browser", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
@@ -883,25 +880,21 @@ namespace Game::Editor {
 	ImGui::End();
 
 	ImGui::Text("Editing JSON:");
-	// Display currently active file (if any) and keep input box in sync
 	static char filenameBuf[64] = "enemy_data";
 	static std::string lastActiveFile;
 	if (!activeFileName_.empty()) {
 		ImGui::TextDisabled("Active: %s", activeFileName_.c_str());
 		if (activeFileName_ != lastActiveFile) {
-			// strip trailing .json for the editable buffer
 			std::string base = activeFileName_;
 			if (base.size() > 5 && base.substr(base.size() - 5) == ".json") base = base.substr(0, base.size() - 5);
 			strncpy_s(filenameBuf, base.c_str(), sizeof(filenameBuf));
 			lastActiveFile = activeFileName_;
 		}
 	} else {
-		// if no active file, clear lastActiveFile so manual edits aren't overwritten later
 		lastActiveFile.clear();
 	}
 	ImGui::InputText(".json##action", filenameBuf, sizeof(filenameBuf));
 
-	// File browser: show available .json files so user can click to load
 	ImGui::Spacing();
 	ImGui::TextDisabled("JSON Files");
 	ImGui::BeginChild("FileListAction", ImVec2(0, 150), true);
@@ -912,7 +905,6 @@ namespace Game::Editor {
 				bool isSelected = (!activeFileName_.empty() && activeFileName_ == fName);
 				if (ImGui::Selectable(fName.c_str(), isSelected)) {
 					LoadEnemy(editingEnemy_, fName);
-					// refresh animations and runtime state
 					if (!editingEnemy_.gltfPath.empty()) cachedAnimationNames_ = ExtractAnimationNames(editingEnemy_.gltfPath);
 					if (!editingEnemy_.nodes.empty()) {
 						if (requireManualStart_) { currentStateId_ = -1; firstNodeStarted_ = false; }
@@ -946,6 +938,13 @@ namespace Game::Editor {
 			editingEnemy_.name = filenameBuf;
 			SaveEnemy(editingEnemy_);
 			AddLog("[EnemyEditor] Saved: " + editingEnemy_.name);
+			s_actionSaveNotificationTimer = 2.0f;
+		}
+
+		if (s_actionSaveNotificationTimer > 0.0f) {
+			s_actionSaveNotificationTimer -= ImGui::GetIO().DeltaTime;
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "  Saved Successfully!");
 		}
 
 		ImGui::End();
@@ -953,7 +952,6 @@ namespace Game::Editor {
 	}
 
 	void EnemyActionEditor::DrawNodeEditor() {
-		// Window: "State Machine" matching original
 		ImGui::SetNextWindowPos(ImVec2(10.0f, 420.0f), ImGuiCond_FirstUseEver);
 		ImGui::SetNextWindowSize(ImVec2(1260.0f, 300.0f), ImGuiCond_FirstUseEver);
 		ImGui::Begin("State Machine", nullptr, ImGuiWindowFlags_NoCollapse);
@@ -961,7 +959,6 @@ namespace Game::Editor {
 		ImDrawList* drawList = ImGui::GetWindowDrawList();
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 
-		// --- Control bar ---
 		if (ImGui::Button("Add Node")) {
 			PushUndoState();
 			int newId = 1;
@@ -977,6 +974,13 @@ namespace Game::Editor {
 		}
 
 		ImGui::SameLine();
+        if (ImGui::Button("Save Nodes##toolbar")) {
+			SaveEnemy(editingEnemy_);
+			AddLog("[EnemyEditor] Saved nodes");
+			s_actionSaveNotificationTimer = 2.0f;
+		}
+
+		ImGui::SameLine();
 		if (ImGui::Button("Start First Node")) {
 			if (!editingEnemy_.nodes.empty()) {
 				previousStateId_ = currentStateId_;
@@ -986,12 +990,16 @@ namespace Game::Editor {
 				userRequestedStart_ = true;
 				firstNodeStarted_ = true;
 				lockStateMachineAfterStartFirstNode_ = false;
-				// Activate the first node's boundBool flag
 				if (!editingEnemy_.nodes.front().boundBool.empty()) {
 					runtimeBoolFlags_[editingEnemy_.nodes.front().boundBool] = true;
 				}
 				AddLog("[EnemyEditor] Started first node");
 			}
+		}
+
+		if (s_actionSaveNotificationTimer > 0.0f) {
+			ImGui::SameLine();
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.2f, 1.0f), "Saved Successfully!");
 		}
 
 		ImGui::SameLine();
@@ -1019,14 +1027,12 @@ namespace Game::Editor {
                 for (int i = 0; i < static_cast<int>(editingEnemy_.nodes.size()); ++i) {
                     bool isSel = (i == jumpNodeIdx);
                     if (ImGui::Selectable(editingEnemy_.nodes[i].name.c_str(), isSel)) {
-                        // Immediately jump to the selected node so the combo is actionable
                         jumpNodeIdx = i;
                         previousStateId_ = currentStateId_;
                         currentStateId_ = editingEnemy_.nodes[i].id;
                         currentStateElapsedTime_ = 0.0f;
                         transitionFlashTimer_ = 1.0f;
                         firstNodeStarted_ = true;
-                        // Activate the node's boundBool flag if present
                         if (!editingEnemy_.nodes[i].boundBool.empty()) {
                             runtimeBoolFlags_[editingEnemy_.nodes[i].boundBool] = true;
                         }
@@ -1045,7 +1051,6 @@ namespace Game::Editor {
 				currentStateElapsedTime_ = 0.0f;
 				transitionFlashTimer_ = 1.0f;
 				firstNodeStarted_ = true;
-				// Activate jumped-to node's boundBool flag
 				if (!editingEnemy_.nodes[jumpNodeIdx].boundBool.empty()) {
 					runtimeBoolFlags_[editingEnemy_.nodes[jumpNodeIdx].boundBool] = true;
 				}
@@ -1064,7 +1069,6 @@ namespace Game::Editor {
 			}
 		}
 
-		// --- State info bar ---
 		if (currentStateId_ != -1) {
 			auto cit = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& n) { return n.id == currentStateId_; });
 			if (cit != editingEnemy_.nodes.end()) {
@@ -1074,13 +1078,11 @@ namespace Game::Editor {
 			ImGui::TextDisabled("No active state");
 		}
 
-		// Transition flash indicator
 		if (transitionFlashTimer_ > 0.0f && previousStateId_ != -1) {
 			ImGui::SameLine();
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.3f, transitionFlashTimer_), "TRANSITION: %d -> %d", previousStateId_, currentStateId_);
 		}
 
-		// --- Transition status ---
 		if (currentStateId_ != -1) {
 			bool foundOut = false, anyReady = false;
 			float soonestTime = 1e9f; int soonestTo = -1; std::string soonestCond;
@@ -1107,31 +1109,22 @@ namespace Game::Editor {
 			else { ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.6f, 1.0f), "No transitions satisfied."); }
 		}
 
-		// --- Runtime Bool Flags UI ---
 		{
-			// Auto-register available boundBool names from nodes, links and animationMap
-			// so the runtime checkbox list shows all possible flags even if no node
-			// currently has the flag assigned.
 			{
 				std::vector<std::string> allFlags;
-				// from nodes
 				for (const auto& nd : editingEnemy_.nodes) if (!nd.boundBool.empty()) allFlags.push_back(nd.boundBool);
-				// from links (BOOL: conditions)
 				for (const auto& lk : editingEnemy_.links) {
 					if (lk.condition.rfind("BOOL:", 0) == 0 && lk.condition.size() > 5) {
 						std::string f = lk.condition.substr(5);
 						allFlags.push_back(f);
 					}
 				}
-				// from animation map keys (common action names)
 				for (const auto& kv : editingEnemy_.animationMap) {
 					if (!kv.first.empty()) allFlags.push_back(kv.first);
 				}
-				// ensure common built-in flags always exist
 				allFlags.push_back("walk");
 				allFlags.push_back("boundBool");
 				allFlags.push_back("followAbove");
-				// unique and register
 				std::sort(allFlags.begin(), allFlags.end());
 				allFlags.erase(std::unique(allFlags.begin(), allFlags.end()), allFlags.end());
 				for (const auto& f : allFlags) {
@@ -1154,19 +1147,15 @@ namespace Game::Editor {
 
 		ImGui::TextDisabled("Connect: drag from blue circle to another node");
 
-		// --- Link condition list ---
 		DrawLinkConditionList();
 
 		if (Node* selectedNode = FindNodeById(nodeEditor_selectedNodeId_)) {
 			ImGui::SeparatorText("Selected Node Binding");
 			ImGui::Text("Selected: %s (id=%d)", selectedNode->name.c_str(), selectedNode->id);
 
-            // Build dynamic list of available boolean names (include canonical "walk")
             std::vector<std::string> boolOptions;
             boolOptions.push_back("(none)");
-            // ensure the canonical runtime name used in code is present
             bool hasWalk = false;
-            // collect from existing nodes to avoid duplicates
             for (const auto& nd : editingEnemy_.nodes) {
                 if (!nd.boundBool.empty()) {
                     if (nd.boundBool == "walk") hasWalk = true;
@@ -1185,7 +1174,6 @@ namespace Game::Editor {
             if (!hasBoundBool) boolOptions.push_back("boundBool");
             if (!hasFollowAbove) boolOptions.push_back("followAbove");
 
-            // find current index
             int boolIdx = 0;
             for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
                 if (selectedNode->boundBool == boolOptions[bi]) { boolIdx = bi; break; }
@@ -1282,7 +1270,6 @@ namespace Game::Editor {
 
 		ImGui::Separator();
 
-		// --- Canvas ---
 		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
 		ImVec2 canvasSize = ImGui::GetContentRegionAvail();
 		if (canvasSize.x < 100) canvasSize.x = 100;
@@ -1297,13 +1284,11 @@ namespace Game::Editor {
 		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
 		drawList->AddRect(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(80, 80, 90, 255));
 
-		// Nodes count overlay
 		{
 			char buf[64]; snprintf(buf, sizeof(buf), "Nodes: %zu", editingEnemy_.nodes.size());
 			drawList->AddText(ImVec2(origin.x + 6.0f, origin.y + 4.0f), MakeCol32(200, 200, 200, 180), buf);
 		}
 
-		// Node drag
 		if (nodeDragActive_) {
 			auto selectedIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& node) { return node.id == nodeEditor_selectedNodeId_; });
 			if (selectedIt != editingEnemy_.nodes.end() && ImGui::IsMouseDown(ImGuiMouseButton_Left) && !nodeLinkDragActive_) {
@@ -1316,7 +1301,6 @@ namespace Game::Editor {
 			} else { nodeDragActive_ = false; }
 		}
 
-		// Draw Nodes
 		for (auto& n : editingEnemy_.nodes) {
 			ImVec2 a = ImVec2(origin.x + n.x, origin.y + n.y);
 			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 140.0f);
@@ -1332,12 +1316,10 @@ namespace Game::Editor {
 			drawList->AddRectFilled(a, b, col, 6.0f);
 			drawList->AddRect(a, b, MakeCol32(200, 200, 200, 220), 6.0f, 0, 2.0f);
 
-			// Active badge
 			if (currentStateId_ == n.id) {
 				drawList->AddText(ImVec2(a.x + 140.0f, a.y + 2.0f), MakeCol32(100, 255, 130, 255), "ACTIVE");
 			}
 
-			// inline UI
 			ImVec2 prevScreenPos = ImGui::GetCursorScreenPos();
 			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 6.0f));
 			ImGui::PushID(n.id);
@@ -1425,6 +1407,22 @@ namespace Game::Editor {
 			if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				ImGui::OpenPopup("node_bool_popup");
 			}
+
+			// Loop checkbox: when enabled, the node will re-trigger (reset timer) in the
+			// editor runtime when no outgoing transition is satisfied, effectively
+			// looping the node until some external condition becomes true.
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 116.0f));
+			ImGui::SetNextItemWidth(80.0f);
+			if (ImGui::Checkbox("Loop", &n.loop)) {
+				// immediate visual feedback logged
+				char dbg[128]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Node %d Loop=%s", n.id, n.loop ? "ON" : "OFF"); AddLog(dbg);
+			}
+
+		ImGui::SameLine();
+		ImGui::SetNextItemWidth(90.0f);
+		if (ImGui::DragFloat("Cooldown##node_loop_cd", &n.loopCooldown, 0.1f, 0.0f, 10.0f, "%.1fs")) {
+			char dbg2[128]; snprintf(dbg2, sizeof(dbg2), "[EnemyEditor] Node %d LoopCooldown=%.2f", n.id, n.loopCooldown); AddLog(dbg2);
+		}
 			if (ImGui::BeginPopup("node_bool_popup")) {
 				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 					bool isSel = (bi == boolIdx);
@@ -1455,7 +1453,6 @@ namespace Game::Editor {
 				ImGui::OpenPopup("NodeContextMenu");
 			}
 
-			// Ports
 			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 126.0f);
 			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 126.0f);
 			drawList->AddCircleFilled(inputPortPos, 8.0f, MakeCol32(120, 220, 140, 220));
@@ -1476,7 +1473,6 @@ namespace Game::Editor {
 			nodeDragActive_ = false;
 		}
 
-		// Draw Links
 		for (size_t i = 0; i < editingEnemy_.links.size(); ++i) {
 			const auto& l = editingEnemy_.links[i];
 			const Node* from = nullptr; const Node* to = nullptr;
@@ -1489,7 +1485,6 @@ namespace Game::Editor {
 				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 126.0f);
 				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
 
-				// Improved link hit detection
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
 					if (DistPtSegSq(mousePos.x, mousePos.y, pa.x, pa.y, pb.x, pb.y) <= 144.0f) {
 						linkEditor_contextLinkIndex_ = static_cast<int>(i);
@@ -1499,7 +1494,6 @@ namespace Game::Editor {
 			}
 		}
 
-		// Link drag
 		if (nodeLinkDragActive_) {
 			ImVec2 start = ImVec2(pendingNewNodeScreenX_, pendingNewNodeScreenY_);
 			drawList->AddLine(start, mousePos, MakeCol32(255, 255, 150, 220), 3.0f);
@@ -1525,7 +1519,6 @@ namespace Game::Editor {
 			}
 		}
 
-		// Undo / Save buttons
 		{
 			ImGui::SetCursorScreenPos(ImVec2(origin.x + 6.0f, origin.y + canvasSize.y + 8.0f));
 			if (ImGui::Button("Undo", ImVec2(100, 0))) { if (CanUndo()) Undo(); }
@@ -1534,7 +1527,6 @@ namespace Game::Editor {
 			ImGui::Dummy(ImVec2(0.0f, 8.0f));
 		}
 
-		// --- Node Context Menu with confirmation ---
 		bool requestDeleteNode = false;
 		if (ImGui::BeginPopup("NodeContextMenu")) {
 			if (nodeEditor_contextNodeId_ != -1) {
@@ -1568,6 +1560,7 @@ namespace Game::Editor {
 					if (currentStateId_ == delId) currentStateId_ = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
 					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted node %d", delId); AddLog(dbg);
 					SaveEnemy(editingEnemy_);
+					s_actionSaveNotificationTimer = 2.0f;
 					nodeEditor_pendingDeleteNodeId_ = -1;
 					ImGui::CloseCurrentPopup();
 				}
@@ -1580,7 +1573,6 @@ namespace Game::Editor {
 			ImGui::EndPopup();
 		}
 
-		// --- Link Context Menu with confirmation ---
 		bool requestDeleteLink = false;
 		if (ImGui::BeginPopup("LinkContextMenu")) {
 			if (linkEditor_contextLinkIndex_ >= 0 && linkEditor_contextLinkIndex_ < static_cast<int>(editingEnemy_.links.size())) {
@@ -1610,6 +1602,7 @@ namespace Game::Editor {
 					editingEnemy_.links.erase(std::remove_if(editingEnemy_.links.begin(), editingEnemy_.links.end(), [&](const Link& l) { return l.from == lnk.from && l.to == lnk.to && l.condition == lnk.condition; }), editingEnemy_.links.end());
 					char dbg[256]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Deleted link %d -> %d", lnk.from, lnk.to); AddLog(dbg);
 					SaveEnemy(editingEnemy_);
+					s_actionSaveNotificationTimer = 2.0f;
 					linkEditor_pendingDeleteLinkIndex_ = -1; linkEditor_contextLinkIndex_ = -1;
 					ImGui::CloseCurrentPopup();
 				}
@@ -1625,16 +1618,17 @@ namespace Game::Editor {
 		ImGui::End();
 	}
 
-	// ===== State Machine Runtime =====
 	void EnemyActionEditor::EvaluateStateMachine() {
 		if (currentStateId_ == -1) return;
 		if (lockStateMachineAfterStartFirstNode_ && !firstNodeStarted_) return;
 		const int firstId = editingEnemy_.nodes.empty() ? -1 : editingEnemy_.nodes.front().id;
 		if (requireManualStart_ && currentStateId_ == firstId && !firstNodeStarted_) return;
 
+        bool transitioned = false;
 		for (const auto& link : editingEnemy_.links) {
 			if (link.from != currentStateId_) continue;
 			if (CheckLinkCondition(link)) {
+				transitioned = true;
 				if (link.to != currentStateId_) {
 					int old = currentStateId_;
 					previousStateId_ = old;
@@ -1642,16 +1636,43 @@ namespace Game::Editor {
 					currentStateElapsedTime_ = 0.0f;
 					transitionFlashTimer_ = 1.0f;
 					char buf[256]; snprintf(buf, sizeof(buf), "[StateMachine] %d -> %d (%s)", old, currentStateId_, link.condition.c_str()); AddLog(buf);
-					// Activate the new node's boundBool flag
-					{
+				{
 						auto newNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
 						if (newNodeIt != editingEnemy_.nodes.end() && !newNodeIt->boundBool.empty()) {
 							runtimeBoolFlags_[newNodeIt->boundBool] = true;
 						}
 					}
 					if (requireManualStart_ && old == firstId) firstNodeStarted_ = false;
+				} else {
+					// Self-loop: re-trigger the current node (loop) by resetting its timer and
+					// optionally firing its boundBool so editor/runtime can observe repeated entry.
+					currentStateElapsedTime_ = 0.0f;
+					transitionFlashTimer_ = 0.5f;
+					char buf[256]; snprintf(buf, sizeof(buf), "[StateMachine] Self-loop id=%d (%s)", currentStateId_, link.condition.c_str()); AddLog(buf);
+					auto curNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
+					if (curNodeIt != editingEnemy_.nodes.end() && !curNodeIt->boundBool.empty()) {
+						runtimeBoolFlags_[curNodeIt->boundBool] = true;
+					}
 				}
 				break;
+			}
+		}
+
+		// If no transition occurred and the current node is marked `loop`, then
+		// periodically re-trigger the node (reset its timer and fire boundBool)
+		// so it repeats until some outgoing condition becomes true. Use the
+		// node's `splineDuration` as the loop interval when available.
+		if (!transitioned) {
+			auto curNodeIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& nd) { return nd.id == currentStateId_; });
+                if (curNodeIt != editingEnemy_.nodes.end() && curNodeIt->loop) {
+					float base = (curNodeIt->splineDuration > 0.0f) ? curNodeIt->splineDuration : 1.0f;
+					float loopInterval = base + curNodeIt->loopCooldown;
+					if (currentStateElapsedTime_ >= loopInterval) {
+					currentStateElapsedTime_ = 0.0f;
+					transitionFlashTimer_ = 0.5f;
+					char dbg[256]; snprintf(dbg, sizeof(dbg), "[StateMachine] Looping node id=%d", currentStateId_); AddLog(dbg);
+					if (!curNodeIt->boundBool.empty()) runtimeBoolFlags_[curNodeIt->boundBool] = true;
+				}
 			}
 		}
 	}
@@ -1663,7 +1684,6 @@ namespace Game::Editor {
 		while (!c.empty() && c.back() == ' ') c.pop_back();
 		if (c == "Always") return true;
 
-		// BOOL: conditions - check runtime bool flags
 		if (c.rfind("BOOL:", 0) == 0) {
 			std::string flag = c.substr(5);
 			while (!flag.empty() && flag.front() == ' ') flag.erase(flag.begin());
@@ -1673,11 +1693,9 @@ namespace Game::Editor {
 			return false;
 		}
 
-		// Time conditions
 		if (c.rfind("Time>=", 0) == 0) { try { return currentStateElapsedTime_ >= std::stof(c.substr(6)); } catch (...) { return false; } }
 		if (c.rfind("Time>", 0) == 0) { try { return currentStateElapsedTime_ > std::stof(c.substr(5)); } catch (...) { return false; } }
 
-		// HP conditions
 		float hpRatio = (editingEnemy_.hp > 0) ? static_cast<float>(editingEnemy_.hp) / 100.0f : 0.0f;
 		if (c.rfind("HP<=", 0) == 0) { try { return hpRatio <= std::stof(c.substr(4)); } catch (...) { return false; } }
 		if (c.rfind("HP<", 0) == 0) { try { return hpRatio < std::stof(c.substr(3)); } catch (...) { return false; } }
@@ -1705,7 +1723,6 @@ namespace Game::Editor {
 	}
 
 	void EnemyActionEditor::DrawStateMachineControlUI() {
-		// Control UI is now inline in DrawNodeEditor
 	}
 
 	void EnemyActionEditor::DrawLinkConditionList() {
@@ -1714,8 +1731,7 @@ namespace Game::Editor {
 			for (size_t i = 0; i < editingEnemy_.links.size(); ++i) {
 				auto& l = editingEnemy_.links[i];
 				ImGui::PushID(static_cast<int>(i));
-				// Find names
-				std::string fromName = "?", toName = "?";
+			std::string fromName = "?", toName = "?";
 				for (const auto& n : editingEnemy_.nodes) {
 					if (n.id == l.from) fromName = n.name;
 					if (n.id == l.to) toName = n.name;
@@ -1723,7 +1739,6 @@ namespace Game::Editor {
 				ImGui::Text("%s -> %s", fromName.c_str(), toName.c_str());
 				ImGui::SameLine();
 
-				// Condition type combo
 				const char* condTypes[] = { "Always", "Time>=", "Time>", "HP<=", "HP<", "HP>=", "HP>", "HP==", "BOOL:", "Custom" };
 				int currentType = 9; // default Custom
 				for (int ct = 0; ct < 9; ++ct) {
@@ -1744,7 +1759,6 @@ namespace Game::Editor {
 					ImGui::EndCombo();
 				}
 
-				// Value editor for parameterized conditions
 				if (currentType >= 1 && currentType <= 7) {
 					ImGui::SameLine();
 					std::string prefix = condTypes[currentType];
@@ -1764,7 +1778,6 @@ namespace Game::Editor {
 					}
 					if (ImGui::IsItemHovered()) ImGui::SetTooltip("Condition value");
 				} else if (currentType == 8) {
-					// BOOL: flag selector - show available boundBool names from nodes
 					ImGui::SameLine();
 					std::string flag;
 					if (l.condition.size() > 5) flag = l.condition.substr(5);
@@ -1828,7 +1841,6 @@ namespace Game::Editor {
 		}
 	}
 
-	// ===== Undo =====
 	void EnemyActionEditor::PushUndoState() {
 		if (!activeFileName_.empty()) {
 			perFileRuntimes_[activeFileName_].undoStack.push_back(editingEnemy_);
@@ -1859,7 +1871,6 @@ namespace Game::Editor {
 		}
 	}
 
-	// ===== Log =====
 	void EnemyActionEditor::AddLog(const std::string& msg) {
 		std::string line = msg;
 		if (!line.empty() && line.back() != '\n') line.push_back('\n');

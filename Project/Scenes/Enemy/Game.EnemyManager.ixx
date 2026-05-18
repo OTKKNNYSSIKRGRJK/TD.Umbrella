@@ -52,8 +52,11 @@ export namespace Game {
 		FollowPhase followPhase_ = FollowPhase::None;
 		float followTimer_ = 0.0f;
 		float followDuration_ = 1.2f;   // seconds to track above player
-		float hoverHeight_ = 12.0f;     // Y offset above player (off-screen)
-		float riseSpeed_ = 25.0f;       // speed to fly up
+		float hoverHeight_ = 5.0f;      // Y offset above player (on-screen)
+		float riseDuration_ = 0.5f;     // seconds to lerp up to target position
+		float riseTimer_ = 0.0f;        // current rise interpolation time
+		Lumina::Math::F32x3 riseStartPos_{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 riseTargetPos_{ 0.0f, 0.0f, 0.0f };
 		float dropSpeed_ = -18.0f;      // initial downward velocity when dropping
 		float lastTrackedX_ = 0.0f;     // last player X during tracking
 
@@ -80,6 +83,9 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+          , renderFacingYaw(other.renderFacingYaw)
+          , spawnTimer(other.spawnTimer)
+			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -96,6 +102,7 @@ export namespace Game {
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
 			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
+			, lastHitAttackId(other.lastHitAttackId)
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -112,6 +119,9 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+              renderFacingYaw = other.renderFacingYaw;
+              spawnTimer = other.spawnTimer;
+				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -128,6 +138,7 @@ export namespace Game {
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
 				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
+				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -146,6 +157,9 @@ export namespace Game {
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
+          , renderFacingYaw(other.renderFacingYaw)
+          , spawnTimer(other.spawnTimer)
+			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -162,6 +176,7 @@ export namespace Game {
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
 			, runtimeBoolFlags(other.runtimeBoolFlags)
+			, lastHitAttackId(other.lastHitAttackId)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -179,6 +194,9 @@ export namespace Game {
 				currentHP = other.currentHP;
 				isDead = other.isDead;
 				facingRight = other.facingRight;
+              renderFacingYaw = other.renderFacingYaw;
+              spawnTimer = other.spawnTimer;
+				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -195,6 +213,7 @@ export namespace Game {
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
 				runtimeBoolFlags = other.runtimeBoolFlags;
+				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -214,6 +233,9 @@ export namespace Game {
 		int currentHP = 0;
 		bool isDead = false;
 		bool facingRight = true;
+       float renderFacingYaw = 0.0f;
+       float spawnTimer = 0.0f;
+		float spawnDuration = 0.0f;
 		int sizeTier = 1;
 		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;
@@ -227,6 +249,9 @@ export namespace Game {
 		float strafeDirection = 1.0f;
 		// ガード: 同一フレーム中の重複ダメージを防ぐ
 		bool recentlyDamagedThisFrame = false;
+
+		// 攻撃インスタンスIDガード: 同一アクション中の重複ヒットを防ぐ
+		uint32_t lastHitAttackId = 0;
 
 		// --- AI 状態 ---
 		enum class AIState { Idle, Patrol, Chase, PreAttack, Attack, Retreat };
@@ -258,8 +283,11 @@ export namespace Game {
 			stateTimer = 0.0f;
 			aiState = AIState::Idle;
 			currentAction = "Idle";
+            spawnTimer = 0.0f;
+			spawnDuration = 0.0f;
 			burstSpeedMultiplier = 1.0f;
 			runtimeBoolFlags.clear();
+			lastHitAttackId = 0;
 			preferredCombatDistance = baseData.attackRange;
 			attackWindupDuration = 0.4f;
 			attackDuration = 0.25f;
@@ -462,5 +490,21 @@ export namespace Game {
 
 		// コールバック
 		OnEnemyDeathCallback onDeathCallback_;
+
+	public:
+		struct JumpEvent {
+			Lumina::Math::F32x3 position;
+			float scale;
+		};
+		std::vector<JumpEvent> ConsumeJumpEvents() {
+			std::vector<JumpEvent> events;
+			std::swap(events, jumpEvents_);
+			return events;
+		}
+		void EmitJumpEvent(const Lumina::Math::F32x3& pos, float scale) {
+			jumpEvents_.push_back({ pos, scale });
+		}
+	private:
+		std::vector<JumpEvent> jumpEvents_;
 	};
 }
