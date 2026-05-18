@@ -58,12 +58,22 @@ namespace {
 
 	struct BossWeaponPose {
 		float AimLocalZ = 0.0f;
+        float AimFollowWeight = 1.0f;
 		Lumina::Math::F32x3 LocalOffset{ 0.0f, 0.0f, 0.0f };
 		float ScaleYMultiplier = 1.9f;
 	};
 
+	struct BossWeaponMotion {
+		float AimLocalZ = 0.0f;
+		Lumina::Math::F32x3 LocalOffset{ 0.0f, 0.0f, 0.0f };
+	};
+
 	bool ActionHasTag(std::string const& action_, char const* tag_) {
 		return action_.find(tag_) != std::string::npos;
+	}
+
+	float Clamp01(float value_) {
+		return (std::max)(0.0f, (std::min)(1.0f, value_));
 	}
 
 	BossWeaponPose BuildBossWeaponActionPose(
@@ -73,66 +83,158 @@ namespace {
 	) {
 		BossWeaponPose pose;
 
-     if (ActionHasTag(currentAction_, "ThrustPrep")) {
-			pose.AimLocalZ += facingSign_ * 1.0f;
-			pose.LocalOffset.X += facingSign_ * 0.95f * scale_;
-			pose.LocalOffset.Y += 0.42f * scale_;
+      if (ActionHasTag(currentAction_, "LungePrep")) {
+			pose.ScaleYMultiplier = 2.05f;
+          pose.AimLocalZ += facingSign_ * 1.22f;
+			pose.AimFollowWeight = 0.05f;
+         pose.LocalOffset.X += facingSign_ * 0.86f * scale_;
+			pose.LocalOffset.Y += 0.54f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "FeintPrep")) {
+          pose.AimLocalZ += facingSign_ * 1.02f;
+			pose.AimFollowWeight = 0.06f;
+         pose.LocalOffset.X += facingSign_ * 0.44f * scale_;
+			pose.LocalOffset.Y += 0.88f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "ThrustPrep")) {
+           pose.AimLocalZ += facingSign_ * 1.08f;
+			pose.AimFollowWeight = 0.06f;
+         pose.LocalOffset.X += facingSign_ * 0.7f * scale_;
+			pose.LocalOffset.Y += 0.62f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "SlashPrep") || ActionHasTag(currentAction_, "CrossPrep") || ActionHasTag(currentAction_, "ComboPrep")) {
-			pose.AimLocalZ += facingSign_ * 1.1f;
-			pose.LocalOffset.X += facingSign_ * 0.82f * scale_;
-			pose.LocalOffset.Y += 0.58f * scale_;
+           pose.AimLocalZ += facingSign_ * 1.28f;
+			pose.AimFollowWeight = 0.08f;
+            pose.LocalOffset.X += facingSign_ * 0.18f * scale_;
+			pose.LocalOffset.Y += 1.18f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "HeavyPrep")) {
 			pose.ScaleYMultiplier = 2.1f;
-			pose.AimLocalZ += facingSign_ * 0.78f;
-			pose.LocalOffset.X += facingSign_ * 0.52f * scale_;
-			pose.LocalOffset.Y += 1.02f * scale_;
+          pose.AimLocalZ += facingSign_ * 0.92f;
+			pose.AimFollowWeight = 0.05f;
+         pose.LocalOffset.X += facingSign_ * 0.22f * scale_;
+			pose.LocalOffset.Y += 1.3f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "FinisherPrep")) {
 			pose.ScaleYMultiplier = 2.2f;
-			pose.AimLocalZ += facingSign_ * 0.98f;
-			pose.LocalOffset.X += facingSign_ * 0.88f * scale_;
-			pose.LocalOffset.Y += 0.84f * scale_;
+          pose.AimLocalZ += facingSign_ * 1.05f;
+			pose.AimFollowWeight = 0.04f;
+         pose.LocalOffset.X += facingSign_ * 0.42f * scale_;
+			pose.LocalOffset.Y += 1.22f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "AerialPrep")) {
-			pose.AimLocalZ += facingSign_ * -1.2f;
+          pose.AimLocalZ += facingSign_ * -1.12f;
+			pose.AimFollowWeight = 0.02f;
 			pose.LocalOffset.X += facingSign_ * -0.28f * scale_;
 			pose.LocalOffset.Y += 1.58f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "Prep")) {
 			pose.AimLocalZ += facingSign_ * -2.25f;
+            pose.AimFollowWeight = 0.02f;
 			pose.LocalOffset.X += facingSign_ * -1.15f * scale_;
 			pose.LocalOffset.Y += 1.45f * scale_;
 		}
+        else if (ActionHasTag(currentAction_, "LungeStep")) {
+			pose.ScaleYMultiplier = 2.08f;
+          pose.AimLocalZ += facingSign_ * 1.32f;
+			pose.AimFollowWeight = 0.1f;
+			pose.LocalOffset.X += facingSign_ * 1.38f * scale_;
+			pose.LocalOffset.Y += 0.18f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "ThrustStep")) {
+			pose.ScaleYMultiplier = 2.05f;
+          pose.AimLocalZ += facingSign_ * 1.22f;
+			pose.AimFollowWeight = 0.1f;
+			pose.LocalOffset.X += facingSign_ * 1.18f * scale_;
+			pose.LocalOffset.Y += 0.14f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "SwordStep") || ActionHasTag(currentAction_, "CrossStep")) {
+          pose.AimLocalZ += facingSign_ * 1.36f;
+			pose.AimFollowWeight = 0.12f;
+         pose.LocalOffset.X += facingSign_ * 0.52f * scale_;
+			pose.LocalOffset.Y += 0.42f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "FeintStep")) {
+          pose.AimLocalZ += facingSign_ * 1.08f;
+			pose.AimFollowWeight = 0.1f;
+			pose.LocalOffset.X += facingSign_ * 0.96f * scale_;
+			pose.LocalOffset.Y += 0.28f * scale_;
+		}
 		else if (ActionHasTag(currentAction_, "Step")) {
 			pose.AimLocalZ += facingSign_ * 0.35f;
+         pose.AimFollowWeight = 0.12f;
 			pose.LocalOffset.X += facingSign_ * 0.68f * scale_;
 			pose.LocalOffset.Y += 0.18f * scale_;
 		}
+        else if (ActionHasTag(currentAction_, "LungeStrike")) {
+			pose.ScaleYMultiplier = 2.18f;
+			pose.AimLocalZ += facingSign_ * 1.42f;
+         pose.AimFollowWeight = 0.14f;
+			pose.LocalOffset.X += facingSign_ * 1.82f * scale_;
+			pose.LocalOffset.Y += -0.04f * scale_;
+		}
       else if (ActionHasTag(currentAction_, "ThrustStrike") || ActionHasTag(currentAction_, "Thrust")) {
 			pose.ScaleYMultiplier = 2.15f;
-			pose.AimLocalZ += facingSign_ * 1.4f;
+           pose.AimLocalZ += facingSign_ * 1.32f;
+			pose.AimFollowWeight = 0.16f;
 			pose.LocalOffset.X += facingSign_ * 1.55f * scale_;
 			pose.LocalOffset.Y += 0.08f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "Heavy")) {
 			pose.ScaleYMultiplier = 2.25f;
-			pose.AimLocalZ += facingSign_ * 1.05f;
+          pose.AimLocalZ += facingSign_ * 1.02f;
+			pose.AimFollowWeight = 0.12f;
 			pose.LocalOffset.X += facingSign_ * 1.05f * scale_;
 			pose.LocalOffset.Y += 0.22f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "Finisher")) {
 			pose.ScaleYMultiplier = 2.45f;
-			pose.AimLocalZ += facingSign_ * 1.18f;
+          pose.AimLocalZ += facingSign_ * 1.12f;
+			pose.AimFollowWeight = 0.1f;
 			pose.LocalOffset.X += facingSign_ * 1.3f * scale_;
 			pose.LocalOffset.Y += 0.26f * scale_;
 		}
-       else if (ActionHasTag(currentAction_, "SwordSlash") || ActionHasTag(currentAction_, "CrossSlash") || ActionHasTag(currentAction_, "FeintSlash") || ActionHasTag(currentAction_, "WideSweep") || ActionHasTag(currentAction_, "Slash")) {
+     else if (ActionHasTag(currentAction_, "CrossSlash")) {
+			pose.ScaleYMultiplier = 2.05f;
+			pose.AimLocalZ += facingSign_ * 1.62f;
+			pose.AimFollowWeight = 0.14f;
+         pose.LocalOffset.X += facingSign_ * 0.86f * scale_;
+			pose.LocalOffset.Y += 0.12f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "WideSweep")) {
+			pose.ScaleYMultiplier = 2.15f;
+			pose.AimLocalZ += facingSign_ * 1.36f;
+			pose.AimFollowWeight = 0.1f;
+          pose.LocalOffset.X += facingSign_ * 0.94f * scale_;
+			pose.LocalOffset.Y += 0.04f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "ComboSlash")) {
 			pose.ScaleYMultiplier = 2.0f;
-			pose.AimLocalZ += facingSign_ * 1.5f;
-			pose.LocalOffset.X += facingSign_ * 1.7f * scale_;
-			pose.LocalOffset.Y += -0.26f * scale_;
+			pose.AimLocalZ += facingSign_ * 1.52f;
+			pose.AimFollowWeight = 0.18f;
+         pose.LocalOffset.X += facingSign_ * 0.78f * scale_;
+			pose.LocalOffset.Y += 0.1f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "FeintSlash")) {
+			pose.ScaleYMultiplier = 1.95f;
+			pose.AimLocalZ += facingSign_ * 1.26f;
+			pose.AimFollowWeight = 0.2f;
+         pose.LocalOffset.X += facingSign_ * 0.64f * scale_;
+			pose.LocalOffset.Y += 0.18f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "SwordSlash") || ActionHasTag(currentAction_, "Slash")) {
+			pose.ScaleYMultiplier = 2.0f;
+           pose.AimLocalZ += facingSign_ * 1.46f;
+			pose.AimFollowWeight = 0.16f;
+          pose.LocalOffset.X += facingSign_ * 0.82f * scale_;
+			pose.LocalOffset.Y += 0.04f * scale_;
+		}
+     else if (ActionHasTag(currentAction_, "AerialDive")) {
+			pose.ScaleYMultiplier = 2.1f;
+         pose.AimLocalZ += facingSign_ * -1.22f;
+			pose.AimFollowWeight = 0.08f;
+			pose.LocalOffset.X += facingSign_ * -0.18f * scale_;
+			pose.LocalOffset.Y += 1.1f * scale_;
 		}
 		else if (ActionHasTag(currentAction_, "Recover") || ActionHasTag(currentAction_, "Backstep")) {
 			pose.AimLocalZ += facingSign_ * -0.15f;
@@ -148,19 +250,218 @@ namespace {
 		return pose;
 	}
 
-	Lumina::Math::F32x3 BuildBossWeaponAmbientOffset(
+   Lumina::Math::F32x3 BuildBossWeaponAmbientOffset(
+		std::string const& currentAction_,
 		float stateTimer_,
 		uint32_t enemyId_,
 		float scale_
 	) {
+     float intensity = 0.14f;
+		if (currentAction_ == "Idle") {
+			intensity = 1.0f;
+		}
+		else if (ActionHasTag(currentAction_, "Prep") || ActionHasTag(currentAction_, "Step")) {
+			intensity = 0.06f;
+		}
+		else if (ActionHasTag(currentAction_, "Strike") || ActionHasTag(currentAction_, "Slash") || ActionHasTag(currentAction_, "Dive") || ActionHasTag(currentAction_, "Sweep") || ActionHasTag(currentAction_, "Thrust")) {
+			intensity = 0.0f;
+		}
+
 		float hover = std::sin(stateTimer_ * 7.0f + static_cast<float>(enemyId_) * 0.19f) * 0.2f * scale_;
 		float sway = std::cos(stateTimer_ * 4.0f + static_cast<float>(enemyId_) * 0.11f) * 0.18f * scale_;
 		float orbitX = std::cos(stateTimer_ * 2.2f + static_cast<float>(enemyId_) * 0.07f) * (0.42f * scale_);
 		float orbitY = std::sin(stateTimer_ * 2.8f + static_cast<float>(enemyId_) * 0.13f) * (0.22f * scale_);
-		return { sway + orbitX, hover + orbitY, 0.0f };
+
+		return {
+			(sway + orbitX) * intensity,
+			(hover + orbitY) * intensity,
+			0.0f
+		};
 	}
 
- DetachedWeaponTarget BuildBossWeaponTarget(
+	BossWeaponMotion BuildBossWeaponSwingMotion(
+		std::string const& currentAction_,
+		float facingSign_,
+		float stateTimer_,
+		float scale_
+	) {
+		BossWeaponMotion motion;
+
+		if (ActionHasTag(currentAction_, "Prep")) {
+			float t = Clamp01(stateTimer_ * 2.6f);
+            float recoil = std::sin(t * 1.5707963f);
+			motion.AimLocalZ += facingSign_ * (-0.34f * recoil);
+			motion.LocalOffset.X += facingSign_ * (-0.32f * scale_ * recoil);
+			motion.LocalOffset.Y += 0.18f * scale_ * recoil;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "Step")) {
+			float t = Clamp01(stateTimer_ * 4.0f);
+         motion.AimLocalZ += facingSign_ * (0.08f * t);
+         motion.LocalOffset.X += facingSign_ * (0.22f * scale_ * t);
+			motion.LocalOffset.Y += -0.06f * scale_ * t;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "HeavySlash")) {
+			float t = Clamp01(stateTimer_ * 3.2f);
+            motion.AimLocalZ += facingSign_ * (-1.55f + 2.45f * t);
+			motion.LocalOffset.X += facingSign_ * (-0.12f + 0.38f * t) * scale_;
+			motion.LocalOffset.Y += (1.05f - 1.65f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "FinisherSlash")) {
+			float t = Clamp01(stateTimer_ * 2.8f);
+           motion.AimLocalZ += facingSign_ * (-1.8f + 2.9f * t);
+			motion.LocalOffset.X += facingSign_ * (-0.18f + 0.54f * t) * scale_;
+			motion.LocalOffset.Y += (1.18f - 1.82f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "CrossSlash")) {
+			float t = Clamp01(stateTimer_ * 4.8f);
+          motion.AimLocalZ += facingSign_ * (-1.7f + 3.05f * t);
+            motion.LocalOffset.X += facingSign_ * (-0.3f + 0.18f * t) * scale_;
+			motion.LocalOffset.Y += (1.04f - 1.18f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "WideSweep")) {
+			float t = Clamp01(stateTimer_ * 4.0f);
+          motion.AimLocalZ += facingSign_ * (-1.9f + 3.4f * t);
+            motion.LocalOffset.X += facingSign_ * (-0.46f + 0.22f * t) * scale_;
+			motion.LocalOffset.Y += (0.82f - 0.62f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "ComboSlash")) {
+			float t = Clamp01(stateTimer_ * 8.0f);
+			float phase = (t < 0.5f) ? (t * 2.0f) : ((t - 0.5f) * 2.0f);
+			if (t < 0.5f) {
+              motion.AimLocalZ += facingSign_ * (-1.15f + 1.75f * phase);
+                motion.LocalOffset.X += facingSign_ * (-0.22f + 0.1f * phase) * scale_;
+				motion.LocalOffset.Y += (0.72f - 0.72f * phase) * scale_;
+			} else {
+              motion.AimLocalZ += facingSign_ * (0.88f - 2.05f * phase);
+             motion.LocalOffset.X += facingSign_ * (0.04f + 0.18f * phase) * scale_;
+				motion.LocalOffset.Y += (0.08f - 0.62f * phase) * scale_;
+			}
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "FeintSlash")) {
+			float t = Clamp01(stateTimer_ * 6.5f);
+            motion.AimLocalZ += facingSign_ * (0.28f * std::sin(t * 6.2831853f) - 0.92f + 1.45f * t);
+         motion.LocalOffset.X += facingSign_ * (-0.06f + 0.14f * t) * scale_;
+			motion.LocalOffset.Y += (0.58f - 0.72f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "SwordSlash") ||
+           ActionHasTag(currentAction_, "Slash")) {
+			float t = Clamp01(stateTimer_ * 5.2f);
+            motion.AimLocalZ += facingSign_ * (-1.45f + 2.55f * t);
+         motion.LocalOffset.X += facingSign_ * (-0.24f + 0.14f * t) * scale_;
+			motion.LocalOffset.Y += (0.86f - 1.08f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "ThrustStrike") || ActionHasTag(currentAction_, "LungeStrike")) {
+			float t = Clamp01(stateTimer_ * 5.8f);
+         motion.AimLocalZ += facingSign_ * (-0.03f + 0.05f * t);
+         motion.LocalOffset.X += facingSign_ * (0.34f + 1.18f * t) * scale_;
+			motion.LocalOffset.Y += (0.08f - 0.1f * t) * scale_;
+			return motion;
+		}
+
+		if (ActionHasTag(currentAction_, "AerialDive")) {
+			float t = Clamp01(stateTimer_ * 3.5f);
+         motion.AimLocalZ += facingSign_ * (-0.12f * t);
+			motion.LocalOffset.X += facingSign_ * (0.04f * scale_ * t);
+			motion.LocalOffset.Y += (-0.92f * scale_ * t);
+			return motion;
+		}
+
+		return motion;
+	}
+
+	Lumina::Math::F32x3 BuildBossWeaponAttackDrive(
+		std::string const& currentAction_,
+		float aimedLocalZ_,
+		float stateTimer_,
+		float scale_
+	) {
+		Lumina::Math::F32x3 axis{ -std::sin(aimedLocalZ_), std::cos(aimedLocalZ_), 0.0f };
+		Lumina::Math::F32x3 side{ axis.Y, -axis.X, 0.0f };
+		Lumina::Math::F32x3 drive{ 0.0f, 0.0f, 0.0f };
+
+		if (ActionHasTag(currentAction_, "Prep")) {
+			float charge = (std::min)(1.0f, stateTimer_ * 3.2f);
+         drive.X += axis.X * (-0.44f * scale_ * charge);
+			drive.Y += axis.Y * (-0.44f * scale_ * charge);
+			drive.X += side.X * (0.03f * scale_ * charge);
+			drive.Y += side.Y * (0.03f * scale_ * charge);
+		}
+		else if (ActionHasTag(currentAction_, "Step")) {
+			float push = (std::min)(1.0f, 0.35f + stateTimer_ * 2.8f);
+            drive.X += axis.X * (0.32f * scale_ * push);
+			drive.Y += axis.Y * (0.32f * scale_ * push);
+		}
+      else if (ActionHasTag(currentAction_, "ThrustStrike") || ActionHasTag(currentAction_, "LungeStrike") || ActionHasTag(currentAction_, "Thrust")) {
+			float burst = (std::min)(1.0f, 0.45f + stateTimer_ * 5.5f);
+           drive.X += axis.X * (0.96f * scale_ * burst);
+			drive.Y += axis.Y * (0.96f * scale_ * burst);
+		}
+     else if (ActionHasTag(currentAction_, "ComboSlash")) {
+			float burst = (std::min)(1.0f, 0.55f + stateTimer_ * 6.5f);
+            drive.X += axis.X * (0.04f * scale_ * burst);
+			drive.Y += axis.Y * (0.04f * scale_ * burst);
+			drive.X += side.X * (-0.48f * scale_ * burst);
+			drive.Y += side.Y * (-0.48f * scale_ * burst);
+		}
+		else if (ActionHasTag(currentAction_, "WideSweep")) {
+			float burst = (std::min)(1.0f, 0.38f + stateTimer_ * 4.2f);
+            drive.X += axis.X * (0.02f * scale_ * burst);
+			drive.Y += axis.Y * (0.02f * scale_ * burst);
+			drive.X += side.X * (-0.62f * scale_ * burst);
+			drive.Y += side.Y * (-0.62f * scale_ * burst);
+		}
+		else if (ActionHasTag(currentAction_, "CrossSlash")) {
+			float burst = (std::min)(1.0f, 0.42f + stateTimer_ * 5.0f);
+           drive.X += axis.X * (0.03f * scale_ * burst);
+			drive.Y += axis.Y * (0.03f * scale_ * burst);
+			drive.X += side.X * (-0.56f * scale_ * burst);
+			drive.Y += side.Y * (-0.56f * scale_ * burst);
+		}
+		else if (ActionHasTag(currentAction_, "FeintSlash")) {
+			float burst = (std::min)(1.0f, 0.36f + stateTimer_ * 6.0f);
+            drive.X += axis.X * (0.03f * scale_ * burst);
+			drive.Y += axis.Y * (0.03f * scale_ * burst);
+			drive.X += side.X * (-0.42f * scale_ * burst);
+			drive.Y += side.Y * (-0.42f * scale_ * burst);
+		}
+		else if (ActionHasTag(currentAction_, "HeavySlash") || ActionHasTag(currentAction_, "FinisherSlash")) {
+			float burst = (std::min)(1.0f, 0.4f + stateTimer_ * 4.6f);
+           drive.X += axis.X * (0.04f * scale_ * burst);
+			drive.Y += axis.Y * (0.04f * scale_ * burst);
+			drive.X += side.X * (-0.24f * scale_ * burst);
+			drive.Y += side.Y * (-0.24f * scale_ * burst);
+			drive.Y -= 0.34f * scale_ * burst;
+		}
+		else if (ActionHasTag(currentAction_, "Slash") || ActionHasTag(currentAction_, "Sweep") || ActionHasTag(currentAction_, "Dive") || ActionHasTag(currentAction_, "Strike")) {
+			float burst = (std::min)(1.0f, 0.45f + stateTimer_ * 5.5f);
+            drive.X += axis.X * (0.03f * scale_ * burst);
+			drive.Y += axis.Y * (0.03f * scale_ * burst);
+			drive.X += side.X * (-0.52f * scale_ * burst);
+			drive.Y += side.Y * (-0.52f * scale_ * burst);
+		}
+
+		return drive;
+	}
+
+	DetachedWeaponTarget BuildBossWeaponTarget(
 		Game::Editor::EnemyData const& baseData_,
 		Lumina::Math::F32x3 const& enemyPosition_,
 		std::string const& currentAction_,
@@ -172,16 +473,17 @@ namespace {
 		Lumina::Math::F32x3 const& playerPosition_,
 		float stateTimer_
 	) {
-		DetachedWeaponTarget result;
-      constexpr float WeaponScaleX = 0.22f;
+		constexpr float WeaponScaleX = 0.22f;
 		constexpr float WeaponScaleY = 1.9f;
 		constexpr float WeaponScaleZ = 0.15f;
 		constexpr float BaseLocalOffsetX = 1.45f;
 		constexpr float BaseLocalOffsetY = 1.12f;
 		constexpr float MinAimFallbackDirection = 0.001f;
+
+		DetachedWeaponTarget result;
 		result.Scale = { WeaponScaleX * scale_, WeaponScaleY * scale_, WeaponScaleZ * scale_ };
 
-       float dx = playerPosition_.X - enemyPosition_.X;
+		float dx = playerPosition_.X - enemyPosition_.X;
 		float dy = playerPosition_.Y - enemyPosition_.Y;
 		float cy = std::cos(renderFacingYaw_);
 		float sy = std::sin(renderFacingYaw_);
@@ -189,26 +491,78 @@ namespace {
 		float localDy = -sy * dx + cy * dy;
 		float localAngle = std::atan2(localDy, localDx);
 		float distToPlayer = std::sqrt(dx * dx + dy * dy);
-        float precision = 1.0f - std::min(distToPlayer / (scale_ * 4.0f + baseData_.attackRange), 1.0f);
-		float aimedLocalZ = localAngle * (0.35f + 0.5f * precision);
-      float offsetX = std::copysign(BaseLocalOffsetX * scale_, (std::abs(localDx) > MinAimFallbackDirection) ? localDx : (facingRight_ ? 1.0f : -1.0f));
+		float precision = 1.0f - std::min(distToPlayer / (scale_ * 4.0f + baseData_.attackRange), 1.0f);
+
+		float offsetX = std::copysign(
+			BaseLocalOffsetX * scale_,
+			(std::abs(localDx) > MinAimFallbackDirection) ? localDx : (facingRight_ ? 1.0f : -1.0f)
+		);
 		Lumina::Math::F32x3 localOffset{ offsetX, BaseLocalOffsetY * scale_, 0.0f };
 
-       float localVisualX = cy * visualOffset_.X + sy * visualOffset_.Y;
+		float localVisualX = cy * visualOffset_.X + sy * visualOffset_.Y;
 		float localVisualY = -sy * visualOffset_.X + cy * visualOffset_.Y;
 		localOffset.X += localVisualX;
 		localOffset.Y += localVisualY;
 
 		float facingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
-       auto const actionPose = BuildBossWeaponActionPose(currentAction_, facingSign, scale_);
-		aimedLocalZ += actionPose.AimLocalZ;
-		localOffset += actionPose.LocalOffset;
-		localOffset += BuildBossWeaponAmbientOffset(stateTimer_, enemyId_, scale_);
+		auto const actionPose = BuildBossWeaponActionPose(currentAction_, facingSign, scale_);
+        float aimFollow = (0.35f + 0.5f * precision) * actionPose.AimFollowWeight;
+		float aimedLocalZ = actionPose.AimLocalZ + localAngle * aimFollow;
+		localOffset.X += actionPose.LocalOffset.X;
+		localOffset.Y += actionPose.LocalOffset.Y;
+		localOffset.Z += actionPose.LocalOffset.Z;
+
+		auto const swingMotion = BuildBossWeaponSwingMotion(currentAction_, facingSign, stateTimer_, scale_);
+		aimedLocalZ += swingMotion.AimLocalZ;
+		localOffset.X += swingMotion.LocalOffset.X;
+		localOffset.Y += swingMotion.LocalOffset.Y;
+		localOffset.Z += swingMotion.LocalOffset.Z;
+
+		auto const ambientOffset = BuildBossWeaponAmbientOffset(currentAction_, stateTimer_, enemyId_, scale_);
+		localOffset.X += ambientOffset.X;
+		localOffset.Y += ambientOffset.Y;
+		localOffset.Z += ambientOffset.Z;
+
+		auto const attackDrive = BuildBossWeaponAttackDrive(currentAction_, aimedLocalZ, stateTimer_, scale_);
+		localOffset.X += attackDrive.X;
+		localOffset.Y += attackDrive.Y;
+		localOffset.Z += attackDrive.Z;
 		result.Scale.Y = actionPose.ScaleYMultiplier * scale_;
 
-        result.Position.X = enemyPosition_.X + cy * localOffset.X - sy * localOffset.Y;
-		result.Position.Y = enemyPosition_.Y + sy * localOffset.X + cy * localOffset.Y;
-		result.Position.Z = enemyPosition_.Z;
+		{
+          auto const localOffsetBase = localOffset;
+			float handleToCenter = result.Scale.Y * 0.42f;
+          auto applyBladeAnchor = [&]() {
+				float bladeAxisX = -std::sin(aimedLocalZ);
+				float bladeAxisY = std::cos(aimedLocalZ);
+				localOffset = localOffsetBase;
+				localOffset.X += bladeAxisX * handleToCenter;
+				localOffset.Y += bladeAxisY * handleToCenter;
+				result.Position.X = enemyPosition_.X + cy * localOffset.X - sy * localOffset.Y;
+				result.Position.Y = enemyPosition_.Y + sy * localOffset.X + cy * localOffset.Y;
+				result.Position.Z = enemyPosition_.Z;
+				return Lumina::Math::F32x3{
+					cy * bladeAxisX - sy * bladeAxisY,
+					sy * bladeAxisX + cy * bladeAxisY,
+					0.0f
+				};
+			};
+
+			auto bladeAxisWorld = applyBladeAnchor();
+			float bladeHalfLength = result.Scale.Y * 0.9f;
+			float tipY = result.Position.Y + bladeAxisWorld.Y * bladeHalfLength;
+			float minTipY = enemyPosition_.Y - 0.72f * scale_;
+			if (tipY < minTipY) {
+				float penetration = minTipY - tipY;
+				float dragBlend = Clamp01(penetration / (0.55f * scale_ + 0.001f));
+             float dragTargetZ = 1.48f;
+				aimedLocalZ = aimedLocalZ * (1.0f - dragBlend * 0.55f) + dragTargetZ * (dragBlend * 0.55f);
+				bladeAxisWorld = applyBladeAnchor();
+				result.Position.Y += penetration;
+				result.Position.X -= facingSign * penetration * 0.18f;
+			}
+		}
+
 		result.Rotation = { 0.0f, renderFacingYaw_, aimedLocalZ };
 		return result;
 	}
@@ -674,12 +1028,12 @@ namespace Game::Scene::Impl {
                   float followAlpha = 0.1f;
 					float rotateAlpha = 0.2f;
                   if (pe.CurrentAction.find("Prep") != std::string::npos || pe.CurrentAction.find("Step") != std::string::npos) {
-						followAlpha = 0.2f;
-						rotateAlpha = 0.32f;
+                       followAlpha = 0.3f;
+						rotateAlpha = 0.68f;
 					}
-					if (pe.CurrentAction.find("Slash") != std::string::npos || pe.CurrentAction.find("Thrust") != std::string::npos) {
-                        followAlpha = 0.28f;
-						rotateAlpha = 0.34f;
+                  if (pe.CurrentAction.find("Slash") != std::string::npos || pe.CurrentAction.find("Thrust") != std::string::npos || pe.CurrentAction.find("Strike") != std::string::npos || pe.CurrentAction.find("Dive") != std::string::npos) {
+                        followAlpha = 0.36f;
+						rotateAlpha = 0.86f;
 					}
 					pe.WeaponPosition.X = itOld->second.WeaponPosition.X * (1.0f - followAlpha) + targetWeapon.Position.X * followAlpha;
 					pe.WeaponPosition.Y = itOld->second.WeaponPosition.Y * (1.0f - followAlpha) + targetWeapon.Position.Y * followAlpha;

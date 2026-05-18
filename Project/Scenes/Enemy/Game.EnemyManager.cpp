@@ -364,6 +364,9 @@ namespace Game {
 		if (data.name == "KingSlime") {
 			return std::make_unique<KingSlimeBehavior>();
 		}
+		if (data.name == "Boss") {
+			return std::make_unique<BossBehavior>();
+		}
 		return std::make_unique<EnemyBehavior>();
 	}
 
@@ -498,6 +501,82 @@ namespace Game {
 
 	int KingSlimeBehavior::GetActiveNodeIndex() const {
 		return -1;
+	}
+
+	// ============================
+	//  BossBehavior（Boss.json ノードステートマシン連携）
+	// ============================
+
+	void BossBehavior::OnSpawn(EnemyInstance& enemy) {
+		phaseShiftTriggered_ = false;
+		airDiveTimer_        = 0.0f;
+		airDiveInterval_     = 12.0f;
+		inPhaseShiftState_   = false;
+		enemy.runtimeBoolFlags["phaseShiftReady"] = false;
+		enemy.runtimeBoolFlags["phaseShiftDone"]  = false;
+		enemy.runtimeBoolFlags["airDiveReady"]    = false;
+		enemy.runtimeBoolFlags["airDiveDone"]     = false;
+	}
+
+	void BossBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+		(void)playerPosition;
+
+		float hpRatio = (enemy.baseData.hp > 0)
+			? static_cast<float>(enemy.currentHP) / static_cast<float>(enemy.baseData.hp)
+			: 1.0f;
+
+		// ── HP連動の速度倍率（HP減少で最大1.6倍まで加速）──
+		// HP100% → 1.0倍、HP50% → 1.2倍、HP0% → 1.6倍
+		enemy.behaviorSpeedMult = 1.0f + (1.0f - hpRatio) * 0.6f;
+
+		// ── HP連動のジャンプ抑制（HP高い→跳ねる、HP低い→地上ダッシュ）──
+		// HP100%〜66% : 通常通り跳ねる（1.0）
+		// HP66%〜33% : 徐々に低く（1.0→0.4）
+		// HP33%〜0%  : ほぼジャンプしない（0.4→0.0）
+		if (hpRatio >= 0.66f) {
+			enemy.behaviorJumpScale = 1.0f;
+		} else if (hpRatio >= 0.33f) {
+			enemy.behaviorJumpScale = 0.4f + (hpRatio - 0.33f) / 0.33f * 0.6f;
+		} else {
+			enemy.behaviorJumpScale = hpRatio / 0.33f * 0.4f;
+		}
+
+		// ── フェーズシフト判定（HP50%以下で一度だけ発火）──
+		if (!phaseShiftTriggered_ && hpRatio <= 0.5f) {
+			phaseShiftTriggered_ = true;
+			enemy.runtimeBoolFlags["phaseShiftReady"] = true;
+		}
+
+		// ── PhaseShift ステート中、一定時間後に phaseShiftDone をセット ──
+		// ノード15（PhaseShift）→ BOOL:phaseShiftDone → ノード16（ApproachP2）への遷移に必要
+		// PhaseShiftステートに入ったらタイマーを計測し、0.8秒後にフラグを立てる
+		if (enemy.currentAction == "PhaseShift") {
+			inPhaseShiftState_ = true;
+			if (enemy.stateTimer >= 0.8f) {
+				enemy.runtimeBoolFlags["phaseShiftDone"] = true;
+			}
+		} else {
+			inPhaseShiftState_ = false;
+		}
+
+		// ── 空中ダイブ技クールダウン（P2フェーズ中のみカウント）──
+		bool isP2 = enemy.runtimeBoolFlags.count("phaseShiftDone")
+			&& enemy.runtimeBoolFlags.at("phaseShiftDone");
+		if (isP2) {
+			airDiveTimer_ += deltaTime;
+			if (airDiveTimer_ >= airDiveInterval_) {
+				airDiveTimer_ = 0.0f;
+				enemy.runtimeBoolFlags["airDiveReady"] = true;
+			}
+		}
+
+		// ── AerialDive ステート終了後に airDiveDone をセット ──
+		// ノード35（AerialDiveP2）→ BOOL:airDiveDone でノード36へ遷移
+		if (enemy.currentAction == "AerialDiveP2") {
+			if (enemy.stateTimer >= 0.6f) {
+				enemy.runtimeBoolFlags["airDiveDone"] = true;
+			}
+		}
 	}
 
 	// ============================
@@ -920,8 +999,9 @@ namespace Game {
 								<< " motionPlaying=" << enemy.motionController.IsPlaying()
 								<< " velX=" << enemy.velocity.X
 								<< " dist=" << dist
-								<< " currentAction=" << enemy.currentAction
-								<< "\n";
+									<< " currentAction=" << enemy.currentAction
+									<< " hp=" << enemy.currentHP << "/" << enemy.baseData.hp
+									<< "\n";
 						}
                     } catch (...) {}
 				}
@@ -1111,17 +1191,20 @@ namespace Game {
 			// --- JSON ステートマシンによる行動制御 ---
 			// ノードが定義されている敵はステートマシンで currentAction を駆動する
 			if (!enemy.baseData.nodes.empty()) {
-				// 初回: currentAction に対応するノードを探す
-				int currentNodeId = -1;
-				for (const auto& n : enemy.baseData.nodes) {
-					if (n.state == enemy.currentAction) { currentNodeId = n.id; break; }
+				// currentNodeId を永続化して state 名の衝突を回避する
+				// -1 の場合（初回 or リセット後）は currentAction の state 名でノードを探す
+				if (enemy.currentNodeId == -1) {
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.state == enemy.currentAction) { enemy.currentNodeId = n.id; break; }
+					}
 				}
-				// ノードが見つからなければ最初のノードから開始
-				if (currentNodeId == -1) {
-					currentNodeId = enemy.baseData.nodes.front().id;
+				// それでも見つからなければ最初のノードから開始
+				if (enemy.currentNodeId == -1) {
+					enemy.currentNodeId = enemy.baseData.nodes.front().id;
 					enemy.currentAction = enemy.baseData.nodes.front().state;
 					enemy.stateTimer = 0.0f;
 				}
+				int currentNodeId = enemy.currentNodeId;
 
                 // リンク条件を評価して遷移
 				bool transitioned = false;
@@ -1131,13 +1214,13 @@ namespace Game {
 					if (c.rfind("Time>=", 0) == 0) {
 						try {
 							float threshold = std::stof(c.substr(6));
-                                if (enemy.stateTimer >= threshold) {
-								// 遷移先のノードを探す
+								if (enemy.stateTimer >= threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
+										enemy.currentNodeId = n.id;
 										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
+											transitioned = true;
 										break;
 									}
 								}
@@ -1149,12 +1232,13 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist<=");
 							float threshold = std::stof(c.substr(pos + 6));
-                                if (dist <= threshold) {
+								if (dist <= threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
+										enemy.currentNodeId = n.id;
 										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
+											transitioned = true;
 										break;
 									}
 								}
@@ -1166,12 +1250,13 @@ namespace Game {
 						try {
 							size_t pos = c.find("Dist>");
 							float threshold = std::stof(c.substr(pos + 5));
-                                if (dist > threshold) {
+								if (dist > threshold) {
 								for (const auto& n : enemy.baseData.nodes) {
 									if (n.id == link.to) {
 										enemy.currentAction = n.state;
+										enemy.currentNodeId = n.id;
 										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
+											transitioned = true;
 										break;
 									}
 								}
@@ -1180,9 +1265,10 @@ namespace Game {
 						} catch (...) {}
 					}
 					else if (c.find("Always") != std::string::npos) {
-                        for (const auto& n : enemy.baseData.nodes) {
+						for (const auto& n : enemy.baseData.nodes) {
 							if (n.id == link.to) {
 								enemy.currentAction = n.state;
+								enemy.currentNodeId = n.id;
 								enemy.stateTimer = 0.0f;
 								transitioned = true;
 								break;
@@ -1198,8 +1284,8 @@ namespace Game {
 							for (const auto& n : enemy.baseData.nodes) {
 								if (n.id == link.to) {
 									enemy.currentAction = n.state;
+									enemy.currentNodeId = n.id;
 									enemy.stateTimer = 0.0f;
-									// Consume the flag (reset it)
 									flagIt->second = false;
 									break;
 								}
@@ -1380,11 +1466,11 @@ namespace Game {
 							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
 						}
 
-                        if (nodeWalk && !hasMotion) {
+						if (nodeWalk && !hasMotion) {
 							// move toward player instead of using facingRight blindly
 							float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
 							enemy.facingRight = (dx > 0.0f);
-							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
+							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * enemy.behaviorSpeedMult;
 						}
 
 						// 継続的な摩擦/ブレーキ
@@ -1404,11 +1490,10 @@ namespace Game {
 						if (enemy.stateTimer < deltaTime * 1.5f) {
 							if (currentNodeInfo->jumpVelocityXMult != 0.0f) {
 								float jumpDir = (dx > 0.0f) ? 1.0f : -1.0f;
-								enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * currentNodeInfo->jumpVelocityXMult;
+								enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * currentNodeInfo->jumpVelocityXMult * enemy.behaviorSpeedMult;
 							}
-							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
 							if (currentNodeInfo->jumpVelocityY != 0.0f) {
-								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
+								enemy.velocity.Y = currentNodeInfo->jumpVelocityY * enemy.behaviorSpeedMult * enemy.behaviorJumpScale;
 							}
 						}
 					}

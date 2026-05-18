@@ -36,6 +36,24 @@ export namespace Game {
 		virtual int GetActiveNodeIndex() const { return -1; }
 	};
 
+	/// <summary>
+	/// ゼルダのリンクのような剣士型ボス AI
+	/// Boss.json のノードステートマシンと連携し、
+	/// ランタイムBOOLフラグ（phaseShiftReady / phaseShiftDone / airDiveReady / airDiveDone）
+	/// を適切なタイミングでセットする
+	/// </summary>
+	class BossBehavior final : public EnemyBehavior {
+	public:
+		~BossBehavior() override = default;
+		void OnSpawn(EnemyInstance& enemy) override;
+		void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) override;
+	private:
+		bool  phaseShiftTriggered_ = false; // HP50%フラグを一度だけ発火するためのガード
+		float airDiveTimer_        = 0.0f;  // 空中ダイブ技クールダウン
+		float airDiveInterval_     = 12.0f; // 空中ダイブのインターバル（秒）
+		bool  inPhaseShiftState_   = false; // PhaseShiftステート中フラグ
+	};
+
 	class KingSlimeBehavior final : public EnemyBehavior {
 	public:
 		~KingSlimeBehavior() override = default;
@@ -101,6 +119,9 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
+			, currentNodeId(other.currentNodeId)
+			, behaviorSpeedMult(other.behaviorSpeedMult)
+			, behaviorJumpScale(other.behaviorJumpScale)
 			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
 			, lastHitAttackId(other.lastHitAttackId)
 		{
@@ -137,6 +158,9 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
+				currentNodeId = other.currentNodeId;
+				behaviorSpeedMult = other.behaviorSpeedMult;
+				behaviorJumpScale = other.behaviorJumpScale;
 				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
 				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
@@ -175,6 +199,9 @@ export namespace Game {
 			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
+			, currentNodeId(other.currentNodeId)
+			, behaviorSpeedMult(other.behaviorSpeedMult)
+			, behaviorJumpScale(other.behaviorJumpScale)
 			, runtimeBoolFlags(other.runtimeBoolFlags)
 			, lastHitAttackId(other.lastHitAttackId)
 			// colliders は再生成する
@@ -212,6 +239,9 @@ export namespace Game {
 				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
+				currentNodeId = other.currentNodeId;
+				behaviorSpeedMult = other.behaviorSpeedMult;
+				behaviorJumpScale = other.behaviorJumpScale;
 				runtimeBoolFlags = other.runtimeBoolFlags;
 				lastHitAttackId = other.lastHitAttackId;
 				colliders.clear();
@@ -261,7 +291,13 @@ export namespace Game {
 
 		// --- アニメーション ---
 		std::string currentAction = "Idle";            // 現在のアクション名
+		int currentNodeId = -1;                        // 現在のノードID（-1=未初期化）
 		::MotionController motionController{};
+
+		// Behavior から速度に乗算するスケール（HP連動などに使用）
+		float behaviorSpeedMult = 1.0f;
+		// Behavior から跳跅に乗算するスケール（1.0=通常、中間値は飛距減襲、0.0=地上走り）
+		float behaviorJumpScale = 1.0f;
 
 		// --- ランタイムブールフラグ（BOOL: リンク条件用） ---
 		std::map<std::string, bool> runtimeBoolFlags;
@@ -283,6 +319,9 @@ export namespace Game {
 			stateTimer = 0.0f;
 			aiState = AIState::Idle;
 			currentAction = "Idle";
+			currentNodeId = -1;
+			behaviorSpeedMult = 1.0f;
+			behaviorJumpScale = 1.0f;
             spawnTimer = 0.0f;
 			spawnDuration = 0.0f;
 			burstSpeedMultiplier = 1.0f;
