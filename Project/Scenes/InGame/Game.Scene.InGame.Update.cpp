@@ -1405,6 +1405,11 @@ namespace Game::Scene::Impl {
 					playState_.IsPlaying = true;
 					if (Player_) {
 						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
+						// 死亡ステートから復帰させる
+						Player_->ChangeMovementState(Player_->idleState_.get());
+						Player_->ChangeActionState(Player_->normalSheathedState_.get());
+						Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
+						Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
 					}
 					if (TutorialManager_) {
 						TutorialManager_->CompletedSequences_.clear();

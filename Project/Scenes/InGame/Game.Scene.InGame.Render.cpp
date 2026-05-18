@@ -638,83 +638,6 @@ namespace Game::Scene::Impl {
 					TutorialManager_->RenderOverlay(*PrimitiveManager_Tutorial_);
 				}
 
-				// ゲームオーバーUIメニュー描画
-				if (GameOverMenu_.IsVisible()) {
-					// 画面全体を少し赤暗くする
-					Lumina::F32x4 darkenCol{ 0.15f, 0.0f, 0.0f, 0.8f };
-					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
-						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
-						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
-					);
-					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
-						{ {  1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
-						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
-					);
-
-					// gameover.png を描画 (Index = 8)
-					// gameover.pngは 480x120
-					float titleHalfW = (480.0f / 1280.0f);
-					float titleH = (120.0f / 720.0f) * 2.0f;
-					
-					float titleTopY = 0.9f;
-					float titleBottomY = titleTopY - titleH;
-					float titleLeftX = -titleHalfW;
-					float titleRightX = titleHalfW;
-					
-					Lumina::F32x4 titleCol{ 1.0f, 1.0f, 1.0f, 1.0f };
-					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ { titleLeftX,  titleTopY, 0.0f, 1.0f }, titleCol, {0.0f, 0.0f}, 8U },
-						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
-						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
-					);
-					PrimitiveManager_Tutorial_->BatchTriangle(
-						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
-						{ { titleRightX, titleBottomY, 0.0f, 1.0f }, titleCol, {1.0f, 1.0f}, 8U },
-						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
-					);
-
-					float itemW = (360.0f / 1280.0f) * 2.0f;
-					float itemH = (120.0f / 720.0f) * 2.0f;
-					float startY = 0.2f;
-					float gap = 0.05f;
-
-					for (int i = 0; i < 2; ++i) {
-						Lumina::F32x4 color;
-						float scale = 1.0f;
-						if (GameOverMenu_.SelectedIndex() == i) {
-							color = { 1.0f, 1.0f, 1.0f, 1.0f }; // 選択中は明るく
-							scale = 1.0f + 0.08f * (0.5f + 0.5f * std::sin(Event::PhaseTimer * 8.0f));
-						} else {
-							color = { 0.4f, 0.4f, 0.4f, 0.9f }; // 非選択は少し暗く
-						}
-
-						float currentItemW = itemW * scale;
-						float currentItemH = itemH * scale;
-
-						float centerY = startY - i * (itemH + gap) - itemH * 0.5f;
-						
-						float topY = centerY + currentItemH * 0.5f;
-						float bottomY = centerY - currentItemH * 0.5f;
-						float leftX = -currentItemW * 0.5f;
-						float rightX = currentItemW * 0.5f;
-
-						uint32_t texID = 6U + i; // 6: Retry, 7: returntotitle
-
-						PrimitiveManager_Tutorial_->BatchTriangle(
-							{ { leftX,  topY, 0.0f, 1.0f }, color, {0.0f, 0.0f}, texID },
-							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
-							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
-						);
-						PrimitiveManager_Tutorial_->BatchTriangle(
-							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
-							{ { rightX, bottomY, 0.0f, 1.0f }, color, {1.0f, 1.0f}, texID },
-							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
-						);
-					}
-				}
-
 
 				// --- Ender Lilies Style Minimap ---
 				if (playState_.IsPlaying && !areaEditor_.GetAllAreas().empty()) {
@@ -1172,6 +1095,77 @@ namespace Game::Scene::Impl {
 								{ { left,  bottom, 0.0f, 1.0f }, uiCol, {0.0f, 1.0f}, texID }
 							);
 						}
+					}
+				}
+
+				// ゲームオーバーUIメニュー描画
+				if (GameOverMenu_.IsVisible()) {
+					Lumina::F32x4 darkenCol{ 0.15f, 0.0f, 0.0f, 0.8f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { -1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ {  1.0f,  1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ {  1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U },
+						{ { -1.0f, -1.0f, 0.0f, 1.0f }, darkenCol, {0.0f, 0.0f}, 0U }
+					);
+
+					float titleHalfW = (480.0f / 1280.0f);
+					float titleH = (120.0f / 720.0f) * 2.0f;
+					float titleTopY = 0.9f;
+					float titleBottomY = titleTopY - titleH;
+					float titleLeftX = -titleHalfW;
+					float titleRightX = titleHalfW;
+
+					Lumina::F32x4 titleCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { titleLeftX,  titleTopY, 0.0f, 1.0f }, titleCol, {0.0f, 0.0f}, 8U },
+						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
+						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { titleRightX, titleTopY, 0.0f, 1.0f }, titleCol, {1.0f, 0.0f}, 8U },
+						{ { titleRightX, titleBottomY, 0.0f, 1.0f }, titleCol, {1.0f, 1.0f}, 8U },
+						{ { titleLeftX,  titleBottomY, 0.0f, 1.0f }, titleCol, {0.0f, 1.0f}, 8U }
+					);
+
+					float itemW = (360.0f / 1280.0f) * 2.0f;
+					float itemH = (120.0f / 720.0f) * 2.0f;
+					float startY = 0.2f;
+					float gap = 0.05f;
+
+					for (int i = 0; i < 2; ++i) {
+						Lumina::F32x4 color;
+						float scale = 1.0f;
+						if (GameOverMenu_.SelectedIndex() == i) {
+							color = { 1.0f, 1.0f, 1.0f, 1.0f };
+							scale = 1.0f + 0.08f * (0.5f + 0.5f * std::sin(Event::PhaseTimer * 8.0f));
+						} else {
+							color = { 0.4f, 0.4f, 0.4f, 0.9f };
+						}
+
+						float currentItemW = itemW * scale;
+						float currentItemH = itemH * scale;
+						float centerY = startY - i * (itemH + gap) - itemH * 0.5f;
+						float topY = centerY + currentItemH * 0.5f;
+						float bottomY = centerY - currentItemH * 0.5f;
+						float leftX = -currentItemW * 0.5f;
+						float rightX = currentItemW * 0.5f;
+
+						uint32_t texID = 6U + i;
+
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { leftX,  topY, 0.0f, 1.0f }, color, {0.0f, 0.0f}, texID },
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { rightX, topY, 0.0f, 1.0f }, color, {1.0f, 0.0f}, texID },
+							{ { rightX, bottomY, 0.0f, 1.0f }, color, {1.0f, 1.0f}, texID },
+							{ { leftX,  bottomY, 0.0f, 1.0f }, color, {0.0f, 1.0f}, texID }
+						);
 					}
 				}
 
