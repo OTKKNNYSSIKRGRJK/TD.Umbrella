@@ -179,6 +179,10 @@ namespace Game::Scene::Impl {
 			bool WalkActive = false; // debug flag from behavior
 			bool MotionPlaying = false;
 			int ActiveNodeIndex = -1;
+          bool HasDetachedWeapon = false;
+			Lumina::Math::F32x3 WeaponPosition{ 0.0f, 0.0f, 0.0f };
+			Lumina::Math::F32x3 WeaponRotation{ 0.0f, 0.0f, 0.0f };
+			Lumina::Math::F32x3 WeaponScale{ 1.0f, 1.0f, 1.0f };
 		};
 
 		struct PlayState {

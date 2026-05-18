@@ -42,6 +42,176 @@ namespace {
    constexpr float EnemySpawnPresentationDuration{ 0.8f };
  constexpr float BossShowcaseSpawnDuration{ 1.35f };
   constexpr char BossEnemyName[]{ "Boss" };
+
+	struct PreviousEnemyVisualState {
+		Lumina::Math::F32x3 VisualOffset{ 0.0f, 0.0f, 0.0f };
+		bool HasDetachedWeapon = false;
+		Lumina::Math::F32x3 WeaponPosition{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 WeaponRotation{ 0.0f, 0.0f, 0.0f };
+	};
+
+	struct DetachedWeaponTarget {
+		Lumina::Math::F32x3 Position{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 Rotation{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 Scale{ 1.0f, 1.0f, 1.0f };
+	};
+
+	struct BossWeaponPose {
+		float AimLocalZ = 0.0f;
+		Lumina::Math::F32x3 LocalOffset{ 0.0f, 0.0f, 0.0f };
+		float ScaleYMultiplier = 1.9f;
+	};
+
+	bool ActionHasTag(std::string const& action_, char const* tag_) {
+		return action_.find(tag_) != std::string::npos;
+	}
+
+	BossWeaponPose BuildBossWeaponActionPose(
+		std::string const& currentAction_,
+		float facingSign_,
+		float scale_
+	) {
+		BossWeaponPose pose;
+
+     if (ActionHasTag(currentAction_, "ThrustPrep")) {
+			pose.AimLocalZ += facingSign_ * 1.0f;
+			pose.LocalOffset.X += facingSign_ * 0.95f * scale_;
+			pose.LocalOffset.Y += 0.42f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "SlashPrep") || ActionHasTag(currentAction_, "CrossPrep") || ActionHasTag(currentAction_, "ComboPrep")) {
+			pose.AimLocalZ += facingSign_ * 1.1f;
+			pose.LocalOffset.X += facingSign_ * 0.82f * scale_;
+			pose.LocalOffset.Y += 0.58f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "HeavyPrep")) {
+			pose.ScaleYMultiplier = 2.1f;
+			pose.AimLocalZ += facingSign_ * 0.78f;
+			pose.LocalOffset.X += facingSign_ * 0.52f * scale_;
+			pose.LocalOffset.Y += 1.02f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "FinisherPrep")) {
+			pose.ScaleYMultiplier = 2.2f;
+			pose.AimLocalZ += facingSign_ * 0.98f;
+			pose.LocalOffset.X += facingSign_ * 0.88f * scale_;
+			pose.LocalOffset.Y += 0.84f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "AerialPrep")) {
+			pose.AimLocalZ += facingSign_ * -1.2f;
+			pose.LocalOffset.X += facingSign_ * -0.28f * scale_;
+			pose.LocalOffset.Y += 1.58f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "Prep")) {
+			pose.AimLocalZ += facingSign_ * -2.25f;
+			pose.LocalOffset.X += facingSign_ * -1.15f * scale_;
+			pose.LocalOffset.Y += 1.45f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "Step")) {
+			pose.AimLocalZ += facingSign_ * 0.35f;
+			pose.LocalOffset.X += facingSign_ * 0.68f * scale_;
+			pose.LocalOffset.Y += 0.18f * scale_;
+		}
+      else if (ActionHasTag(currentAction_, "ThrustStrike") || ActionHasTag(currentAction_, "Thrust")) {
+			pose.ScaleYMultiplier = 2.15f;
+			pose.AimLocalZ += facingSign_ * 1.4f;
+			pose.LocalOffset.X += facingSign_ * 1.55f * scale_;
+			pose.LocalOffset.Y += 0.08f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "Heavy")) {
+			pose.ScaleYMultiplier = 2.25f;
+			pose.AimLocalZ += facingSign_ * 1.05f;
+			pose.LocalOffset.X += facingSign_ * 1.05f * scale_;
+			pose.LocalOffset.Y += 0.22f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "Finisher")) {
+			pose.ScaleYMultiplier = 2.45f;
+			pose.AimLocalZ += facingSign_ * 1.18f;
+			pose.LocalOffset.X += facingSign_ * 1.3f * scale_;
+			pose.LocalOffset.Y += 0.26f * scale_;
+		}
+       else if (ActionHasTag(currentAction_, "SwordSlash") || ActionHasTag(currentAction_, "CrossSlash") || ActionHasTag(currentAction_, "FeintSlash") || ActionHasTag(currentAction_, "WideSweep") || ActionHasTag(currentAction_, "Slash")) {
+			pose.ScaleYMultiplier = 2.0f;
+			pose.AimLocalZ += facingSign_ * 1.5f;
+			pose.LocalOffset.X += facingSign_ * 1.7f * scale_;
+			pose.LocalOffset.Y += -0.26f * scale_;
+		}
+		else if (ActionHasTag(currentAction_, "Recover") || ActionHasTag(currentAction_, "Backstep")) {
+			pose.AimLocalZ += facingSign_ * -0.15f;
+			pose.LocalOffset.X += facingSign_ * -0.24f * scale_;
+			pose.LocalOffset.Y -= 0.06f * scale_;
+		}
+		else if (currentAction_ == "PhaseShift") {
+			pose.AimLocalZ += facingSign_ * -1.4f;
+			pose.LocalOffset.X += facingSign_ * -0.55f * scale_;
+			pose.LocalOffset.Y += 0.58f * scale_;
+		}
+
+		return pose;
+	}
+
+	Lumina::Math::F32x3 BuildBossWeaponAmbientOffset(
+		float stateTimer_,
+		uint32_t enemyId_,
+		float scale_
+	) {
+		float hover = std::sin(stateTimer_ * 7.0f + static_cast<float>(enemyId_) * 0.19f) * 0.2f * scale_;
+		float sway = std::cos(stateTimer_ * 4.0f + static_cast<float>(enemyId_) * 0.11f) * 0.18f * scale_;
+		float orbitX = std::cos(stateTimer_ * 2.2f + static_cast<float>(enemyId_) * 0.07f) * (0.42f * scale_);
+		float orbitY = std::sin(stateTimer_ * 2.8f + static_cast<float>(enemyId_) * 0.13f) * (0.22f * scale_);
+		return { sway + orbitX, hover + orbitY, 0.0f };
+	}
+
+ DetachedWeaponTarget BuildBossWeaponTarget(
+		Game::Editor::EnemyData const& baseData_,
+		Lumina::Math::F32x3 const& enemyPosition_,
+		std::string const& currentAction_,
+		float scale_,
+		bool facingRight_,
+		float renderFacingYaw_,
+		Lumina::Math::F32x3 const& visualOffset_,
+		uint32_t enemyId_,
+		Lumina::Math::F32x3 const& playerPosition_,
+		float stateTimer_
+	) {
+		DetachedWeaponTarget result;
+      constexpr float WeaponScaleX = 0.22f;
+		constexpr float WeaponScaleY = 1.9f;
+		constexpr float WeaponScaleZ = 0.15f;
+		constexpr float BaseLocalOffsetX = 1.45f;
+		constexpr float BaseLocalOffsetY = 1.12f;
+		constexpr float MinAimFallbackDirection = 0.001f;
+		result.Scale = { WeaponScaleX * scale_, WeaponScaleY * scale_, WeaponScaleZ * scale_ };
+
+       float dx = playerPosition_.X - enemyPosition_.X;
+		float dy = playerPosition_.Y - enemyPosition_.Y;
+		float cy = std::cos(renderFacingYaw_);
+		float sy = std::sin(renderFacingYaw_);
+		float localDx = cy * dx + sy * dy;
+		float localDy = -sy * dx + cy * dy;
+		float localAngle = std::atan2(localDy, localDx);
+		float distToPlayer = std::sqrt(dx * dx + dy * dy);
+        float precision = 1.0f - std::min(distToPlayer / (scale_ * 4.0f + baseData_.attackRange), 1.0f);
+		float aimedLocalZ = localAngle * (0.35f + 0.5f * precision);
+      float offsetX = std::copysign(BaseLocalOffsetX * scale_, (std::abs(localDx) > MinAimFallbackDirection) ? localDx : (facingRight_ ? 1.0f : -1.0f));
+		Lumina::Math::F32x3 localOffset{ offsetX, BaseLocalOffsetY * scale_, 0.0f };
+
+       float localVisualX = cy * visualOffset_.X + sy * visualOffset_.Y;
+		float localVisualY = -sy * visualOffset_.X + cy * visualOffset_.Y;
+		localOffset.X += localVisualX;
+		localOffset.Y += localVisualY;
+
+		float facingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
+       auto const actionPose = BuildBossWeaponActionPose(currentAction_, facingSign, scale_);
+		aimedLocalZ += actionPose.AimLocalZ;
+		localOffset += actionPose.LocalOffset;
+		localOffset += BuildBossWeaponAmbientOffset(stateTimer_, enemyId_, scale_);
+		result.Scale.Y = actionPose.ScaleYMultiplier * scale_;
+
+        result.Position.X = enemyPosition_.X + cy * localOffset.X - sy * localOffset.Y;
+		result.Position.Y = enemyPosition_.Y + sy * localOffset.X + cy * localOffset.Y;
+		result.Position.Z = enemyPosition_.Z;
+		result.Rotation = { 0.0f, renderFacingYaw_, aimedLocalZ };
+		return result;
+	}
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
 		p_.Translate.X += p_.Velocity.X;
@@ -431,19 +601,24 @@ namespace Game::Scene::Impl {
 		// 死亡済みプロジェクタイルを除去
 		Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
-        const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
-		// Preserve previous-frame visual offsets keyed by enemy id so we can
-		// apply simple exponential smoothing. This creates a slight lag on
-		// attachment visuals (e.g. sword) so they appear more independent from
-		// the rigid body motion.
-		std::unordered_map<uint32_t, Lumina::Math::F32x3> oldVisualOffsets;
-		oldVisualOffsets.reserve(playState_.Enemies.size());
+      const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+		std::unordered_map<uint32_t, PreviousEnemyVisualState> oldVisualStates;
+		oldVisualStates.reserve(playState_.Enemies.size());
 		for (const auto& oldPe : playState_.Enemies) {
-			oldVisualOffsets[oldPe.Id] = oldPe.VisualOffset;
+            oldVisualStates[oldPe.Id] = {
+				oldPe.VisualOffset,
+				oldPe.HasDetachedWeapon,
+				oldPe.WeaponPosition,
+				oldPe.WeaponRotation,
+			};
 		}
 
 		playState_.Enemies.clear();
 		playState_.Enemies.reserve(enemyInstances.size());
+       Lumina::Math::F32x3 playerPosition{ 0.0f, 0.0f, 0.0f };
+		if (Player_) {
+			playerPosition = Player_->GetPosition();
+		}
 		for (const auto& inst : enemyInstances) {
 			PlayEnemy pe;
 			pe.BaseData = inst.baseData;
@@ -468,18 +643,55 @@ namespace Game::Scene::Impl {
 			// Apply exponential smoothing against previous visual offset to
 			// produce a lagged visual transform for attachments. If we have no
 			// previous value, use the raw motion offset.
-			auto itOld = oldVisualOffsets.find(pe.Id);
-			if (itOld != oldVisualOffsets.end()) {
+          auto itOld = oldVisualStates.find(pe.Id);
+			if (itOld != oldVisualStates.end()) {
 				constexpr float alpha = 0.32f; // smoothing factor: lower -> more lag
-				pe.VisualOffset.X = itOld->second.X * (1.0f - alpha) + currentMotionOffset.X * alpha;
-				pe.VisualOffset.Y = itOld->second.Y * (1.0f - alpha) + currentMotionOffset.Y * alpha;
-				pe.VisualOffset.Z = itOld->second.Z * (1.0f - alpha) + currentMotionOffset.Z * alpha;
+               pe.VisualOffset.X = itOld->second.VisualOffset.X * (1.0f - alpha) + currentMotionOffset.X * alpha;
+				pe.VisualOffset.Y = itOld->second.VisualOffset.Y * (1.0f - alpha) + currentMotionOffset.Y * alpha;
+				pe.VisualOffset.Z = itOld->second.VisualOffset.Z * (1.0f - alpha) + currentMotionOffset.Z * alpha;
 			} else {
 				pe.VisualOffset = currentMotionOffset;
 			}
 
 			// Visual yaw: simple lerp towards runtime render yaw for smoothing
 			pe.VisualYaw = inst.renderFacingYaw;
+         if (pe.BaseData.name == BossEnemyName) {
+				pe.HasDetachedWeapon = true;
+               auto const targetWeapon = BuildBossWeaponTarget(
+					pe.BaseData,
+					pe.Position,
+					pe.CurrentAction,
+					pe.Scale,
+					pe.FacingRight,
+					pe.RenderFacingYaw,
+					pe.VisualOffset,
+					pe.Id,
+					playerPosition,
+					inst.stateTimer
+				);
+				pe.WeaponScale = targetWeapon.Scale;
+				if (itOld != oldVisualStates.end() && itOld->second.HasDetachedWeapon) {
+                  float followAlpha = 0.1f;
+					float rotateAlpha = 0.2f;
+                  if (pe.CurrentAction.find("Prep") != std::string::npos || pe.CurrentAction.find("Step") != std::string::npos) {
+						followAlpha = 0.2f;
+						rotateAlpha = 0.32f;
+					}
+					if (pe.CurrentAction.find("Slash") != std::string::npos || pe.CurrentAction.find("Thrust") != std::string::npos) {
+                        followAlpha = 0.28f;
+						rotateAlpha = 0.34f;
+					}
+					pe.WeaponPosition.X = itOld->second.WeaponPosition.X * (1.0f - followAlpha) + targetWeapon.Position.X * followAlpha;
+					pe.WeaponPosition.Y = itOld->second.WeaponPosition.Y * (1.0f - followAlpha) + targetWeapon.Position.Y * followAlpha;
+					pe.WeaponPosition.Z = itOld->second.WeaponPosition.Z * (1.0f - followAlpha) + targetWeapon.Position.Z * followAlpha;
+					pe.WeaponRotation.X = itOld->second.WeaponRotation.X * (1.0f - rotateAlpha) + targetWeapon.Rotation.X * rotateAlpha;
+					pe.WeaponRotation.Y = targetWeapon.Rotation.Y;
+					pe.WeaponRotation.Z = itOld->second.WeaponRotation.Z * (1.0f - rotateAlpha) + targetWeapon.Rotation.Z * rotateAlpha;
+				} else {
+					pe.WeaponPosition = targetWeapon.Position;
+					pe.WeaponRotation = targetWeapon.Rotation;
+				}
+			}
 			// pull debug flag from behavior if available
 			if (inst.behavior) {
 				pe.WalkActive = inst.behavior->IsWalkActive();

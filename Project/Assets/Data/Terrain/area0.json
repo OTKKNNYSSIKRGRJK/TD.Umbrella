@@ -147,7 +147,7 @@
     },
     "enemies": [
         {
-            "enemyName": "TutorialEnemy",
+            "enemyName": "Boss",
             "facingRight": false,
             "position": {
                 "x": 301.0399169921875,
