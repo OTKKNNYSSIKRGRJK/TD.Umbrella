@@ -84,6 +84,8 @@ export namespace Game {
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
           , renderFacingYaw(other.renderFacingYaw)
+          , spawnTimer(other.spawnTimer)
+			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -118,6 +120,8 @@ export namespace Game {
 				isDead = other.isDead;
 				facingRight = other.facingRight;
               renderFacingYaw = other.renderFacingYaw;
+              spawnTimer = other.spawnTimer;
+				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -154,6 +158,8 @@ export namespace Game {
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
           , renderFacingYaw(other.renderFacingYaw)
+          , spawnTimer(other.spawnTimer)
+			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
@@ -189,6 +195,8 @@ export namespace Game {
 				isDead = other.isDead;
 				facingRight = other.facingRight;
               renderFacingYaw = other.renderFacingYaw;
+              spawnTimer = other.spawnTimer;
+				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
@@ -226,6 +234,8 @@ export namespace Game {
 		bool isDead = false;
 		bool facingRight = true;
        float renderFacingYaw = 0.0f;
+       float spawnTimer = 0.0f;
+		float spawnDuration = 0.0f;
 		int sizeTier = 1;
 		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;
@@ -273,6 +283,8 @@ export namespace Game {
 			stateTimer = 0.0f;
 			aiState = AIState::Idle;
 			currentAction = "Idle";
+            spawnTimer = 0.0f;
+			spawnDuration = 0.0f;
 			burstSpeedMultiplier = 1.0f;
 			runtimeBoolFlags.clear();
 			lastHitAttackId = 0;

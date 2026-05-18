@@ -85,6 +85,8 @@ void MotionController::Play(const std::string& motionName, const Vector3& startP
 	isPlaying_ = true;
 	actionStartPosition_ = startPosition;
 	lastLocalOffset_ = Vector3{};
+   playbackDirectionSign_ = 1.0f;
+    hasLockedPlaybackDirection_ = false;
 }
 
 Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
@@ -135,7 +137,11 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
     localOffset.Z -= startOffset.Z;
 
 	localOffset.Y *= -1.0f;
-	localOffset.X *= direction.X >= 0 ? 1.0f : -1.0f; // 方向に応じて左右反転
+ if (!hasLockedPlaybackDirection_) {
+        playbackDirectionSign_ = direction.X >= 0.0f ? 1.0f : -1.0f;
+        hasLockedPlaybackDirection_ = true;
+    }
+    localOffset.X *= playbackDirectionSign_; // 再生開始時の向きで固定して左右反転
 
 	lastLocalOffset_ = localOffset;
 
@@ -151,6 +157,8 @@ void MotionController::Stop() {
     motionTimer_ = 0.0f;
     prevActiveNodeIndex_ = -1;
     lastLocalOffset_ = Vector3{};
+    playbackDirectionSign_ = 1.0f;
+    hasLockedPlaybackDirection_ = false;
     currentMotionName_.clear();
 }
 

@@ -77,6 +77,31 @@ namespace Game::Scene::Impl {
 
              Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+               Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+             if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
+					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
+					if (spawnT < 0.0f) {
+						spawnT = 0.0f;
+					} else if (spawnT > 1.0f) {
+						spawnT = 1.0f;
+					}
+
+                   float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
+					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
+					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
+					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
+
+					renderPos.Y -= (1.0f - riseEase) * (2.8f * e.Scale);
+					renderPos.Y += overshoot * (0.95f * e.Scale);
+					renderPos.X += shake * (0.16f * e.Scale);
+
+					scale.X *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+					scale.Y *= 0.06f + 0.94f * riseEase + overshoot * 0.42f;
+					scale.Z *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+
+					rot.Z += twist * 0.28f;
+					rot.X += std::abs(twist) * 0.12f;
+				}
 				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
 					float hurtRatio = e.HurtTimer / 0.2f;
 					if (hurtRatio > 1.0f) {
@@ -95,7 +120,6 @@ namespace Game::Scene::Impl {
 					scale.Z *= stretch;
 				}
 
-				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
                rot.Y = e.RenderFacingYaw;
              auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				

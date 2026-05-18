@@ -418,14 +418,14 @@ namespace Game {
 		// --- Follow-above phase handling ---
 		switch (followPhase_) {
 		case FollowPhase::Rising:
-			// Update target every frame so it follows the moving player
+           // Update target every frame so it follows the moving player
 			riseTargetPos_.X = playerPosition.X;
 			riseTargetPos_.Y = playerPosition.Y + hoverHeight_;
 			// Linear interpolation from start to target position
 			riseTimer_ += deltaTime;
 			{
 				float t = (std::min)(riseTimer_ / riseDuration_, 1.0f);
-				enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
+                enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
 				enemy.position.Y = riseStartPos_.Y + (riseTargetPos_.Y - riseStartPos_.Y) * t;
 				enemy.position.Z = riseStartPos_.Z;
 				// Override velocity to prevent gravity interference
@@ -435,12 +435,12 @@ namespace Game {
 			if (riseTimer_ >= riseDuration_) {
 				followPhase_ = FollowPhase::Tracking;
 				followTimer_ = followDuration_;
-				lastTrackedX_ = playerPosition.X;
+                lastTrackedX_ = playerPosition.X;
 			}
 			break;
 
 		case FollowPhase::Tracking:
-			// Track player X while hovering at fixed height, invisible (off-screen)
+           // Track player X while hovering at fixed height, invisible (off-screen)
 			lastTrackedX_ = playerPosition.X;
 			enemy.position.X = playerPosition.X;
 			enemy.position.Y = playerPosition.Y + hoverHeight_;
@@ -625,7 +625,7 @@ namespace Game {
 	}
 
 	void EnemyInstance::UpdateCollider() {
-		Lumina::Math::F32x3 scale{ modelScale, modelScale, modelScale };
+        Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
 		Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
 		if (!facingRight) {
 			rot.Y = 3.14159265f; // rotate 180 degrees
@@ -834,7 +834,7 @@ namespace Game {
 
 	void EnemyManager::RegisterCollidersTo(CollisionManager& cm) {
 		for (auto& enemy : instances_) {
-			if (enemy.isDead) continue;
+            if (enemy.isDead || enemy.spawnTimer > 0.0f) continue;
 			for (auto& col : enemy.colliders) {
 				cm.SetColliders(col.get());
 			}
@@ -862,10 +862,18 @@ namespace Game {
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
 
+			if (enemy.spawnTimer > 0.0f) {
+				enemy.spawnTimer = (std::max)(0.0f, enemy.spawnTimer - deltaTime);
+				enemy.velocity = { 0.0f, 0.0f, 0.0f };
+				enemy.currentAction = "Idle";
+				enemy.UpdateCollider();
+				continue;
+			}
+
 			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
 
 			// --- 物理挙動（重力） ---
-			enemy.velocity.Y -= 9.8f * deltaTime;
+          enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;
@@ -1262,7 +1270,7 @@ namespace Game {
 					}
 				}
 
-				if (currentNodeInfo) {
+              if (currentNodeInfo) {
 					// プレイヤーのほうを向く
 					if (currentNodeInfo->facePlayer) {
 						enemy.facingRight = (dx > 0.0f);
@@ -1273,7 +1281,7 @@ namespace Game {
 					//   spawn a projectile immediately on entry. This enables node-driven
 					//   flows like: Charge -> Time>=X -> Shoot (where Shoot node triggers fire).
 					// - Also start spline motion on entry if specified.
-					if (enemy.stateTimer == 0.0f) {
+                   if (enemy.stateTimer == 0.0f) {
              const std::string& fb = currentNodeInfo->boundBool;
 				// If entering a Charge state for a ranged enemy, spawn a visual attached projectile
 				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
@@ -1327,7 +1335,7 @@ namespace Game {
 					}
 
 					// SplineMotion再生中なら物理演算をオーバーライド
-					if (enemy.motionController.IsPlaying()) {
+                    if (enemy.motionController.IsPlaying()) {
 						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
 						
 						Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
@@ -1352,7 +1360,7 @@ namespace Game {
 						enemy.position.X = posBeforePhysics.X + delta.X;
 						enemy.position.Y = posBeforePhysics.Y + delta.Y;
 						enemy.position.Z = posBeforePhysics.Z + delta.Z;
-                    } else {
+                  } else {
 						// `state: "Walk"` はそのまま移動ステートとして扱う。
 						// これまでは boundBool 側の walk 指定しか見ていなかったため、
 						// アニメーションだけ Walk になっても実際の移動速度が入らなかった。
@@ -1443,6 +1451,7 @@ namespace Game {
 	bool EnemyManager::DealDamage(uint32_t enemyId, int damage) {
 		EnemyInstance* enemy = GetInstance(enemyId);
 		if (!enemy || enemy->isDead) return false;
+        if (enemy->spawnTimer > 0.0f) return false;
 		if (enemy->currentHP < 0 || HasInvulnerableHpSetting(enemy->baseData)) return false;
 
 		enemy->currentHP -= damage;
@@ -1482,6 +1491,7 @@ namespace Game {
 
 		for (auto& enemy : instances_) {
 			if (enemy.isDead) continue;
+          if (enemy.spawnTimer > 0.0f) continue;
 			if (enemy.currentHP < 0 || HasInvulnerableHpSetting(enemy.baseData)) continue;
 
 			float dx = enemy.position.X - origin.X;

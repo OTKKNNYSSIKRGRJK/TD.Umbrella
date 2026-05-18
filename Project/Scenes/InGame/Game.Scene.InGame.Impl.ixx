@@ -167,6 +167,8 @@ namespace Game::Scene::Impl {
 			float HurtTimer = 0.0f;
 			bool FacingRight = true;
            float RenderFacingYaw = 0.0f;
+           float SpawnTimer = 0.0f;
+			float SpawnDuration = 0.0f;
 			int SizeTier = 1;
 			float Scale = 1.0f;
             // Visual-only transform applied during prep/windup (copied from runtime instance)
