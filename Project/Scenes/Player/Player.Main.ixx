@@ -97,15 +97,15 @@ export struct PlayerInputData {
 	// ---------------------------------
 	// デジタル入力（ボタン類）
 	// ---------------------------------
-	ButtonState attack = ButtonState::None;     // 攻撃ボタン (Pressed, Held, Releasedなど全てこれで判別)
-	ButtonState jump = ButtonState::None;       // ジャンプボタン
-	ButtonState evasion = ButtonState::None;    // 回避ボタン
-	ButtonState sheathe = ButtonState::None;    // 納刀ボタン
-	ButtonState guard = ButtonState::None;      // ガードボタン
-	ButtonState reverse = ButtonState::None;    // リバースボタン
-	ButtonState aim = ButtonState::None;        // 照準ボタン
-	ButtonState shoot = ButtonState::None;      // 射撃ボタン
-	ButtonState repair = ButtonState::None;     // 修理ボタン
+	ButtonState attack = ButtonState::None;     // 攻撃ボタン (Pressed, Held, Releasedなど全てこれで判別)(Yボタン)
+	ButtonState jump = ButtonState::None;       // ジャンプボタン(Aボタン)
+	ButtonState evasion = ButtonState::None;    // 回避ボタン(Bボタン)
+	ButtonState sheathe = ButtonState::None;    // 納刀ボタン(Xボタン)
+	ButtonState guard = ButtonState::None;      // ガードボタン(RTボタン)
+	ButtonState reverse = ButtonState::None;    // リバースボタン(Bボタン)
+	ButtonState aim = ButtonState::None;        // 照準ボタン(LTボタン)
+	ButtonState shoot = ButtonState::None;      // 射撃ボタン(RTボタン)
+	ButtonState repair = ButtonState::None;     // 修理ボタン(Xボタン)
 
 	// ---------------------------------
 	// 特殊なフラグ（トグルなど）

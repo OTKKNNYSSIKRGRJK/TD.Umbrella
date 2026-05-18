@@ -106,6 +106,7 @@ namespace PlayerStates {
 			float attackTimer_ = 0.0f;
 			std::string currentAttackID_;
 			std::string nextAttackID_;
+			float holdTimerX_ = 0.0f;
 			bool hasTransformed_ = false; // 変形イベントが発動したかどうかのフラグ
 			// 現在再生中の攻撃データ
 			AttackData::AttackData currentAttackData_;

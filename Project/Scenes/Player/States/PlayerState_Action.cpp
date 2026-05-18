@@ -55,10 +55,10 @@ namespace PlayerStates::Action {
 		const auto umbrellaForm = umbrella.top_->GetUmbrellaForm();
 
 		// 【 RightJointの位置決め 】
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
+		//Vector3 handPos = player_->GetPosition();
+		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		//handPos.Y += 1.0f; // 少し上へ
+		//player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (input.attack == ButtonState::Pressed) {
 			// 納刀状態なら攻撃をする前に抜刀するようにする
@@ -115,10 +115,10 @@ namespace PlayerStates::Action {
 		const auto umbrellaForm = umbrella.top_->GetUmbrellaForm();
 
 		// 【 RightJointの位置決め 】
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
+		//Vector3 handPos = player_->GetPosition();
+		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		//handPos.Y += 1.0f; // 少し上へ
+		//player_->GetRightHandJoint()->SetPos(handPos);
 
 		// 特になにもしていない時のState
 		if (input.attack == ButtonState::Pressed) {
@@ -138,7 +138,7 @@ namespace PlayerStates::Action {
 				}
 
 				//Game::Event::OnAttack();
-				player_->attackState_->SetAttackID("NormalCombo1");
+				player_->attackState_->SetAttackID("Close_Y1");
 				player_->ChangeActionState(player_->attackState_.get());
 				return;
 			}
@@ -146,6 +146,11 @@ namespace PlayerStates::Action {
 		else if (input.attack == ButtonState::Held) {
 			if (umbrellaForm == UmbrellaForm::Reverse) {
 				player_->ChangeActionState(player_->reverseChargeState_.get());
+				return;
+			}
+			else if (umbrellaForm == UmbrellaForm::Opened) {
+				player_->attackState_->SetAttackID("Open_Y1");
+				player_->ChangeActionState(player_->attackState_.get());
 				return;
 			}
 		}
@@ -247,11 +252,12 @@ namespace PlayerStates::Action {
 			player_->myVelocity_.Y = currentAttackData_.physics.velocityY;
 		}
 
-		// 4. JSONのデータ通りにモーションと威力をセット
-		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
-		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
-
 		player_->PlayAnimation(currentAttackData_.animationName);
+
+		// 4. JSONのデータ通りにモーションと威力をセット
+		//motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, currentAttackData_.duration);
+		motion_.Play(currentAttackData_.motion, { 0.0f,0.0f,0.0f }, player_->GetAnimationDuration());
+		player_->GetUmbrella().top_->GetStatusComponent().SetAttack(currentAttackData_.damage);
 
 		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
@@ -259,14 +265,24 @@ namespace PlayerStates::Action {
 
 	void Attack::Update(float deltaTime) {
 		attackTimer_ += deltaTime;
+		if (currentAttackData_.animationName == "AtkX1") {
+			attackTimer_ += deltaTime * 2.0f;
+		}
+		if (currentAttackData_.animationName == "AtkX2") {
+			attackTimer_ += deltaTime * 2.0f;
+		}
+		if (currentAttackData_.animationName == "AtkX3") {
+			attackTimer_ += deltaTime * 2.0f;
+		}
+
 		const auto& input = player_->GetInput();
 
 		// 【 手の位置の上下シフト 】
-		Vector3 handPos = player_->GetPosition();
+		/*Vector3 handPos = player_->GetPosition();
 		handPos.X += 1.0f * player_->eyesDirection_.X;
 		float shiftAmount = input.moveDirection.Y * 0.5f;
 		handPos.Y += 1.0f + shiftAmount;
-		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
+		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);*/
 
 		//   ==================
 		// 【 特定の攻撃の処理 】
@@ -286,15 +302,41 @@ namespace PlayerStates::Action {
 		// 【 派生チェック 】
 		// ===================
 		for (const auto& branch : currentAttackData_.branches) {
+			float currentAnimDuration = player_->GetAnimationDuration();
+			// 現在のアニメーションの進行度（0.0 ~ 1.0）を計算
+			float normalizedTime = attackTimer_ / currentAnimDuration;
+
 			// 現在の時間が、派生可能な時間（timeMin ~ timeMax）に入っているか？
-			if (attackTimer_ >= branch.timeMin && attackTimer_ <= branch.timeMax) {
+			if (normalizedTime >= branch.timeMin && normalizedTime <= branch.timeMax) {
 
 				bool canBranch = false;
 
 				// 1. 入力タイプが "Input" の場合（ボタンを押したか）
 				if (branch.type == "Input") {
-					if (branch.input == "Attack" && input.attack == ButtonState::Pressed) canBranch = true;
-					if (branch.input == "Evasion" && input.evasion == ButtonState::Pressed) canBranch = true;
+					if (branch.input == "AttackY" || branch.input == "Attack") { // "Attack"は旧データ対応用
+						if (input.attack == ButtonState::Pressed) {
+							canBranch = true;
+						}
+					}
+					// --- Xボタン（強攻撃） ---
+					else if (branch.input == "AttackX") {
+						if (input.sheathe == ButtonState::Pressed) canBranch = true;
+					}
+					// --- Xボタン 長押し（チャージ・特殊派生） ---
+					else if (branch.input == "AttackX_Hold") {
+						// 長押しの場合は Held 状態で判定する
+						if (input.sheathe == ButtonState::Held) {
+							holdTimerX_ += deltaTime;
+							// 0.2秒以上押しっぱなしなら派生成立！
+							if (holdTimerX_ > 0.2f) {
+								canBranch = true;
+							}
+						}
+					}
+					// --- 回避 ---
+					else if (branch.input == "Evasion") {
+						if (input.evasion == ButtonState::Pressed) canBranch = true;
+					}
 				}
 				// 2. 入力タイプが "Auto" の場合（時間が来たら自動で派生）
 				else if (branch.type == "Auto") {
@@ -337,7 +379,7 @@ namespace PlayerStates::Action {
 		// =================================
 		// 【 どの派生もせず、モーションの寿命（duration）が終わった時 】
 		// =================================
-		if (attackTimer_ >= currentAttackData_.duration) {
+		if (attackTimer_ >= player_->GetAnimationDuration()) {
 			player_->ChangeActionState(player_->normalDrawnState_.get());
 			player_->ChangeMovementState(player_->idleState_.get());
 			player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
@@ -363,10 +405,10 @@ namespace PlayerStates::Action {
 
 	void ThrowUmbrella::Update([[maybe_unused]] float deltaTime) {
 		// プレイヤーの手の位置に傘を追従させる
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
+		//Vector3 handPos = player_->GetPosition();
+		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		//handPos.Y += 1.0f; // 少し上へ
+		//player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (true/*再生が終わったら*/) {
 			Vector3 throwVelocity = player_->GetTargetPos() - player_->GetPosition();
@@ -396,10 +438,10 @@ namespace PlayerStates::Action {
 		// =================================
 		// 【 手のJoint位置の設定 】
 		// =================================
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
+		//Vector3 handPos = player_->GetPosition();
+		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		//handPos.Y += 1.0f; // 少し上へ
+		//player_->GetRightHandJoint()->SetPos(handPos);
 
 		// 1秒間に溜まるマナの量
 		float chargeSpeed = 10.0f * deltaTime;
@@ -461,11 +503,11 @@ namespace PlayerStates::Action {
 		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
 	}
 
-	void ReverseAttack::Update(float deltaTime) {
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
+	void ReverseAttack::Update([[maybe_unused]] float deltaTime) {
+		//Vector3 handPos = player_->GetPosition();
+		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
+		//handPos.Y += 1.0f; // 少し上へ
+		//player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
 		// 攻撃モーションが終わったら、通常の攻撃状態に戻す
 		if (motion_.IsPlaying() == false) {
@@ -501,17 +543,6 @@ namespace PlayerStates::Action {
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
-
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 0.0f; // 少し上へ
-
-		float rotAmount = 50.0f;
-		Vector3 handRot = {0.0f,0.0f, Lumina::Math::DegToRad(-(rotAmount * input.moveDirection.X))};
-
-		player_->GetRightHandJoint()->SetPos(handPos);
-		//player_->GetRightHandJoint()->SetRot(handRot);
-
 
 		if (input.guard == ButtonState::Released) {
 			// ガードボタンを離したら終わる
@@ -608,7 +639,7 @@ namespace PlayerStates::Action {
 					player_->attackState_->SetAttackID("DashThrust");
 				}
 				else {
-					player_->attackState_->SetAttackID("NormalCombo1");
+					player_->attackState_->SetAttackID("Close_Y1");
 				}
 
 				player_->ChangeActionState(nextAction);
@@ -650,10 +681,6 @@ namespace PlayerStates::Action {
 	void UmbrellaOpen::Update([[maybe_unused]] float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
 		const auto& input = player_->GetInput();
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (input.guard == ButtonState::Pressed) {
 			// 行動の予約を行う
@@ -697,11 +724,6 @@ namespace PlayerStates::Action {
 	void UmbrellaClose::Update([[maybe_unused]] float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
 		const auto& input = player_->GetInput();
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-
-		player_->GetRightHandJoint()->SetPos(handPos);
 
 		if (input.sheathe == ButtonState::Pressed) {
 
@@ -747,11 +769,6 @@ namespace PlayerStates::Action {
 	void UmbrellaReverse::Update([[maybe_unused]]float deltaTime) {
 		const auto& umbrella = player_->GetUmbrella();
 		//const auto& input = player_->GetInput();
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-
-		player_->GetRightHandJoint()->SetPos(handPos);
 
 		//if (input.isSheathe) {
 		//	// 行動の予約を行う
@@ -801,10 +818,6 @@ namespace PlayerStates::Action {
 		// ===================
 		// 【 手の位置の調整 】
 		// ===================
-		Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		handPos.Y += 1.0f; // 少し上へ
-		player_->GetRightHandJoint()->SetPos(handPos);
 
 		const auto& input = player_->GetInput();
 		auto& status = player_->GetUmbrella().top_->GetStatusComponent();

@@ -155,8 +155,26 @@ void Player::LoadAnimation() {
 	PlayerSkinnedInstance_->MeshRotate_ = { 0.0f, 0.0f, 0.0f };
 	PlayerSkinnedInstance_->MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
 
-	auto animations_Idle{ Lumina::CG3D::LoadAnimationFile("run.gltf", "Assets/Neki") };
-	animDatabase_["Idle"] = animations_Idle[0];
+	auto animation_idle{ Lumina::CG3D::LoadAnimationFile("Idle.gltf", "Assets/Neki") };
+	auto animation_idleHoldingUmbrella{ Lumina::CG3D::LoadAnimationFile("IdleHoldingUmbrella.gltf", "Assets/Neki") };
+
+	animDatabase_["Idle"] = animation_idle[0];
+	animDatabase_["IdleHoldingUmbrella"] = animation_idleHoldingUmbrella[0];
+
+	auto animation_run{ Lumina::CG3D::LoadAnimationFile("Run.gltf", "Assets/Neki") };
+
+	animDatabase_["Run"] = animation_run[0];
+
+	auto animation_atkX1{ Lumina::CG3D::LoadAnimationFile("ATKY1_H2.gltf", "Assets/Neki") };
+	auto animation_atkX2{ Lumina::CG3D::LoadAnimationFile("ATKY2_H2.gltf", "Assets/Neki") };
+	auto animation_atkX3{ Lumina::CG3D::LoadAnimationFile("ATKY3_H3.gltf", "Assets/Neki") };
+	auto animation_atkRot{ Lumina::CG3D::LoadAnimationFile("Rotate_H.gltf", "Assets/Neki") };
+	
+	animDatabase_["AtkX1"] = animation_atkX1[0];
+	animDatabase_["AtkX2"] = animation_atkX2[0];
+	animDatabase_["AtkX3"] = animation_atkX3[0];
+	animDatabase_["AtkRot"] = animation_atkRot[0];
+
 }
 
 void Player::Initialize() {
@@ -177,7 +195,7 @@ void Player::Initialize() {
 	backJoint_.SetType(AttachmentType::PlayerBack);
 	backJoint_.SetAcceptType(AttachmentType::UmbrellaHandle);
 	backJoint_.SetInfo({ 0.0f,-0.0f,0.0f }, { 0.0f,0.0f,0.0f });
-	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(0.0f)});
+	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(45.0f)});
 
 	umbrella_ = std::make_unique<Umbrella::Main>();
 	umbrella_->Initialize();
@@ -379,25 +397,32 @@ void Player::Update(float deltaTime) {
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
 	Position_ += moveAmount_;
-	EulerAngle_.Y = eyesDirection_.X > 0.0f ? 1.0f : -1.0f;
+	EulerAngle_.Y = eyesDirection_.X > 0.0f ? 0.7f : -0.5f;
+
+	collider_->SetWorldPosition(GetPosition());
+	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 
 	UpdateAnimation();
-
 	auto it = PlayerSkinnedInstance_->Skeleton_.IDX_Joint.find("Bone.024");
 
 	// 見つかったかどうかチェック
 	if (it != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
+		//auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
+		//Vector3 pos = { row3.Get(0),
+		//	row3.Get(1) + 0.4f,
+		//	row3.Get(2) };
+		//rightHandJoint_.SetPos(Vector3( pos.X/* * (eyesDirection_.X > 0.0f ? -1.0f : 1.0f)*/,pos.Y,0.0f) + Position_);
 
-		auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
-		Vector3 pos = { row3.Get(0),
-			row3.Get(1) + 0.4f,
-			row3.Get(2) };
-		rightHandJoint_.SetPos(Vector3( pos.X * (eyesDirection_.X > 0.0f ? 1.0f : -1.0f),pos.Y,pos .Z) + Position_);
-
+		//rightHandJoint_.SetPos(Position_);
+		rightHandJoint_.Update(); // 右手Joint自身の行列を計算
+		rightHandJoint_.MultiplyMatrixToMe(PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace);
+		rightHandJoint_.MultiplyMatrixToMe(*WorldMatrix_);
 	}
-
-	// rightHandJoint_.SetRot( 手の回転 );
-	rightHandJoint_.Update(); // 右手Joint自身の行列を計算
+	//Vector3 angle = EulerAngle_;
+	//angle.X = Lumina::Math::DegToRad(90.0f * (1.0f - 0.5f));
+	//angle.Y = Lumina::Math::DegToRad(eyesDirection_.X > 0.0f ? 0.0f : 0.0f);
+	//rightHandJoint_.SetRot(angle);
+	//rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 
 	Vector3 backPos = Position_;
 	backPos.Y += 1.0f;
@@ -409,8 +434,6 @@ void Player::Update(float deltaTime) {
 	umbrella_->Update(deltaTime);
 
 	// Colliderに設定
-	collider_->SetWorldPosition(GetPosition());
-	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
 
 	// 仮 SmashCollider
@@ -420,6 +443,27 @@ void Player::Update(float deltaTime) {
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
 	ImGui::DragFloat3("RHandJoint", &test.X);
+
+	// 右てのジョイントの行列を表示
+	for (int i = 0;i < 4; i++) {
+		ImGui::Text("RHandJoint Matrix %d: %f, %f, %f, %f", i,
+			rightHandJoint_.GetMatrix()[i].Get(0),
+			rightHandJoint_.GetMatrix()[i].Get(1),
+			rightHandJoint_.GetMatrix()[i].Get(2),
+			rightHandJoint_.GetMatrix()[i].Get(3)
+		);
+	}
+
+	// 右手ボーンのマトリックス
+	for (int i = 0; i < 4; i++) {
+		ImGui::Text("RightHandBone Matrix Row %d: %f, %f, %f, %f", i,
+			PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace[i].Get(0),
+			PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace[i].Get(1),
+			PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace[i].Get(2),
+			PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace[i].Get(3)
+		);
+	}
+
 	Vector3 test2 = backJoint_.GetPos();
 	ImGui::DragFloat3("BackJoint", &test2.X);
 	Vector3 backRot = backJoint_.GetRot();
@@ -605,6 +649,7 @@ void Player::ThrowUpdate([[maybe_unused]]float deltaTime) {
 void Player::WarpToUmbrella() {
 	// 1. 傘の現在のワールド座標を取得
 	Vector3 targetPos = umbrella_->top_->GetRootJoint()->GetWorldPos();
+	targetPos.Z = 0.0f;
 
 	// 2. プレイヤーの座標を傘の場所へ上書き
 	// （SetPosition 等、環境に合わせてください）
@@ -627,7 +672,7 @@ void Player::WarpToUmbrella() {
 void Player::UpdateAnimation() {
 	if (!currentAnim_) return;
 
-	animTimer_ += 1.0f / 60.0f;
+	animTimer_ += 1.0f / 60.0f * 3.0f;
 
 	if (isLoop_) {
 		// ループする場合は fmod で 0 ～ Duration に収める
