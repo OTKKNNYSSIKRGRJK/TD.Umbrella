@@ -305,6 +305,9 @@ export namespace Game {
 		// --- 当たり判定（凸包分割された複数のConvexCollider） ---
 		std::vector<std::unique_ptr<ConvexCollider>> colliders;
 
+		// --- ボス剣コライダー（攻撃ステート中のみ有効） ---
+		std::unique_ptr<ConvexCollider> weaponCollider;
+
 		/// <summary>
 		/// baseData の値で初期化する
 		/// </summary>

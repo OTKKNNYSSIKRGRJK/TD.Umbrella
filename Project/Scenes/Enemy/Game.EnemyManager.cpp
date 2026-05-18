@@ -913,9 +913,13 @@ namespace Game {
 
 	void EnemyManager::RegisterCollidersTo(CollisionManager& cm) {
 		for (auto& enemy : instances_) {
-            if (enemy.isDead || enemy.spawnTimer > 0.0f) continue;
+			if (enemy.isDead || enemy.spawnTimer > 0.0f) continue;
 			for (auto& col : enemy.colliders) {
 				cm.SetColliders(col.get());
+			}
+			// ボス剣コライダー（攻撃ステート中のみ有効）
+			if (enemy.weaponCollider) {
+				cm.SetColliders(enemy.weaponCollider.get());
 			}
 		}
 	}
@@ -1526,6 +1530,60 @@ namespace Game {
 				}
 			}
 			enemy.UpdateCollider();
+
+			// --- ボス剣コライダー更新 ---
+			if (enemy.baseData.name == "Boss") {
+				auto isAttackState = [](const std::string& action) {
+					return action.find("Slash")  != std::string::npos ||
+						   action.find("Strike") != std::string::npos ||
+						   action.find("Sweep")  != std::string::npos ||
+						   action.find("Thrust") != std::string::npos ||
+						   action.find("Dive")   != std::string::npos ||
+						   action.find("Step")   != std::string::npos;
+				};
+				if (isAttackState(enemy.currentAction)) {
+					// 剣コライダーがなければ生成
+					if (!enemy.weaponCollider) {
+						enemy.weaponCollider = std::make_unique<ConvexCollider>();
+						enemy.weaponCollider->SetMyType(COL_Enemy_Attack);
+						enemy.weaponCollider->SetYourType(COL_Player);
+						enemy.weaponCollider->SetUserData(&enemy);
+						enemy.weaponCollider->onCollisionCallback = [](Collider* other, const Lumina::Math::F32x3&) {
+							if (other->GetMyType() == COL_Player) {
+								auto* player = static_cast<Player*>(other->GetUserData());
+								if (player) {
+									player->GetStatusComponent().TakeDamage(1.0f);
+								}
+							}
+						};
+					}
+					// 剣の向きと位置を計算（単純な水平ビームとして扱う）
+					float facingSign = enemy.facingRight ? 1.0f : -1.0f;
+					float swordLength = 1.8f * enemy.modelScale;
+					float swordHalfW  = 0.18f * enemy.modelScale;
+					// 剣の中心位置（ボスの少し前・腰の高さ）
+					float cx = enemy.position.X + facingSign * (swordLength * 0.5f + 0.3f * enemy.modelScale);
+					float cy = enemy.position.Y + 0.6f * enemy.modelScale;
+					// 細長い矩形の4頂点を生成
+					float depth = 0.12f;
+					std::vector<Lumina::Math::F32x3> verts = {
+						{ cx - facingSign * swordLength * 0.5f - swordHalfW, cy - swordHalfW, -depth },
+						{ cx - facingSign * swordLength * 0.5f - swordHalfW, cy + swordHalfW, -depth },
+						{ cx + facingSign * swordLength * 0.5f + swordHalfW, cy + swordHalfW, -depth },
+						{ cx + facingSign * swordLength * 0.5f + swordHalfW, cy - swordHalfW, -depth },
+						{ cx - facingSign * swordLength * 0.5f - swordHalfW, cy - swordHalfW,  depth },
+						{ cx - facingSign * swordLength * 0.5f - swordHalfW, cy + swordHalfW,  depth },
+						{ cx + facingSign * swordLength * 0.5f + swordHalfW, cy + swordHalfW,  depth },
+						{ cx + facingSign * swordLength * 0.5f + swordHalfW, cy - swordHalfW,  depth },
+					};
+					enemy.weaponCollider->SetVertices(verts);
+					enemy.weaponCollider->SetWorldPosition(enemy.position);
+					enemy.weaponCollider->UpdateAABB();
+				} else {
+					// 攻撃ステート外はコライダーを無効化（破棄して次回再生成）
+					enemy.weaponCollider.reset();
+				}
+			}
 		}
 	}
 

@@ -478,6 +478,11 @@ namespace {
 		constexpr float WeaponScaleZ = 0.15f;
 		constexpr float BaseLocalOffsetX = 1.45f;
 		constexpr float BaseLocalOffsetY = 1.12f;
+		// 移動系ステートは剣を体に近い高さに下げる（浮き防止）
+		float baseOffsetY = BaseLocalOffsetY;
+		if (ActionHasTag(currentAction_, "Approach") || ActionHasTag(currentAction_, "Backstep") || ActionHasTag(currentAction_, "Recover")) {
+			baseOffsetY = 0.42f;
+		}
 		constexpr float MinAimFallbackDirection = 0.001f;
 
 		DetachedWeaponTarget result;
@@ -497,14 +502,15 @@ namespace {
 			BaseLocalOffsetX * scale_,
 			(std::abs(localDx) > MinAimFallbackDirection) ? localDx : (facingRight_ ? 1.0f : -1.0f)
 		);
-		Lumina::Math::F32x3 localOffset{ offsetX, BaseLocalOffsetY * scale_, 0.0f };
+		Lumina::Math::F32x3 localOffset{ offsetX, baseOffsetY * scale_, 0.0f };
 
 		float localVisualX = cy * visualOffset_.X + sy * visualOffset_.Y;
 		float localVisualY = -sy * visualOffset_.X + cy * visualOffset_.Y;
 		localOffset.X += localVisualX;
 		localOffset.Y += localVisualY;
 
-		float facingSign = (cy >= 0.0f) ? 1.0f : -1.0f;
+		// facingRight_ を正とし、renderFacingYaw_ の符号ではなくボスの向きで決める
+		float facingSign = facingRight_ ? 1.0f : -1.0f;
 		auto const actionPose = BuildBossWeaponActionPose(currentAction_, facingSign, scale_);
         float aimFollow = (0.35f + 0.5f * precision) * actionPose.AimFollowWeight;
 		float aimedLocalZ = actionPose.AimLocalZ + localAngle * aimFollow;
