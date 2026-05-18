@@ -213,20 +213,22 @@ namespace Umbrella {
 		if (form_ == UmbrellaForm::Closed) {
 			// 閉じた状態：細長い剣のような判定（ローカル座標で定義）
 			// 幅0.2m、長さ1.5m(Y方向) の直方体の8頂点などを設定
-			float scale = 1.5f;
+			float scale = 2.5f;
 			float w = 0.5f * scale;  // 半径1mくらいの広さ
 			float h = 1.5f * scale;  // 厚み
 			float y = -1.0f * scale;  // 持ち手から少し上の位置
 			vertices = {
-				{-w, y, 0.0f},{w, y, 0.0f},{w - 0.25f, y + h,0.0f},{-w + 0.25f, y + h, 0.0f}
+				{-w, y, -1.0f},{w, y, -1.0f},{w - 0.25f, y + h,-1.0f},{-w + 0.25f, y + h, -1.0f},
+				{-w, y, 1.0f},{w, y, 1.0f},{w - 0.25f, y + h,1.0f},{-w + 0.25f, y + h, 1.0f}
 			};
 		}
 		else if (form_ == UmbrellaForm::Opened || form_ == UmbrellaForm::Flying || form_ == UmbrellaForm::AirStop) {
 			float w = 1.0f;  // 半径1mくらいの広さ
-			float h = 0.3f;  // 厚み
+			float h = 0.9f;  // 厚み
 			float y = 0.0f;  // 持ち手から少し上の位置
 			vertices = {
-				{-w, y, 0.0f},{w, y, 0.0f},{-w, y + h, 0.0f},{w, y + h,0.0f}
+				{-w, y, -1.0f},{w, y, -1.0f},{-w, y + h, -1.0f},{w, y + h,-1.0f},
+				{-w, y, 1.0f},{w, y, 1.0f},{-w, y + h, 1.0f},{w, y + h,1.0f}
 			};
 		}
 		else if (form_ == UmbrellaForm::Reverse) {
