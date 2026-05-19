@@ -103,6 +103,12 @@
     <ClCompile Include="Utils\Utils.Color.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Watercolor.ixx">
+      <Filter>Watercolor</Filter>
+    </ClCompile>
+    <ClCompile Include="Watercolor.cpp">
+      <Filter>Watercolor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

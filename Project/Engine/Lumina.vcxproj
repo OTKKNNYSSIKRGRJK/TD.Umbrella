@@ -107,6 +107,8 @@
     <ClCompile Include="Utils\Utils.Data.Mesh.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />
     <ClCompile Include="Utils\Utils.Misc.ixx" />
+    <ClCompile Include="Watercolor.cpp" />
+    <ClCompile Include="Watercolor.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\ImGui\backends\imgui_impl_dx12.h">

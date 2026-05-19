@@ -136,9 +136,11 @@ Vector3 MotionController::Update(float deltaTime, const Vector3& direction) {
 }
 
 namespace {
+    #if defined(_DEBUG)
     constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
         return (static_cast<ImU32>(a) << 24) | (static_cast<ImU32>(b) << 16) | (static_cast<ImU32>(g) << 8) | static_cast<ImU32>(r);
     }
+    #endif
 }
 
 void MotionEditor::NodeImGui() {

@@ -47,6 +47,7 @@ namespace Lumina::D3D12 {
 
 namespace Lumina::D3D12 {
 	class ResourceManager final {
+		friend class GraphicsContext;
 		friend DescriptorManager;
 
 	private:
@@ -55,6 +56,23 @@ namespace Lumina::D3D12 {
 		}
 		static constexpr uint32_t GetResourceIndex(ResourceID resID_) noexcept {
 			return (resID_ & BitMask_ResourceIndex_);
+		}
+
+	public:
+		auto GetResource(std::string_view name_) const noexcept -> void const* {
+			auto it{ Dict_ImageTextures_.find(name_.data()) };
+			if (it != Dict_ImageTextures_.cend()) {
+				uint32_t idx_Res{};
+				for (uint32_t idx{ 0 }; idx < static_cast<uint32_t>(Arr_ImageTextures_.size()); ++idx) {
+					if (Arr_ImageTextures_[idx].get() == it->second) {
+						idx_Res = idx;
+						break;
+					}
+				}
+				return reinterpret_cast<void const*>(Arr_ImageTextures_.at(idx_Res).get());
+			}
+
+			return nullptr;
 		}
 
 		auto GetResource(ResourceID resID_) const noexcept -> void* {
@@ -110,10 +128,20 @@ namespace Lumina::D3D12 {
 		std::string_view name_,
 		std::string_view filePath_
 	) {
-		(Dict_ImageTextures_.find(name_.data()) == Dict_ImageTextures_.cend()) ||
-		Debug::ThrowIfFalse{
-			"<ResourceManager> Texture of the same name is extant!\n"
-		};
+		auto it{ Dict_ImageTextures_.find(name_.data()) };
+		if (it != Dict_ImageTextures_.cend()) {
+			uint32_t idx_Res{};
+			for (uint32_t idx{ 0 }; idx < static_cast<uint32_t>(Arr_ImageTextures_.size()); ++idx) {
+				if (Arr_ImageTextures_[idx].get() == it->second) {
+					idx_Res = idx;
+					break;
+				}
+			}
+			uint32_t const idx_ResType{ static_cast<uint32_t>(RESOURCE_TYPE::IMAGE_TEXTURE2D) };
+			ResourceID const texID{ idx_Res | (idx_ResType << BitOffset_Index_ResourceType_) };
+
+			return texID;
+		}
 
 		auto img{ ImageSet::Create(filePath_) };
 		auto mipChain{ MipChain::Create(*img) };

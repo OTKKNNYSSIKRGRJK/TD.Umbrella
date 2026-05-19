@@ -1,0 +1,142 @@
+{
+  "ComputeRS": {
+    "Parameters": [
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Constants"
+      },
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Wetness"
+      },
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Pigment"
+      },
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Input"
+      },
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Output"
+      },
+      {
+        "ShaderVisibility": "All",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Geometry"
+      }
+    ],
+    
+    "Constants" : [
+      {
+        "RangeType": "CBV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": 0
+      }
+    ],
+
+    "Wetness" : [
+      {
+        "Name": "Input",
+        "RangeType": "SRV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": 0
+      },
+      {
+        "Name": "Output",
+        "RangeType": "UAV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "Pigment" : [
+      {
+        "Name": "Input",
+        "RangeType": "SRV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 1,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": 0
+      },
+      {
+        "Name": "Output",
+        "RangeType": "UAV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 1,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "Input" : [
+      {
+        "Name": "Substrate",
+        "RangeType": "SRV",
+        "NumDescriptors": 3,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 2,
+        "OffsetInDescriptorsFromTableStart": 0
+      },
+      {
+        "Name": "",
+        "RangeType": "SRV",
+        "NumDescriptors": 5,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 3,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "Output" : [
+      {
+        "Name": "",
+        "RangeType": "UAV",
+        "NumDescriptors": 6,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 3,
+        "OffsetInDescriptorsFromTableStart": 0
+      }
+    ],
+
+    "Geometry" : [
+      {
+        "RangeType": "SRV",
+        "NumDescriptors": 4,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 1,
+        "OffsetInDescriptorsFromTableStart": 0
+      }
+    ],
+
+    "StaticSamplers": [
+      {
+        "Name" : "BilinearClamp",
+        "Filter": {
+          "ReductionType": "Standard",
+          "IsAnisotropic": 0,
+          "MinFilter": "Bilinear",
+          "MagFilter": "Bilinear",
+          "MipFilter": "Bilinear"
+        },
+        "TextureAddressU": "Clamp",
+        "TextureAddressV": "Clamp",
+        "TextureAddressW": "Clamp",
+        "ShaderRegister": 0,
+        "ShaderVisibility": "All"
+      }
+    ]
+  }
+}

@@ -3,6 +3,7 @@
 struct PSOutput {
 	float4 Diffuse : SV_TARGET0;
 	float4 Normal : SV_TARGET1;
+	float4 Factors0 : SV_TARGET2;
 	//float4 Specular : SV_TARGET3;
 };
 
@@ -24,6 +25,10 @@ PSOutput main(VSOutput input_) {
 	float4 diffuseColor = Textures[Materials[MeshIndex].ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
 	output.Diffuse = diffuseColor * Materials[MeshIndex].Color;
 	output.Normal = float4(normalize(input_.Normal.xyz) * 0.5f + 0.5f, 1.0f);
+	// * Bleeding
+	output.Factors0.r = abs(output.Normal.x);
+	// * Edge Density
+	output.Factors0.g = abs(output.Normal.y);
 	
 	return output;
 }

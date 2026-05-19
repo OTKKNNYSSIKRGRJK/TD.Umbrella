@@ -35,6 +35,8 @@ import Collider;
 
 import Lumina.CG3D.Struct;
 
+import Lumina.Watercolor;
+
 namespace Game::Scene::Impl {
 	export class InGame {
 	private:
@@ -120,7 +122,9 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
+		#if defined(_DEBUG)
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
+		#endif
 
 		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
@@ -218,5 +222,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::UploadBuffer UB_Transforms_;
 
 		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
+
+		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 	};
 }

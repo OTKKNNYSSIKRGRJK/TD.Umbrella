@@ -233,7 +233,7 @@ namespace Lumina {
 
 		//----	------	------	------	------	----//
 
-		auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
+		[[maybe_unused]] auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
 
 		#if defined(_DEBUG)
 		[[maybe_unused]] auto const& swapChain{ D3D12Context_.SwapChain() };

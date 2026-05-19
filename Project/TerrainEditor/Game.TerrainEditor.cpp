@@ -2,9 +2,12 @@ module Game.TerrainEditor;
 
 import <string>;
 
+#if defined(_DEBUG)
 import Lumina.Utils.ImGui;
+#endif
 
 namespace Game {
+	#if defined(_DEBUG)
 	namespace {
 		auto operator<<(Lumina::Math::F32x2& dst_, ImVec2 const& src_) -> void {
 			dst_.X = src_.x;
@@ -452,6 +455,7 @@ namespace Game {
 		
 		ImGui::End();
 	}
+	#endif
 
 	auto TerrainEditor::Reset() -> void {
 		for (auto& polygon : Polygons_) {
@@ -471,7 +475,9 @@ namespace Game {
 
 		IsEditingGround_ = 1;
 
+		#if defined(_DEBUG)
 		CurrentEditMethod_ = &TerrainEditor::AddGroundVertices;
+		#endif
 
 		CanvasSize_ = { 1.0f, 1.0f };
 

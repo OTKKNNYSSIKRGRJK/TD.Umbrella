@@ -446,9 +446,12 @@ namespace Lumina::D3D12 {
 	) {
 		ThrowIfInitialized(debugName_);
 
+		auto bufferPointer{ computeShader_->GetBufferPointer() };
+		auto bufferSize{ computeShader_->GetBufferSize() };
+
 		D3D12_COMPUTE_PIPELINE_STATE_DESC const psoDesc{
 			.pRootSignature{ rs_.Get() },
-			.CS{ computeShader_->GetBufferPointer(), computeShader_->GetBufferSize() },
+			.CS{ bufferPointer, bufferSize },
 		};
 		device_->CreateComputePipelineState(&psoDesc, IID_PPV_ARGS(&Wrapped_)) ||
 		Debug::ThrowIfFailed{

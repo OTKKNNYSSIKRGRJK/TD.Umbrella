@@ -988,8 +988,10 @@ namespace Game::Scene::Impl {
 	}
 
 	void InGame::Update() {
+		constexpr float deltaTime{ 1.0f / 60.0f };
+
 		Update_<"Player">();
-		Update_<"Enemies-1">(1.0f / 60.0f);
+		Update_<"Enemies-1">(float{ deltaTime });
 		Update_<"Collision">();
 		Update_<"Enemies-2">();
 		Update_<"[Debug] TerrainEditor">();
@@ -998,5 +1000,7 @@ namespace Game::Scene::Impl {
 		Update_<"Lighting">();
 		Update_<"[Debug] Editor">();
 		Update_<"[Debug] Manual">();
+
+		Watercolor_->Update(deltaTime);
 	}
 }

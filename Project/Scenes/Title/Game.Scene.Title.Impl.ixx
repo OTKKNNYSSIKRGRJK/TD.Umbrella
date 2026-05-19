@@ -14,6 +14,8 @@ import Lumina.Core.String;
 
 import Lumina.CG3D.Struct;
 
+import Lumina.Watercolor;
+
 namespace Game::Scene::Impl {
 	export class Title {
 	private:
@@ -23,6 +25,8 @@ namespace Game::Scene::Impl {
 	private:
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
 		auto Update_(_ARGs&&...args_) -> void;
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Render_(_ARGs&&...args_) -> void;
 
 	public:
 		void Update();
@@ -80,11 +84,15 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
 
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_GBufferForWaterColor_;
+
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 
 		Lumina::F32 AnimationTimer_;
+
+		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 	};
 }
