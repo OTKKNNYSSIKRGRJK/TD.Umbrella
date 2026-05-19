@@ -20,6 +20,25 @@ namespace Game::Scene::Impl {
 			{}, 0
 		);
 	}
+	template<>
+	void Title::Render_<"SceneParticles">() {
+		auto const& context{ Lumina::Context::Instance() };
+		auto const& cmdList{ context.MainCommandList() };
+
+		Raindrops_->Render(
+			cmdList,
+			// * ルートシグネチャ
+			RS_ParticleSystem_,
+			// * パイプラインステートオブジェクト
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_CBV_.CPUHandle(0U),
+			LocalHeap_CBV_.CPUHandle(0U),
+			// * パーティクル画像
+			GlobalTable_SRV_ImageTexture_,
+			// * オフスクリーンバッファ
+			GlobalTable_SRV_CanvasTexture_
+		);
+	}
 
 	template<>
 	void Title::Render_<"Geometry">() {
@@ -64,9 +83,9 @@ namespace Game::Scene::Impl {
 			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		/*auto rtv{ Canvas_GeometryPass_.RTV(0U) };
 		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);*/
 
 		GeometryPass_.Begin(cmdList);
 
@@ -90,6 +109,7 @@ namespace Game::Scene::Impl {
 		);
 
 		Render_<"Grassland">();
+		Render_<"SceneParticles">();
 
 		GeometryPass_.End();
 
@@ -116,16 +136,6 @@ namespace Game::Scene::Impl {
 			),
 		};
 		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
-
-		Raindrops_->Render(
-			cmdList,
-			RS_ParticleSystem_,
-			GraphicsPSO_BasicParticle_AdditiveMode_,
-			LocalHeap_CBV_.CPUHandle(0U),
-			LocalHeap_CBV_.CPUHandle(0U),
-			GlobalTable_SRV_ImageTexture_,
-			GlobalTable_SRV_CanvasTexture_
-		);
 	}
 
 	template<>

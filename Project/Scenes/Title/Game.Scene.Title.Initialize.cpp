@@ -102,13 +102,8 @@ namespace Game::Scene::Impl {
 		std::vector<uint32_t> texIDs{};
 		resMngr.Graphics().LoadImageTextures(
 			texIDs,
-			{
-				//{ 適当な名前（重複しちゃダメ）, ファイルパス },
-				
-				// uvCheckerは1番目に読み込まれるだからIDは0
-				{ "Title.uvChecker", "Assets/Img/uvChecker.png" },
-				// Diff2は2番目だからIDは1
-				{ "Title.Diff2", "Assets/Img/Diff2.png" },
+			{				
+				{ "Particles", "Assets/Img/Particles.png" },
 			}
 		);
 
@@ -466,7 +461,9 @@ namespace Game::Scene::Impl {
 				.CullMode{ D3D12_CULL_MODE_NONE },
 			},
 			Lumina::D3D12::DepthStencilState{
-				.DepthEnable{ false },
+				.DepthEnable{ true },
+				.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+				.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
 				.StencilEnable{ false },
 			},
 			inputLayout_Particle,
