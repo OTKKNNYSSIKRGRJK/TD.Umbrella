@@ -1303,7 +1303,7 @@ namespace Game::Editor {
 
 		for (auto& n : editingEnemy_.nodes) {
 			ImVec2 a = ImVec2(origin.x + n.x, origin.y + n.y);
-			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 140.0f);
+			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 160.0f);
 
 			ImU32 col = MakeCol32(60, 60, 70, 220);
 			if (currentStateId_ == n.id) {
@@ -1428,6 +1428,12 @@ namespace Game::Editor {
 			char dbg3[128]; snprintf(dbg3, sizeof(dbg3), "[EnemyEditor] Node %d RequireGrounded=%s", n.id, n.requireGrounded ? "ON" : "OFF"); AddLog(dbg3);
 		}
 		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: this state can only be entered\nwhen the enemy is on the ground");
+
+		ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 136.0f));
+		if (ImGui::Checkbox("Pitch by Y-Vel##pp", &n.proceduralPitch)) {
+			char dbg4[128]; snprintf(dbg4, sizeof(dbg4), "[EnemyEditor] Node %d ProceduralPitch=%s", n.id, n.proceduralPitch ? "ON" : "OFF"); AddLog(dbg4);
+		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: Leans the character forward/backward based on vertical velocity");
 			if (ImGui::BeginPopup("node_bool_popup")) {
 				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 					bool isSel = (bi == boolIdx);
@@ -1458,8 +1464,8 @@ namespace Game::Editor {
 				ImGui::OpenPopup("NodeContextMenu");
 			}
 
-			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 126.0f);
-			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 126.0f);
+			ImVec2 inputPortPos = ImVec2(a.x + 8.0f, a.y + 146.0f);
+			ImVec2 portPos = ImVec2(b.x - 8.0f, a.y + 146.0f);
 			drawList->AddCircleFilled(inputPortPos, 8.0f, MakeCol32(120, 220, 140, 220));
 			drawList->AddCircleFilled(portPos, 8.0f, MakeCol32(120, 160, 255, 220));
 			drawList->AddText(ImVec2(inputPortPos.x - 5.0f, inputPortPos.y - 22.0f), MakeCol32(180, 220, 180, 255), "In");
@@ -1486,8 +1492,8 @@ namespace Game::Editor {
 				if (n.id == l.to) to = &n;
 			}
 			if (from && to) {
-				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 126.0f);
-				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 126.0f);
+				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 146.0f);
+				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 146.0f);
 				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
 
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
@@ -1506,7 +1512,7 @@ namespace Game::Editor {
 				int targetId = -1;
 				for (const auto& n : editingEnemy_.nodes) {
 					ImVec2 na = ImVec2(origin.x + n.x, origin.y + n.y);
-					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 140.0f);
+					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 160.0f);
 					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) { targetId = n.id; break; }
 				}
 				if (targetId != -1 && targetId != nodeEditor_linkStartId_) {

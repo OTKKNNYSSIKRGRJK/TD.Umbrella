@@ -228,6 +228,7 @@ namespace {
 		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
 		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
 		if (j.contains("requireGrounded")) j.at("requireGrounded").get_to(n.requireGrounded);
+		if (j.contains("proceduralPitch")) j.at("proceduralPitch").get_to(n.proceduralPitch);
 
 		// Backwards-compat migration:
 		// Older editor versions stored a node-level boolean trigger in `animationName`
@@ -1547,6 +1548,14 @@ namespace Game {
 				// ステートマシンで駆動されているのでデフォルトAIを上書き
 				// (Chase等に入らないようにする)
 				enemy.aiState = EnemyInstance::AIState::Idle;
+			}
+
+			if (currentNodeInfo && currentNodeInfo->proceduralPitch && !enemy.isGrounded) {
+				enemy.renderPitch = -enemy.velocity.Y * 0.1f;
+				enemy.renderPitch += std::abs(enemy.velocity.X) * 0.05f * (enemy.facingRight ? 1.0f : -1.0f);
+				enemy.renderPitch = std::clamp(enemy.renderPitch, -1.0f, 1.0f);
+			} else {
+				enemy.renderPitch *= 0.8f;
 			}
 
             float targetFacingYaw = enemy.facingRight ? 0.0f : kTurnedFacingYaw;

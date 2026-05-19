@@ -149,6 +149,7 @@ namespace Game::Scene::Impl {
 				}
 
                rot.Y = e.RenderFacingYaw;
+			   rot.X += e.RenderPitch; // ピッチを適用
              auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
 				
 				// マルチメッシュ対応: 全サブメッシュを描画

@@ -64,6 +64,9 @@ export namespace Game::Editor {
 
 		// 物理要件: trueの場合、接地していないとこのステートに遷移できない
 		bool requireGrounded = false;
+
+		// 速度Yに応じた前傾・後傾（ピッチ回転）を有効にするか
+		bool proceduralPitch = false;
 	};
 
 	struct Link {

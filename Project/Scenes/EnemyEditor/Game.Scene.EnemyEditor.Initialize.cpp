@@ -38,8 +38,10 @@ namespace Game::Editor {
 			{"boundMotion", n.boundMotion},
 			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
 			{"boundBool", n.boundBool},
-            {"loop", n.loop}, {"loopCooldown", n.loopCooldown},
-			{"facePlayer", n.facePlayer},
+            {"loop", n.loop},
+			{"loopCooldown", n.loopCooldown},
+			{"requireGrounded", n.requireGrounded},
+			{"proceduralPitch", n.proceduralPitch},
 			{"velocityFrictionX", n.velocityFrictionX},
          {"jumpVelocityXMult", n.jumpVelocityXMult},
 			{"jumpVelocityY", n.jumpVelocityY},
@@ -50,8 +52,7 @@ namespace Game::Editor {
 		{"prepSound", n.prepSound},
 		{"prepParticle", n.prepParticle},
 			{"splineMotionName", n.splineMotionName},
-			{"splineDuration", n.splineDuration},
-			{"requireGrounded", n.requireGrounded}
+			{"splineDuration", n.splineDuration}
 		};
 	}
 	void from_json(const json& j, Node& n) {
@@ -65,10 +66,10 @@ namespace Game::Editor {
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
 
-        if (j.contains("loop")) j.at("loop").get_to(n.loop);
+        		if (j.contains("loop")) j.at("loop").get_to(n.loop);
 		if (j.contains("loopCooldown")) j.at("loopCooldown").get_to(n.loopCooldown);
-
-		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
+		if (j.contains("requireGrounded")) j.at("requireGrounded").get_to(n.requireGrounded);
+		if (j.contains("proceduralPitch")) j.at("proceduralPitch").get_to(n.proceduralPitch);
 		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
 		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
 		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
