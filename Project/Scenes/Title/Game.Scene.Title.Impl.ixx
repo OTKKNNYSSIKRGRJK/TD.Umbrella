@@ -15,6 +15,7 @@ import Lumina.Core.String;
 import Lumina.CG3D.Struct;
 
 import Lumina.Watercolor;
+import Lumina.Grassland;
 
 namespace Game::Scene::Impl {
 	export class Title {
@@ -94,5 +95,6 @@ namespace Game::Scene::Impl {
 		Lumina::F32 AnimationTimer_;
 
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
+		std::unique_ptr<Lumina::Grassland> Grassland_;
 	};
 }

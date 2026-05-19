@@ -98,6 +98,8 @@
     <ClCompile Include="Game\Scene.ixx" />
     <ClCompile Include="Game\Sprite.ixx" />
     <ClCompile Include="Game\Sprite.Renderer.cpp" />
+    <ClCompile Include="Grassland\Grassland.cpp" />
+    <ClCompile Include="Grassland\Grassland.ixx" />
     <ClCompile Include="Lumina.ixx" />
     <ClCompile Include="Lumina.Main.cpp" />
     <ClCompile Include="Lumina.Main.ixx" />
@@ -107,8 +109,8 @@
     <ClCompile Include="Utils\Utils.Data.Mesh.ixx" />
     <ClCompile Include="Utils\Utils.ImGui.ixx" />
     <ClCompile Include="Utils\Utils.Misc.ixx" />
-    <ClCompile Include="Watercolor.cpp" />
-    <ClCompile Include="Watercolor.ixx" />
+    <ClCompile Include="Watercolor\Watercolor.cpp" />
+    <ClCompile Include="Watercolor\Watercolor.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="External\ImGui\backends\imgui_impl_dx12.h">

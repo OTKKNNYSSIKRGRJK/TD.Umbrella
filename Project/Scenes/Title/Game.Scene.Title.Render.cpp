@@ -8,7 +8,21 @@ import Lumina.Main;
 import Game.MathUtils;
 
 namespace Game::Scene::Impl {
-	void Title::Render_Geometry() {
+	template<>
+	void Title::Render_<"Grassland">() {
+		auto const& context{ Lumina::Context::Instance() };
+		auto const& cmdList{ context.MainCommandList() };
+		Grassland_->Render(
+			context.D3D12Context(),
+			cmdList,
+			*WorldToHomogeneous_,
+			{}, 0,
+			{}, 0
+		);
+	}
+
+	template<>
+	void Title::Render_<"Geometry">() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		//auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
 
@@ -69,6 +83,8 @@ namespace Game::Scene::Impl {
 			static_cast<Lumina::U32>(Collection_.Meshes[0].Indices.size()),
 			1U, 0U, 0U, 0U
 		);
+
+		Render_<"Grassland">();
 
 		GeometryPass_.End();
 
@@ -175,7 +191,8 @@ namespace Game::Scene::Impl {
 		cmdList->ResourceBarrier(5U, barriers_PostWatercolor);
 	}
 
-	void Title::Render_Merge() {
+	template<>
+	void Title::Render_<"Merge">() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
 		cmdList->RSSetViewports(
@@ -218,10 +235,9 @@ namespace Game::Scene::Impl {
 		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
 		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
 
-
-		Render_Geometry();
+		Render_<"Geometry">();
 		Render_<"Watercolor">();
-		Render_Merge();
+		Render_<"Merge">();
 	}
 }
 

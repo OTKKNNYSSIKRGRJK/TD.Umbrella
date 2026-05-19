@@ -399,6 +399,16 @@ namespace Game::Scene::Impl {
 		Watercolor_->Initialize();
 	}
 
+	template<>
+	auto Title::Initialize_<"Grassland">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+
+		Grassland_ = std::make_unique<Lumina::Grassland>();
+		Grassland_->Initialize(d3d12Context, 640U, 320U);
+	}
+
+
 	void Title::Initialize() {
 		Initialize_<"Meshes">();
 		Initialize_<"Animation">();
@@ -408,6 +418,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Camera">();
 		Initialize_<"Resource, View">();
 		Initialize_<"Watercolor">();
+		Initialize_<"Grassland">();
 	}
 
 	Title::Title() = default;
