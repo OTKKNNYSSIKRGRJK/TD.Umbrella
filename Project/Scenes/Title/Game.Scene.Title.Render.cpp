@@ -26,6 +26,11 @@ namespace Game::Scene::Impl {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		//auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
 
+		Raindrops_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity
+		);
+
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
 			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_GeometryPass_.RenderTexture(0U),
@@ -111,6 +116,16 @@ namespace Game::Scene::Impl {
 			),
 		};
 		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
+
+		Raindrops_->Render(
+			cmdList,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_CBV_.CPUHandle(0U),
+			LocalHeap_CBV_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
 	}
 
 	template<>
@@ -234,6 +249,8 @@ namespace Game::Scene::Impl {
 		UB_Transforms_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
 		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
+
+		UB_WorldToProjective_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
 		Render_<"Geometry">();
 		Render_<"Watercolor">();

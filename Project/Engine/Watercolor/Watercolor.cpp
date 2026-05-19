@@ -351,7 +351,7 @@ namespace Lumina {
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
 			),
 			D3D12::Barrier::Transition(
-				CT_Pigment_[0],
+				CT_Pigment_[1],
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
 			),
@@ -430,7 +430,7 @@ namespace Lumina {
 			},
 			{
 				.Type{ D3D12_RESOURCE_BARRIER_TYPE_UAV },
-				.UAV{.pResource{ CT_Pigment_[0].Get() }, },
+				.UAV{.pResource{ CT_Pigment_[1].Get() }, },
 			},
 		};
 
@@ -461,7 +461,7 @@ namespace Lumina {
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
 			),
 			D3D12::Barrier::Transition(
-				CT_Pigment_[0],
+				CT_Pigment_[1],
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
 			),
@@ -499,7 +499,7 @@ namespace Lumina {
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS
 			),
 			D3D12::Barrier::Transition(
-				CT_Pigment_[0],
+				CT_Pigment_[1],
 				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
 				D3D12_RESOURCE_STATE_UNORDERED_ACCESS
 			),

@@ -16,6 +16,7 @@ import Lumina.CG3D.Struct;
 
 import Lumina.Watercolor;
 import Lumina.Grassland;
+import ParticleSystem;
 
 namespace Game::Scene::Impl {
 	export class Title {
@@ -96,5 +97,14 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 		std::unique_ptr<Lumina::Grassland> Grassland_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> Raindrops_;
+
+		Lumina::D3D12::RootSignature RS_ParticleSystem_;
+		Lumina::D3D12::Shader VS_Particle_;
+		Lumina::D3D12::Shader PS_Particle_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_BasicParticle_AdditiveMode_;
+
+		Lumina::D3D12::DescriptorHeap LocalHeap_CBV_;
+		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
 	};
 }

@@ -36,6 +36,8 @@ PSOutput main(VSOutput input_) {
 	output.Factors0.r = abs(normal.z);
 	// * Edge Density
 	output.Factors0.g = abs(cos(input_.Pos * 0.01f));
+	// * Depth
+	//output.Factors0.b = input_.Pos.z / input_.Pos.w;
 	
 	return output;
 }

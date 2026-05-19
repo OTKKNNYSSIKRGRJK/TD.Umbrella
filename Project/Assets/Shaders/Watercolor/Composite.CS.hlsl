@@ -9,7 +9,7 @@
 void AdjustColorByPigmentDensity(in uint2 coord_, in float2 uv_) {
 	const float4 color = Watercolor::Output::Composite[coord_];
 	const float pigmentDensity = Watercolor::Input::Simulation::Pigment.SampleLevel(BilinearClamp, uv_, 0.0f);
-	Watercolor::Output::Composite[coord_].a = lerp(0.75f, 1.0f, pigmentDensity);
+	Watercolor::Output::Composite[coord_].a = lerp(0.85f, 1.0f, pigmentDensity);
 }
 
 void CalculateColorBleeding(in uint2 coord_, in float2 uv_) {
@@ -25,8 +25,8 @@ void CalculateColorBleeding(in uint2 coord_, in float2 uv_) {
 void CalculateEdgeDarkening(in uint2 coord_, in float2 uv_, in float4 color_) {
 	const float edgeDensity = Watercolor::Input::EdgeDensity.SampleLevel(BilinearClamp, uv_, 0.0f);
 	float3 color = Watercolor::Output::Composite[coord_].rgb * 0.9f + color_.rgb * 0.1f;
-	color = saturate(color * (1.0f - edgeDensity));
-	color = pow(color.rgb, 1.0f + edgeDensity);
+	color = saturate(color * (1.0f - edgeDensity * 0.5f));
+	color = pow(color, 1.0f + edgeDensity);
 	Watercolor::Output::Composite[coord_].rgb = lerp(
 		color,
 		Watercolor::Output::Composite[coord_].rgb,
@@ -38,7 +38,8 @@ void CalculateEdgeDarkening(in uint2 coord_, in float2 uv_, in float4 color_) {
 void ApplySubstrateColor(in uint2 coord_, in float2 uv_) {
 	const float4 color = Watercolor::Output::Composite[coord_];
 	const float4 substrateColor = Watercolor::Input::Substrate::Albedo.SampleLevel(BilinearClamp, uv_, 0.0f);
-	Watercolor::Output::Composite[coord_].rgb = color.rgb * color.a + substrateColor.rgb * (1.0f - color.a);
+	const float alpha = saturate(color.a * 1.25f);
+	Watercolor::Output::Composite[coord_].rgb = color.rgb * alpha + substrateColor.rgb * (1.0f - alpha);
 	Watercolor::Output::Composite[coord_].a = 1.0f;
 	Watercolor::Output::Composite[coord_].rgb *= substrateColor.rgb;
 }
@@ -55,4 +56,6 @@ void main(uint3 tid_ : SV_DispatchThreadID) {
 	CalculateColorBleeding(coord, uv);
 	CalculateEdgeDarkening(coord, uv, color);
 	ApplySubstrateColor(coord, uv);
+	
+	//Watercolor::Output::Composite[coord].rgb *= float3(0.7f, 0.8f, 0.9f);
 }

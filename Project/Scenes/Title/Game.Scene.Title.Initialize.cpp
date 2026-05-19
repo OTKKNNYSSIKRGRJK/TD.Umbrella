@@ -408,6 +408,84 @@ namespace Game::Scene::Impl {
 		Grassland_->Initialize(d3d12Context, 640U, 320U);
 	}
 
+	template<>
+	auto Title::Initialize_<"Particles">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+		auto config_ParticleSystem{
+				Lumina::Utils::LoadFromFile<nlohmann::json>(
+					"Assets/Configs/ParticleSystem.json"
+				)
+		};
+		RS_ParticleSystem_.Initialize(
+			d3d12Device,
+			Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(
+				config_ParticleSystem.at("Common RS")
+			)
+		);
+
+		d3d12Context.Compile(
+			VS_Particle_,
+			L"Assets/Shaders/Particle2.VS.hlsl",
+			L"vs_6_6",
+			L"main",
+			"Particle2.VS"
+		);
+		d3d12Context.Compile(
+			PS_Particle_,
+			L"Assets/Shaders/Particle2.PS.hlsl",
+			L"ps_6_6",
+			L"main",
+			"Particle2.PS"
+		);
+
+		Lumina::D3D12::BlendState blendState_AdditiveMode{};
+		blendState_AdditiveMode.RenderTarget[0] = {
+			.BlendEnable{ true },
+			.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlend{ D3D12_BLEND_ONE },
+			.BlendOp{ D3D12_BLEND_OP_ADD },
+			.SrcBlendAlpha{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlendAlpha{ D3D12_BLEND_ONE },
+			.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
+			.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
+		};
+
+		Lumina::D3D12::GraphicsPSO::InputLayout inputLayout_Particle{};
+		inputLayout_Particle.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		inputLayout_Particle.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
+		GraphicsPSO_BasicParticle_AdditiveMode_.Initialize(
+			d3d12Device,
+			RS_ParticleSystem_,
+			VS_Particle_,
+			PS_Particle_,
+			blendState_AdditiveMode,
+			Lumina::D3D12::RasterizerState{
+				.FillMode{ D3D12_FILL_MODE_SOLID },
+				.CullMode{ D3D12_CULL_MODE_NONE },
+			},
+			Lumina::D3D12::DepthStencilState{
+				.DepthEnable{ false },
+				.StencilEnable{ false },
+			},
+			inputLayout_Particle,
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+			{
+				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+			},
+			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
+		);
+
+		UB_WorldToProjective_.Initialize(d3d12Device, 256LLU);
+		LocalHeap_CBV_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_CBV_.CPUHandle(0U), UB_WorldToProjective_);
+
+		Raindrops_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		Raindrops_->Initialize(d3d12Context, 2048U);
+	}
 
 	void Title::Initialize() {
 		Initialize_<"Meshes">();
@@ -419,6 +497,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Resource, View">();
 		Initialize_<"Watercolor">();
 		Initialize_<"Grassland">();
+		Initialize_<"Particles">();
 	}
 
 	Title::Title() = default;

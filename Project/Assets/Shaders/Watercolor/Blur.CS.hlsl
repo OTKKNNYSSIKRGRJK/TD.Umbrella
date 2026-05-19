@@ -34,7 +34,7 @@ void Convolve_Horizontal(uint3 tid_ : SV_DispatchThreadID) {
 	const float2 norm = Watercolor::Input::Substrate::Normal.SampleLevel(BilinearClamp, uv_Center + noise * 0.01f, 0.0f).xy;
 	for (int i = -3; i <= 3; ++i) {
 		const float2 uv = uv_Center + float2(i, 0) * Watercolor::UVStep.x * 2.0f;
-		const float2 uv_Prime = uv + (norm - float2(0.5f, 0.5f)) * 0.01f;
+		const float2 uv_Prime = uv + (norm - float2(0.5f, 0.5f)) * 0.005f;
 		ret +=
 			Watercolor::Input::Geometry::Albedo.SampleLevel(BilinearClamp, uv_Prime, 0.0f) *
 			Kernel::Gaussian::Separable[i + 3];
@@ -55,7 +55,7 @@ void Convolve_Vertical(uint3 tid_ : SV_DispatchThreadID) {
 	const float2 norm = Watercolor::Input::Substrate::Normal.SampleLevel(BilinearClamp, uv_Center + noise * 0.01f, 0.0f).xy;
 	for (int i = -3; i <= 3; ++i) {
 		const float2 uv = uv_Center + float2(0, i) * Watercolor::UVStep.y * 2.0f;
-		const float2 uv_Prime = uv + (norm - float2(0.5f, 0.5f)) * 0.01f;
+		const float2 uv_Prime = uv + (norm - float2(0.5f, 0.5f)) * 0.005f;
 		ret +=
 			Watercolor::Input::BlurH.SampleLevel(BilinearClamp, uv_Prime, 0.0f) *
 			Kernel::Gaussian::Separable[i + 3];
