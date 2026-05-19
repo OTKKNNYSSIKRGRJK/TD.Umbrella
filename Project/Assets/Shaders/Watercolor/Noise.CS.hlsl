@@ -19,6 +19,8 @@ static const PerlinNoise::Args NoiseArgs = {
 [numthreads(1U, 1U, 1U)]
 void main(uint3 dtid_ : SV_DispatchThreadID) {
 	PerlinNoise::Args noiseArgs = NoiseArgs;
-	noiseArgs.Offset.z += Watercolor::Time;
+	noiseArgs.Offset.x += Watercolor::Time * 0.2f;
+	noiseArgs.Offset.y += Watercolor::Time * (-0.15f);
+	noiseArgs.Offset.z += Watercolor::Time * 0.5f;
 	Watercolor::Output::Noise[dtid_.xy] = PerlinNoise::Generate(dtid_.xyz * 1.0f, noiseArgs);
 }

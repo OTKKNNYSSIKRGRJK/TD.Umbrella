@@ -30,11 +30,12 @@ PSOutput main(VSOutput input_) {
 	//float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
 	//output.Diffuse = diffuseColor * Material.Color;
 	output.Diffuse = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	output.Normal = float4(normalize(input_.Normal.xyz) * 0.5f + 0.5f, 1.0f);
+	const float3 normal = normalize(input_.Normal.xyz);
+	output.Normal = float4(normal * 0.5f + 0.5f, 1.0f);
 	// * Bleeding
-	output.Factors0.r = abs(output.Normal.x);
+	output.Factors0.r = abs(normal.z);
 	// * Edge Density
-	output.Factors0.g = abs(output.Normal.y);
+	output.Factors0.g = abs(cos(input_.Pos * 0.01f));
 	
 	return output;
 }
