@@ -60,7 +60,10 @@ export namespace Game::Editor {
 		// when no outgoing transition is currently satisfied, effectively
 		// looping the node until an external condition becomes true.
 		bool loop = false;
-      float loopCooldown = 0.0f; // seconds to wait after motion before next loop
+		float loopCooldown = 0.0f; // seconds to wait after motion before next loop
+
+		// 物理要件: trueの場合、接地していないとこのステートに遷移できない
+		bool requireGrounded = false;
 	};
 
 	struct Link {

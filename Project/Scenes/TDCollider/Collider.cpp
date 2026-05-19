@@ -11,33 +11,31 @@ namespace {
 ///
 ///////////////////////
 void ConvexCollider::UpdateAABB() {
-    // 頂点が1つもセットされていない場合は計算しない
-    if (vertices_.empty()) {
+    if (vertices_.empty() || !worldMatrix_) {
         return;
     }
 
-    // 最初は、0番目の頂点を最小値・最大値の基準にする
-    Vector3 minLocal = vertices_[0];
-    Vector3 maxLocal = vertices_[0];
+    auto transformVertex = [&](const Vector3& v) -> Vector3 {
+        Lumina::Math::F32x4 v4 = { v.X, v.Y, v.Z, 1.0f };
+        v4 = v4 * (*worldMatrix_);
+        return { v4.X(), v4.Y(), v4.Z() };
+    };
 
-    // 1番目以降の頂点と比較して、最小・最大を更新していく
+    Vector3 minWorld = transformVertex(vertices_[0]);
+    Vector3 maxWorld = minWorld;
+
     for (size_t i = 1; i < vertices_.size(); ++i) {
-        minLocal.X = std::min(minLocal.X, vertices_[i].X);
-        minLocal.Y = std::min(minLocal.Y, vertices_[i].Y);
-        minLocal.Z = std::min(minLocal.Z, vertices_[i].Z);
+        Vector3 wv = transformVertex(vertices_[i]);
+        
+        minWorld.X = std::min(minWorld.X, wv.X);
+        minWorld.Y = std::min(minWorld.Y, wv.Y);
+        minWorld.Z = std::min(minWorld.Z, wv.Z);
 
-        maxLocal.X = std::max(maxLocal.X, vertices_[i].X);
-        maxLocal.Y = std::max(maxLocal.Y, vertices_[i].Y);
-        maxLocal.Z = std::max(maxLocal.Z, vertices_[i].Z);
+        maxWorld.X = std::max(maxWorld.X, wv.X);
+        maxWorld.Y = std::max(maxWorld.Y, wv.Y);
+        maxWorld.Z = std::max(maxWorld.Z, wv.Z);
     }
 
-    // 計算したローカルの最小値・最大値に、ワールド座標を足して aabb_ にセットする
-    // ※ AABB構造体が min, max というメンバを持っている想定です
-    aabb_.Min.X = minLocal.X + worldPosition_.X;
-    aabb_.Min.Y = minLocal.Y + worldPosition_.Y;
-    aabb_.Min.Z = minLocal.Z + worldPosition_.Z;
-
-    aabb_.Max.X = maxLocal.X + worldPosition_.X;
-    aabb_.Max.Y = maxLocal.Y + worldPosition_.Y;
-    aabb_.Max.Z = maxLocal.Z + worldPosition_.Z;
+    aabb_.Min = minWorld;
+    aabb_.Max = maxWorld;
 }

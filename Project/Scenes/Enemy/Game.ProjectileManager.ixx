@@ -57,6 +57,9 @@ export namespace Game {
 		// If true, this projectile is visually attached to its owner and
 		// will follow the owner's position until activated (shot).
 		bool isAttached = false;
+		
+		// If true, this projectile is considered persistent equipment
+		bool isEquipment = false;
 
 		// Visual scaling state used during charge/attach
 		float visualScale = 1.0f;
@@ -158,6 +161,11 @@ export namespace Game {
 		/// 全プロジェクタイルをクリア
 		/// </summary>
 		void ClearAll();
+
+		/// <summary>
+		/// Remove any projectile marked as equipment for the specified owner.
+		/// </summary>
+		void RemoveEquipment(uint32_t ownerEnemyId);
 
 	public:
 		~ProjectileManager() = default;

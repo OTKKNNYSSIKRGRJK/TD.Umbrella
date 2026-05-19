@@ -227,6 +227,7 @@ namespace {
 		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
 		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
 		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
+		if (j.contains("requireGrounded")) j.at("requireGrounded").get_to(n.requireGrounded);
 
 		// Backwards-compat migration:
 		// Older editor versions stored a node-level boolean trigger in `animationName`
@@ -789,6 +790,26 @@ namespace Game {
 		if (inst.behavior) {
 			inst.behavior->OnSpawn(inst);
 		}
+
+		// Equip initial weapon if the first node defines it
+		if (!inst.baseData.nodes.empty()) {
+			std::string fb = inst.baseData.nodes[0].boundBool;
+			if (fb.rfind("EquipActor:", 0) == 0) {
+				std::string actorName = fb.substr(11);
+				ProjectileManager::GetInstance()->RemoveEquipment(inst.id);
+				Game::ProjectileData pd;
+				pd.actorName = actorName;
+				pd.spawnAttached = true;
+				pd.scaleOnCharge = false;
+				pd.lifetime = 99999.0f; // Infinite
+				ProjectileManager::GetInstance()->Fire(inst.position, inst.position, pd, inst.id);
+				for (auto& p : const_cast<std::vector<Projectile>&>(ProjectileManager::GetInstance()->GetAll())) {
+					if (!p.isDead && p.ownerEnemyId == inst.id && p.data.actorName == actorName && p.data.lifetime > 90000.0f) {
+						p.isEquipment = true;
+					}
+				}
+			}
+		}
 		inst.InitCollider();
 
 		instances_.push_back(std::move(inst));
@@ -877,6 +898,15 @@ namespace Game {
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;
+
+			// --- 接地判定 ---
+			// 重力適用後の速度が重力1フレーム分とほぼ等しい場合、
+			// 地面のコリジョン押し出しで止まっている＝接地状態と判定する
+			{
+				float expectedGroundedVelY = -9.8f * deltaTime;
+				enemy.isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.5f
+					|| enemy.velocity.Y >= 0.0f && enemy.position.Y <= 0.05f;
+			}
 
 			// --- ハートタイマー更新 ---
 			if (enemy.hurtTimer > 0.0f) {
@@ -1207,6 +1237,54 @@ namespace Game {
 							break;
 						}
 					}
+					// Grounded condition - only transition when on ground
+					else if (c == "Grounded") {
+						if (enemy.isGrounded) {
+							for (const auto& n : enemy.baseData.nodes) {
+								if (n.id == link.to) {
+									enemy.currentAction = n.state;
+									enemy.stateTimer = 0.0f;
+									transitioned = true;
+									break;
+								}
+							}
+							break;
+						}
+					}
+					// !Grounded condition - only transition when airborne
+					else if (c == "!Grounded") {
+						if (!enemy.isGrounded) {
+							for (const auto& n : enemy.baseData.nodes) {
+								if (n.id == link.to) {
+									enemy.currentAction = n.state;
+									enemy.stateTimer = 0.0f;
+									transitioned = true;
+									break;
+								}
+							}
+							break;
+						}
+					}
+				}
+
+				// requireGrounded チェック: 遷移先ノードが接地を要求しているが
+				// 敵が空中にいる場合、遷移をキャンセルして元のステートに戻す
+				if (transitioned && !enemy.isGrounded) {
+					const Game::Editor::Node* targetNode = nullptr;
+					for (const auto& n : enemy.baseData.nodes) {
+						if (n.state == enemy.currentAction) { targetNode = &n; break; }
+					}
+					if (targetNode && targetNode->requireGrounded) {
+						// 遷移をキャンセル: 元のアクションに戻す
+						for (const auto& n : enemy.baseData.nodes) {
+							if (n.id == currentNodeId) {
+								enemy.currentAction = n.state;
+								break;
+							}
+						}
+						transitioned = false;
+						// stateTimer は加算し続ける（リセットしない）
+					}
 				}
 
                 // ステート遷移が発生した場合はその場で currentNodeId を更新する
@@ -1312,19 +1390,71 @@ namespace Game {
 						);
 					}
 				}
+				else if (fb.rfind("SpawnActor:", 0) == 0) {
+					std::string actorName = fb.substr(11); // length of "SpawnActor:"
+					Game::ProjectileData pd;
+					pd.actorName = actorName;
+					pd.spawnAttached = true;
+					pd.scaleOnCharge = false;
+					ProjectileManager::GetInstance()->Fire(
+						enemy.position,
+						playerPosition,
+						pd,
+						enemy.id
+					);
+				}
+				else if (fb.rfind("ShootActor:", 0) == 0) {
+					std::string actorName = fb.substr(11); // length of "ShootActor:"
+					Game::ProjectileData pd;
+					pd.actorName = actorName;
+					pd.spawnAttached = false;
+					pd.scaleOnCharge = false;
+					ProjectileManager::GetInstance()->Fire(
+						enemy.position,
+						playerPosition,
+						pd,
+						enemy.id
+					);
+				}
+				else if (fb.rfind("EquipActor:", 0) == 0) {
+					std::string actorName = fb.substr(11); // length of "EquipActor:"
+					ProjectileManager::GetInstance()->RemoveEquipment(enemy.id);
+					Game::ProjectileData pd;
+					pd.actorName = actorName;
+					pd.spawnAttached = true;
+					pd.scaleOnCharge = false;
+					pd.lifetime = 99999.0f; // Infinite
+					ProjectileManager::GetInstance()->Fire(
+						enemy.position,
+						playerPosition,
+						pd,
+						enemy.id
+					);
+					// Mark the newly spawned projectile as equipment
+					for (auto& p : const_cast<std::vector<Projectile>&>(ProjectileManager::GetInstance()->GetAll())) {
+						if (!p.isDead && p.ownerEnemyId == enemy.id && p.data.actorName == actorName && p.data.lifetime > 90000.0f) {
+							p.isEquipment = true;
+						}
+					}
+				}
 
                         // Start spline motion on node entry if specified. Prefer explicit per-node
 						// `splineMotionName`, then `boundMotion`, then the file-level `motionMap`
 						// mapping keyed by the node `state`.
+						// ただし、物理インパルス（jumpVelocityY/jumpVelocityXMult）が設定されている
+						// ノードではスプラインを起動しない。物理ベースの移動を優先する。
+						bool hasPhysicsImpulse = (currentNodeInfo->jumpVelocityY != 0.0f || currentNodeInfo->jumpVelocityXMult != 0.0f);
                         std::string motionToPlay;
-						if (!currentNodeInfo->splineMotionName.empty()) {
-							motionToPlay = currentNodeInfo->splineMotionName;
-						} else if (!currentNodeInfo->boundMotion.empty()) {
-							motionToPlay = currentNodeInfo->boundMotion;
-						} else {
-							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
-							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
-								motionToPlay = mit->second;
+						if (!hasPhysicsImpulse) {
+							if (!currentNodeInfo->splineMotionName.empty()) {
+								motionToPlay = currentNodeInfo->splineMotionName;
+							} else if (!currentNodeInfo->boundMotion.empty()) {
+								motionToPlay = currentNodeInfo->boundMotion;
+							} else {
+								auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
+								if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
+									motionToPlay = mit->second;
+								}
 							}
 						}
 						// Face the player when starting a motion so the spline is applied toward player

@@ -170,7 +170,17 @@ namespace Game {
 		collider->SetVertices(verts);
 		collider->SetWorldPosition(position);
 
-		auto worldMat = Game::MathUtils::Translate(position);
+		float rx = actorData.transform.rotX * 3.14159265f / 180.0f;
+		float ry = actorData.transform.rotY * 3.14159265f / 180.0f;
+		float rz = actorData.transform.rotZ * 3.14159265f / 180.0f;
+		float ox = actorData.transform.posX;
+		float oy = actorData.transform.posY;
+		float oz = actorData.transform.posZ;
+
+		auto localMat = Game::MathUtils::SRT({ 1.0f, 1.0f, 1.0f }, { rx, ry, rz }, { ox, oy, oz });
+		auto worldPosMat = Game::MathUtils::Translate(position);
+		auto worldMat = localMat * worldPosMat;
+
 		collider->SetWorldMatrix(worldMat);
 		collider->UpdateAABB();
 	}
@@ -178,7 +188,18 @@ namespace Game {
 	void Projectile::UpdateCollider() {
 		if (!collider) return;
 		collider->SetWorldPosition(position);
-		auto worldMat = Game::MathUtils::Translate(position);
+
+		float rx = actorData.transform.rotX * 3.14159265f / 180.0f;
+		float ry = actorData.transform.rotY * 3.14159265f / 180.0f;
+		float rz = actorData.transform.rotZ * 3.14159265f / 180.0f;
+		float ox = actorData.transform.posX;
+		float oy = actorData.transform.posY;
+		float oz = actorData.transform.posZ;
+
+		auto localMat = Game::MathUtils::SRT({ 1.0f, 1.0f, 1.0f }, { rx, ry, rz }, { ox, oy, oz });
+		auto worldPosMat = Game::MathUtils::Translate(position);
+		auto worldMat = localMat * worldPosMat;
+
 		collider->SetWorldMatrix(worldMat);
 		collider->UpdateAABB();
 	}
@@ -282,21 +303,39 @@ namespace Game {
 		// If the template requests an attached spawn, mark and position the projectile accordingly.
 		if (data.spawnAttached) {
 			proj.isAttached = true;
-			proj.position.X = origin.X + data.attachOffset.X;
-			proj.position.Y = origin.Y + data.attachOffset.Y;
-			proj.position.Z = origin.Z + data.attachOffset.Z;
+			
+			// Use the actor's transform position as the attach offset (so editor positioning works)
+			proj.data.attachOffset.X = proj.actorData.transform.posX;
+			proj.data.attachOffset.Y = proj.actorData.transform.posY;
+			proj.data.attachOffset.Z = proj.actorData.transform.posZ;
+			
+			// Zero out the visual offset so rendering doesn't apply it a second time
+			proj.actorData.transform.posX = 0.0f;
+			proj.actorData.transform.posY = 0.0f;
+			proj.actorData.transform.posZ = 0.0f;
+			
+			proj.position.X = origin.X + proj.data.attachOffset.X;
+			proj.position.Y = origin.Y + proj.data.attachOffset.Y;
+			proj.position.Z = origin.Z + proj.data.attachOffset.Z;
 			proj.velocity = { 0.0f, 0.0f, 0.0f };
 
 			// initialize visual scaling state for chargable projectiles
-			proj.visualScale = data.initialScale;
-			float actorScale = (proj.actorData.transform.scaleX > 0.0f) ? proj.actorData.transform.scaleX : 1.0f;
-			proj.targetVisualScale = actorScale;
-			proj.chargeTimer = 0.0f;
+			if (data.scaleOnCharge) {
+				proj.visualScale = data.initialScale;
+				float actorScale = (proj.actorData.transform.scaleX > 0.0f) ? proj.actorData.transform.scaleX : 1.0f;
+				proj.targetVisualScale = actorScale;
+				proj.chargeTimer = 0.0f;
 
-			// Apply initial visual scale to actorData so renderer shows scaled model
-			proj.actorData.transform.scaleX = proj.visualScale;
-			proj.actorData.transform.scaleY = proj.visualScale;
-			proj.actorData.transform.scaleZ = proj.visualScale;
+				// Apply initial visual scale to actorData so renderer shows scaled model
+				proj.actorData.transform.scaleX = proj.visualScale;
+				proj.actorData.transform.scaleY = proj.visualScale;
+				proj.actorData.transform.scaleZ = proj.visualScale;
+			}
+			
+			// Start spline motion on spawn so it animates while attached
+			if (proj.actorData.movement.type == Editor::MovementType::Spline) {
+				proj.motionController.Play(proj.actorData.movement.splineMotionName, {0.0f, 0.0f, 0.0f}, proj.actorData.movement.totalDuration);
+			}
 		}
 
 		// 方向ベクトルの計算（ターゲット方向）
@@ -408,16 +447,44 @@ namespace Game {
 							// update collider to match new visual size
 							proj.InitCollider();
 						}
+						// Ensure actorData transform matches visualScale so renderer displays correct size
+						proj.actorData.transform.scaleX = proj.visualScale;
+						proj.actorData.transform.scaleY = proj.visualScale;
+						proj.actorData.transform.scaleZ = proj.visualScale;
 					}
 
-					// Ensure actorData transform matches visualScale so renderer displays correct size
-					proj.actorData.transform.scaleX = proj.visualScale;
-					proj.actorData.transform.scaleY = proj.visualScale;
-					proj.actorData.transform.scaleZ = proj.visualScale;
-
-					proj.position.X = enemy->position.X + proj.data.attachOffset.X;
+					proj.position.X = enemy->position.X + (enemy->facingRight ? proj.data.attachOffset.X : -proj.data.attachOffset.X);
 					proj.position.Y = enemy->position.Y + proj.data.attachOffset.Y;
 					proj.position.Z = enemy->position.Z + proj.data.attachOffset.Z;
+					
+					// Apply spline motion relative to the attached point
+					if (proj.actorData.movement.type == Editor::MovementType::Spline && proj.motionController.IsPlaying()) {
+						Lumina::Math::F32x3 dir = enemy->facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
+						Lumina::Math::F32x3 prevOffset = proj.motionController.GetLastLocalOffset();
+						(void)proj.motionController.Update(deltaTime, dir);
+						Lumina::Math::F32x3 localOffset = proj.motionController.GetLastLocalOffset();
+						
+						proj.position.X += localOffset.X;
+						proj.position.Y += localOffset.Y;
+						proj.position.Z += localOffset.Z;
+
+						// Auto-rotate based on actual position relative to the boss to simulate a weapon swing (pointing outwards)
+						float relX = proj.position.X - enemy->position.X;
+						float relY = proj.position.Y - enemy->position.Y;
+						if (relX * relX + relY * relY > 0.0001f) {
+							float angle = std::atan2(relY, relX);
+							// Because the cube is vertical (Y is longest), an angle of 0 (moving right) means it should point right (-90 deg rotZ)
+							proj.actorData.transform.rotZ = angle * 180.0f / 3.14159265f - 90.0f;
+						}
+					}
+					// If it's an idle equipment not moving, use the base rotation from ActorData but apply facing flip if needed
+					else if (proj.isEquipment) {
+						if (!enemy->facingRight) {
+							// If facing left, visually flip the Z rotation so it mirrors the holding pose
+							proj.actorData.transform.rotZ = -proj.actorData.transform.rotZ;
+						}
+					}
+					
 					proj.UpdateCollider();
 					continue;
 				}
@@ -532,6 +599,14 @@ namespace Game {
 				[](const Projectile& p) { return p.isDead; }),
 			projectiles_.end()
 		);
+	}
+
+	void ProjectileManager::RemoveEquipment(uint32_t ownerEnemyId) {
+		for (auto& p : projectiles_) {
+			if (!p.isDead && p.ownerEnemyId == ownerEnemyId && p.isEquipment) {
+				p.isDead = true;
+			}
+		}
 	}
 
 	void ProjectileManager::ClearAll() {

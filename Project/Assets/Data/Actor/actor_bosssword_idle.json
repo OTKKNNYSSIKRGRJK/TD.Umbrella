@@ -1,0 +1,81 @@
+{
+    "collider": {
+        "collisionVertices": [
+            {
+                "x": -0.6000000238418579,
+                "y": 2.5
+            },
+            {
+                "x": 0.6000000238418579,
+                "y": 2.5
+            },
+            {
+                "x": 0.6000000238418579,
+                "y": -2.5
+            },
+            {
+                "x": -0.6000000238418579,
+                "y": -2.5
+            }
+        ],
+        "sizeX": 1.0,
+        "sizeY": 1.0,
+        "sizeZ": 0.5,
+        "type": 3
+    },
+    "interaction": {
+        "activationTriggerID": "",
+        "damageValue": 25.0,
+        "pushForce": 2.0,
+        "type": 0
+    },
+    "lifecycle": {
+        "autoDestroyOffscreen": false,
+        "lifetime": 0.3499999940395355,
+        "spawnEventID": "",
+        "spawnTrigger": 0,
+        "spawnValue": 0.0
+    },
+    "movement": {
+        "dirX": 1.0,
+        "dirY": 0.0,
+        "dirZ": 0.0,
+        "easing": 0,
+        "loopSpline": false,
+        "nodeTimings": [
+            {
+                "arrivalTime": 0.0,
+                "easing": 0
+            },
+            {
+                "arrivalTime": 0.15000000596046448,
+                "easing": 1
+            },
+            {
+                "arrivalTime": 0.3499999940395355,
+                "easing": 0
+            }
+        ],
+        "range": 0.0,
+        "speed": 1.0,
+        "splineMotionName": "boss_slash.json",
+        "totalDuration": 0.3499999940395355,
+        "type": 0
+    },
+    "name": "bosssword_idle",
+    "transform": {
+        "posX": 1.2,
+        "posY": 0.0,
+        "posZ": -2.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 0.22,
+        "scaleY": 1.9,
+        "scaleZ": 0.15
+    },
+    "visual": {
+        "materialIndex": 0,
+        "meshPath": "Assets\\cube.obj"
+    }
+}

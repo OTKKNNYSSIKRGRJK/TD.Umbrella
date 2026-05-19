@@ -1423,6 +1423,11 @@ namespace Game::Editor {
 		if (ImGui::DragFloat("Cooldown##node_loop_cd", &n.loopCooldown, 0.1f, 0.0f, 10.0f, "%.1fs")) {
 			char dbg2[128]; snprintf(dbg2, sizeof(dbg2), "[EnemyEditor] Node %d LoopCooldown=%.2f", n.id, n.loopCooldown); AddLog(dbg2);
 		}
+		ImGui::SameLine();
+		if (ImGui::Checkbox("Grounded##rg", &n.requireGrounded)) {
+			char dbg3[128]; snprintf(dbg3, sizeof(dbg3), "[EnemyEditor] Node %d RequireGrounded=%s", n.id, n.requireGrounded ? "ON" : "OFF"); AddLog(dbg3);
+		}
+		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: this state can only be entered\nwhen the enemy is on the ground");
 			if (ImGui::BeginPopup("node_bool_popup")) {
 				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 					bool isSel = (bi == boolIdx);

@@ -50,7 +50,8 @@ namespace Game::Editor {
 		{"prepSound", n.prepSound},
 		{"prepParticle", n.prepParticle},
 			{"splineMotionName", n.splineMotionName},
-			{"splineDuration", n.splineDuration}
+			{"splineDuration", n.splineDuration},
+			{"requireGrounded", n.requireGrounded}
 		};
 	}
 	void from_json(const json& j, Node& n) {
@@ -89,6 +90,7 @@ namespace Game::Editor {
 		if (j.contains("prepParticle")) j.at("prepParticle").get_to(n.prepParticle);
 		if (j.contains("splineMotionName")) j.at("splineMotionName").get_to(n.splineMotionName);
 		if (j.contains("splineDuration")) j.at("splineDuration").get_to(n.splineDuration);
+		if (j.contains("requireGrounded")) j.at("requireGrounded").get_to(n.requireGrounded);
 
 		// migration: if user previously put "BOOL:Attack" in animationName
 		if (n.boundBool.empty() && n.animationName.rfind("BOOL:", 0) == 0) {
