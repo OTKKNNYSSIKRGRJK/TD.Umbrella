@@ -39,7 +39,7 @@
             "y": 0.4333333373069763
         }
     ],
-    "gltfPath": "Assets\\Enemy\\weatherdoll\\weatherdoll.gltf",
+    "gltfPath": "Assets/Enemy/WeatherDoll/weatherDoll.gltf",
     "hp": 100,
     "links": [
         {
