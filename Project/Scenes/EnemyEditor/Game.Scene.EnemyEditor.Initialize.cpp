@@ -38,6 +38,7 @@ namespace Game::Editor {
 			{"boundMotion", n.boundMotion},
 			{"boundMotionNodeIndex", n.boundMotionNodeIndex},
 			{"boundBool", n.boundBool},
+			{"facePlayer", n.facePlayer},
             {"loop", n.loop},
 			{"loopCooldown", n.loopCooldown},
 			{"requireGrounded", n.requireGrounded},
@@ -65,6 +66,7 @@ namespace Game::Editor {
 		if (j.contains("boundMotion")) j.at("boundMotion").get_to(n.boundMotion);
 		if (j.contains("boundMotionNodeIndex")) j.at("boundMotionNodeIndex").get_to(n.boundMotionNodeIndex);
 		if (j.contains("boundBool")) j.at("boundBool").get_to(n.boundBool);
+		if (j.contains("facePlayer")) j.at("facePlayer").get_to(n.facePlayer);
 
         		if (j.contains("loop")) j.at("loop").get_to(n.loop);
 		if (j.contains("loopCooldown")) j.at("loopCooldown").get_to(n.loopCooldown);
@@ -181,6 +183,50 @@ namespace Game::Editor {
 		if (j.contains("nodes")) j.at("nodes").get_to(e.nodes);
 		if (j.contains("links")) j.at("links").get_to(e.links);
        if (j.contains("noSplit")) j.at("noSplit").get_to(e.noSplit);
+	}
+
+	bool EvaluateLinkCondition(const std::string& condition, const LinkEvalContext& ctx) {
+		if (condition.empty()) return true;
+
+		// 前後の空白を除去したコピーで比較
+		std::string c = condition;
+		while (!c.empty() && c.front() == ' ') c.erase(c.begin());
+		while (!c.empty() && c.back() == ' ') c.pop_back();
+
+		if (c == "Always") return true;
+
+		// --- BOOL: フラグ条件 ---
+		if (c.rfind("BOOL:", 0) == 0) {
+			std::string flag = c.substr(5);
+			while (!flag.empty() && flag.front() == ' ') flag.erase(flag.begin());
+			while (!flag.empty() && flag.back() == ' ') flag.pop_back();
+			if (ctx.boolFlags) {
+				auto it = ctx.boolFlags->find(flag);
+				if (it != ctx.boolFlags->end()) return it->second;
+			}
+			return false;
+		}
+
+		// --- 時間条件 ---
+		if (c.rfind("Time>=", 0) == 0) { try { return ctx.stateElapsedTime >= std::stof(c.substr(6)); } catch (...) { return false; } }
+		if (c.rfind("Time>", 0) == 0)  { try { return ctx.stateElapsedTime >  std::stof(c.substr(5)); } catch (...) { return false; } }
+
+		// --- 距離条件 ---
+		if (c.rfind("Dist<=", 0) == 0) { try { return ctx.distToPlayer <= std::stof(c.substr(6)); } catch (...) { return false; } }
+		if (c.rfind("Dist>", 0) == 0)  { try { return ctx.distToPlayer >  std::stof(c.substr(5)); } catch (...) { return false; } }
+
+		// --- HP条件 ---
+		if (c.rfind("HP<=", 0) == 0) { try { return ctx.hpRatio <= std::stof(c.substr(4)); } catch (...) { return false; } }
+		if (c.rfind("HP<", 0) == 0)  { try { return ctx.hpRatio <  std::stof(c.substr(3)); } catch (...) { return false; } }
+		if (c.rfind("HP>=", 0) == 0) { try { return ctx.hpRatio >= std::stof(c.substr(4)); } catch (...) { return false; } }
+		if (c.rfind("HP>", 0) == 0)  { try { return ctx.hpRatio >  std::stof(c.substr(3)); } catch (...) { return false; } }
+		if (c.rfind("HP==", 0) == 0) { try { return std::abs(ctx.hpRatio - std::stof(c.substr(4))) < 0.001f; } catch (...) { return false; } }
+
+		// --- 接地条件 ---
+		if (c == "Grounded")  return ctx.isGrounded;
+		if (c == "!Grounded") return !ctx.isGrounded;
+
+		return false;
 	}
 
 	void EnemyEditor::Initialize() {

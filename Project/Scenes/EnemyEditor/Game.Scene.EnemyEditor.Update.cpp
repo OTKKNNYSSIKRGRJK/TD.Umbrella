@@ -514,6 +514,16 @@ namespace Game::Editor {
 			ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
 		bool isHovered = ImGui::IsItemHovered();
 
+		// マウスホイールでズーム（キャンバスにホバー中）
+		if (isHovered) {
+			float wheel = ImGui::GetIO().MouseWheel;
+			if (wheel != 0.0f) {
+				collisionZoom_ += wheel * 0.3f;
+				if (collisionZoom_ < 1.0f) collisionZoom_ = 1.0f;
+				if (collisionZoom_ > 10.0f) collisionZoom_ = 10.0f;
+			}
+		}
+
 		// キャンバス中心 = 敵の原点
 		ImVec2 center(canvasP0.x + canvasSz.x * 0.5f + canvasOffsetX_, canvasP0.y + canvasSz.y * 0.5f + canvasOffsetY_);
 		float scale = collisionZoom_ * 30.0f; // 1単位 = scale pixels
@@ -1261,11 +1271,48 @@ namespace Game::Editor {
 			}
 			ImGui::EndDisabled();
 
-			if (ImGui::Button("Clear Binding")) {
+				if (ImGui::Button("Clear Binding")) {
 				selectedNode->boundBool.clear();
 				selectedNode->boundMotion.clear();
 				selectedNode->boundMotionNodeIndex = -1;
 			}
+
+			ImGui::SeparatorText("Node Physics");
+			ImGui::Checkbox("Face Player##np", &selectedNode->facePlayer);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Always face the player during this state");
+
+			ImGui::DragFloat("Friction X##np", &selectedNode->velocityFrictionX, 0.01f, 0.0f, 1.0f, "%.2f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Horizontal velocity friction per frame\n1.0 = no friction, 0.9 = light brake");
+
+			ImGui::DragFloat("Jump X Mult##np", &selectedNode->jumpVelocityXMult, 0.1f, -10.0f, 10.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Horizontal jump impulse (moveSpeed * this)\nApplied on state entry");
+
+			ImGui::DragFloat("Jump Y##np", &selectedNode->jumpVelocityY, 0.1f, -20.0f, 20.0f, "%.1f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Vertical jump velocity\nApplied on state entry");
+
+			ImGui::Spacing();
+			ImGui::TextDisabled("Spline Motion Override");
+			{
+				int splineIdx = 0;
+				for (int i = 0; i < static_cast<int>(motionFiles.size()); ++i) {
+					if (motionFiles[i] == selectedNode->splineMotionName) { splineIdx = i; break; }
+				}
+				std::string splinePreview = selectedNode->splineMotionName.empty() ? "(none)" : selectedNode->splineMotionName;
+				ImGui::SetNextItemWidth(220.0f);
+				if (ImGui::BeginCombo("Spline##np", splinePreview.c_str())) {
+					for (int i = 0; i < static_cast<int>(motionFiles.size()); ++i) {
+						std::string label = motionFiles[i].empty() ? "(none)" : motionFiles[i];
+						bool isSelected = (i == splineIdx);
+						if (ImGui::Selectable(label.c_str(), isSelected)) {
+							selectedNode->splineMotionName = motionFiles[i];
+						}
+						if (isSelected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+			}
+			ImGui::DragFloat("Spline Duration##np", &selectedNode->splineDuration, 0.1f, 0.1f, 30.0f, "%.1f s");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Duration of spline motion playback (seconds)");
 		}
 
 		ImGui::Separator();
@@ -1281,6 +1328,17 @@ namespace Game::Editor {
 		ImGui::SetItemAllowOverlap();  // ノード内のUI部品（コンボ等）がクリックを受け取れるようにする
 		ImVec2 origin = canvasPos;
 
+		// マウスホイールでズーム（キャンバスにホバー中）
+		if (ImGui::IsItemHovered()) {
+			float wheel = ImGui::GetIO().MouseWheel;
+			if (wheel != 0.0f) {
+				nodeCanvasZoom_ += wheel * 0.1f;
+				if (nodeCanvasZoom_ < 0.3f) nodeCanvasZoom_ = 0.3f;
+				if (nodeCanvasZoom_ > 3.0f) nodeCanvasZoom_ = 3.0f;
+			}
+		}
+		float z = nodeCanvasZoom_;
+
 		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
 		drawList->AddRect(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(80, 80, 90, 255));
 
@@ -1292,17 +1350,17 @@ namespace Game::Editor {
 		if (nodeDragActive_) {
 			auto selectedIt = std::find_if(editingEnemy_.nodes.begin(), editingEnemy_.nodes.end(), [&](const Node& node) { return node.id == nodeEditor_selectedNodeId_; });
 			if (selectedIt != editingEnemy_.nodes.end() && ImGui::IsMouseDown(ImGuiMouseButton_Left) && !nodeLinkDragActive_) {
-				selectedIt->x = mousePos.x - origin.x - nodeDragOffsetX_;
-				selectedIt->y = mousePos.y - origin.y - nodeDragOffsetY_;
+				selectedIt->x = (mousePos.x - origin.x - nodeDragOffsetX_) / z;
+				selectedIt->y = (mousePos.y - origin.y - nodeDragOffsetY_) / z;
 				if (selectedIt->x < 0.0f) selectedIt->x = 0.0f;
 				if (selectedIt->y < 0.0f) selectedIt->y = 0.0f;
-				if (selectedIt->x > canvasSize.x - 180.0f) selectedIt->x = canvasSize.x - 180.0f;
-				if (selectedIt->y > canvasSize.y - 110.0f) selectedIt->y = canvasSize.y - 110.0f;
+				if (selectedIt->x > (canvasSize.x - 180.0f) / z) selectedIt->x = (canvasSize.x - 180.0f) / z;
+				if (selectedIt->y > (canvasSize.y - 110.0f) / z) selectedIt->y = (canvasSize.y - 110.0f) / z;
 			} else { nodeDragActive_ = false; }
 		}
 
 		for (auto& n : editingEnemy_.nodes) {
-			ImVec2 a = ImVec2(origin.x + n.x, origin.y + n.y);
+			ImVec2 a = ImVec2(origin.x + n.x * z, origin.y + n.y * z);
 			ImVec2 b = ImVec2(a.x + 180.0f, a.y + 160.0f);
 
 			ImU32 col = MakeCol32(60, 60, 70, 220);
@@ -1412,28 +1470,29 @@ namespace Game::Editor {
 			// editor runtime when no outgoing transition is satisfied, effectively
 			// looping the node until some external condition becomes true.
 			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 116.0f));
-			ImGui::SetNextItemWidth(80.0f);
 			if (ImGui::Checkbox("Loop", &n.loop)) {
 				// immediate visual feedback logged
 				char dbg[128]; snprintf(dbg, sizeof(dbg), "[EnemyEditor] Node %d Loop=%s", n.id, n.loop ? "ON" : "OFF"); AddLog(dbg);
 			}
 
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(90.0f);
-		if (ImGui::DragFloat("Cooldown##node_loop_cd", &n.loopCooldown, 0.1f, 0.0f, 10.0f, "%.1fs")) {
-			char dbg2[128]; snprintf(dbg2, sizeof(dbg2), "[EnemyEditor] Node %d LoopCooldown=%.2f", n.id, n.loopCooldown); AddLog(dbg2);
-		}
-		ImGui::SameLine();
-		if (ImGui::Checkbox("Grounded##rg", &n.requireGrounded)) {
-			char dbg3[128]; snprintf(dbg3, sizeof(dbg3), "[EnemyEditor] Node %d RequireGrounded=%s", n.id, n.requireGrounded ? "ON" : "OFF"); AddLog(dbg3);
-		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: this state can only be entered\nwhen the enemy is on the ground");
+			ImGui::SameLine(0.0f, 12.0f);
+			if (ImGui::Checkbox("Grounded##rg", &n.requireGrounded)) {
+				char dbg3[128]; snprintf(dbg3, sizeof(dbg3), "[EnemyEditor] Node %d RequireGrounded=%s", n.id, n.requireGrounded ? "ON" : "OFF"); AddLog(dbg3);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: this state can only be entered\nwhen the enemy is on the ground");
 
-		ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 136.0f));
-		if (ImGui::Checkbox("Pitch by Y-Vel##pp", &n.proceduralPitch)) {
-			char dbg4[128]; snprintf(dbg4, sizeof(dbg4), "[EnemyEditor] Node %d ProceduralPitch=%s", n.id, n.proceduralPitch ? "ON" : "OFF"); AddLog(dbg4);
-		}
-		if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: Leans the character forward/backward based on vertical velocity");
+			ImGui::SetCursorScreenPos(ImVec2(a.x + 6.0f, a.y + 136.0f));
+			ImGui::SetNextItemWidth(55.0f);
+			if (ImGui::DragFloat("##node_loop_cd", &n.loopCooldown, 0.1f, 0.0f, 10.0f, "%.1fs")) {
+				char dbg2[128]; snprintf(dbg2, sizeof(dbg2), "[EnemyEditor] Node %d LoopCooldown=%.2f", n.id, n.loopCooldown); AddLog(dbg2);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Cooldown: wait time before next loop/action (seconds)");
+
+			ImGui::SameLine(0.0f, 8.0f);
+			if (ImGui::Checkbox("Pitch##pp", &n.proceduralPitch)) {
+				char dbg4[128]; snprintf(dbg4, sizeof(dbg4), "[EnemyEditor] Node %d ProceduralPitch=%s", n.id, n.proceduralPitch ? "ON" : "OFF"); AddLog(dbg4);
+			}
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Pitch by Y-Vel\nON: Leans the character forward/backward based on vertical velocity");
 			if (ImGui::BeginPopup("node_bool_popup")) {
 				for (int bi = 0; bi < static_cast<int>(boolOptions.size()); ++bi) {
 					bool isSel = (bi == boolIdx);
@@ -1492,8 +1551,8 @@ namespace Game::Editor {
 				if (n.id == l.to) to = &n;
 			}
 			if (from && to) {
-				ImVec2 pa = ImVec2(origin.x + from->x + 180.0f - 8.0f, origin.y + from->y + 146.0f);
-				ImVec2 pb = ImVec2(origin.x + to->x + 8.0f, origin.y + to->y + 146.0f);
+				ImVec2 pa = ImVec2(origin.x + from->x * z + 180.0f - 8.0f, origin.y + from->y * z + 146.0f);
+				ImVec2 pb = ImVec2(origin.x + to->x * z + 8.0f, origin.y + to->y * z + 146.0f);
 				drawList->AddBezierCubic(pa, ImVec2(pa.x + 40, pa.y), ImVec2(pb.x - 40, pb.y), pb, MakeCol32(200, 200, 100, 220), 3.0f);
 
 				if (ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
@@ -1511,7 +1570,7 @@ namespace Game::Editor {
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left)) {
 				int targetId = -1;
 				for (const auto& n : editingEnemy_.nodes) {
-					ImVec2 na = ImVec2(origin.x + n.x, origin.y + n.y);
+					ImVec2 na = ImVec2(origin.x + n.x * z, origin.y + n.y * z);
 					ImVec2 nb = ImVec2(na.x + 180.0f, na.y + 160.0f);
 					if (mousePos.x >= na.x && mousePos.x <= nb.x && mousePos.y >= na.y && mousePos.y <= nb.y) { targetId = n.id; break; }
 				}
@@ -1689,32 +1748,13 @@ namespace Game::Editor {
 	}
 
 	bool EnemyActionEditor::CheckLinkCondition(const Link& link) {
-		if (link.condition.empty()) return true;
-		std::string c = link.condition;
-		while (!c.empty() && c.front() == ' ') c.erase(c.begin());
-		while (!c.empty() && c.back() == ' ') c.pop_back();
-		if (c == "Always") return true;
-
-		if (c.rfind("BOOL:", 0) == 0) {
-			std::string flag = c.substr(5);
-			while (!flag.empty() && flag.front() == ' ') flag.erase(flag.begin());
-			while (!flag.empty() && flag.back() == ' ') flag.pop_back();
-			auto it = runtimeBoolFlags_.find(flag);
-			if (it != runtimeBoolFlags_.end()) return it->second;
-			return false;
-		}
-
-		if (c.rfind("Time>=", 0) == 0) { try { return currentStateElapsedTime_ >= std::stof(c.substr(6)); } catch (...) { return false; } }
-		if (c.rfind("Time>", 0) == 0) { try { return currentStateElapsedTime_ > std::stof(c.substr(5)); } catch (...) { return false; } }
-
-		float hpRatio = (editingEnemy_.hp > 0) ? static_cast<float>(editingEnemy_.hp) / 100.0f : 0.0f;
-		if (c.rfind("HP<=", 0) == 0) { try { return hpRatio <= std::stof(c.substr(4)); } catch (...) { return false; } }
-		if (c.rfind("HP<", 0) == 0) { try { return hpRatio < std::stof(c.substr(3)); } catch (...) { return false; } }
-		if (c.rfind("HP>=", 0) == 0) { try { return hpRatio >= std::stof(c.substr(4)); } catch (...) { return false; } }
-		if (c.rfind("HP>", 0) == 0) { try { return hpRatio > std::stof(c.substr(3)); } catch (...) { return false; } }
-		if (c.rfind("HP==", 0) == 0) { try { return std::abs(hpRatio - std::stof(c.substr(4))) < 0.001f; } catch (...) { return false; } }
-
-		return false;
+		LinkEvalContext ctx;
+		ctx.stateElapsedTime = currentStateElapsedTime_;
+		ctx.distToPlayer = 0.0f;  // エディタ上ではプレイヤー距離は未サポート
+		ctx.hpRatio = (editingEnemy_.hp > 0) ? static_cast<float>(editingEnemy_.hp) / 100.0f : 0.0f;
+		ctx.isGrounded = false;   // エディタ上では接地判定は未サポート
+		ctx.boolFlags = &runtimeBoolFlags_;
+		return EvaluateLinkCondition(link.condition, ctx);
 	}
 
 	bool EnemyActionEditor::HasOutgoingTransition(int nodeId) const {

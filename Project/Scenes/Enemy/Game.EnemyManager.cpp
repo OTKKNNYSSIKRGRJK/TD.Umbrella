@@ -359,6 +359,277 @@ namespace {
 			child->UpdateCollider();
 		}
 	}
+
+	// =========================================================================
+	//  ノードベースAIのヘルパー関数（Update() から抽出）
+	// =========================================================================
+
+	/// JSON ステートマシンのリンク条件を評価し、遷移を実行する。
+	/// 戻り値は解決後の currentNodeId。
+	int EvaluateNodeTransitions(Game::EnemyInstance& enemy, float dist) {
+		// currentAction に対応するノードを探す
+		int currentNodeId = -1;
+		for (const auto& n : enemy.baseData.nodes) {
+			if (n.state == enemy.currentAction) { currentNodeId = n.id; break; }
+		}
+		// ノードが見つからなければ最初のノードから開始
+		if (currentNodeId == -1) {
+			currentNodeId = enemy.baseData.nodes.front().id;
+			enemy.currentAction = enemy.baseData.nodes.front().state;
+			enemy.stateTimer = 0.0f;
+		}
+
+		// リンク条件を評価して遷移（共通関数を使用）
+		bool transitioned = false;
+		Game::Editor::LinkEvalContext ctx;
+		ctx.stateElapsedTime = enemy.stateTimer;
+		ctx.distToPlayer = dist;
+		ctx.hpRatio = (enemy.baseData.hp > 0)
+			? static_cast<float>(enemy.currentHP) / static_cast<float>(enemy.baseData.hp)
+			: 1.0f;
+		ctx.isGrounded = enemy.isGrounded;
+		ctx.boolFlags = &enemy.runtimeBoolFlags;
+
+		for (const auto& link : enemy.baseData.links) {
+			if (link.from != currentNodeId) continue;
+			if (Game::Editor::EvaluateLinkCondition(link.condition, ctx)) {
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.id == link.to) {
+						enemy.currentAction = n.state;
+						enemy.stateTimer = 0.0f;
+						transitioned = true;
+						break;
+					}
+				}
+				// BOOL フラグを消費（遷移後にリセット）
+				if (link.condition.rfind("BOOL:", 0) == 0) {
+					std::string flag = link.condition.substr(5);
+					auto flagIt = enemy.runtimeBoolFlags.find(flag);
+					if (flagIt != enemy.runtimeBoolFlags.end()) flagIt->second = false;
+				}
+				break;
+			}
+		}
+
+		// requireGrounded チェック: 遷移先ノードが接地を要求しているが
+		// 敵が空中にいる場合、遷移をキャンセルして元のステートに戻す
+		if (transitioned && !enemy.isGrounded) {
+			const Game::Editor::Node* targetNode = nullptr;
+			for (const auto& n : enemy.baseData.nodes) {
+				if (n.state == enemy.currentAction) { targetNode = &n; break; }
+			}
+			if (targetNode && targetNode->requireGrounded) {
+				for (const auto& n : enemy.baseData.nodes) {
+					if (n.id == currentNodeId) {
+						enemy.currentAction = n.state;
+						break;
+					}
+				}
+				transitioned = false;
+			}
+		}
+
+		// ステート遷移が発生した場合はその場で currentNodeId を更新する
+		if (enemy.stateTimer == 0.0f) {
+			for (const auto& n : enemy.baseData.nodes) {
+				if (n.state == enemy.currentAction) {
+					currentNodeId = n.id;
+					break;
+				}
+			}
+		}
+
+		// 遷移中にモーション再生中なら停止
+		if (transitioned && enemy.motionController.IsPlaying()) {
+			enemy.motionController.Stop();
+		}
+
+		// ループ対応: 遷移が発生せず、ノードがループ要求している場合は
+		// splineDuration 経過後にタイマーリセット＆再トリガー
+		if (!transitioned) {
+			const Game::Editor::Node* curNodeInfo = nullptr;
+			for (const auto& n : enemy.baseData.nodes) {
+				if (n.id == currentNodeId) { curNodeInfo = &n; break; }
+			}
+			if (curNodeInfo && curNodeInfo->loop) {
+				float base = (curNodeInfo->splineDuration > 0.0f) ? curNodeInfo->splineDuration : 1.0f;
+				float loopInterval = base + curNodeInfo->loopCooldown;
+				if (enemy.stateTimer >= loopInterval) {
+					enemy.stateTimer = 0.0f;
+					if (!curNodeInfo->boundBool.empty()) {
+						enemy.runtimeBoolFlags[curNodeInfo->boundBool] = true;
+					}
+					std::string motionToPlay;
+					if (!curNodeInfo->splineMotionName.empty()) motionToPlay = curNodeInfo->splineMotionName;
+					else if (!curNodeInfo->boundMotion.empty()) motionToPlay = curNodeInfo->boundMotion;
+					else {
+						auto mit = enemy.baseData.motionMap.find(curNodeInfo->state);
+						if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) motionToPlay = mit->second;
+					}
+					if (!motionToPlay.empty()) {
+						enemy.motionController.Play(motionToPlay, enemy.position, curNodeInfo->splineDuration);
+					}
+				}
+			}
+		}
+
+		return currentNodeId;
+	}
+
+	/// ノードの物理挙動を適用する（facePlayer、ノード突入処理、スプライン、Walk移動、摩擦、ジャンプ）
+	void ApplyNodePhysics(
+		Game::EnemyInstance& enemy,
+		const Game::Editor::Node* nodeInfo,
+		float deltaTime, float dx,
+		const Lumina::Math::F32x3& posBeforePhysics,
+		const Lumina::Math::F32x3& playerPosition)
+	{
+		if (!nodeInfo) return;
+
+		// プレイヤーのほうを向く
+		if (nodeInfo->facePlayer) {
+			enemy.facingRight = (dx > 0.0f);
+		}
+
+		// --- ノード突入時の処理（stateTimer == 0 の1フレーム目のみ） ---
+		if (enemy.stateTimer == 0.0f) {
+			const std::string& fb = nodeInfo->boundBool;
+
+			// Charge ステート → 遠距離敵ならビジュアル弾を生成
+			if (nodeInfo->state == "Charge" && enemy.baseData.attackType == Game::Editor::EnemyData::AttackType::Ranged) {
+				Game::ProjectileData pd = enemy.baseData.projectile;
+				pd.spawnAttached = true;
+				pd.scaleOnCharge = true;
+				pd.attachOffset = { 0.0f, 1.2f * enemy.modelScale, 0.0f };
+				Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, pd, enemy.id);
+			}
+			// boundBool による発射トリガー
+			else if (!fb.empty() && (fb == "FireProjectile" || fb == "fireProjectile" || fb == "Shoot" || fb == "shoot" || fb == "Fire" || fb == "fire")) {
+				bool activated = Game::ProjectileManager::GetInstance()->ActivateAttachedProjectile(enemy.id, playerPosition);
+				if (!activated) {
+					Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, enemy.baseData.projectile, enemy.id);
+				}
+			}
+			else if (fb.rfind("SpawnActor:", 0) == 0) {
+				std::string actorName = fb.substr(11);
+				Game::ProjectileData pd;
+				pd.actorName = actorName;
+				pd.spawnAttached = true;
+				pd.scaleOnCharge = false;
+				Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, pd, enemy.id);
+			}
+			else if (fb.rfind("ShootActor:", 0) == 0) {
+				std::string actorName = fb.substr(11);
+				Game::ProjectileData pd;
+				pd.actorName = actorName;
+				pd.spawnAttached = false;
+				pd.scaleOnCharge = false;
+				Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, pd, enemy.id);
+			}
+			else if (fb.rfind("EquipActor:", 0) == 0) {
+				std::string actorName = fb.substr(11);
+				Game::ProjectileManager::GetInstance()->RemoveEquipment(enemy.id);
+				Game::ProjectileData pd;
+				pd.actorName = actorName;
+				pd.spawnAttached = true;
+				pd.scaleOnCharge = false;
+				pd.lifetime = 99999.0f;
+				Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, pd, enemy.id);
+				for (auto& p : const_cast<std::vector<Game::Projectile>&>(Game::ProjectileManager::GetInstance()->GetAll())) {
+					if (!p.isDead && p.ownerEnemyId == enemy.id && p.data.actorName == actorName && p.data.lifetime > 90000.0f) {
+						p.isEquipment = true;
+					}
+				}
+			}
+
+			// スプラインモーションの開始（物理インパルスが無い場合のみ）
+			bool hasPhysicsImpulse = (nodeInfo->jumpVelocityY != 0.0f || nodeInfo->jumpVelocityXMult != 0.0f);
+			std::string motionToPlay;
+			if (!hasPhysicsImpulse) {
+				if (!nodeInfo->splineMotionName.empty()) {
+					motionToPlay = nodeInfo->splineMotionName;
+				} else if (!nodeInfo->boundMotion.empty()) {
+					motionToPlay = nodeInfo->boundMotion;
+				} else {
+					auto mit = enemy.baseData.motionMap.find(nodeInfo->state);
+					if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
+						motionToPlay = mit->second;
+					}
+				}
+			}
+			enemy.facingRight = (dx > 0.0f);
+			if (!motionToPlay.empty()) {
+				enemy.motionController.Play(motionToPlay, enemy.position, nodeInfo->splineDuration);
+			}
+		}
+
+		// --- SplineMotion 再生中なら物理をオーバーライド ---
+		if (enemy.motionController.IsPlaying()) {
+			Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
+			Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
+			(void)enemy.motionController.Update(deltaTime, dir);
+			Lumina::Math::F32x3 newOffset = enemy.motionController.GetLastLocalOffset();
+
+			Lumina::Math::F32x3 delta;
+			delta.X = newOffset.X - oldOffset.X;
+			delta.Y = newOffset.Y - oldOffset.Y;
+			delta.Z = newOffset.Z - oldOffset.Z;
+
+			if (deltaTime > 0.0f) {
+				enemy.velocity.X = delta.X / deltaTime;
+				enemy.velocity.Y = delta.Y / deltaTime;
+				enemy.velocity.Z = delta.Z / deltaTime;
+			} else {
+				enemy.velocity = {0.0f, 0.0f, 0.0f};
+			}
+
+			enemy.position.X = posBeforePhysics.X + delta.X;
+			enemy.position.Y = posBeforePhysics.Y + delta.Y;
+			enemy.position.Z = posBeforePhysics.Z + delta.Z;
+		} else {
+			// --- Walk ステート判定 ---
+			bool nodeWalk =
+				(nodeInfo->state == "Walk") ||
+				(nodeInfo->name == "Walk") ||
+				(nodeInfo->animationName == "Walk") ||
+				(nodeInfo->boundBool == "walk") ||
+				(nodeInfo->boundBool == "Walk");
+
+			bool hasMotion = !nodeInfo->splineMotionName.empty() || !nodeInfo->boundMotion.empty();
+			if (!hasMotion) {
+				auto mit = enemy.baseData.motionMap.find(nodeInfo->state);
+				if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
+			}
+
+			if (nodeWalk && !hasMotion) {
+				float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+				enemy.facingRight = (dx > 0.0f);
+				enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
+			}
+
+			// --- 摩擦 ---
+			float expectedGroundedVelY = -9.8f * deltaTime;
+			bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
+
+			if (isGrounded) {
+				enemy.velocity.X *= nodeInfo->velocityFrictionX;
+			} else {
+				float airFriction = (std::max)(nodeInfo->velocityFrictionX, 0.98f);
+				enemy.velocity.X *= airFriction;
+			}
+
+			// --- ステート突入時のインパルス ---
+			if (enemy.stateTimer < deltaTime * 1.5f) {
+				if (nodeInfo->jumpVelocityXMult != 0.0f) {
+					float jumpDir = (dx > 0.0f) ? 1.0f : -1.0f;
+					enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * nodeInfo->jumpVelocityXMult;
+				}
+				if (nodeInfo->jumpVelocityY != 0.0f) {
+					enemy.velocity.Y = nodeInfo->jumpVelocityY;
+				}
+			}
+		}
+	}
 }
 
 namespace Game {
@@ -1141,412 +1412,19 @@ namespace Game {
 
 			// --- JSON ステートマシンによる行動制御 ---
 			// ノードが定義されている敵はステートマシンで currentAction を駆動する
+			const Game::Editor::Node* currentNodeInfo = nullptr;
 			if (!enemy.baseData.nodes.empty()) {
-				// 初回: currentAction に対応するノードを探す
-				int currentNodeId = -1;
+				int currentNodeId = EvaluateNodeTransitions(enemy, dist);
+
+				// currentNodeId からノード情報を取得
 				for (const auto& n : enemy.baseData.nodes) {
-					if (n.state == enemy.currentAction) { currentNodeId = n.id; break; }
-				}
-				// ノードが見つからなければ最初のノードから開始
-				if (currentNodeId == -1) {
-					currentNodeId = enemy.baseData.nodes.front().id;
-					enemy.currentAction = enemy.baseData.nodes.front().state;
-					enemy.stateTimer = 0.0f;
+					if (n.id == currentNodeId) { currentNodeInfo = &n; break; }
 				}
 
-                // リンク条件を評価して遷移
-				bool transitioned = false;
-				for (const auto& link : enemy.baseData.links) {
-					if (link.from != currentNodeId) continue;
-					std::string c = link.condition;
-					if (c.rfind("Time>=", 0) == 0) {
-						try {
-							float threshold = std::stof(c.substr(6));
-                                if (enemy.stateTimer >= threshold) {
-								// 遷移先のノードを探す
-								for (const auto& n : enemy.baseData.nodes) {
-									if (n.id == link.to) {
-										enemy.currentAction = n.state;
-										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
-										break;
-									}
-								}
-								break;
-							}
-						} catch (...) {}
-					}
-					else if (c.find("Dist<=") != std::string::npos) {
-						try {
-							size_t pos = c.find("Dist<=");
-							float threshold = std::stof(c.substr(pos + 6));
-                                if (dist <= threshold) {
-								for (const auto& n : enemy.baseData.nodes) {
-									if (n.id == link.to) {
-										enemy.currentAction = n.state;
-										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
-										break;
-									}
-								}
-								break;
-							}
-						} catch (...) {}
-					}
-					else if (c.find("Dist>") != std::string::npos) {
-						try {
-							size_t pos = c.find("Dist>");
-							float threshold = std::stof(c.substr(pos + 5));
-                                if (dist > threshold) {
-								for (const auto& n : enemy.baseData.nodes) {
-									if (n.id == link.to) {
-										enemy.currentAction = n.state;
-										enemy.stateTimer = 0.0f;
-                                            transitioned = true;
-										break;
-									}
-								}
-								break;
-							}
-						} catch (...) {}
-					}
-					else if (c.find("Always") != std::string::npos) {
-                        for (const auto& n : enemy.baseData.nodes) {
-							if (n.id == link.to) {
-								enemy.currentAction = n.state;
-								enemy.stateTimer = 0.0f;
-								transitioned = true;
-								break;
-							}
-						}
-						break;
-					}
-					// BOOL: condition - check runtime bool flags on the instance
-					else if (c.rfind("BOOL:", 0) == 0) {
-						std::string flag = c.substr(5);
-						auto flagIt = enemy.runtimeBoolFlags.find(flag);
-						if (flagIt != enemy.runtimeBoolFlags.end() && flagIt->second) {
-							for (const auto& n : enemy.baseData.nodes) {
-								if (n.id == link.to) {
-									enemy.currentAction = n.state;
-									enemy.stateTimer = 0.0f;
-									// Consume the flag (reset it)
-									flagIt->second = false;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// Grounded condition - only transition when on ground
-					else if (c == "Grounded") {
-						if (enemy.isGrounded) {
-							for (const auto& n : enemy.baseData.nodes) {
-								if (n.id == link.to) {
-									enemy.currentAction = n.state;
-									enemy.stateTimer = 0.0f;
-									transitioned = true;
-									break;
-								}
-							}
-							break;
-						}
-					}
-					// !Grounded condition - only transition when airborne
-					else if (c == "!Grounded") {
-						if (!enemy.isGrounded) {
-							for (const auto& n : enemy.baseData.nodes) {
-								if (n.id == link.to) {
-									enemy.currentAction = n.state;
-									enemy.stateTimer = 0.0f;
-									transitioned = true;
-									break;
-								}
-							}
-							break;
-						}
-					}
-				}
-
-				// requireGrounded チェック: 遷移先ノードが接地を要求しているが
-				// 敵が空中にいる場合、遷移をキャンセルして元のステートに戻す
-				if (transitioned && !enemy.isGrounded) {
-					const Game::Editor::Node* targetNode = nullptr;
-					for (const auto& n : enemy.baseData.nodes) {
-						if (n.state == enemy.currentAction) { targetNode = &n; break; }
-					}
-					if (targetNode && targetNode->requireGrounded) {
-						// 遷移をキャンセル: 元のアクションに戻す
-						for (const auto& n : enemy.baseData.nodes) {
-							if (n.id == currentNodeId) {
-								enemy.currentAction = n.state;
-								break;
-							}
-						}
-						transitioned = false;
-						// stateTimer は加算し続ける（リセットしない）
-					}
-				}
-
-                // ステート遷移が発生した場合はその場で currentNodeId を更新する
-				if (enemy.stateTimer == 0.0f) {
-					for (const auto& n : enemy.baseData.nodes) {
-						if (n.state == enemy.currentAction) {
-							currentNodeId = n.id;
-							break;
-						}
-					}
-				}
-
-				// If a node transition fired while a spline/motion was playing, cancel
-				// the currently playing motion so the instance can immediately respond
-				// to the newly-entered node (or resume AI). This prevents the boss
-				// from remaining frozen mid-motion when the player moves away.
-				if (transitioned && enemy.motionController.IsPlaying()) {
-					enemy.motionController.Stop();
-				}
-
-				// Editor-style per-node loop support: if no transition fired and the
-				// node requests looping, re-trigger the node after its splineDuration
-				// (or 1s) by resetting the timer and firing any boundBool and replaying
-				// any bound motion/spline. This makes in-game node looping behave like
-				// the editor's Loop checkbox.
-				if (!transitioned) {
-					const Game::Editor::Node* curNodeInfo = nullptr;
-					for (const auto& n : enemy.baseData.nodes) {
-						if (n.id == currentNodeId) { curNodeInfo = &n; break; }
-					}
-                    if (curNodeInfo && curNodeInfo->loop) {
-						float base = (curNodeInfo->splineDuration > 0.0f) ? curNodeInfo->splineDuration : 1.0f;
-						float loopInterval = base + curNodeInfo->loopCooldown;
-						if (enemy.stateTimer >= loopInterval) {
-							// reset timer and re-fire boundBool
-							enemy.stateTimer = 0.0f;
-							if (!curNodeInfo->boundBool.empty()) {
-								enemy.runtimeBoolFlags[curNodeInfo->boundBool] = true;
-							}
-							// replay motion if available (prefer node splineMotion/boundMotion/motionMap)
-							std::string motionToPlay;
-							if (!curNodeInfo->splineMotionName.empty()) motionToPlay = curNodeInfo->splineMotionName;
-							else if (!curNodeInfo->boundMotion.empty()) motionToPlay = curNodeInfo->boundMotion;
-							else {
-								auto mit = enemy.baseData.motionMap.find(curNodeInfo->state);
-								if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) motionToPlay = mit->second;
-							}
-							if (!motionToPlay.empty()) {
-								enemy.motionController.Play(motionToPlay, enemy.position, curNodeInfo->splineDuration);
-							}
-						}
-					}
-				}
-
-				// --- ステートに応じた物理挙動 ---
-				const Game::Editor::Node* currentNodeInfo = nullptr;
-				for (const auto& n : enemy.baseData.nodes) {
-					if (n.id == currentNodeId) {
-						currentNodeInfo = &n;
-						break;
-					}
-				}
-
-              if (currentNodeInfo) {
-					// プレイヤーのほうを向く
-					if (currentNodeInfo->facePlayer) {
-						enemy.facingRight = (dx > 0.0f);
-					}
-
-                    // Node entry handling: allow nodes to trigger actions on entering.
-					// - If a node's `boundBool` contains a firing token (e.g. "FireProjectile"),
-					//   spawn a projectile immediately on entry. This enables node-driven
-					//   flows like: Charge -> Time>=X -> Shoot (where Shoot node triggers fire).
-					// - Also start spline motion on entry if specified.
-                   if (enemy.stateTimer == 0.0f) {
-             const std::string& fb = currentNodeInfo->boundBool;
-				// If entering a Charge state for a ranged enemy, spawn a visual attached projectile
-				if (currentNodeInfo->state == "Charge" && enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
-					Game::ProjectileData pd = enemy.baseData.projectile;
-					pd.spawnAttached = true;
-					pd.scaleOnCharge = true; // チャージエフェクト（弾の巨大化）を有効にする
-                        // offset relative to the enemy model (tunable). place the visual
-						// bullet well above the slime's head so it is clearly separated
-						// and ensure activation (firing) originates from that position.
-						pd.attachOffset = { 0.0f, 1.2f * enemy.modelScale, 0.0f };
-					ProjectileManager::GetInstance()->Fire(
-						enemy.position,
-						playerPosition,
-						pd,
-						enemy.id
-					);
-				}
-				// If the node requests a fire action via boundBool, attempt to activate any attached projectile;
-				// if none exists, fall back to spawning a new projectile.
-				else if (!fb.empty() && (fb == "FireProjectile" || fb == "fireProjectile" || fb == "Shoot" || fb == "shoot" || fb == "Fire" || fb == "fire")) {
-					bool activated = ProjectileManager::GetInstance()->ActivateAttachedProjectile(enemy.id, playerPosition);
-					if (!activated) {
-						ProjectileManager::GetInstance()->Fire(
-							enemy.position,
-							playerPosition,
-							enemy.baseData.projectile,
-							enemy.id
-						);
-					}
-				}
-				else if (fb.rfind("SpawnActor:", 0) == 0) {
-					std::string actorName = fb.substr(11); // length of "SpawnActor:"
-					Game::ProjectileData pd;
-					pd.actorName = actorName;
-					pd.spawnAttached = true;
-					pd.scaleOnCharge = false;
-					ProjectileManager::GetInstance()->Fire(
-						enemy.position,
-						playerPosition,
-						pd,
-						enemy.id
-					);
-				}
-				else if (fb.rfind("ShootActor:", 0) == 0) {
-					std::string actorName = fb.substr(11); // length of "ShootActor:"
-					Game::ProjectileData pd;
-					pd.actorName = actorName;
-					pd.spawnAttached = false;
-					pd.scaleOnCharge = false;
-					ProjectileManager::GetInstance()->Fire(
-						enemy.position,
-						playerPosition,
-						pd,
-						enemy.id
-					);
-				}
-				else if (fb.rfind("EquipActor:", 0) == 0) {
-					std::string actorName = fb.substr(11); // length of "EquipActor:"
-					ProjectileManager::GetInstance()->RemoveEquipment(enemy.id);
-					Game::ProjectileData pd;
-					pd.actorName = actorName;
-					pd.spawnAttached = true;
-					pd.scaleOnCharge = false;
-					pd.lifetime = 99999.0f; // Infinite
-					ProjectileManager::GetInstance()->Fire(
-						enemy.position,
-						playerPosition,
-						pd,
-						enemy.id
-					);
-					// Mark the newly spawned projectile as equipment
-					for (auto& p : const_cast<std::vector<Projectile>&>(ProjectileManager::GetInstance()->GetAll())) {
-						if (!p.isDead && p.ownerEnemyId == enemy.id && p.data.actorName == actorName && p.data.lifetime > 90000.0f) {
-							p.isEquipment = true;
-						}
-					}
-				}
-
-                        // Start spline motion on node entry if specified. Prefer explicit per-node
-						// `splineMotionName`, then `boundMotion`, then the file-level `motionMap`
-						// mapping keyed by the node `state`.
-						// ただし、物理インパルス（jumpVelocityY/jumpVelocityXMult）が設定されている
-						// ノードではスプラインを起動しない。物理ベースの移動を優先する。
-						bool hasPhysicsImpulse = (currentNodeInfo->jumpVelocityY != 0.0f || currentNodeInfo->jumpVelocityXMult != 0.0f);
-                        std::string motionToPlay;
-						if (!hasPhysicsImpulse) {
-							if (!currentNodeInfo->splineMotionName.empty()) {
-								motionToPlay = currentNodeInfo->splineMotionName;
-							} else if (!currentNodeInfo->boundMotion.empty()) {
-								motionToPlay = currentNodeInfo->boundMotion;
-							} else {
-								auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
-								if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) {
-									motionToPlay = mit->second;
-								}
-							}
-						}
-						// Face the player when starting a motion so the spline is applied toward player
-						enemy.facingRight = (dx > 0.0f);
-						if (!motionToPlay.empty()) {
-							enemy.motionController.Play(motionToPlay, enemy.position, currentNodeInfo->splineDuration);
-						}
-					}
-
-					// SplineMotion再生中なら物理演算をオーバーライド
-                    if (enemy.motionController.IsPlaying()) {
-						Lumina::Math::F32x3 dir = enemy.facingRight ? Lumina::Math::F32x3{1.0f, 0.0f, 0.0f} : Lumina::Math::F32x3{-1.0f, 0.0f, 0.0f};
-						
-						Lumina::Math::F32x3 oldOffset = enemy.motionController.GetLastLocalOffset();
-						(void)enemy.motionController.Update(deltaTime, dir); // absolute position is unused
-						Lumina::Math::F32x3 newOffset = enemy.motionController.GetLastLocalOffset();
-						
-						Lumina::Math::F32x3 delta;
-						delta.X = newOffset.X - oldOffset.X;
-						delta.Y = newOffset.Y - oldOffset.Y;
-						delta.Z = newOffset.Z - oldOffset.Z;
-						
-						if (deltaTime > 0.0f) {
-							enemy.velocity.X = delta.X / deltaTime;
-							enemy.velocity.Y = delta.Y / deltaTime;
-							enemy.velocity.Z = delta.Z / deltaTime;
-						} else {
-							enemy.velocity = {0.0f, 0.0f, 0.0f};
-						}
-
-						// 重力などの汎用物理移動をキャンセルし、Splineの純粋な相対移動(delta)を適用する
-						// posBeforePhysics はコリジョン押し出し結果が維持された正しい開始位置
-						enemy.position.X = posBeforePhysics.X + delta.X;
-						enemy.position.Y = posBeforePhysics.Y + delta.Y;
-						enemy.position.Z = posBeforePhysics.Z + delta.Z;
-                  } else {
-						// `state: "Walk"` はそのまま移動ステートとして扱う。
-						// これまでは boundBool 側の walk 指定しか見ていなかったため、
-						// アニメーションだけ Walk になっても実際の移動速度が入らなかった。
-                        bool nodeWalk =
-							(currentNodeInfo->state == "Walk") ||
-							(currentNodeInfo->name == "Walk") ||
-							(currentNodeInfo->animationName == "Walk") ||
-							(currentNodeInfo->boundBool == "walk") ||
-							(currentNodeInfo->boundBool == "Walk");
-
-						// If a spline/motion is available for this node, prefer playing it
-						// (entry logic above already starts it). Only fall back to simple
-						// horizontal velocity when no spline motion exists.
-						bool hasMotion = !currentNodeInfo->splineMotionName.empty() || !currentNodeInfo->boundMotion.empty();
-						if (!hasMotion) {
-							auto mit = enemy.baseData.motionMap.find(currentNodeInfo->state);
-							if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
-						}
-
-                        if (nodeWalk && !hasMotion) {
-							// move toward player instead of using facingRight blindly
-							float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-							enemy.facingRight = (dx > 0.0f);
-							enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
-						}
-
-						// 継続的な摩擦/ブレーキ
-						// 空中にいるときは横方向の摩擦を軽減し、落下中の慣性を保つ
-						float expectedGroundedVelY = -9.8f * deltaTime;
-						bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
-
-						if (isGrounded) {
-							enemy.velocity.X *= currentNodeInfo->velocityFrictionX;
-						} else {
-							// 空中では摩擦を最小限にする（極端な減速を防ぐ）
-							float airFriction = (std::max)(currentNodeInfo->velocityFrictionX, 0.98f);
-							enemy.velocity.X *= airFriction;
-						}
-
-						// ステート突入時の付加力（1フレーム目のみ付与するため approximate で判定）
-						if (enemy.stateTimer < deltaTime * 1.5f) {
-							if (currentNodeInfo->jumpVelocityXMult != 0.0f) {
-								float jumpDir = (dx > 0.0f) ? 1.0f : -1.0f;
-								enemy.velocity.X = jumpDir * enemy.baseData.moveSpeed * currentNodeInfo->jumpVelocityXMult;
-							}
-							// Y軸はジャンプ力代入（Slimeのもともとの挙動に合わせて単純設定）
-							if (currentNodeInfo->jumpVelocityY != 0.0f) {
-								enemy.velocity.Y = currentNodeInfo->jumpVelocityY;
-							}
-						}
-					}
-				}
+				// ノードの物理挙動を適用
+				ApplyNodePhysics(enemy, currentNodeInfo, deltaTime, dx, posBeforePhysics, playerPosition);
 
 				// ステートマシンで駆動されているのでデフォルトAIを上書き
-				// (Chase等に入らないようにする)
 				enemy.aiState = EnemyInstance::AIState::Idle;
 			}
 

@@ -75,6 +75,20 @@ export namespace Game::Editor {
 		std::string condition = "Always";
 	};
 
+	/// リンク条件を評価するためのコンテキスト（エディタ・ランタイム共通）
+	struct LinkEvalContext {
+		float stateElapsedTime = 0.0f;   // 現在のステートの経過秒数
+		float distToPlayer = 0.0f;       // プレイヤーまでの距離
+		float hpRatio = 1.0f;            // HP比率 (0.0〜1.0)
+		bool isGrounded = false;         // 接地しているか
+		const std::map<std::string, bool>* boolFlags = nullptr; // ランタイムBoolフラグ
+	};
+
+	/// リンク条件文字列を評価する（エディタ・ランタイム共通）
+	/// 対応条件: Always, Time>=, Time>, Dist<=, Dist>, HP<=, HP<, HP>=, HP>, HP==,
+	///          BOOL:, Grounded, !Grounded
+	bool EvaluateLinkCondition(const std::string& condition, const LinkEvalContext& ctx);
+
 	// サイズ段階ごとのステータス（小・中・大）
 	struct SizeTier {
 		int hp = 100;
@@ -262,6 +276,7 @@ export namespace Game::Editor {
 
 		float canvasOffsetX_ = 0.0f;
 		float canvasOffsetY_ = 0.0f;
+		float nodeCanvasZoom_ = 1.0f;    // ノードキャンバスのズーム倍率
 
 		// --- Node Editor Status ---
 		int currentStateId_ = -1;
