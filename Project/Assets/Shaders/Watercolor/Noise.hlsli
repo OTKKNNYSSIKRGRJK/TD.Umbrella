@@ -89,7 +89,7 @@ namespace PerlinNoise {
 			Hash(intParts + int3(1, 1, 1)),
 		};
 
-		const float3 remParts = pos_ - floor(pos_);
+		const float3 remParts = frac(pos_);
 		const float3 lerpFactor = Fade(remParts);
 		
 		const float lerp_000_100 = lerp(

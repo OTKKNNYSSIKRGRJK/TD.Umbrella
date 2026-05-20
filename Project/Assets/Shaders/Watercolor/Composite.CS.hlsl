@@ -32,7 +32,8 @@ void CalculateEdgeDarkening(in uint2 coord_, in float2 uv_, in float4 color_) {
 		Watercolor::Output::Composite[coord_].rgb,
 		edgeDensity * 0.25f
 	);
-	//Watercolor::Output::Composite[coord_].rgb = edgeDensity;
+	Watercolor::Output::Composite[coord_].rgb = edgeDensity;
+	Watercolor::Output::Composite[coord_].rgb = Watercolor::Input::Edge.SampleLevel(BilinearClamp, uv_, 0.0f);
 }
 
 void ApplySubstrateColor(in uint2 coord_, in float2 uv_) {
@@ -52,10 +53,10 @@ void main(uint3 tid_ : SV_DispatchThreadID) {
 	const float4 color = Watercolor::Input::Geometry::Albedo.SampleLevel(BilinearClamp, uv, 0.0f);
 	Watercolor::Output::Composite[coord] = color;
 	
-	AdjustColorByPigmentDensity(coord, uv);
-	CalculateColorBleeding(coord, uv);
+	//AdjustColorByPigmentDensity(coord, uv);
+	//CalculateColorBleeding(coord, uv);
 	CalculateEdgeDarkening(coord, uv, color);
-	ApplySubstrateColor(coord, uv);
+	//ApplySubstrateColor(coord, uv);
 	
 	//Watercolor::Output::Composite[coord].rgb *= float3(0.7f, 0.8f, 0.9f);
 }

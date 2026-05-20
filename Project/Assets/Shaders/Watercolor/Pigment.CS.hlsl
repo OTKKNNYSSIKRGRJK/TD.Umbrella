@@ -13,8 +13,6 @@ void main(uint3 tid_ : SV_DispatchThreadID) {
 	const uint2 coord = tid_.xy;
 	const float2 uv = Watercolor::TexelSize * coord;
 	
-	Watercolor::Output::Simulation::Pigment[coord] = Watercolor::Input::Noise.SampleLevel(BilinearClamp, uv * 0.25f, 0.0f);
-	// * [0, 1] -> [0.5, 1]
-	Watercolor::Output::Simulation::Pigment[coord] *= 0.5f;
-	Watercolor::Output::Simulation::Pigment[coord] += 0.5f;
+	Watercolor::Output::Simulation::Pigment[coord] =
+		Watercolor::Input::Noise.SampleLevel(BilinearClamp, uv * 0.25f, 0.0f);
 }

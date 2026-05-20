@@ -64,28 +64,35 @@ namespace Game::Scene::Impl {
 						p.Velocity.Y = p.Translate.Y * (-0.1f);
 						p.Velocity.Z = p.Translate.X * 0.01f;
 
-						p.Scale.X = 15.0f;
-						p.Scale.Y = 15.0f;
+						p.Scale.X = 0.05f;
+						p.Scale.Y = 0.5f;
 
-						p.Rotate.Z = rndEngine() * Inv_0xFFFFFFFF * std::numbers::pi_v<float> *2.0f;
+						// * [0, 1]
+						p.Rotate.Z = rndEngine() * Inv_0xFFFFFFFF;
+						// * [-0.01, 0.01]
+						p.Rotate.Z = p.Rotate.Z * 0.02f - 0.01f;
 
-						p.Life = 180.0f;
+						p.Life = 36.0f;
 
 						auto const rgb_Base = Lumina::Utils::Color::Convert(
 							Lumina::Utils::Color::HSV{
 								rndEngine() * Inv_0xFFFFFFFF * 45.0f + hueFactor_,
-								rndEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
-								0.75f
+								rndEngine() * Inv_0xFFFFFFFF * 0.3f + 0.2f,
+								0.8f
 							}
 						);
+						// * 色
 						p.RenderData.RGBA = {
 							rgb_Base.R,
 							rgb_Base.G,
 							rgb_Base.B,
-							0.05f
+							0.5f
 						};
+						// * 画像ID
 						p.RenderData.DiffuseID = 0U;
-						p.RenderData.DiffuseAtlasID = (rndEngine() % 5U) + 2U;
+						// * 画像アトラスID
+						p.RenderData.DiffuseAtlasID = 0U;
+						// * エミット
 						Raindrops_->Emit(std::move(p));
 					}
 				}

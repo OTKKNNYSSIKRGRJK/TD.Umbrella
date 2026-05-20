@@ -25,5 +25,6 @@ namespace GrassBlade {
 #define SLOT_SAV_MAP_TRAMPLING register(t1)
 #define SLOT_SAV_MAP_NOISE register(t2)
 #define SLOT_SRV_MAP_TINT register(t3)
+#define SLOT_SAV_MAP_HEIGHT register(t4)
 
 #define SPACE_IMGTEX space1

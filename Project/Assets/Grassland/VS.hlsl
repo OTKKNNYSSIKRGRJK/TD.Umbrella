@@ -7,6 +7,7 @@ cbuffer Scene : register(b1) {
 Texture2D<float4> SRV_Map_Bend : SLOT_SAV_MAP_BEND;
 Texture2D<float4> SRV_Map_Trampling : SLOT_SAV_MAP_TRAMPLING;
 Texture2D<float4> SRV_Map_Noise : SLOT_SAV_MAP_NOISE;
+Texture2D<float4> SRV_Map_Height : SLOT_SAV_MAP_HEIGHT;
 
 SamplerState BilinearWrap : register(s0);
 
@@ -121,6 +122,7 @@ GrassBlade::VSOutput main(GrassBlade::VSInput input_, uint instID_ : SV_Instance
 	const float3 p0 = float3(0.0f, 0.0f, 0.0f);
 	const float3 bend = BezierCurve(input_.LocalPos.y, p0, p1, p2, p3);
 	output.Position.xyz += bend;
+	output.Position.y += pn.x;
 	
 	output.Position = mul(output.Position, WorldToNDC);
 	

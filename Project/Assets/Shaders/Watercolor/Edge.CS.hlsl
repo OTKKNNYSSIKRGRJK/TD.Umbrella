@@ -184,7 +184,7 @@ void CalculateDensity(uint3 tid_ : SV_DispatchThreadID) {
 	result += Convolve(Watercolor::Input::Edge, uvs, Kernel::Gaussian::Sigma1);
 	
 	const float noise = Watercolor::Input::Noise.SampleLevel(BilinearClamp, uv_Center * 0.5f, 0.0f);
-	result *= noise * 0.5f;
+	result *= noise * factor_EdgeDensity;
 	
 	// * Where the more bleeding, the less indistinct edge. 
 	result *= lerp(1.25f, 0.2f, smoothstep(0.0f, 1.0f, factor_Bleeding));

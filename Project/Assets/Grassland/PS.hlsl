@@ -37,7 +37,7 @@ GrassBlade::PSOutput main(GrassBlade::PSInput input_) {
 	// * Bleeding
 	output.Factors0.r = output.Diffuse.z;
 	// * Edge Density
-	output.Factors0.g = 0.5f;
+	output.Factors0.g = 0.9f;
 	// * Depth
 	//output.Factors0.b = input_.Position.z / input_.Position.w;
 	
