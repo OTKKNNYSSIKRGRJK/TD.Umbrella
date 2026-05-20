@@ -839,9 +839,18 @@ namespace Game {
            else if (other->GetMyType() == COL_Player) {
 				Player* player = static_cast<Player*>(other->GetUserData());
 				if (player != nullptr) {
-					// Do not damage player for tutorial/invulnerable-configured enemies
-					if (!HasInvulnerableHpSetting(this->baseData)) {
-						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power));
+					bool isAttack = false;
+					float dmgMult = 1.0f;
+					for (const auto& node : this->baseData.nodes) {
+						if (node.state == this->currentAction) {
+							isAttack = node.isAttack;
+							dmgMult = node.damageMultiplier;
+							break;
+						}
+					}
+					// 攻撃判定がONの時のみダメージを与える
+					if (isAttack && !HasInvulnerableHpSetting(this->baseData)) {
+						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power * dmgMult));
 					}
 				}
 			}
@@ -905,10 +914,25 @@ namespace Game {
 		}
 		auto worldMat = Game::MathUtils::SRT(scale, rot, position);
 
+		bool isAttack = false;
+		for (const auto& node : baseData.nodes) {
+			if (node.state == currentAction) {
+				isAttack = node.isAttack;
+				break;
+			}
+		}
+
 		for (auto& col : colliders) {
 			position.Z = 0.0f; // Zは常に0
 			col->SetWorldPosition(position);
 			col->SetWorldMatrix(worldMat);
+			
+			if (isAttack) {
+				col->SetMyType(COL_Enemy | COL_Enemy_Attack);
+			} else {
+				col->SetMyType(COL_Enemy);
+			}
+
 			col->UpdateAABB();
 		}
 	}

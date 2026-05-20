@@ -335,6 +335,9 @@ void Player::Update(float deltaTime) {
 	if (mana_) {
 		mana_->Update(deltaTime);
 	}
+	if (status_) {
+		status_->Update(deltaTime);
+	}
 
 	ThrowUpdate(deltaTime);
 
@@ -567,7 +570,7 @@ void Player::InitializeComponents() {
 	mana_ = std::make_unique<ManaComponent>(100.0f);
 	//// StatusComponentの初期化 ////
 	// HP , Attack , Defence
-	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 5.0f);
+	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 0.0f); // テスト用に防御力を0に変更
 }
 ///////////////////
 ///

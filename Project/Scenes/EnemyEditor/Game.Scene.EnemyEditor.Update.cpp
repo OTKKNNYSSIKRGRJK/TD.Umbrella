@@ -1159,6 +1159,7 @@ namespace Game::Editor {
 
 		DrawLinkConditionList();
 
+		ImGui::BeginChild("NodeDetailsPanel", ImVec2(0, 250.0f), true, ImGuiWindowFlags_HorizontalScrollbar);
 		if (Node* selectedNode = FindNodeById(nodeEditor_selectedNodeId_)) {
 			ImGui::SeparatorText("Selected Node Binding");
 			ImGui::Text("Selected: %s (id=%d)", selectedNode->name.c_str(), selectedNode->id);
@@ -1290,6 +1291,15 @@ namespace Game::Editor {
 			ImGui::DragFloat("Jump Y##np", &selectedNode->jumpVelocityY, 0.1f, -20.0f, 20.0f, "%.1f");
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Vertical jump velocity\nApplied on state entry");
 
+			ImGui::SeparatorText("Node Attack");
+			ImGui::Checkbox("Is Attack##na", &selectedNode->isAttack);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("ON: 敵本体のコライダーがこのノード中のみ攻撃判定を持ちます\n(触れるとダメージを与えるようになります)");
+
+			ImGui::BeginDisabled(!selectedNode->isAttack);
+			ImGui::DragFloat("Damage Multiplier##na", &selectedNode->damageMultiplier, 0.1f, 0.0f, 10.0f, "%.2f");
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip("攻撃力にかかる倍率\n実際のダメージ = 敵の基本Power * この倍率");
+			ImGui::EndDisabled();
+
 			ImGui::Spacing();
 			ImGui::TextDisabled("Spline Motion Override");
 			{
@@ -1313,14 +1323,18 @@ namespace Game::Editor {
 			}
 			ImGui::DragFloat("Spline Duration##np", &selectedNode->splineDuration, 0.1f, 0.1f, 30.0f, "%.1f s");
 			if (ImGui::IsItemHovered()) ImGui::SetTooltip("Duration of spline motion playback (seconds)");
+		} else {
+			ImGui::TextDisabled("No node selected. Click a node to edit its properties.");
 		}
+		ImGui::EndChild();
 
 		ImGui::Separator();
 
 		ImVec2 canvasPos = ImGui::GetCursorScreenPos();
 		ImVec2 canvasSize = ImGui::GetContentRegionAvail();
+		canvasSize.y -= 40.0f; // 下部のボタン用のスペースを確保
 		if (canvasSize.x < 100) canvasSize.x = 100;
-		if (canvasSize.y < 100) canvasSize.y = 100;
+		if (canvasSize.y < 200) canvasSize.y = 200; // 最低限の高さを確保
 		nodeCanvasWidth_ = canvasSize.x;
 		nodeCanvasHeight_ = canvasSize.y;
 
@@ -1329,14 +1343,15 @@ namespace Game::Editor {
 		ImVec2 origin = canvasPos;
 
 		// マウスホイールでズーム（キャンバスにホバー中）
-		if (ImGui::IsItemHovered()) {
-			float wheel = ImGui::GetIO().MouseWheel;
-			if (wheel != 0.0f) {
-				nodeCanvasZoom_ += wheel * 0.1f;
-				if (nodeCanvasZoom_ < 0.3f) nodeCanvasZoom_ = 0.3f;
-				if (nodeCanvasZoom_ > 3.0f) nodeCanvasZoom_ = 3.0f;
-			}
-		}
+		// if (ImGui::IsItemHovered()) {
+		// 	float wheel = ImGui::GetIO().MouseWheel;
+		// 	if (wheel != 0.0f) {
+		// 		nodeCanvasZoom_ += wheel * 0.1f;
+		// 		if (nodeCanvasZoom_ < 0.3f) nodeCanvasZoom_ = 0.3f;
+		// 		if (nodeCanvasZoom_ > 3.0f) nodeCanvasZoom_ = 3.0f;
+		// 	}
+		// }
+		nodeCanvasZoom_ = 1.0f; // ズームを1.0で固定
 		float z = nodeCanvasZoom_;
 
 		drawList->AddRectFilled(origin, ImVec2(origin.x + canvasSize.x, origin.y + canvasSize.y), MakeCol32(40, 40, 45, 255));
@@ -1509,7 +1524,7 @@ namespace Game::Editor {
 			ImGui::SetCursorScreenPos(prevScreenPos);
 
 			bool hovered = (mousePos.x >= a.x && mousePos.x <= b.x && mousePos.y >= a.y && mousePos.y <= b.y);
-			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 126.0f);
+			bool overInline = (mousePos.x >= a.x + 6.0f && mousePos.x <= a.x + 166.0f && mousePos.y >= a.y + 6.0f && mousePos.y <= a.y + 156.0f);
 
 			if (!nodeDragActive_ && hovered && !overInline && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
 				nodeDragActive_ = true;

@@ -202,34 +202,89 @@ namespace Game::Scene::Impl {
 					Game::Editor::EnemyData ed;
 					enemyEditor_.LoadEnemy(ed, fName);
 					
-					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4 && ed.gltfPath.substr(ed.gltfPath.size() - 4) == ".obj") {
-						try {
-							auto&& objParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath);
-							
-							// OBJからMTL名を取得してテクスチャパスを解決
-							std::string diffuseTexName = "";
-							std::string diffuseTexPath = "";
-							if (!objParser.MTLFileNames().empty()) {
-								std::string mtlFileName = fs::path(objParser.MTLFileNames()[0]).filename().string();
-								std::string mtlPath = (fs::path(ed.gltfPath).parent_path() / mtlFileName).string();
-								try {
-									auto&& mtlParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontMTL>(mtlPath);
-									std::string texRawName = mtlParser.TextureFileName();
-									if (!texRawName.empty()) {
-										std::string texFileName = fs::path(texRawName).filename().string();
-										diffuseTexName = ed.name + "_diffuse";
-										diffuseTexPath = (fs::path(mtlPath).parent_path() / texFileName).string();
-									}
-								} catch(...) {}
-							}
+					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4) {
+						std::string ext = ed.gltfPath.substr(ed.gltfPath.size() - 4);
+						for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
-							auto&& enemyMesh = Lumina::Utils::Mesh::Load(objParser);
-							
+						try {
 							using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 							MeshCollection validMeshes;
-							for (auto& m : enemyMesh) {
-								if (!m.Positions.empty() && !m.Vertices.empty()) {
-									validMeshes.push_back(std::move(m));
+							std::string diffuseTexName = "";
+							std::string diffuseTexPath = "";
+
+							if (ext == ".obj") {
+								auto&& objParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(ed.gltfPath);
+								
+								// OBJからMTL名を取得してテクスチャパスを解決
+								if (!objParser.MTLFileNames().empty()) {
+									std::string mtlFileName = fs::path(objParser.MTLFileNames()[0]).filename().string();
+									std::string mtlPath = (fs::path(ed.gltfPath).parent_path() / mtlFileName).string();
+									try {
+										auto&& mtlParser = Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontMTL>(mtlPath);
+										std::string texRawName = mtlParser.TextureFileName();
+										if (!texRawName.empty()) {
+											std::string texFileName = fs::path(texRawName).filename().string();
+											diffuseTexName = ed.name + "_diffuse";
+											diffuseTexPath = (fs::path(mtlPath).parent_path() / texFileName).string();
+										}
+									} catch(...) {}
+								}
+
+								auto&& enemyMesh = Lumina::Utils::Mesh::Load(objParser);
+								
+								for (auto& m : enemyMesh) {
+									if (!m.Positions.empty() && !m.Vertices.empty()) {
+										validMeshes.push_back(std::move(m));
+									}
+								}
+							}
+							else if (ext == "gltf" || ext == ".glb") {
+								fs::path gPath = ed.gltfPath;
+								std::string parentPath = gPath.parent_path().string();
+								std::replace(parentPath.begin(), parentPath.end(), '\\', '/');
+								auto collection = Lumina::CG3D::Import(gPath.filename().string(), parentPath);
+								
+								for (auto& cgMesh : collection.Meshes) {
+									if (cgMesh.Vertices.empty()) continue;
+									Lumina::Utils::Mesh umesh;
+									umesh.Name = cgMesh.Name;
+									umesh.Positions.resize(cgMesh.Vertices.size());
+									umesh.TexCoords.resize(cgMesh.Vertices.size());
+									umesh.Normals.resize(cgMesh.Vertices.size());
+									umesh.Tangents.resize(cgMesh.Vertices.size(), {0.0f, 0.0f, 0.0f});
+									umesh.Vertices.resize(cgMesh.Indices.size());
+
+									for (size_t i = 0; i < cgMesh.Vertices.size(); ++i) {
+										umesh.Positions[i] = cgMesh.Vertices[i].Position;
+										umesh.TexCoords[i] = cgMesh.Vertices[i].TexCoord;
+										umesh.Normals[i] = cgMesh.Vertices[i].Normal;
+									}
+
+									for (size_t i = 0; i < cgMesh.Indices.size(); i += 3) {
+										Lumina::Math::F32x3 tangent = Lumina::Utils::Mesh::CalculateTangent(
+											cgMesh.Vertices[cgMesh.Indices[i]].Position, cgMesh.Vertices[cgMesh.Indices[i]].TexCoord,
+											cgMesh.Vertices[cgMesh.Indices[i+1]].Position, cgMesh.Vertices[cgMesh.Indices[i+1]].TexCoord,
+											cgMesh.Vertices[cgMesh.Indices[i+2]].Position, cgMesh.Vertices[cgMesh.Indices[i+2]].TexCoord
+										);
+										umesh.Tangents[cgMesh.Indices[i]] = tangent;
+										umesh.Tangents[cgMesh.Indices[i+1]] = tangent;
+										umesh.Tangents[cgMesh.Indices[i+2]] = tangent;
+
+										for (int v = 0; v < 3; ++v) {
+											uint32_t idx = cgMesh.Indices[i+v];
+											umesh.Vertices[i+v].Index_Position = idx;
+											umesh.Vertices[i+v].Index_TexCoord = idx;
+											umesh.Vertices[i+v].Index_Normal = idx;
+											umesh.Vertices[i+v].Index_Tangent = idx;
+										}
+									}
+
+									validMeshes.push_back(std::move(umesh));
+								}
+
+								if (!collection.Materials.empty() && !collection.Materials[0].FilePath_Diffuse.empty()) {
+									diffuseTexName = ed.name + "_diffuse";
+									diffuseTexPath = (gPath.parent_path() / collection.Materials[0].FilePath_Diffuse).string();
 								}
 							}
 

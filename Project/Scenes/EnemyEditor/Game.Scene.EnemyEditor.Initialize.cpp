@@ -53,7 +53,9 @@ namespace Game::Editor {
 		{"prepSound", n.prepSound},
 		{"prepParticle", n.prepParticle},
 			{"splineMotionName", n.splineMotionName},
-			{"splineDuration", n.splineDuration}
+			{"splineDuration", n.splineDuration},
+			{"isAttack", n.isAttack},
+			{"damageMultiplier", n.damageMultiplier}
 		};
 	}
 	void from_json(const json& j, Node& n) {
@@ -75,6 +77,9 @@ namespace Game::Editor {
 		if (j.contains("velocityFrictionX")) j.at("velocityFrictionX").get_to(n.velocityFrictionX);
 		if (j.contains("jumpVelocityXMult")) j.at("jumpVelocityXMult").get_to(n.jumpVelocityXMult);
 		if (j.contains("jumpVelocityY")) j.at("jumpVelocityY").get_to(n.jumpVelocityY);
+
+        if (j.contains("isAttack")) j.at("isAttack").get_to(n.isAttack);
+        if (j.contains("damageMultiplier")) j.at("damageMultiplier").get_to(n.damageMultiplier);
 
 		if (j.contains("prepScale") && j["prepScale"].is_object()) {
 			auto const & ps = j["prepScale"];

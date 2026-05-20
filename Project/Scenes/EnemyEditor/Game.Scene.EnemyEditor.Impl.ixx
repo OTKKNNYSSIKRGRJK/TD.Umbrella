@@ -67,6 +67,11 @@ export namespace Game::Editor {
 
 		// 速度Yに応じた前傾・後傾（ピッチ回転）を有効にするか
 		bool proceduralPitch = false;
+
+		// 攻撃判定として使用するか（本体がCOL_Enemy_Attackを持つか）
+		bool isAttack = false;
+		// 攻撃力にかかる倍率
+		float damageMultiplier = 1.0f;
 	};
 
 	struct Link {

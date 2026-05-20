@@ -182,6 +182,9 @@ namespace Lumina::CG3D {
 				ASSIMP::PostProcessStep::FlipUVs
 			)
 		};
+		(scene != nullptr) ||
+		Debug::ThrowIfFalse<>{ std::format("Failed to load scene {}: {}\n", filePath, importer.GetErrorString()) };
+
 		(scene->HasMeshes()) ||
 		Debug::ThrowIfFalse<>{ "No meshes in the scene!\n" };
 		
