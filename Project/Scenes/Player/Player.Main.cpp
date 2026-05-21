@@ -335,6 +335,9 @@ void Player::Update(float deltaTime) {
 	if (mana_) {
 		mana_->Update(deltaTime);
 	}
+	if (status_) {
+		status_->Update(deltaTime);
+	}
 
 	ThrowUpdate(deltaTime);
 

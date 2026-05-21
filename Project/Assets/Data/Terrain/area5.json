@@ -66,51 +66,6 @@
     },
     "enemies": [
         {
-            "enemyName": "KingSlime",
-            "facingRight": false,
-            "position": {
-                "x": 1452.0,
-                "y": 244.0
-            },
-            "sizeCategory": 2
-        },
-        {
-            "enemyName": "slime-kai",
-            "facingRight": false,
-            "position": {
-                "x": 594.0,
-                "y": 288.0
-            },
-            "sizeCategory": 1
-        },
-        {
-            "enemyName": "Slime",
-            "facingRight": true,
-            "position": {
-                "x": 1216.0,
-                "y": 312.0
-            },
-            "sizeCategory": 2
-        },
-        {
-            "enemyName": "slime-kai",
-            "facingRight": false,
-            "position": {
-                "x": 914.0,
-                "y": 298.0
-            },
-            "sizeCategory": 0
-        },
-        {
-            "enemyName": "Slime",
-            "facingRight": false,
-            "position": {
-                "x": 1934.0,
-                "y": 194.0
-            },
-            "sizeCategory": 1
-        },
-        {
             "enemyName": "Boss",
             "facingRight": true,
             "position": {

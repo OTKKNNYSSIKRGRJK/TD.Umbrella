@@ -395,6 +395,7 @@ namespace Game::Scene::Impl {
           pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
             pe.RenderFacingYaw = inst.renderFacingYaw;
+			pe.RenderPitch = inst.renderPitch;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
 			// pull debug flag from behavior if available

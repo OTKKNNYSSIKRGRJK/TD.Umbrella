@@ -764,29 +764,55 @@ namespace Game::Editor {
 
 		// Collider
 		if (editingActor_.collider.type == ColliderType::Box) {
-			float hw = editingActor_.collider.sizeX * scale, hh = editingActor_.collider.sizeY * scale;
-			drawList->AddRectFilled(ImVec2(actorScr.x - hw, actorScr.y - hh), ImVec2(actorScr.x + hw, actorScr.y + hh), MakeCol32(0, 180, 255, 40));
-			drawList->AddRect(ImVec2(actorScr.x - hw, actorScr.y - hh), ImVec2(actorScr.x + hw, actorScr.y + hh), MakeCol32(0, 200, 255, 200), 0, 0, 2.0f);
+			float hw = editingActor_.collider.sizeX;
+			float hh = editingActor_.collider.sizeY;
+			float rotZ = editingActor_.transform.rotZ * 3.14159265f / 180.0f;
+			float cosZ = std::cos(rotZ);
+			float sinZ = std::sin(rotZ);
+
+			ImVec2 pts[4];
+			float corners[4][2] = { {-hw, hh}, {hw, hh}, {hw, -hh}, {-hw, -hh} };
+			for(int i=0; i<4; ++i) {
+				float rx = corners[i][0] * cosZ - corners[i][1] * sinZ;
+				float ry = corners[i][0] * sinZ + corners[i][1] * cosZ;
+				pts[i] = localToScreen(baseX + offX + rx, baseY + offY + ry);
+			}
+			drawList->AddConvexPolyFilled(pts, 4, MakeCol32(0, 180, 255, 40));
+			drawList->AddPolyline(pts, 4, MakeCol32(0, 200, 255, 200), ImDrawFlags_Closed, 2.0f);
 		} else if (editingActor_.collider.type == ColliderType::Sphere) {
 			float r = editingActor_.collider.sizeX * scale;
 			drawList->AddCircleFilled(actorScr, r, MakeCol32(0, 180, 255, 40));
 			drawList->AddCircle(actorScr, r, MakeCol32(0, 200, 255, 200), 0, 2.0f);
 		} else if (editingActor_.collider.type == ColliderType::Polygon) {
 			auto& verts = editingActor_.collider.collisionVertices;
+			float rotZ = editingActor_.transform.rotZ * 3.14159265f / 180.0f;
+			float cosZ = std::cos(rotZ);
+			float sinZ = std::sin(rotZ);
+
 			if (verts.size() >= 3) {
 				bool convex = IsConvex(verts);
 
 				if (convex) {
 					std::vector<ImVec2> polyPoints;
-					for (const auto& v : verts) polyPoints.push_back(localToScreen(baseX + offX + v.x, baseY + offY + v.y));
+					for (const auto& v : verts) {
+						float rx = v.x * cosZ - v.y * sinZ;
+						float ry = v.x * sinZ + v.y * cosZ;
+						polyPoints.push_back(localToScreen(baseX + offX + rx, baseY + offY + ry));
+					}
 					drawList->AddConvexPolyFilled(polyPoints.data(), static_cast<int>(polyPoints.size()), MakeCol32(0, 180, 255, 40));
 				} else {
 					auto tris = Triangulate(verts);
 					for (const auto& tri : tris) {
+						auto applyRot = [&](const Game::Editor::ActorCollisionVertex& v) {
+							return std::pair<float,float>(v.x * cosZ - v.y * sinZ, v.x * sinZ + v.y * cosZ);
+						};
+						auto r0 = applyRot(verts[tri[0]]);
+						auto r1 = applyRot(verts[tri[1]]);
+						auto r2 = applyRot(verts[tri[2]]);
 						ImVec2 triPts[3] = {
-							localToScreen(baseX + offX + verts[tri[0]].x, baseY + offY + verts[tri[0]].y),
-							localToScreen(baseX + offX + verts[tri[1]].x, baseY + offY + verts[tri[1]].y),
-							localToScreen(baseX + offX + verts[tri[2]].x, baseY + offY + verts[tri[2]].y),
+							localToScreen(baseX + offX + r0.first, baseY + offY + r0.second),
+							localToScreen(baseX + offX + r1.first, baseY + offY + r1.second),
+							localToScreen(baseX + offX + r2.first, baseY + offY + r2.second),
 						};
 						drawList->AddConvexPolyFilled(triPts, 3, MakeCol32(0, 180, 255, 40));
 					}
@@ -796,8 +822,12 @@ namespace Game::Editor {
 			if (verts.size() >= 2) {
 				for (size_t i = 0; i < verts.size(); ++i) {
 					size_t next = (i + 1) % verts.size();
-					ImVec2 p0 = localToScreen(baseX + offX + verts[i].x, baseY + offY + verts[i].y);
-					ImVec2 p1 = localToScreen(baseX + offX + verts[next].x, baseY + offY + verts[next].y);
+					float rx0 = verts[i].x * cosZ - verts[i].y * sinZ;
+					float ry0 = verts[i].x * sinZ + verts[i].y * cosZ;
+					float rx1 = verts[next].x * cosZ - verts[next].y * sinZ;
+					float ry1 = verts[next].x * sinZ + verts[next].y * cosZ;
+					ImVec2 p0 = localToScreen(baseX + offX + rx0, baseY + offY + ry0);
+					ImVec2 p1 = localToScreen(baseX + offX + rx1, baseY + offY + ry1);
 					drawList->AddLine(p0, p1, MakeCol32(0, 200, 255, 200), 2.0f);
 				}
 			}
@@ -992,11 +1022,22 @@ namespace Game::Editor {
 		}
 
 		// --- ローカル↔スクリーン変換 ---
+		float rotZ = editingActor_.transform.rotZ * 3.14159265f / 180.0f;
+		float cosZ = std::cos(rotZ);
+		float sinZ = std::sin(rotZ);
+
 		auto localToScreen = [&](float lx, float ly) -> ImVec2 {
-			return ImVec2(center.x + lx * scale, center.y - ly * scale); // Y反転
+			float rx = lx * cosZ - ly * sinZ;
+			float ry = lx * sinZ + ly * cosZ;
+			return ImVec2(center.x + rx * scale, center.y - ry * scale); // Y反転
 		};
 		auto screenToLocal = [&](ImVec2 screen) -> std::pair<float, float> {
-			return { (screen.x - center.x) / scale, -(screen.y - center.y) / scale };
+			float unscaledX = (screen.x - center.x) / scale;
+			float unscaledY = -(screen.y - center.y) / scale;
+			// Inverse rotation
+			float lx = unscaledX * cosZ + unscaledY * sinZ;
+			float ly = -unscaledX * sinZ + unscaledY * cosZ;
+			return { lx, ly };
 		};
 
 		auto& verts = editingActor_.collider.collisionVertices;

@@ -60,7 +60,18 @@ export namespace Game::Editor {
 		// when no outgoing transition is currently satisfied, effectively
 		// looping the node until an external condition becomes true.
 		bool loop = false;
-      float loopCooldown = 0.0f; // seconds to wait after motion before next loop
+		float loopCooldown = 0.0f; // seconds to wait after motion before next loop
+
+		// 物理要件: trueの場合、接地していないとこのステートに遷移できない
+		bool requireGrounded = false;
+
+		// 速度Yに応じた前傾・後傾（ピッチ回転）を有効にするか
+		bool proceduralPitch = false;
+
+		// 攻撃判定として使用するか（本体がCOL_Enemy_Attackを持つか）
+		bool isAttack = false;
+		// 攻撃力にかかる倍率
+		float damageMultiplier = 1.0f;
 	};
 
 	struct Link {
@@ -68,6 +79,20 @@ export namespace Game::Editor {
 		int to = 0;
 		std::string condition = "Always";
 	};
+
+	/// リンク条件を評価するためのコンテキスト（エディタ・ランタイム共通）
+	struct LinkEvalContext {
+		float stateElapsedTime = 0.0f;   // 現在のステートの経過秒数
+		float distToPlayer = 0.0f;       // プレイヤーまでの距離
+		float hpRatio = 1.0f;            // HP比率 (0.0〜1.0)
+		bool isGrounded = false;         // 接地しているか
+		const std::map<std::string, bool>* boolFlags = nullptr; // ランタイムBoolフラグ
+	};
+
+	/// リンク条件文字列を評価する（エディタ・ランタイム共通）
+	/// 対応条件: Always, Time>=, Time>, Dist<=, Dist>, HP<=, HP<, HP>=, HP>, HP==,
+	///          BOOL:, Grounded, !Grounded
+	bool EvaluateLinkCondition(const std::string& condition, const LinkEvalContext& ctx);
 
 	// サイズ段階ごとのステータス（小・中・大）
 	struct SizeTier {
@@ -256,6 +281,7 @@ export namespace Game::Editor {
 
 		float canvasOffsetX_ = 0.0f;
 		float canvasOffsetY_ = 0.0f;
+		float nodeCanvasZoom_ = 1.0f;    // ノードキャンバスのズーム倍率
 
 		// --- Node Editor Status ---
 		int currentStateId_ = -1;

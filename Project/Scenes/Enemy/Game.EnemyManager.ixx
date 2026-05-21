@@ -158,6 +158,7 @@ export namespace Game {
 			, isDead(other.isDead)
 			, facingRight(other.facingRight)
           , renderFacingYaw(other.renderFacingYaw)
+		  , renderPitch(other.renderPitch)
           , spawnTimer(other.spawnTimer)
 			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
@@ -195,6 +196,7 @@ export namespace Game {
 				isDead = other.isDead;
 				facingRight = other.facingRight;
               renderFacingYaw = other.renderFacingYaw;
+			  renderPitch = other.renderPitch;
               spawnTimer = other.spawnTimer;
 				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
@@ -234,6 +236,7 @@ export namespace Game {
 		bool isDead = false;
 		bool facingRight = true;
        float renderFacingYaw = 0.0f;
+	   float renderPitch = 0.0f;
        float spawnTimer = 0.0f;
 		float spawnDuration = 0.0f;
 		int sizeTier = 1;
@@ -249,6 +252,8 @@ export namespace Game {
 		float strafeDirection = 1.0f;
 		// ガード: 同一フレーム中の重複ダメージを防ぐ
 		bool recentlyDamagedThisFrame = false;
+		// 接地判定フラグ（物理ベースの遷移条件で使用）
+		bool isGrounded = false;
 
 		// 攻撃インスタンスIDガード: 同一アクション中の重複ヒットを防ぐ
 		uint32_t lastHitAttackId = 0;

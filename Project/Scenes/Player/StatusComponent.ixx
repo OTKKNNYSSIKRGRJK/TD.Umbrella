@@ -19,6 +19,15 @@ public:
     // ダメージを受ける処理
     void TakeDamage(float incomingDamage);
 
+    void Update(float deltaTime) {
+        if (invincibilityTimer_ > 0.0f) {
+            invincibilityTimer_ -= deltaTime;
+        }
+    }
+
+    bool IsInvincible() const { return invincibilityTimer_ > 0.0f; }
+    void SetInvincible(float time) { invincibilityTimer_ = time; }
+
     // 回復する処理
     void Heal(float amount);
 
@@ -54,4 +63,5 @@ private:
     float defense_;
     float hitStop_ = 0.0f;
     uint32_t attackInstanceId_ = 0;
+    float invincibilityTimer_ = 0.0f;
 };
