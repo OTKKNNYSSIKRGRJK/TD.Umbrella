@@ -45,6 +45,8 @@ public:
     // 攻撃のインスタンスID（同一アクションでの重複ヒット防止用）
     void IncrementAttackInstanceId() { attackInstanceId_++; }
     uint32_t GetAttackInstanceId() const { return attackInstanceId_; }
+
+    void ApplyLevelBonus(uint32_t level);
 private:
     float maxHp_;
     float currentHp_;

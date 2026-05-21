@@ -53,6 +53,8 @@
     <ClCompile Include="Scenes\MapInfo\Ground.cpp" />
     <ClCompile Include="Scenes\Player\Attachment.cpp" />
     <ClCompile Include="Scenes\Player\Attachment.ixx" />
+    <ClCompile Include="Scenes\Player\ExperienceComponent.cpp" />
+    <ClCompile Include="Scenes\Player\ExperienceComponent.ixx" />
     <ClCompile Include="Scenes\Player\InputHandler.cpp" />
     <ClCompile Include="Scenes\Player\ManaComponent.cpp" />
     <ClCompile Include="Scenes\Player\ManaComponent.ixx" />

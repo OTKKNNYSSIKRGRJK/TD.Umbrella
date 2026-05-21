@@ -14,6 +14,7 @@ import : States;
 
 import ManaComponent;
 import StatusComponent;
+import ExperienceComponent;
 
 import Lumina.Core.Math;
 import Lumina.MeshManager;
@@ -208,6 +209,7 @@ private:
 	using AnimationDatabase = std::unordered_map<std::string, Animation>;
 	AnimationDatabase animDatabase_;
 	Animation* currentAnim_;
+	std::string currentAnimName_;
 	float animTimer_ = 0.0f;
 	bool isLoop_ = false;
 
@@ -228,6 +230,7 @@ public:
 		isLoop_ = isLoop;
 		if (it != animDatabase_.end()) {
 			currentAnim_ = &(it->second);
+			currentAnimName_ = useAnimationName;
 			return;
 		}
 		/*throw std::runtime_error("Motion not found: " + name);*/
@@ -346,11 +349,16 @@ public:
 	// Get関係
 	ManaComponent& GetManaComponent() { return *mana_; }
 	StatusComponent& GetStatusComponent() { return *status_; }
+	ExperienceComponent& GetExperienceComponent() { return *experience_; }
+
+	void GainXp(uint32_t amount);
 private:
 	// ManaComponent
 	std::unique_ptr<ManaComponent>mana_;
 	// StatusComponent
 	std::unique_ptr<StatusComponent>status_;
+
+	std::unique_ptr<ExperienceComponent>experience_;
 
 	// 無敵の時間
 	float invincibilityTimer_ = 0.0f;
@@ -363,9 +371,13 @@ private:
 public:
 	Collider* GetCollider()const { return collider_.get(); }
 	ConvexCollider* GetSmashCollider()const { return smashCollider_.get(); }
+	void TakeDamage(float damege, const Vector3& pos);
 private:
 	std::unique_ptr<ConvexCollider>collider_;
 	std::unique_ptr<ConvexCollider> smashCollider_;
+
+	const float MAX_WARPTIME = 0.3f;
+	float warpTimer_ = 0.0f;
 	//////////////////////////////
 	///
 	///   その他

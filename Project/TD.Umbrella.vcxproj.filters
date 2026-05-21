@@ -279,6 +279,8 @@
     </ClCompile>
     <ClCompile Include="Game\Game.TutorialManager.ixx" />
     <ClCompile Include="Game\Game.TutorialManager.cpp" />
+    <ClCompile Include="Scenes\Player\ExperienceComponent.ixx" />
+    <ClCompile Include="Scenes\Player\ExperienceComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />
