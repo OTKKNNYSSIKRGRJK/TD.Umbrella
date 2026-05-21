@@ -8,9 +8,47 @@ import Lumina.Main;
 import Game.MathUtils;
 
 namespace Game::Scene::Impl {
-	void Title::Render_Geometry() {
+	template<>
+	void Title::Render_<"Grassland">() {
+		auto const& context{ Lumina::Context::Instance() };
+		auto const& cmdList{ context.MainCommandList() };
+		Grassland_->Render(
+			context.D3D12Context(),
+			cmdList,
+			*WorldToHomogeneous_,
+			{}, 0,
+			{}, 0
+		);
+	}
+	template<>
+	void Title::Render_<"SceneParticles">() {
+		auto const& context{ Lumina::Context::Instance() };
+		auto const& cmdList{ context.MainCommandList() };
+
+		Raindrops_->Render(
+			cmdList,
+			// * ルートシグネチャ
+			RS_ParticleSystem_,
+			// * パイプラインステートオブジェクト
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_CBV_.CPUHandle(0U),
+			LocalHeap_CBV_.CPUHandle(0U),
+			// * パーティクル画像
+			GlobalTable_SRV_ImageTexture_,
+			// * オフスクリーンバッファ
+			GlobalTable_SRV_CanvasTexture_
+		);
+	}
+
+	template<>
+	void Title::Render_<"Geometry">() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 		//auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+		Raindrops_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity
+		);
 
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
 			 Lumina::D3D12::Barrier::Transition(
@@ -24,12 +62,17 @@ namespace Game::Scene::Impl {
 				 D3D12_RESOURCE_STATE_RENDER_TARGET
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
+				 Canvas_GeometryPass_.RenderTexture(2U),
+				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				 D3D12_RESOURCE_STATE_RENDER_TARGET
+			 ),
+			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_GeometryPass_.DepthTexture(),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				 D3D12_RESOURCE_STATE_DEPTH_WRITE
 			 ),
 		};
-		cmdList->ResourceBarrier(3U, barriers_PreGeometryPass);
+		cmdList->ResourceBarrier(4U, barriers_PreGeometryPass);
 
 		cmdList->RSSetViewports(
 			Canvas_GeometryPass_.Num_RenderTargets(),
@@ -40,9 +83,9 @@ namespace Game::Scene::Impl {
 			Canvas_GeometryPass_.ScissorRects().data()
 		);
 
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		/*auto rtv{ Canvas_GeometryPass_.RTV(0U) };
 		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);*/
 
 		GeometryPass_.Begin(cmdList);
 
@@ -65,6 +108,9 @@ namespace Game::Scene::Impl {
 			1U, 0U, 0U, 0U
 		);
 
+		Render_<"Grassland">();
+		Render_<"SceneParticles">();
+
 		GeometryPass_.End();
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
@@ -79,15 +125,99 @@ namespace Game::Scene::Impl {
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(2U),
+				D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
 				Canvas_GeometryPass_.DepthTexture(),
 				D3D12_RESOURCE_STATE_DEPTH_WRITE,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 		};
-		cmdList->ResourceBarrier(3U, barriers_PostGeometryPass);
+		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
 	}
 
-	void Title::Render_Merge() {
+	template<>
+	void Title::Render_<"Watercolor">() {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		static auto const& tex_SubstrateAlbedo{
+			*static_cast<Lumina::D3D12::ImageTexture const*>(
+				Lumina::Context::Instance().ResourceContext().
+				Graphics().GetResource("SubstrateAlbedo")
+			)
+		};
+		static auto const& tex_SubstrateNormal{
+			*static_cast<Lumina::D3D12::ImageTexture const*>(
+				Lumina::Context::Instance().ResourceContext().
+				Graphics().GetResource("SubstrateNormal")
+			)
+		};
+
+		D3D12_RESOURCE_BARRIER const barriers_PreWatercolor[]{
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(0U),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(2U),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.DepthTexture(),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				tex_SubstrateAlbedo,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				tex_SubstrateNormal,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
+			),
+		};
+		cmdList->ResourceBarrier(5U, barriers_PreWatercolor);
+
+		Watercolor_->Render(GlobalTable_SRV_GBufferForWaterColor_);
+
+		D3D12_RESOURCE_BARRIER const barriers_PostWatercolor[]{
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(0U),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(2U),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.DepthTexture(),
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				tex_SubstrateAlbedo,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				tex_SubstrateNormal,
+				D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			),
+		};
+		cmdList->ResourceBarrier(5U, barriers_PostWatercolor);
+	}
+
+	template<>
+	void Title::Render_<"Merge">() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
 		cmdList->RSSetViewports(
@@ -100,15 +230,11 @@ namespace Game::Scene::Impl {
 		);
 
 		PrimitiveManager_->Begin(cmdList);
+		auto idx{ static_cast<Lumina::U32>(Lumina::Watercolor::VIEW_NAME::SRV_COMPOSITE) };
 		PrimitiveManager_->BatchTriangle(
-			{ { -1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }, 0U },
-			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
-			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
-		);
-		PrimitiveManager_->BatchTriangle(
-			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
-			{ { 1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0U },
-			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
+			{ { -1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }, idx },
+			{ { 3.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 2.0f, 0.0f }, idx },
+			{ { -1.0f, -3.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f }, idx }
 		);
 		PrimitiveManager_->End(cmdList);
 
@@ -116,7 +242,7 @@ namespace Game::Scene::Impl {
 		MergePass_.RenderTarget(0).View() = swapChain.BackBufferRTVCPUHandle();
 		MergePass_.DepthStencil().View() = swapChain.DSVCPUHandle();
 		MergePass_.Begin(cmdList);
-		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, Lumina::Math::F32x4x4<>::Identity, 1);
+		PrimitiveManager_->Render(cmdList, Watercolor_->GlobalTable(), Lumina::Math::F32x4x4<>::Identity, 1);
 		MergePass_.End();
 	}
 
@@ -134,9 +260,11 @@ namespace Game::Scene::Impl {
 		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
 		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
 
+		UB_WorldToProjective_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
-		Render_Geometry();
-		Render_Merge();
+		Render_<"Geometry">();
+		Render_<"Watercolor">();
+		Render_<"Merge">();
 	}
 }
 

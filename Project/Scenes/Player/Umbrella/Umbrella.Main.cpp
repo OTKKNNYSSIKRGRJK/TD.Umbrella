@@ -44,10 +44,10 @@ namespace Umbrella {
 
 		Vector3 tipPos = tipJoint_.GetWorldPos();
 		Vector3 basePos = baseJoint_.GetWorldPos();
-#if defined(_DEBUG)
+		#if defined(_DEBUG)
 		ImGui::DragFloat3("TipPos", &tipPos.X);
 		ImGui::DragFloat3("BasePos", &basePos.X);
-#endif
+		#endif
 	}
 
 	void Handle::Draw() {
@@ -122,32 +122,32 @@ namespace Umbrella {
 		switch (form_) {
 		case UmbrellaForm::Closed:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-#if defined(_DEBUG)
+			#if defined(_DEBUG)
 			ImGui::Text("Close");
-#endif
+			#endif
 			break;
 		case UmbrellaForm::Opened:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-#if defined(_DEBUG)
+			#if defined(_DEBUG)
 			ImGui::Text("Opened");
-#endif
+			#endif
 			break;
 		case UmbrellaForm::Reverse:
 			rootJoint_.SetRot({ Lumina::Math::DegToRad(180.0f),0.0f,0.0f });
-#if defined(_DEBUG)
+			#if defined(_DEBUG)
 			ImGui::Text("Reverse");
-#endif
+			#endif
 			break;
 		case UmbrellaForm::Flying:
 			rootJoint_.SetRot({ 0.0f,0.0f,0.0f });
-#if defined(_DEBUG)
+			#if defined(_DEBUG)
 			ImGui::Text("Flying");
-#endif
+			#endif
 			break;
 		case UmbrellaForm::AirStop:
-#if defined(_DEBUG)
+			#if defined(_DEBUG)
 			ImGui::Text("AirStop");
-#endif
+			#endif
 			break;
 		}
 
@@ -161,10 +161,10 @@ namespace Umbrella {
 		// 全てが終わったらFalse
 		isRecalling_ = false;
 
-#if defined(_DEBUG)
-		float mana = mana_->GetCurrentMana();
+		[[maybe_unused]] float mana = mana_->GetCurrentMana();
+		#if defined(_DEBUG)
 		ImGui::Text("Over Mana : %f", mana);
-#endif
+		#endif
 	}
 
 	void Top::Draw() {

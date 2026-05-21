@@ -14,6 +14,10 @@ import Lumina.Core.String;
 
 import Lumina.CG3D.Struct;
 
+import Lumina.Watercolor;
+import Lumina.Grassland;
+import ParticleSystem;
+
 namespace Game::Scene::Impl {
 	export class Title {
 	private:
@@ -23,6 +27,8 @@ namespace Game::Scene::Impl {
 	private:
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
 		auto Update_(_ARGs&&...args_) -> void;
+		template<Lumina::StringLiteral _Name, typename..._ARGs>
+		auto Render_(_ARGs&&...args_) -> void;
 
 	public:
 		void Update();
@@ -80,11 +86,25 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
 
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_GBufferForWaterColor_;
+
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
 
 		Lumina::F32 AnimationTimer_;
+
+		std::unique_ptr<Lumina::Watercolor> Watercolor_;
+		std::unique_ptr<Lumina::Grassland> Grassland_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> Raindrops_;
+
+		Lumina::D3D12::RootSignature RS_ParticleSystem_;
+		Lumina::D3D12::Shader VS_Particle_;
+		Lumina::D3D12::Shader PS_Particle_;
+		Lumina::D3D12::GraphicsPSO GraphicsPSO_BasicParticle_AdditiveMode_;
+
+		Lumina::D3D12::DescriptorHeap LocalHeap_CBV_;
+		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
 	};
 }

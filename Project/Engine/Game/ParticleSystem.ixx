@@ -318,11 +318,17 @@ namespace Lumina {
 		auto const& device{ d3d12Context_.Device() };
 
 		struct RenderDataType {
-			Lumina::Math::F32x4x4<> Transform;
+			F32 Transform[4][4];
 			typename T::RenderDataCollection RenderData;
 		};
-		DB_Array_RenderData_.Initialize(device, sizeof(RenderDataType) * num_);
-		UB_Array_RenderData_.Initialize(device, DB_Array_RenderData_.SizeInBytes());
+		DB_Array_RenderData_.Initialize(
+			device,
+			sizeof(RenderDataType) * num_
+		);
+		UB_Array_RenderData_.Initialize(
+			device,
+			DB_Array_RenderData_.SizeInBytes()
+		);
 
 		d3d12Context_.GlobalDescriptorHeap().Allocate(GlobalTable_, 3U);
 		Lumina::D3D12::SRV<RenderDataType>::Create(

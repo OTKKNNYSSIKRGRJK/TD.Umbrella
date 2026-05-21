@@ -501,7 +501,7 @@ namespace Game::Scene::Impl {
 
 		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
-			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
+			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_Player_->Projection();
 		}
 		else {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
@@ -1573,5 +1573,8 @@ namespace Game::Scene::Impl {
 			HandleFallDeath();
 			DrawGamePhaseUI();
 		}
+
+		constexpr float deltaTime{ 1.0f / 60.0f };
+		Watercolor_->Update(deltaTime);
 	}
 }

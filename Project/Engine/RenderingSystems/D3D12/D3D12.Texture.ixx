@@ -800,51 +800,53 @@ namespace Lumina::D3D12 {
 
 		auto upload{
 			[&, this]() {
-				// Orders the intermediate data of the batched textures
-				// to be copied to the resources in the default heap.
-				for (auto const* tex : BatchedTextures_) {
-					auto const& data{ tex->IntermediateData() };
-					// Code extracted from UpdateResource
-					for (uint32_t i{ 0U }; i < data.Num_Subresources(); ++i) {
-						D3D12_TEXTURE_COPY_LOCATION const dst{
-							.pResource{ tex->Get() },
-							.Type{ D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX },
-							.SubresourceIndex{ i },
-						};
-						D3D12_TEXTURE_COPY_LOCATION const src{
-							.pResource{ data.Buffer().Get() },
-							.Type{ D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT },
-							.PlacedFootprint{ data.Metadata(i).PlacedFootprint()},
-						};
-						CommandList_->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+				if (!BatchedTextures_.empty()) {
+					// Orders the intermediate data of the batched textures
+					// to be copied to the resources in the default heap.
+					for (auto const* tex : BatchedTextures_) {
+						auto const& data{ tex->IntermediateData() };
+						// Code extracted from UpdateResource
+						for (uint32_t i{ 0U }; i < data.Num_Subresources(); ++i) {
+							D3D12_TEXTURE_COPY_LOCATION const dst{
+								.pResource{ tex->Get() },
+								.Type{ D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX },
+								.SubresourceIndex{ i },
+							};
+							D3D12_TEXTURE_COPY_LOCATION const src{
+								.pResource{ data.Buffer().Get() },
+								.Type{ D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT },
+								.PlacedFootprint{ data.Metadata(i).PlacedFootprint()},
+							};
+							CommandList_->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+						}
 					}
-				}
-				// Orders transitions of all batched textures at once in one call.
-				CommandList_->ResourceBarrier(
-					static_cast<uint32_t>(BatchedResourceBarriers_.size()),
-					BatchedResourceBarriers_.data()
-				);
+					// Orders transitions of all batched textures at once in one call.
+					CommandList_->ResourceBarrier(
+						static_cast<uint32_t>(BatchedResourceBarriers_.size()),
+						BatchedResourceBarriers_.data()
+					);
 
-				// Puts the command list into the batch of the command queue.
-				cmdQueue_ << CommandList_;
-				// Submits the jobs.
-				uint64_t fenceValue{ cmdQueue_.ExecuteBatchedCommandLists() };
-				// Waits on the GPU-complete notification.
-				DWORD const result{ cmdQueue_.CPUWait(fenceValue) };
-				if (result != WAIT_OBJECT_0) {
-					if (result == WAIT_FAILED) {
-						throw std::system_error{
-							std::error_code{ static_cast<int>(GetLastError()), std::system_category() },
-							"<ImageTextureUploader> Error : WaitForSingleObject"
-						};
+					// Puts the command list into the batch of the command queue.
+					cmdQueue_ << CommandList_;
+					// Submits the jobs.
+					uint64_t fenceValue{ cmdQueue_.ExecuteBatchedCommandLists() };
+					// Waits on the GPU-complete notification.
+					DWORD const result{ cmdQueue_.CPUWait(fenceValue) };
+					if (result != WAIT_OBJECT_0) {
+						if (result == WAIT_FAILED) {
+							throw std::system_error{
+								std::error_code{ static_cast<int>(GetLastError()), std::system_category() },
+								"<ImageTextureUploader> Error : WaitForSingleObject"
+							};
+						}
+						else {
+							throw std::runtime_error{ "<ImageTextureUploader> Error : WaitForSingleObject" };
+						}
 					}
-					else {
-						throw std::runtime_error{ "<ImageTextureUploader> Error : WaitForSingleObject" };
-					}
-				}
-				CommandList_.Reset(CommandAllocator_);
+					CommandList_.Reset(CommandAllocator_);
 
-				for (auto* tex : BatchedTextures_) { tex->Status_ = ImageTexture::STATUS::READY_TO_USE; }
+					for (auto* tex : BatchedTextures_) { tex->Status_ = ImageTexture::STATUS::READY_TO_USE; }
+				}
 
 				// Releases intermediate data of the batched textures after the copy commands are finished.
 				if (Thread_ClearBatch_.joinable()) { Thread_ClearBatch_.join(); }

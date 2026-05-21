@@ -497,7 +497,11 @@ namespace Game::Scene::Impl {
 			},
 			inputLayout_Mesh,
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM, },
+			{
+				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 			);
 
@@ -536,9 +540,13 @@ namespace Game::Scene::Impl {
 			.bottom{ 720 },
 		};
 
-		Canvas_GeometryPass_.AllocateTextures(2U, true);
+		Canvas_GeometryPass_.AllocateTextures(3U, true);
+		// * Albedo
 		Canvas_GeometryPass_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		// * Normal
 		Canvas_GeometryPass_.RenderTexture(1U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM);
+		// * BleedingFactor, EdgeDensityFactor
+		Canvas_GeometryPass_.RenderTexture(2U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM);
 		Canvas_GeometryPass_.DepthTexture().Initialize(d3d12Device, 1280U, 720U);
 		Canvas_GeometryPass_.TransitionResourceStates(d3d12Device, d3d12Context.DirectQueue());
 		Canvas_GeometryPass_.CreateViews(d3d12Device);
@@ -572,7 +580,7 @@ namespace Game::Scene::Impl {
 		};
 
 		Lumina::F32 const clearColor[4]{ 0.0f, 0.0f, 0.0f, 0.0f };
-		GeometryPass_.Initialize(2U, true);
+		GeometryPass_.Initialize(3U, true);
 		GeometryPass_.RenderTarget(0).BeginningEvent().ClearTarget(
 			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 			clearColor
@@ -583,6 +591,11 @@ namespace Game::Scene::Impl {
 			clearColor
 		);
 		GeometryPass_.RenderTarget(1).EndingEvent().Preserve();
+		GeometryPass_.RenderTarget(2).BeginningEvent().ClearTarget(
+			DXGI_FORMAT_R8G8B8A8_UNORM,
+			clearColor
+		);
+		GeometryPass_.RenderTarget(2).EndingEvent().Preserve();
 		GeometryPass_.DepthStencil().DepthBeginningEvent().ClearTarget(
 			DXGI_FORMAT_D24_UNORM_S8_UINT,
 			{ .Depth{ 1.0f }, }
@@ -679,7 +692,11 @@ namespace Game::Scene::Impl {
 			},
 			inputLayout_Mesh,
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_R8G8B8A8_UNORM, },
+			{
+				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
 
@@ -820,6 +837,16 @@ namespace Game::Scene::Impl {
 		EnemyEffects_->Initialize(d3d12Context_, 512U);
 	}
 
+	template<>
+	auto InGame::Initialize_<"Watercolor">() -> void {
+		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
+		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
+		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+
+		Watercolor_ = std::make_unique<Lumina::Watercolor>();
+		Watercolor_->Initialize();
+	}
+
 	void InGame::Initialize() {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
@@ -837,6 +864,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Lighting">(d3d12Context);
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
 		Initialize_<"RenderPipeline">();
+		Initialize_<"Watercolor">();
 
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
 		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));
