@@ -8,6 +8,9 @@ import <array>;
 
 import Lumina;
 import Game.ProjectileManager;
+import Lumina.Core.Math;
+import Lumina.CG3D.Struct;
+import Lumina.CG3D.Animation;
 
 export namespace Game::Editor {
 
@@ -206,6 +209,17 @@ export namespace Game::Editor {
 		std::vector<std::array<float, 3>> cachedMeshPositions_;  // 3D頂点座標
 		std::vector<std::array<int, 2>> cachedMeshEdges_;        // エッジ（頂点インデックスペア）
 		std::vector<std::array<int, 3>> cachedMeshFaces_;        // 三角形ポリゴン（頂点インデックス3つ）
+
+		// --- Animation Preview State ---
+		Lumina::CG3D::Skeleton cachedSkeleton_;
+		std::vector<Lumina::CG3D::MyAnimation> cachedAnimations_;
+		std::vector<std::vector<std::pair<int, float>>> vertexWeightsCache_;
+		std::vector<Lumina::Math::F32x4x4<>> invBindPoses_;
+		std::vector<Lumina::Math::F32x4x4<>> currentJointMatrices_;
+		std::vector<std::array<float, 3>> posedMeshPositions_;
+		bool isPreviewPlaying_ = false;
+		float previewTime_ = 0.0f;
+		int selectedPreviewAnimation_ = -1;
 
 		// 当たり判定エディタ状態
 		int draggedVertexIndex_ = -1;    // ドラッグ中の頂点インデックス

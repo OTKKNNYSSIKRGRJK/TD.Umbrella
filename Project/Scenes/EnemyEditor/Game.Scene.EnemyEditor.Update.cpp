@@ -11,6 +11,10 @@ import <array>;
 import <vector>;
 import <algorithm>;
 
+import Lumina.Core.Math;
+import Lumina.CG3D;
+import Lumina.Core.String;
+
 namespace fs = std::filesystem;
 
 #if defined(_DEBUG)
@@ -161,6 +165,48 @@ namespace Game::Editor {
 				editingEnemy_.gltfPath = pathBuf;
 			} else if (ImGui::IsItemDeactivatedAfterEdit()) {
 				editingEnemy_.gltfPath = pathBuf;
+			}
+
+			if (cachedAnimations_.empty()) {
+				ImGui::TextDisabled("No animations loaded.");
+			} else {
+				ImGui::Spacing();
+				ImGui::Text("Animation Preview");
+
+				std::string previewName = (selectedPreviewAnimation_ >= 0 && selectedPreviewAnimation_ < cachedAnimations_.size() && selectedPreviewAnimation_ < cachedAnimationNames_.size()) 
+					? cachedAnimationNames_[selectedPreviewAnimation_] : "None";
+				if (ImGui::BeginCombo("Select Anim", previewName.c_str())) {
+					if (ImGui::Selectable("None", selectedPreviewAnimation_ == -1)) {
+						selectedPreviewAnimation_ = -1;
+						isPreviewPlaying_ = false;
+						previewTime_ = 0.0f;
+					}
+					for (int i = 0; i < static_cast<int>(cachedAnimations_.size()); ++i) {
+						bool is_selected = (selectedPreviewAnimation_ == i);
+						std::string label = (i < cachedAnimationNames_.size()) ? cachedAnimationNames_[i] : "Anim " + std::to_string(i);
+						if (ImGui::Selectable(label.c_str(), is_selected)) {
+							selectedPreviewAnimation_ = i;
+							previewTime_ = 0.0f;
+							isPreviewPlaying_ = true;
+						}
+						if (is_selected) ImGui::SetItemDefaultFocus();
+					}
+					ImGui::EndCombo();
+				}
+
+				if (selectedPreviewAnimation_ >= 0 && selectedPreviewAnimation_ < cachedAnimations_.size()) {
+					if (ImGui::Button(isPreviewPlaying_ ? "Pause" : "Play ")) {
+						isPreviewPlaying_ = !isPreviewPlaying_;
+					}
+					ImGui::SameLine();
+					if (ImGui::Button("Stop")) {
+						isPreviewPlaying_ = false;
+						previewTime_ = 0.0f;
+					}
+					ImGui::SameLine();
+					float duration = cachedAnimations_[selectedPreviewAnimation_].DurationInSeconds;
+					ImGui::SliderFloat("Time", &previewTime_, 0.0f, duration, "%.2fs");
+				}
 			}
 		}
 
@@ -559,6 +605,45 @@ namespace Game::Editor {
 			ExtractMeshWireframe(editingEnemy_.gltfPath);
 		}
 
+		// --- アニメーションスキン更新 ---
+		if (!cachedMeshPositions_.empty() && !cachedSkeleton_.ARR_Joint.empty() && !cachedAnimations_.empty()) {
+			if (selectedPreviewAnimation_ >= 0 && selectedPreviewAnimation_ < static_cast<int>(cachedAnimations_.size())) {
+				if (isPreviewPlaying_) {
+					previewTime_ += ImGui::GetIO().DeltaTime;
+					float duration = cachedAnimations_[selectedPreviewAnimation_].DurationInSeconds;
+					if (duration > 0.0f) {
+						while (previewTime_ > duration) previewTime_ -= duration;
+					}
+				}
+				Lumina::CG3D::ApplyAnimation(cachedSkeleton_, cachedAnimations_[selectedPreviewAnimation_], previewTime_);
+				Lumina::CG3D::Update(cachedSkeleton_);
+				for (size_t i = 0; i < cachedSkeleton_.ARR_Joint.size(); ++i) {
+					currentJointMatrices_[i] = invBindPoses_[i] * cachedSkeleton_.ARR_Joint[i].SkeletonSpace; 
+				}
+
+				for (size_t v = 0; v < cachedMeshPositions_.size(); ++v) {
+					const auto& origPos = cachedMeshPositions_[v];
+					if (v < vertexWeightsCache_.size() && !vertexWeightsCache_[v].empty()) {
+						float pX = 0, pY = 0, pZ = 0;
+						for (const auto& jw : vertexWeightsCache_[v]) {
+							const auto& mat = currentJointMatrices_[jw.first];
+							float tx = origPos[0] * mat[0].Get(0) + origPos[1] * mat[1].Get(0) + origPos[2] * mat[2].Get(0) + mat[3].Get(0);
+							float ty = origPos[0] * mat[0].Get(1) + origPos[1] * mat[1].Get(1) + origPos[2] * mat[2].Get(1) + mat[3].Get(1);
+							float tz = origPos[0] * mat[0].Get(2) + origPos[1] * mat[1].Get(2) + origPos[2] * mat[2].Get(2) + mat[3].Get(2);
+							pX += tx * jw.second;
+							pY += ty * jw.second;
+							pZ += tz * jw.second;
+						}
+						posedMeshPositions_[v] = { pX, pY, pZ };
+					} else {
+						posedMeshPositions_[v] = origPos;
+					}
+				}
+			} else {
+				posedMeshPositions_ = cachedMeshPositions_;
+			}
+		}
+
 		// --- メッシュ描画（ソリッドポリゴン） ---
 		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
@@ -593,13 +678,13 @@ namespace Game::Editor {
 			std::vector<SolidFace> renderFaces;
 
 			for (const auto& face : cachedMeshFaces_) {
-				if (face[0] < 0 || face[0] >= cachedMeshPositions_.size()) continue;
-				if (face[1] < 0 || face[1] >= cachedMeshPositions_.size()) continue;
-				if (face[2] < 0 || face[2] >= cachedMeshPositions_.size()) continue;
+				if (face[0] < 0 || face[0] >= posedMeshPositions_.size()) continue;
+				if (face[1] < 0 || face[1] >= posedMeshPositions_.size()) continue;
+				if (face[2] < 0 || face[2] >= posedMeshPositions_.size()) continue;
 
-				const auto& v0 = cachedMeshPositions_[face[0]];
-				const auto& v1 = cachedMeshPositions_[face[1]];
-				const auto& v2 = cachedMeshPositions_[face[2]];
+				const auto& v0 = posedMeshPositions_[face[0]];
+				const auto& v1 = posedMeshPositions_[face[1]];
+				const auto& v2 = posedMeshPositions_[face[2]];
 
 				float d = (getDepth(v0) + getDepth(v1) + getDepth(v2)) / 3.0f;
 

@@ -894,7 +894,7 @@ namespace Game {
 					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
 						this->recentlyDamagedThisFrame = true;
 						this->lastHitAttackId = attackId;
-						// 衝撃波により本当に少しだけ動きを止めたい
+						// 衝撃波により本当に少しだけ動きを止めたい(
 						Game::EnemyManager::GetInstance()->DealDamage(this->id, 10);
 						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
 					}

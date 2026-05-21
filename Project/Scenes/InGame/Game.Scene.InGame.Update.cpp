@@ -25,6 +25,8 @@ import Game.ProjectileManager;
 import Game.Events;
 import Game.UIMenu;
 import Lumina.Scene;
+import Lumina.CG3D;
+import Lumina.CG3D.Animation;
 
 #if defined(_DEBUG)
 namespace {
@@ -398,6 +400,8 @@ namespace Game::Scene::Impl {
 			pe.RenderPitch = inst.renderPitch;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
+			pe.Id = inst.id;
+			pe.CurrentAction = inst.currentAction;
 			// pull debug flag from behavior if available
 			if (inst.behavior) {
 				pe.WalkActive = inst.behavior->IsWalkActive();
@@ -407,6 +411,56 @@ namespace Game::Scene::Impl {
 				pe.WalkActive = false;
 			}
 			playState_.Enemies.push_back(std::move(pe));
+		}
+		
+		// Clean up dead skinned instances
+		std::erase_if(EnemySkinnedInstances_, [&enemyInstances](const auto& pair) {
+			return std::find_if(enemyInstances.begin(), enemyInstances.end(), 
+				[id = pair.first](const auto& inst) { return inst.id == id; }) == enemyInstances.end();
+		});
+
+		for (const auto& e : playState_.Enemies) {
+			if (EnemySkinnedModels_.contains(e.BaseData.name)) {
+				if (!EnemySkinnedInstances_.contains(e.Id)) {
+					auto newInst = std::make_shared<SkinnedInstance>();
+					newInst->Skeleton_ = Lumina::CG3D::CreateSkeleton(EnemySkinnedModels_[e.BaseData.name]->Collection_.Root);
+					Lumina::CG3D::CreateSkinCluster(
+						newInst->SkinCluster_,
+						Lumina::Context::Instance().D3D12Context().Device(),
+						Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap(),
+						newInst->Skeleton_,
+						EnemySkinnedModels_[e.BaseData.name]->Collection_.Meshes[0]
+					);
+					
+					newInst->TransformsBuffer_.Initialize(Lumina::Context::Instance().D3D12Context().Device(), 256LLU);
+					newInst->CBV_SceneTable_ = Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Allocate(1U);
+					Lumina::D3D12::CBV::Create(Lumina::Context::Instance().D3D12Context().Device(), newInst->CBV_SceneTable_.CPUHandle(0U), newInst->TransformsBuffer_);
+					
+					EnemySkinnedInstances_[e.Id] = newInst;
+				}
+				
+				auto& skinInst = EnemySkinnedInstances_[e.Id];
+				auto& model = EnemySkinnedModels_[e.BaseData.name];
+				
+				int targetAnimIdx = 0;
+				if (e.CurrentAction == "Walk" || e.CurrentAction == "Chase") targetAnimIdx = 1;
+				else if (e.CurrentAction == "Attack" || e.CurrentAction == "AttackCharge") targetAnimIdx = 2;
+				
+				if (targetAnimIdx >= model->Animations_.size()) targetAnimIdx = 0; // Fallback
+				
+				if (skinInst->currentAnimIndex_ != targetAnimIdx) {
+					skinInst->currentAnimIndex_ = targetAnimIdx;
+					skinInst->animTimer_ = 0.0f;
+				}
+				
+				skinInst->animTimer_ += 1.0f / 60.0f * 1.5f;
+				
+				if (!model->Animations_.empty()) {
+					auto& activeAnim = model->Animations_[skinInst->currentAnimIndex_];
+					skinInst->animTimer_ = std::fmod(skinInst->animTimer_, activeAnim.DurationInSeconds);
+					Lumina::CG3D::Update(skinInst->SkinCluster_, skinInst->Skeleton_, activeAnim, skinInst->animTimer_);
+				}
+			}
 		}
 	}
 

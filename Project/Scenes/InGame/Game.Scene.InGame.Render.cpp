@@ -18,29 +18,121 @@ import Game.Events;
 
 namespace Game::Scene::Impl {
 	template<>
-	auto InGame::Render_<"Player">() -> void {
+	auto InGame::Render_<"Characters">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
-		auto const& playerModel{ Player_->GetAnimatedModel() };
-		
 		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
 		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
-		cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
-		cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
-		cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
-		cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
-
 		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
-			reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
-			reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.second.SkinCluster_.InfluenceBufferView)
-		};
-		cmdList->IASetVertexBuffers(0, 2, vbvs);
-		cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&playerModel.first.IBV_));
-		cmdList->DrawIndexedInstanced(
-			static_cast<Lumina::U32>(playerModel.first.Collection_.Meshes[0].Indices.size()),
-			1U, 0U, 0U, 0U
-		);
+
+		if (Player_) {
+			auto const& playerModel{ Player_->GetAnimatedModel() };
+			cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
+			cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+
+			D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
+				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
+				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.second.SkinCluster_.InfluenceBufferView)
+			};
+			cmdList->IASetVertexBuffers(0, 2, vbvs);
+			cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&playerModel.first.IBV_));
+			cmdList->DrawIndexedInstanced(
+				static_cast<Lumina::U32>(playerModel.first.Collection_.Meshes[0].Indices.size()),
+				1U, 0U, 0U, 0U
+			);
+		}
+
+		for (const auto& e : playState_.Enemies) {
+			if (e.IsDead) continue;
+			
+			if (EnemySkinnedModels_.contains(e.BaseData.name) && EnemySkinnedInstances_.contains(e.Id)) {
+				auto& model = EnemySkinnedModels_[e.BaseData.name];
+				auto& inst = EnemySkinnedInstances_[e.Id];
+				
+				Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
+				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+				
+				if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
+					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
+					if (spawnT < 0.0f) spawnT = 0.0f;
+					else if (spawnT > 1.0f) spawnT = 1.0f;
+
+					float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
+					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
+					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
+					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
+
+					renderPos.Y -= (1.0f - riseEase) * (2.8f * e.Scale);
+					renderPos.Y += overshoot * (0.95f * e.Scale);
+					renderPos.X += shake * (0.16f * e.Scale);
+
+					scale.X *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+					scale.Y *= 0.06f + 0.94f * riseEase + overshoot * 0.42f;
+					scale.Z *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+
+					rot.Z += twist * 0.28f;
+					rot.X += std::abs(twist) * 0.12f;
+				}
+				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
+					float hurtRatio = e.HurtTimer / 0.2f;
+					if (hurtRatio > 1.0f) hurtRatio = 1.0f;
+
+					float const pulse = 0.5f + 0.5f * std::sin(hurtRatio * 18.0f);
+					float const stretch = 1.0f + hurtRatio * 0.18f;
+					float const squash = 1.0f - hurtRatio * 0.12f;
+					float const shakeDir = e.FacingRight ? -1.0f : 1.0f;
+
+					renderPos.X += shakeDir * pulse * 0.18f;
+					renderPos.Y += hurtRatio * 0.08f;
+					scale.X *= stretch;
+					scale.Y *= squash;
+					scale.Z *= stretch;
+				}
+
+				rot.Y = e.RenderFacingYaw;
+				rot.X += e.RenderPitch;
+				
+				// Optional visual offset applied via behavior (like jump anticipation)
+				if (e.VisualOffset.X != 0.0f || e.VisualOffset.Y != 0.0f || e.VisualOffset.Z != 0.0f) {
+					renderPos.X += e.VisualOffset.X;
+					renderPos.Y += e.VisualOffset.Y;
+					renderPos.Z += e.VisualOffset.Z;
+				}
+				rot.Y += e.VisualYaw;
+				
+				Lumina::Math::F32x4x4<> meshWorld = Game::MathUtils::SRT(scale, rot, renderPos);
+				Lumina::Math::F32x4x4<> tr_INV_MeshWorld = meshWorld.Inverse().Transpose();
+				Lumina::Math::F32x4x4<> wvp = meshWorld * (*WorldToHomogeneous_);
+				
+				inst->TransformsBuffer_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+				inst->TransformsBuffer_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
+				inst->TransformsBuffer_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
+
+				uint32_t materialIdx = 0U;
+				if (EnemyTextureIndices_.contains(e.BaseData.name)) {
+					materialIdx = EnemyTextureIndices_.at(e.BaseData.name);
+				}
+				
+				cmdList->SetGraphicsRootDescriptorTable(0U, inst->CBV_SceneTable_.GPUHandle(0U));
+				cmdList->SetGraphicsRootDescriptorTable(1U, inst->SkinCluster_.PaletteSRVHandle.second);
+				cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(materialIdx));
+				cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+
+				D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
+					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(model->VBV_),
+					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(inst->SkinCluster_.InfluenceBufferView)
+				};
+				cmdList->IASetVertexBuffers(0, 2, vbvs);
+				cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&model->IBV_));
+				cmdList->DrawIndexedInstanced(
+					static_cast<Lumina::U32>(model->Collection_.Meshes[0].Indices.size()),
+					1U, 0U, 0U, 0U
+				);
+			}
+		}
 	}
 
 	void InGame::Render_Geometry() {
@@ -264,7 +356,7 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
 			LocalHeap_Scene_.CPUHandle(0U)
 		);
-		Render_<"Player">();
+		Render_<"Characters">();
 		GeometryPass_.End();
 
 		{

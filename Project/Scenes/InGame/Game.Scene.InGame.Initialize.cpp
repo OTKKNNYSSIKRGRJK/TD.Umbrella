@@ -123,6 +123,7 @@ namespace Game::Scene::Impl {
 	template<>
 	auto InGame::Initialize_<"Meshes">() -> void {
 		auto const& d3d12Context{ Lumina::Context::Instance().D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
 
 		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
 		// Lumina::Utils::Meshにはメッシュ1個分が入る
@@ -242,8 +243,56 @@ namespace Game::Scene::Impl {
 								fs::path gPath = ed.gltfPath;
 								std::string parentPath = gPath.parent_path().string();
 								std::replace(parentPath.begin(), parentPath.end(), '\\', '/');
-								auto collection = Lumina::CG3D::Import(gPath.filename().string(), parentPath);
 								
+								Lumina::String luminaFileName(gPath.filename().string().c_str());
+								Lumina::String luminaDirPath(parentPath.c_str());
+								auto collection = Lumina::CG3D::Import(gPath.filename().string(), parentPath);
+								auto animations = Lumina::CG3D::LoadAnimationFile(luminaFileName, luminaDirPath);
+								
+								bool hasAnimation = !animations.empty();
+								
+								if (!collection.Materials.empty() && !collection.Materials[0].FilePath_Diffuse.empty()) {
+									diffuseTexName = ed.name + "_diffuse";
+									diffuseTexPath = (gPath.parent_path() / collection.Materials[0].FilePath_Diffuse).string();
+								}
+								
+								if (hasAnimation) {
+									auto skinnedModel = std::make_shared<SkinnedModel>();
+									skinnedModel->Collection_ = std::move(collection);
+									skinnedModel->Animations_ = std::move(animations);
+									
+									skinnedModel->VertexBuffer_.Initialize(
+										d3d12Device,
+										sizeof(Lumina::CG3D::Mesh::Vertex) * skinnedModel->Collection_.Meshes[0].Vertices.size()
+									);
+									skinnedModel->VertexBuffer_.Store(
+										skinnedModel->Collection_.Meshes[0].Vertices.data(),
+										sizeof(Lumina::CG3D::Mesh::Vertex) * skinnedModel->Collection_.Meshes[0].Vertices.size(),
+										0LLU
+									);
+									skinnedModel->VBV_ = Lumina::D3D12::VBV::Create<Lumina::CG3D::Mesh::Vertex>(skinnedModel->VertexBuffer_);
+									
+									skinnedModel->IndexBuffer_.Initialize(
+										d3d12Device,
+										sizeof(Lumina::U32) * skinnedModel->Collection_.Meshes[0].Indices.size()
+									);
+									skinnedModel->IndexBuffer_.Store(
+										skinnedModel->Collection_.Meshes[0].Indices.data(),
+										sizeof(Lumina::U32) * skinnedModel->Collection_.Meshes[0].Indices.size(),
+										0LLU
+									);
+									skinnedModel->IBV_ = Lumina::D3D12::IBV::Create(skinnedModel->IndexBuffer_);
+									
+									EnemySkinnedModels_[ed.name] = skinnedModel;
+									
+									if (!diffuseTexName.empty()) {
+										EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+										AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
+									}
+									continue; // Skip static mesh processing
+								}
+								
+								// Process as static mesh if no animation
 								std::map<size_t, Lumina::Math::F32x4x4<>> meshTransforms;
 								std::function<void(const Lumina::CG3D::Node&, Lumina::Math::F32x4x4<>)> dfs = [&](const Lumina::CG3D::Node& node, Lumina::Math::F32x4x4<> parentMat) {
 									Lumina::Math::F32x4x4<> globalMat = node.Transform_Local * parentMat;
@@ -317,11 +366,6 @@ namespace Game::Scene::Impl {
 									}
 
 									validMeshes.push_back(std::move(umesh));
-								}
-
-								if (!collection.Materials.empty() && !collection.Materials[0].FilePath_Diffuse.empty()) {
-									diffuseTexName = ed.name + "_diffuse";
-									diffuseTexPath = (gPath.parent_path() / collection.Materials[0].FilePath_Diffuse).string();
 								}
 							}
 
@@ -724,8 +768,10 @@ namespace Game::Scene::Impl {
 		GlobalTable_CBV_Scene_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
 		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_CBV_Scene_.CPUHandle(0U), UB_Transforms_);
 
-		GlobalTable_Materials_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
-		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_Materials_.CPUHandle(0U), *UB_Materials_[0]);
+		GlobalTable_Materials_ = d3d12Context.GlobalDescriptorHeap().Allocate(64U);
+		for (uint32_t i = 0; i < 64U; ++i) {
+			Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_Materials_.CPUHandle(i), *UB_Materials_[i]);
+		}
 	}
 
 	template<>

@@ -93,6 +93,26 @@ namespace Game::Scene::Impl {
 			Lumina::U32 ID_NormalMap;
 		};
 
+		struct SkinnedModel {
+			Lumina::CG3D::Collection Collection_;
+			std::vector<Lumina::CG3D::MyAnimation> Animations_;
+
+			Lumina::D3D12::UploadBuffer VertexBuffer_;
+			Lumina::D3D12::UploadBuffer IndexBuffer_;
+			Lumina::D3D12::VBV VBV_;
+			Lumina::D3D12::IBV IBV_;
+		};
+
+		struct SkinnedInstance {
+			Lumina::CG3D::Skeleton Skeleton_;
+			Lumina::CG3D::SkinCluster SkinCluster_;
+			float animTimer_ = 0.0f;
+			int currentAnimIndex_ = 0;
+			
+			Lumina::D3D12::UploadBuffer TransformsBuffer_;
+			Lumina::D3D12::DescriptorTable CBV_SceneTable_;
+		};
+
 		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
 		Lumina::D3D12::Shader VS_MeshDeferredGeometry_;
 		Lumina::D3D12::Shader PS_MeshDeferredGeometry_;
@@ -112,6 +132,8 @@ namespace Game::Scene::Impl {
 		std::map<std::string, MeshRange> EnemyMeshIndices_;
 		std::map<std::string, size_t> EnemyMaterialIndices_;
 		std::map<std::string, uint32_t> EnemyTextureIndices_;
+		std::map<std::string, std::shared_ptr<SkinnedModel>> EnemySkinnedModels_;
+		std::map<uint32_t, std::shared_ptr<SkinnedInstance>> EnemySkinnedInstances_;
 		std::map<std::string, MeshRange> ActorMeshIndices_;  // actor名 → メッシュ範囲
 		size_t CubeMeshIdx_{ 0 };
 
