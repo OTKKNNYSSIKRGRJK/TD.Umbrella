@@ -408,6 +408,9 @@ namespace Game::Scene::Impl {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
+
+		// * パイプライン初期化
+
 		auto config_ParticleSystem{
 				Lumina::Utils::LoadFromFile<nlohmann::json>(
 					"Assets/Configs/ParticleSystem.json"
@@ -476,11 +479,15 @@ namespace Game::Scene::Impl {
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
 
+		// * 定数バッファ初期化
+
 		UB_WorldToProjective_.Initialize(d3d12Device, 256LLU);
 		LocalHeap_CBV_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32U, false);
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_CBV_.CPUHandle(0U), UB_WorldToProjective_);
 
+		// * パーティクルレンダラ（？）
 		Raindrops_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		// * 2048個まで出せる（多分合計10万まででも大丈夫）
 		Raindrops_->Initialize(d3d12Context, 2048U);
 	}
 

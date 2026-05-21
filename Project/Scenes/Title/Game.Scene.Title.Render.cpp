@@ -25,13 +25,16 @@ namespace Game::Scene::Impl {
 		auto const& context{ Lumina::Context::Instance() };
 		auto const& cmdList{ context.MainCommandList() };
 
+		// * 違うレンダラでもパイプラインが同じなら引数はそのままで大丈夫
 		Raindrops_->Render(
 			cmdList,
 			// * ルートシグネチャ
 			RS_ParticleSystem_,
 			// * パイプラインステートオブジェクト
 			GraphicsPSO_BasicParticle_AdditiveMode_,
+			// * 定数バッファ
 			LocalHeap_CBV_.CPUHandle(0U),
+			// * 定数バッファ
 			LocalHeap_CBV_.CPUHandle(0U),
 			// * パーティクル画像
 			GlobalTable_SRV_ImageTexture_,
@@ -108,7 +111,9 @@ namespace Game::Scene::Impl {
 			1U, 0U, 0U, 0U
 		);
 
+		// * `GeometryPass_.Begin(cmdList);`と`GeometryPass_.End();`の間に書かないとダメ
 		Render_<"Grassland">();
+		// * `GeometryPass_.Begin(cmdList);`と`GeometryPass_.End();`の間に書かないとダメ
 		Render_<"SceneParticles">();
 
 		GeometryPass_.End();

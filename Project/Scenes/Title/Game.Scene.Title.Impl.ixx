@@ -97,13 +97,17 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 		std::unique_ptr<Lumina::Grassland> Grassland_;
+		
+		// * パーティクル関連
+	private:
+		// * 雨パーティクル
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> Raindrops_;
-
+		// * パイプライン
 		Lumina::D3D12::RootSignature RS_ParticleSystem_;
 		Lumina::D3D12::Shader VS_Particle_;
 		Lumina::D3D12::Shader PS_Particle_;
 		Lumina::D3D12::GraphicsPSO GraphicsPSO_BasicParticle_AdditiveMode_;
-
+		// * パーティクルシェーダー用
 		Lumina::D3D12::DescriptorHeap LocalHeap_CBV_;
 		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
 	};

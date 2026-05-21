@@ -54,6 +54,7 @@ namespace Game::Scene::Impl {
 				effectTimeFactor += 0.5f;
 
 				for (Lumina::I32 i = 0; i < 32; ++i) {
+					// * パーティクル初期化
 					Lumina::Particle p{};
 					{
 						p.Translate = {
@@ -90,7 +91,7 @@ namespace Game::Scene::Impl {
 							rgb_Base.B,
 							0.5f
 						};
-						// * 画像ID
+						// * 初期化で読み込んだ画像のID
 						p.RenderData.DiffuseID = 0U;
 						// * 画像アトラスID
 						p.RenderData.DiffuseAtlasID = 0U;
