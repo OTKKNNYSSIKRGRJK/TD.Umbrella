@@ -263,6 +263,8 @@ namespace PlayerStates::Action {
 
 		// 5. 傘を攻撃状態にする
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
+
+		player_->GetUmbrella().top_->GetCollider()->ClearHitHistory();
 	}
 
 	void Attack::Update(float deltaTime) {
@@ -512,6 +514,8 @@ namespace PlayerStates::Action {
 		//handPos.Y += 1.0f; // 少し上へ
 		//player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);
 
+		Vector3 pos = motion_.Update(deltaTime, player_->eyesDirection_);
+
 		// 攻撃モーションが終わったら、通常の攻撃状態に戻す
 		if (motion_.IsPlaying() == false) {
 			// 傘の攻撃ステートを解除して通常状態に戻す
@@ -541,7 +545,7 @@ namespace PlayerStates::Action {
 
 		// 座標の設定をする
 
-		player_->GetCollider()->SetYourType(COL_Ground | COL_Umbrella_Ground);
+		//player_->GetCollider()->SetYourType(COL_Ground | COL_Umbrella_Ground);
 	}
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
@@ -555,7 +559,7 @@ namespace PlayerStates::Action {
 
 	void Guard::Exit() {
 		// ここでなにかするかも
-		player_->GetCollider()->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
+		//player_->GetCollider()->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
 	}
 
 	////////////////////////////

@@ -28,11 +28,11 @@ namespace Umbrella {
 		
 		baseJoint_.SetType(AttachmentType::UmbrellaHandle);
 		baseJoint_.SetAcceptType(AttachmentType::PlayerHand | AttachmentType::PlayerBack);
-		baseJoint_.SetInfo({0.0f,-0.5f,0.0f}, {0.0f,0.0f,0.0f});
+		baseJoint_.SetInfo({0.0f,-0.2f,0.0f}, {0.0f,0.0f,0.0f});
 
 		tipJoint_.SetType(AttachmentType::UmbrellaTip);
 		tipJoint_.SetAcceptType(AttachmentType::UmbrellaTopRoot | AttachmentType::UmbrellaHandle);
-		tipJoint_.SetInfo({ 0.0f,1.25f,0.0f }, { 0.0f,0.0f,0.0f });
+		tipJoint_.SetInfo({ 0.0f,1.89f,0.0f }, { 0.0f,0.0f,0.0f });
 		tipJoint_.AttachTo(&baseJoint_);
 	}
 
@@ -90,6 +90,8 @@ namespace Umbrella {
 		collider_->SetYourType(COL_Enemy | COL_Player | COL_Ground);
 
 		collider_->SetUserData(this);
+
+		collider_->SetEnableHitHistory(true);
 
 		collider_->onCollisionCallback = [this](Collider* other, const Vector3& outPush) {
 			if (other->GetMyType() == COL_Ground) {

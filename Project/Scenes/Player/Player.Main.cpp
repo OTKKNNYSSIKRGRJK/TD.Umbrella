@@ -161,7 +161,7 @@ void Player::LoadAnimation() {
 	animDatabase_["Idle"] = animation_idle[0];
 	animDatabase_["IdleHoldingUmbrella"] = animation_idleHoldingUmbrella[0];
 
-	auto animation_run{ Lumina::CG3D::LoadAnimationFile("Run.gltf", "Assets/Neki") };
+	auto animation_run{ Lumina::CG3D::LoadAnimationFile("Cool_Run.gltf", "Assets/Neki") };
 
 	animDatabase_["Run"] = animation_run[0];
 
@@ -221,8 +221,8 @@ void Player::Initialize() {
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {
-		{-0.7f, -0.2f, 0.0f}, // 左下
-		{ 0.7f, -0.2f, 0.0f}, // 右下
+		{-0.7f, -0.0f, 0.0f}, // 左下
+		{ 0.7f, -0.0f, 0.0f}, // 右下
 		{ 0.7f,  2.8f, 0.0f},  // 右上
 		{ -0.7f,  2.8f, 0.0f }, // 左上
 	};
@@ -386,7 +386,7 @@ void Player::Update(float deltaTime) {
 	// ここから移動関係の処理
 	moveAmount_ = (myVelocity_ + externalVelocity_) * deltaTime;
 	Position_ += moveAmount_;
-	EulerAngle_.Y = eyesDirection_.X > 0.0f ? 0.7f : -0.5f;
+	EulerAngle_.Y = eyesDirection_.X > 0.0f ? Lumina::Math::DegToRad(90.0f) : Lumina::Math::DegToRad(270.0f);
 
 	collider_->SetWorldPosition(GetPosition());
 	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
@@ -423,11 +423,25 @@ void Player::Update(float deltaTime) {
 	umbrella_->Update(deltaTime);
 
 	// Colliderに設定
+	Vector3 angle = EulerAngle_;
+	angle.Y = 0.0f;
+	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, angle, Position_);
 	collider_->SetWorldMatrix(*WorldMatrix_);
 
 	// 仮 SmashCollider
 	smashCollider_->SetWorldPosition(GetPosition());
 	smashCollider_->SetWorldMatrix(*WorldMatrix_);
+
+	if (warpTimer_ < MAX_WARPTIME) {
+		warpTimer_ += deltaTime;
+	}
+	else if(warpTimer_ > MAX_WARPTIME) {
+		smashCollider_->SetMyType(COL_None);
+		smashCollider_->ClearVertices();
+		warpTimer_ = MAX_WARPTIME;
+	}
+
+	*WorldMatrix_ = Game::MathUtils::SRT(Scale_, EulerAngle_, Position_);
 
 	#if defined(_DEBUG)
 	Vector3 test = rightHandJoint_.GetPos();
@@ -466,6 +480,13 @@ void Player::Update(float deltaTime) {
 		this->status_->TakeDamage(10.0f);
 	}
 
+	if (ImGui::Button("Take Experience")) {
+		GainXp(10);
+	}
+
+	ImGui::Text("Level : %d", this->experience_->GetLevel());
+	ImGui::Text("Current Xp : %d", this->experience_->GetCurrentXp());
+	ImGui::Text("Next Xp : %d", this->experience_->GetNextLevelXp());
 	ImGui::Text("HP : %f / %f", this->status_->GetHp(), this->status_->GetMaxHp());
 	ImGui::Text("Umbrella Hp : %f", this->umbrella_->top_->GetStatusComponent().GetHp());
 	ImGui::Text("External Velocity Y : %f", this->externalVelocity_.Y);
@@ -570,7 +591,10 @@ void Player::InitializeComponents() {
 	mana_ = std::make_unique<ManaComponent>(100.0f);
 	//// StatusComponentの初期化 ////
 	// HP , Attack , Defence
-	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 0.0f); // テスト用に防御力を0に変更
+	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 0.1f);
+
+	experience_ = std::make_unique<ExperienceComponent>();
+	experience_->Initialize();
 }
 ///////////////////
 ///
@@ -624,6 +648,7 @@ void Player::ThrowUpdate([[maybe_unused]]float deltaTime) {
 				// ここは要改善
 				targetPos_.X = GetPosition().X + (inputData_.aimingDirectionX * scalar);
 				targetPos_.Y = GetPosition().Y + (inputData_.aimingDirectionY * scalar);
+				targetPos_.Z = 0.0f;
 
 				// 照準のときのみ射撃する
 				if (inputData_.shoot == ButtonState::Pressed) {
@@ -641,8 +666,20 @@ void Player::WarpToUmbrella() {
 	targetPos.Z = 0.0f;
 
 	// 2. プレイヤーの座標を傘の場所へ上書き
-	// （SetPosition 等、環境に合わせてください）
 	this->SetPosition(targetPos);
+
+	smashCollider_->ClearVertices();
+	smashCollider_->SetMyType(COL_Player_Attack_SmashWave);
+	float radius = 3.0f;
+	smashCollider_->SetVertices({
+		{  0.0000f * radius,  1.0000f * radius, 0.0f }, // 1. 真上
+		{ -0.9511f * radius,  0.3090f * radius, 0.0f }, // 2. 左上
+		{ -0.5878f * radius, -0.8090f * radius, 0.0f }, // 3. 左下
+		{  0.5878f * radius, -0.8090f * radius, 0.0f }, // 4. 右下
+		{  0.9511f * radius,  0.3090f * radius, 0.0f }  // 5. 右上
+	});
+
+	warpTimer_ = 0.0f;
 
 	// 3. 飛んでいた傘を手元に戻す（アタッチし直す）
 	umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
@@ -663,6 +700,10 @@ void Player::UpdateAnimation() {
 
 	animTimer_ += 1.0f / 60.0f * 3.0f;
 
+	if (currentAnimName_ == "Run") {
+		animTimer_ -= 1.0f / 60.0f * 1.0f;
+	}
+
 	if (isLoop_) {
 		// ループする場合は fmod で 0 ～ Duration に収める
 		animTimer_ = std::fmod(animTimer_, currentAnim_->DurationInSeconds);
@@ -680,4 +721,37 @@ void Player::UpdateAnimation() {
 		*currentAnim_,
 		animTimer_
 	);
+}
+
+void Player::GainXp(uint32_t amount) {
+	// 1. 経験値を追加して、レベルアップしたか判定
+	if (experience_->AddExperience(amount)) {
+
+		// 2. レベルアップした瞬間の現在レベルを取得
+		uint32_t newLevel = experience_->GetLevel();
+
+		// 3. StatusComponent にレベルを伝えて、ステータスを再計算させる！
+		// (例: レベルに応じて最大HPや攻撃力のベース値を乗算/加算する)
+		status_->ApplyLevelBonus(newLevel);
+
+		// 演出：レベルアップエフェクトやSEを鳴らす！
+		// EffectManager::Spawn("LevelUp", GetPosition());
+	}
+}
+
+void Player::TakeDamage(float damege, const Vector3& pos) {
+
+	float actualDamage = damege;
+	if (currentActionState_ == guardState_.get()) {
+		// もしガード状態なら
+		Vector3 vector = pos - GetPosition();
+		float dot = eyesDirection_.X * vector.X + eyesDirection_.Y * vector.Y;
+		if (dot > 0) {
+			// ガードしている方向と同じなら
+			actualDamage *= 0.0f;
+			externalVelocity_.X = -vector.X * 1.5f;
+		}
+	}
+
+	status_->TakeDamage(actualDamage);
 }

@@ -39,6 +39,7 @@ export enum COLLISIONATTRIBUTE : int{
 	COL_Ground = 1 << 4,
 	COL_Umbrella_Ground = 1 << 5,
 	COL_Player_Attack_Smash = 1 << 6,
+	COL_Player_Attack_SmashWave = 1 << 7,
 };
 
 export enum class ColliderShape {
@@ -100,6 +101,30 @@ public:
 
 private:
 	void* userData_ = nullptr; // 持ち主のポインタを保存
+/////////////////////////////////
+/// 
+///   当たり判定の保存に関する機能
+///
+/////////////////////////////////
+public:
+	// 履歴をリセットする関数（時間経過やアニメーションで呼ぶ）
+	void ClearHitHistory() { hitHistory_.clear(); }
+	void SetEnableHitHistory(bool enable) { enableHitHistory = enable; }
+	// 相手が自分の履歴にいるか確認する
+	bool HaveWeCollisionBefore(Collider* other) const {
+		if (!enableHitHistory) return false;
+		return std::find(hitHistory_.begin(), hitHistory_.end(), other) != hitHistory_.end();
+	}
+
+	// 相手を履歴に追加する
+	void AddToHistory(Collider* other) {
+		if (enableHitHistory) {
+			hitHistory_.push_back(other);
+		}
+	}
+private:
+	bool enableHitHistory = false; // デフォルトはOFF（体や壁用）
+	std::vector<Collider*> hitHistory_;
 };
 
 export class ConvexCollider : public Collider

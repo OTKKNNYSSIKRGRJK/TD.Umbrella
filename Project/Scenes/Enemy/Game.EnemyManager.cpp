@@ -786,10 +786,11 @@ namespace Game {
 		auto makeCollider = [&](const std::vector<Lumina::Math::F32x3>& verts3d) {
 			auto col = std::make_unique<ConvexCollider>();
 			col->SetMyType(COL_Enemy);
-			col->SetYourType(COL_Player | COL_Player_Attack | COL_Ground | COL_Player_Attack_Smash);
+			col->SetYourType(COL_Player | COL_Player_Attack | COL_Ground | COL_Player_Attack_Smash | COL_Player_Attack_SmashWave);
 			col->SetUserData(this);
 			col->SetVertices(verts3d);
 			col->SetWorldPosition(position);
+			col->SetEnableHitHistory(true);
 
 			Lumina::Math::F32x3 scale{ 1.0f, 1.0f, 1.0f };
 			Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
@@ -836,25 +837,36 @@ namespace Game {
 						}
 					}
 				}
-           else if (other->GetMyType() == COL_Player) {
-				Player* player = static_cast<Player*>(other->GetUserData());
-				if (player != nullptr) {
-					bool isAttack = false;
-					float dmgMult = 1.0f;
-					for (const auto& node : this->baseData.nodes) {
-						if (node.state == this->currentAction) {
-							isAttack = node.isAttack;
-							dmgMult = node.damageMultiplier;
-							break;
+				else if (other->GetMyType() == COL_Player) {
+					// 自分が当たったことがあるかチェック
+					//if (col->HaveWeCollisionBefore(other) == false)return;
+					Player* player = static_cast<Player*>(other->GetUserData());
+					if (player != nullptr) {
+						// Do not damage player for tutorial/invulnerable-configured enemies
+						if (!HasInvulnerableHpSetting(this->baseData)) {
+							
+							for (auto& col : colliders) {
+								// 自分の履歴に相手が存在するかチェック
+								if (col->HaveWeCollisionBefore(other) == true) {
+									return;
+								}
+							}
+
+							// ここをPlayerのTakeDamageに変更する(第二引数は攻撃の位置)
+							//player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power));
+							player->TakeDamage((std::max)(0.25f, this->baseData.power), position);
+
+							// 当たったら追加する
+							//col->AddToHistory(other);
+							for (auto& col : colliders) {
+								// 当たったことのあるに追加する
+								col->AddToHistory(other);
+							}
 						}
 					}
-					// 攻撃判定がONの時のみダメージを与える
-					if (isAttack && !HasInvulnerableHpSetting(this->baseData)) {
-						player->GetStatusComponent().TakeDamage((std::max)(0.25f, this->baseData.power * dmgMult));
-					}
 				}
-			}
 				else if (other->GetMyType() == COL_Player_Attack) {
+					//if (other->HaveWeCollisionBefore(col) == false)return;
 						Umbrella::Top* umbrellaTop = static_cast<Umbrella::Top*>(other->GetUserData());
 						uint32_t attackId = umbrellaTop->GetStatusComponent().GetAttackInstanceId();
                         if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
@@ -863,6 +875,7 @@ namespace Game {
 							// Do not apply horizontal knockback on player attack; only apply damage.
 							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 							Game::Event::AddHitStop(umbrellaTop->GetStatusComponent().GetHitStop());
+							//other->AddToHistory(col);
 						}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
@@ -872,6 +885,17 @@ namespace Game {
 						this->recentlyDamagedThisFrame = true;
 						this->lastHitAttackId = attackId;
 						Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)(player->GetUmbrella().top_->GetStatusComponent().GetAttack()));
+						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
+					}
+				}
+				else if (other->GetMyType() == COL_Player_Attack_SmashWave) {
+					Player* player = static_cast<Player*>(other->GetUserData());
+					uint32_t attackId = player->GetUmbrella().top_->GetStatusComponent().GetAttackInstanceId();
+					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
+						this->recentlyDamagedThisFrame = true;
+						this->lastHitAttackId = attackId;
+						// 衝撃波により本当に少しだけ動きを止めたい
+						Game::EnemyManager::GetInstance()->DealDamage(this->id, 10);
 						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
 					}
 				}
