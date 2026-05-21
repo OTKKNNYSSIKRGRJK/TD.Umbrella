@@ -66,6 +66,12 @@ namespace Lumina::CG3D {
 			node_OUT_.Transform.Translate = { -translate.x, translate.y, translate.z };
 
 			node_OUT_.Name = node_IN_.mName.data;
+			
+			node_OUT_.Indices_Mesh.reserve(node_IN_.mNumMeshes);
+			for (U32 i = 0; i < node_IN_.mNumMeshes; ++i) {
+				node_OUT_.Indices_Mesh.push_back(node_IN_.mMeshes[i]);
+			}
+
 			node_OUT_.Children.reserve(node_IN_.mNumChildren);
 
 			for (

@@ -955,6 +955,71 @@ namespace Game {
 	//  テンプレート管理
 	// ============================
 
+	// Helper to extract animation durations from GLTF/GLB files
+	std::map<std::string, float> ExtractAnimationDurations(const std::string& gltfPath) {
+		std::map<std::string, float> durations;
+		if (gltfPath.empty() || !fs::exists(gltfPath)) return durations;
+
+		std::string ext = fs::path(gltfPath).extension().string();
+		for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+		json gltfJson;
+		if (ext == ".gltf") {
+			std::ifstream ifs(gltfPath);
+			if (!ifs.is_open()) return durations;
+			try { ifs >> gltfJson; } catch (...) { return durations; }
+		} else if (ext == ".glb") {
+			std::ifstream ifs(gltfPath, std::ios::binary);
+			if (!ifs.is_open()) return durations;
+			uint32_t magic = 0, version = 0, totalLength = 0;
+			ifs.read(reinterpret_cast<char*>(&magic), 4);
+			ifs.read(reinterpret_cast<char*>(&version), 4);
+			ifs.read(reinterpret_cast<char*>(&totalLength), 4);
+			if (magic != 0x46546C67) return durations; // "glTF"
+			uint32_t chunkLength = 0, chunkType = 0;
+			ifs.read(reinterpret_cast<char*>(&chunkLength), 4);
+			ifs.read(reinterpret_cast<char*>(&chunkType), 4);
+			if (chunkType != 0x4E4F534A) return durations;
+			std::string jsonStr(chunkLength, '\0');
+			ifs.read(jsonStr.data(), chunkLength);
+			try { gltfJson = json::parse(jsonStr); } catch (...) { return durations; }
+		} else {
+			return durations;
+		}
+
+		if (gltfJson.contains("animations") && gltfJson["animations"].is_array() &&
+			gltfJson.contains("accessors") && gltfJson["accessors"].is_array()) {
+			
+			const auto& accessors = gltfJson["accessors"];
+			for (size_t i = 0; i < gltfJson["animations"].size(); ++i) {
+				const auto& anim = gltfJson["animations"][i];
+				std::string name = "Animation_" + std::to_string(i);
+				if (anim.contains("name") && anim["name"].is_string()) {
+					name = anim["name"].get<std::string>();
+				}
+
+				float maxTime = 0.0f;
+				if (anim.contains("samplers") && anim["samplers"].is_array()) {
+					for (const auto& sampler : anim["samplers"]) {
+						if (sampler.contains("input") && sampler["input"].is_number()) {
+							int inputIdx = sampler["input"].get<int>();
+							if (inputIdx >= 0 && inputIdx < accessors.size()) {
+								const auto& acc = accessors[inputIdx];
+								if (acc.contains("max") && acc["max"].is_array() && !acc["max"].empty()) {
+									float t = acc["max"][0].get<float>();
+									if (t > maxTime) maxTime = t;
+								}
+							}
+						}
+					}
+				}
+				durations[name] = maxTime;
+			}
+		}
+
+		return durations;
+	}
+
 	void EnemyManager::LoadTemplates(const std::string& directoryPath) {
 		if (!fs::exists(directoryPath)) return;
 
@@ -1004,16 +1069,77 @@ namespace Game {
 						}
 					}
 				}
-				if (jsonChanged) {
-					// write back changes to the same file (best-effort)
-					try {
-						std::ofstream ofs(filePath, std::ios::trunc);
-						if (ofs.is_open()) {
-							ofs << j.dump(4);
-						}
-					} catch (...) {
-						// ignore write errors
+			}
+
+			// Apply GLTF animation duration to nodes and links
+			std::map<std::string, float> animDurations = ExtractAnimationDurations(data.gltfPath);
+			if (j.contains("nodes") && j["nodes"].is_array()) {
+				for (size_t i = 0; i < data.nodes.size() && i < j["nodes"].size(); ++i) {
+					auto& node = data.nodes[i];
+					json& nodeJson = j["nodes"][i];
+					
+					std::string animName = node.animationName;
+					if (animName.empty()) {
+						animName = data.animationMap[node.state];
 					}
+					
+					if (!animName.empty() && animDurations.count(animName)) {
+						float animDuration = animDurations[animName];
+						if (animDuration > 0.0f) {
+							// Check if splineDuration needs update
+							if (std::abs(node.splineDuration - animDuration) > 0.001f) {
+								node.splineDuration = animDuration;
+								nodeJson["splineDuration"] = animDuration;
+								jsonChanged = true;
+							}
+						}
+					}
+				}
+			}
+
+			// Sync time-based links to match animation duration
+			if (j.contains("links") && j["links"].is_array()) {
+				for (size_t i = 0; i < data.links.size() && i < j["links"].size(); ++i) {
+					auto& link = data.links[i];
+					json& linkJson = j["links"][i];
+					
+					auto it = std::find_if(data.nodes.begin(), data.nodes.end(), [&](const Editor::Node& n) { return n.id == link.from; });
+					if (it != data.nodes.end()) {
+						std::string animName = it->animationName;
+						if (animName.empty()) {
+							animName = data.animationMap[it->state];
+						}
+						
+						if (!animName.empty() && animDurations.count(animName)) {
+							float animDuration = animDurations[animName];
+							if (animDuration > 0.0f) {
+								if (link.condition.rfind("Time>=", 0) == 0 || link.condition.rfind("Time>", 0) == 0) {
+									// Format to avoid long trailing zeros if possible, but std::to_string is fine.
+									// Let's truncate to 4 decimal places for cleanliness.
+									char buf[32];
+									snprintf(buf, sizeof(buf), "Time>=%.4f", animDuration);
+									std::string newCond = buf;
+									if (link.condition != newCond) {
+										link.condition = newCond;
+										linkJson["condition"] = newCond;
+										jsonChanged = true;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			if (jsonChanged) {
+				// write back changes to the same file (best-effort)
+				try {
+					std::ofstream ofs(filePath, std::ios::trunc);
+					if (ofs.is_open()) {
+						ofs << j.dump(4);
+					}
+				} catch (...) {
+					// ignore write errors
 				}
 			}
 

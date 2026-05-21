@@ -244,8 +244,27 @@ namespace Game::Scene::Impl {
 								std::replace(parentPath.begin(), parentPath.end(), '\\', '/');
 								auto collection = Lumina::CG3D::Import(gPath.filename().string(), parentPath);
 								
-								for (auto& cgMesh : collection.Meshes) {
+								std::map<size_t, Lumina::Math::F32x4x4<>> meshTransforms;
+								std::function<void(const Lumina::CG3D::Node&, Lumina::Math::F32x4x4<>)> dfs = [&](const Lumina::CG3D::Node& node, Lumina::Math::F32x4x4<> parentMat) {
+									Lumina::Math::F32x4x4<> globalMat = node.Transform_Local * parentMat;
+									for (auto mIdx : node.Indices_Mesh) {
+										meshTransforms[mIdx] = globalMat;
+									}
+									for (const auto& child : node.Children) {
+										dfs(child, globalMat);
+									}
+								};
+								dfs(collection.Root, Lumina::Math::F32x4x4<>::Identity);
+
+								for (size_t mIdx = 0; mIdx < collection.Meshes.size(); ++mIdx) {
+									auto& cgMesh = collection.Meshes[mIdx];
 									if (cgMesh.Vertices.empty()) continue;
+
+									Lumina::Math::F32x4x4<> globalMat = Lumina::Math::F32x4x4<>::Identity;
+									if (meshTransforms.count(mIdx)) {
+										globalMat = meshTransforms[mIdx];
+									}
+
 									Lumina::Utils::Mesh umesh;
 									umesh.Name = cgMesh.Name;
 									umesh.Positions.resize(cgMesh.Vertices.size());
@@ -255,16 +274,34 @@ namespace Game::Scene::Impl {
 									umesh.Vertices.resize(cgMesh.Indices.size());
 
 									for (size_t i = 0; i < cgMesh.Vertices.size(); ++i) {
-										umesh.Positions[i] = cgMesh.Vertices[i].Position;
+										float px = cgMesh.Vertices[i].Position.X;
+										float py = cgMesh.Vertices[i].Position.Y;
+										float pz = cgMesh.Vertices[i].Position.Z;
+
+										float tx = px * globalMat[0].X() + py * globalMat[1].X() + pz * globalMat[2].X() + globalMat[3].X();
+										float ty = px * globalMat[0].Y() + py * globalMat[1].Y() + pz * globalMat[2].Y() + globalMat[3].Y();
+										float tz = px * globalMat[0].Z() + py * globalMat[1].Z() + pz * globalMat[2].Z() + globalMat[3].Z();
+
+										umesh.Positions[i] = { tx, ty, tz };
 										umesh.TexCoords[i] = cgMesh.Vertices[i].TexCoord;
-										umesh.Normals[i] = cgMesh.Vertices[i].Normal;
+										
+										// Note: Normally normals should be multiplied by InverseTranspose,
+										// but for uniform scale/rotation, globalMat is acceptable here.
+										float nx = cgMesh.Vertices[i].Normal.X;
+										float ny = cgMesh.Vertices[i].Normal.Y;
+										float nz = cgMesh.Vertices[i].Normal.Z;
+										float tnx = nx * globalMat[0].X() + ny * globalMat[1].X() + nz * globalMat[2].X();
+										float tny = nx * globalMat[0].Y() + ny * globalMat[1].Y() + nz * globalMat[2].Y();
+										float tnz = nx * globalMat[0].Z() + ny * globalMat[1].Z() + nz * globalMat[2].Z();
+
+										umesh.Normals[i] = { tnx, tny, tnz };
 									}
 
 									for (size_t i = 0; i < cgMesh.Indices.size(); i += 3) {
 										Lumina::Math::F32x3 tangent = Lumina::Utils::Mesh::CalculateTangent(
-											cgMesh.Vertices[cgMesh.Indices[i]].Position, cgMesh.Vertices[cgMesh.Indices[i]].TexCoord,
-											cgMesh.Vertices[cgMesh.Indices[i+1]].Position, cgMesh.Vertices[cgMesh.Indices[i+1]].TexCoord,
-											cgMesh.Vertices[cgMesh.Indices[i+2]].Position, cgMesh.Vertices[cgMesh.Indices[i+2]].TexCoord
+											umesh.Positions[cgMesh.Indices[i]], umesh.TexCoords[cgMesh.Indices[i]],
+											umesh.Positions[cgMesh.Indices[i+1]], umesh.TexCoords[cgMesh.Indices[i+1]],
+											umesh.Positions[cgMesh.Indices[i+2]], umesh.TexCoords[cgMesh.Indices[i+2]]
 										);
 										umesh.Tangents[cgMesh.Indices[i]] = tangent;
 										umesh.Tangents[cgMesh.Indices[i+1]] = tangent;

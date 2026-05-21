@@ -2,40 +2,44 @@
     "aggressiveness": 0.5,
     "aggroRadius": 8.0,
     "animationMap": {
-        "Hop": "",
-        "Idle": "",
-        "Walk": ""
+        "Attack": "attack",
+        "Idle": "wait",
+        "Walk": "walk"
     },
     "attackCooldown": 1.5,
     "attackRange": 2.0,
     "attackType": "Melee",
     "collisionVertices": [
         {
-            "x": 0.0,
-            "y": -1.0333333015441895
+            "x": -0.8222222328186035,
+            "y": -1.7333333492279053
         },
         {
-            "x": -1.4333332777023315,
-            "y": -0.6111111044883728
+            "x": -1.355555534362793,
+            "y": -1.2333333492279053
         },
         {
-            "x": -0.6666666865348816,
-            "y": 1.355555534362793
+            "x": -0.7111111283302307,
+            "y": 0.47777777910232544
         },
         {
-            "x": 0.4444444477558136,
-            "y": 1.3888888359069824
+            "x": 0.03333333507180214,
+            "y": 0.8999999761581421
         },
         {
-            "x": 0.8888888955116272,
-            "y": 0.35555556416511536
+            "x": 0.6111111044883728,
+            "y": 0.46666666865348816
         },
         {
-            "x": 1.2666666507720947,
-            "y": -0.7111111283302307
+            "x": 1.3888888359069824,
+            "y": -1.2999999523162842
+        },
+        {
+            "x": 0.7888888716697693,
+            "y": -1.7777777910232544
         }
     ],
-    "gltfPath": "Assets\\Enemy\\Slime\\slime.obj",
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.glb",
     "hp": 100,
     "links": [
         {
@@ -50,25 +54,47 @@
         }
     ],
     "motionMap": {
-        "Walk": "Slime_Jump"
+        "Attack": "",
+        "Idle": "",
+        "Walk": ""
     },
     "moveSpeed": 3.0,
     "name": "Slime",
+    "noSplit": false,
     "nodes": [
         {
             "animationName": "",
             "boundBool": "",
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
             "facePlayer": true,
             "id": 1,
+            "isAttack": false,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
             "name": "State1",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.0,
+                "peak": 1.0,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
             "splineDuration": 1.0,
             "splineMotionName": "",
             "state": "Idle",
-            "velocityFrictionX": 0.8,
+            "velocityFrictionX": 0.800000011920929,
             "x": 39.0,
             "y": 0.0
         },
@@ -76,14 +102,31 @@
             "animationName": "",
             "boundBool": "Hop",
             "boundMotion": "Slime_Jump",
-            "loop": true,
-            "loopCooldown": 2.0,
             "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
             "facePlayer": false,
             "id": 2,
-            "jumpVelocityXMult": 1.2,
+            "isAttack": false,
+            "jumpVelocityXMult": 1.2000000476837158,
             "jumpVelocityY": 5.0,
+            "loop": true,
+            "loopCooldown": 2.0,
             "name": "State2",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.0,
+                "peak": 1.0,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
             "splineDuration": 1.0,
             "splineMotionName": "",
             "state": "Walk",
