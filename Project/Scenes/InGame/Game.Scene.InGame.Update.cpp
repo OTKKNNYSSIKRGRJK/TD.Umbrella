@@ -459,6 +459,30 @@ namespace Game::Scene::Impl {
 					auto& activeAnim = model->Animations_[skinInst->currentAnimIndex_];
 					skinInst->animTimer_ = std::fmod(skinInst->animTimer_, activeAnim.DurationInSeconds);
 					Lumina::CG3D::Update(skinInst->SkinCluster_, skinInst->Skeleton_, activeAnim, skinInst->animTimer_);
+					
+					// ルートモーションを抽出してEnemyManagerへフィードバック
+					if (!skinInst->Skeleton_.ARR_Joint.empty()) {
+						uint32_t rootID = skinInst->Skeleton_.ID_Root;
+						auto animatedMat = skinInst->Skeleton_.ARR_Joint[rootID].SkeletonSpace;
+						auto bindMat = skinInst->SkinCluster_.ARR_INV_BindPose[rootID].Inverse();
+						
+						// モデルスペースでの絶対的な並進の差分を計算
+						Lumina::Math::F32x3 rootOffset = {
+							animatedMat[3].Get(0) - bindMat[3].Get(0),
+							animatedMat[3].Get(1) - bindMat[3].Get(1),
+							animatedMat[3].Get(2) - bindMat[3].Get(2)
+						};
+						
+						// スケールを適用
+						rootOffset.X *= e.Scale;
+						rootOffset.Y *= e.Scale;
+						rootOffset.Z *= e.Scale;
+						
+						// EnemyManagerの該当インスタンスにオフセットを書き込む
+						if (auto* instPtr = Game::EnemyManager::GetInstance()->GetInstance(e.Id)) {
+							instPtr->rootMotionOffset = rootOffset;
+						}
+					}
 				}
 			}
 		}

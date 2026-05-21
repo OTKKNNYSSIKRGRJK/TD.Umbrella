@@ -557,7 +557,6 @@ namespace {
 					}
 				}
 			}
-			enemy.facingRight = (dx > 0.0f);
 			if (!motionToPlay.empty()) {
 				enemy.motionController.Play(motionToPlay, enemy.position, nodeInfo->splineDuration);
 			}
@@ -601,15 +600,21 @@ namespace {
 				if (mit != enemy.baseData.motionMap.end() && !mit->second.empty()) hasMotion = true;
 			}
 
-			if (nodeWalk && !hasMotion) {
-				float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-				enemy.facingRight = (dx > 0.0f);
-				enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
-			}
-
 			// --- 摩擦 ---
 			float expectedGroundedVelY = -9.8f * deltaTime;
 			bool isGrounded = std::abs(enemy.velocity.Y - expectedGroundedVelY) < 0.001f;
+
+			// --- Walk ステート（接地時のみ速度を適用） ---
+			if (nodeWalk && !hasMotion && isGrounded) {
+				float moveDir;
+				if (nodeInfo->facePlayer) {
+					moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
+					enemy.facingRight = (dx > 0.0f);
+				} else {
+					moveDir = enemy.facingRight ? 1.0f : -1.0f;
+				}
+				enemy.velocity.X = moveDir * enemy.baseData.moveSpeed;
+			}
 
 			if (isGrounded) {
 				enemy.velocity.X *= nodeInfo->velocityFrictionX;
@@ -936,7 +941,12 @@ namespace Game {
 		if (!facingRight) {
 			rot.Y = 3.14159265f; // rotate 180 degrees
 		}
-		auto worldMat = Game::MathUtils::SRT(scale, rot, position);
+		
+		Lumina::Math::F32x3 offsetPos = position;
+		offsetPos.X += facingRight ? rootMotionOffset.X : -rootMotionOffset.X;
+		offsetPos.Y += rootMotionOffset.Y;
+		
+		auto worldMat = Game::MathUtils::SRT(scale, rot, offsetPos);
 
 		bool isAttack = false;
 		for (const auto& node : baseData.nodes) {
@@ -947,8 +957,8 @@ namespace Game {
 		}
 
 		for (auto& col : colliders) {
-			position.Z = 0.0f; // Zは常に0
-			col->SetWorldPosition(position);
+			offsetPos.Z = 0.0f; // Zは常に0
+			col->SetWorldPosition(offsetPos);
 			col->SetWorldMatrix(worldMat);
 			
 			if (isAttack) {
@@ -963,7 +973,6 @@ namespace Game {
 
 	// ============================
 	//  シングルトン
-
 	// ============================
 
 	std::unique_ptr<EnemyManager> EnemyManager::instance_ = nullptr;
@@ -1340,7 +1349,7 @@ namespace Game {
 			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
 
 			// --- 物理挙動（重力） ---
-          enemy.velocity.Y -= 9.8f * deltaTime;
+			enemy.velocity.Y -= 9.8f * deltaTime;
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;
@@ -1378,9 +1387,10 @@ namespace Game {
 			float dy = playerPosition.Y - enemy.position.Y;
 			float dist = std::sqrt(dx * dx + dy * dy);
 
-			// Always orient the enemy toward the player so the visual facing
-			// remains correct even when the enemy momentarily stops.
-			enemy.facingRight = (dx > 0.0f);
+			// プレイヤーの方向を常に向くかどうか（旧AI用）。Node AIの場合はApplyNodePhysics内で処理する。
+			if (enemy.baseData.nodes.empty()) {
+				enemy.facingRight = (dx > 0.0f);
+			}
 
 				// Debug: for Boss instances, log AI state and timers to file for diagnosis
 				if (enemy.baseData.name == "Boss") {

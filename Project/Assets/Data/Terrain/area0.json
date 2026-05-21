@@ -128,17 +128,17 @@
         },
         {
             "position": {
-                "x": 1048.0,
-                "y": 130.0
-            },
-            "targetAreaIndex": 1
-        },
-        {
-            "position": {
                 "x": 412.0,
                 "y": 160.0
             },
             "targetAreaIndex": 5
+        },
+        {
+            "position": {
+                "x": 1048.0,
+                "y": 130.0
+            },
+            "targetAreaIndex": 1
         }
     ],
     "editorPos": {
@@ -156,11 +156,11 @@
             "sizeCategory": 1
         },
         {
-            "enemyName": "weatherdoll",
+            "enemyName": "Slime",
             "facingRight": true,
             "position": {
-                "x": 560.0,
-                "y": 172.0
+                "x": 558.3367919921875,
+                "y": 286.74786376953125
             },
             "sizeCategory": 1
         }

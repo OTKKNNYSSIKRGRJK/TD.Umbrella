@@ -43,17 +43,32 @@
             "y": -1.0222222805023193
         }
     ],
-    "gltfPath": "Assets\\Enemy\\Slime\\slime.glb",
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
     "hp": 100,
     "links": [
         {
-            "condition": "Time>=1.0&Grounded",
+            "condition": "Dist<=2.0",
+            "from": 1,
+            "to": 3
+        },
+        {
+            "condition": "Time>=1.0",
             "from": 1,
             "to": 2
         },
         {
+            "condition": "Dist<=2.0",
+            "from": 2,
+            "to": 3
+        },
+        {
             "condition": "Time>=1.0",
             "from": 2,
+            "to": 1
+        },
+        {
+            "condition": "Time>=0.5",
+            "from": 3,
             "to": 1
         }
     ],
@@ -104,7 +119,7 @@
         },
         {
             "animationName": "",
-            "boundBool": "Hop",
+            "boundBool": "",
             "boundMotion": "",
             "boundMotionNodeIndex": -1,
             "damageMultiplier": 1.0,
@@ -135,8 +150,44 @@
             "splineMotionName": "",
             "state": "Walk",
             "velocityFrictionX": 1.0,
-            "x": 494.0,
+            "x": 497.0,
             "y": 0.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.5,
+            "facePlayer": true,
+            "id": 3,
+            "isAttack": true,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Attack",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.20000000298023224,
+                "peak": 1.2999999523162842,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": true,
+            "splineDuration": 0.5,
+            "splineMotionName": "",
+            "state": "Attack",
+            "velocityFrictionX": 0.5,
+            "x": 250.0,
+            "y": 200.0
         }
     ],
     "patrolRadius": 10.0,

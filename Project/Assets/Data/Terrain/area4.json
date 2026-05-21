@@ -234,17 +234,17 @@
     "connections": [
         {
             "position": {
-                "x": 636.0,
-                "y": 274.0
-            },
-            "targetAreaIndex": 1
-        },
-        {
-            "position": {
                 "x": 82.0,
                 "y": 172.0
             },
             "targetAreaIndex": 3
+        },
+        {
+            "position": {
+                "x": 636.0,
+                "y": 274.0
+            },
+            "targetAreaIndex": 1
         }
     ],
     "editorPos": {

@@ -737,12 +737,24 @@ namespace Game::Editor {
 				MakeCol32(120, 200, 255, 200), meshInfo);
 		}
 
+		// --- ルートモーションの抽出 ---
+		float rootOffsetX = 0.0f;
+		float rootOffsetY = 0.0f;
+		if (isPreviewPlaying_ && !cachedSkeleton_.ARR_Joint.empty()) {
+			uint32_t rootID = cachedSkeleton_.ID_Root;
+			auto animatedMat = cachedSkeleton_.ARR_Joint[rootID].SkeletonSpace;
+			auto bindMat = invBindPoses_[rootID].Inverse();
+			// モデルスペースでの絶対的な並進の差分を計算
+			rootOffsetX = animatedMat[3].Get(0) - bindMat[3].Get(0);
+			rootOffsetY = animatedMat[3].Get(1) - bindMat[3].Get(1);
+		}
+
 		// --- ローカル→スクリーン変換 ---
 		auto localToScreen = [&](float lx, float ly) -> ImVec2 {
-			return ImVec2(center.x + lx * scale, center.y - ly * scale); // Y反転
+			return ImVec2(center.x + (lx + rootOffsetX) * scale, center.y - (ly + rootOffsetY) * scale); // Y反転
 		};
 		auto screenToLocal = [&](ImVec2 screen) -> std::pair<float, float> {
-			return { (screen.x - center.x) / scale, -(screen.y - center.y) / scale };
+			return { (screen.x - center.x) / scale - rootOffsetX, -(screen.y - center.y) / scale - rootOffsetY };
 		};
 
 		auto& verts = editingEnemy_.collisionVertices;

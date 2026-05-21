@@ -210,6 +210,14 @@ namespace Lumina::CG3D {
 					material_OUT.FilePath_Diffuse = filePath_Tex0.data;
 				}
 			}
+			// Fallback: glTF PBR uses baseColorTexture which Assimp may report as BASE_COLOR
+			if (material_OUT.FilePath_Diffuse.empty() && material->GetTextureCount(aiTextureType_BASE_COLOR) != 0U) {
+				ASSIMP::String filePath_Tex0{};
+				material->GetTexture(aiTextureType_BASE_COLOR, 0, &filePath_Tex0);
+				if (filePath_Tex0.length > 0 && filePath_Tex0.data[0] != '*') {
+					material_OUT.FilePath_Diffuse = filePath_Tex0.data;
+				}
+			}
 		}
 
 		ProcessNode(ret.Root, *(scene->mRootNode));

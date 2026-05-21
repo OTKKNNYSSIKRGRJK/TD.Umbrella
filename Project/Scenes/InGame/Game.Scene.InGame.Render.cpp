@@ -112,8 +112,8 @@ namespace Game::Scene::Impl {
 				inst->TransformsBuffer_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
 
 				uint32_t materialIdx = 0U;
-				if (EnemyTextureIndices_.contains(e.BaseData.name)) {
-					materialIdx = EnemyTextureIndices_.at(e.BaseData.name);
+				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
+					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
 				}
 				
 				cmdList->SetGraphicsRootDescriptorTable(0U, inst->CBV_SceneTable_.GPUHandle(0U));

@@ -79,9 +79,11 @@ export namespace Game {
 			, behavior(std::move(other.behavior))
 			, id(other.id)
 			, position(other.position)
+			, rootMotionOffset(other.rootMotionOffset)
 			, velocity(other.velocity)
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
+			, lastGroundedY(other.lastGroundedY)
 			, facingRight(other.facingRight)
           , renderFacingYaw(other.renderFacingYaw)
           , spawnTimer(other.spawnTimer)
@@ -115,9 +117,11 @@ export namespace Game {
 				behavior = std::move(other.behavior);
 				id = other.id;
 				position = other.position;
+				rootMotionOffset = other.rootMotionOffset;
 				velocity = other.velocity;
 				currentHP = other.currentHP;
 				isDead = other.isDead;
+				lastGroundedY = other.lastGroundedY;
 				facingRight = other.facingRight;
               renderFacingYaw = other.renderFacingYaw;
               spawnTimer = other.spawnTimer;
@@ -153,9 +157,11 @@ export namespace Game {
 			, behavior(CreateEnemyBehavior(other.baseData))
 			, id(other.id)
 			, position(other.position)
+			, rootMotionOffset(other.rootMotionOffset)
 			, velocity(other.velocity)
 			, currentHP(other.currentHP)
 			, isDead(other.isDead)
+			, lastGroundedY(other.lastGroundedY)
 			, facingRight(other.facingRight)
           , renderFacingYaw(other.renderFacingYaw)
 		  , renderPitch(other.renderPitch)
@@ -191,9 +197,11 @@ export namespace Game {
 				behavior = CreateEnemyBehavior(other.baseData);
 				id = other.id;
 				position = other.position;
+				rootMotionOffset = other.rootMotionOffset;
 				velocity = other.velocity;
 				currentHP = other.currentHP;
 				isDead = other.isDead;
+				lastGroundedY = other.lastGroundedY;
 				facingRight = other.facingRight;
               renderFacingYaw = other.renderFacingYaw;
 			  renderPitch = other.renderPitch;
@@ -231,9 +239,11 @@ export namespace Game {
 		// --- ランタイム状態 ---
 		uint32_t id = 0;                              // ユニークID
 		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 rootMotionOffset{ 0.0f, 0.0f, 0.0f }; // ルートボーンから抽出されたアニメーションオフセット
 		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };
 		int currentHP = 0;
 		bool isDead = false;
+		float lastGroundedY = 0.0f; // 最後に接地していたY座標（床抜け防止用）
 		bool facingRight = true;
        float renderFacingYaw = 0.0f;
 	   float renderPitch = 0.0f;
