@@ -206,7 +206,9 @@ namespace Lumina::CG3D {
 			if (material->GetTextureCount(aiTextureType_DIFFUSE) != 0U) {
 				ASSIMP::String filePath_Tex0{};
 				material->GetTexture(aiTextureType_DIFFUSE, 0, &filePath_Tex0);
-				material_OUT.FilePath_Diffuse = filePath_Tex0.data;
+				if (filePath_Tex0.length > 0 && filePath_Tex0.data[0] != '*') {
+					material_OUT.FilePath_Diffuse = filePath_Tex0.data;
+				}
 			}
 		}
 
