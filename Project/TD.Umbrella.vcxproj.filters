@@ -52,6 +52,9 @@
     <Filter Include="Scenes\Title-InGame">
       <UniqueIdentifier>{018979df-7ab8-4429-962c-b33f79f91a48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Game\Events">
+      <UniqueIdentifier>{4d0c841a-ce82-455a-bb06-be2db1eaf8a4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -279,6 +282,18 @@
     </ClCompile>
     <ClCompile Include="Game\Game.TutorialManager.ixx" />
     <ClCompile Include="Game\Game.TutorialManager.cpp" />
+    <ClCompile Include="Game\Events\Game.Events.InGame.ixx">
+      <Filter>Game\Events</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.Player.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.Ambient.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.ixx">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

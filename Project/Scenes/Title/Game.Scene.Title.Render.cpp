@@ -50,7 +50,8 @@ namespace Game::Scene::Impl {
 
 		Raindrops_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity
+			Lumina::Math::F32x4x4<>::Identity,
+			Lumina::ParticleSystem<Lumina::Particle>::DefaultUpdateCallback
 		);
 
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{

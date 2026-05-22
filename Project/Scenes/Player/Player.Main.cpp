@@ -10,6 +10,7 @@ import Game.MathUtils;
 
 import Lumina.CG3D;
 import Lumina.CG3D.Animation;
+import Game.Events.InGame;
 
 import <fstream>;
 
@@ -492,6 +493,26 @@ void Player::Update(float deltaTime) {
 	PlayerSkinnedInstance_->MeshScale_ = Scale_;
 	PlayerSkinnedInstance_->MeshRotate_ = EulerAngle_;
 	PlayerSkinnedInstance_->MeshTranslate_ = Position_;
+
+	// * イベント発行
+	// * 左右移動
+	if (myVelocity_.X * myVelocity_.X + myVelocity_.Y * myVelocity_.Y > 0.2f) {
+		Game::Event::InGame::OnPlayerMove event_OnPlayerMove{};
+		event_OnPlayerMove.Player = this;
+		event_OnPlayerMove.Velocity = myVelocity_;
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerMove));
+	}
+	if (inputData_.jump != ButtonState::None) {
+		Game::Event::InGame::OnPlayerJump event_OnPlayerJump{};
+		event_OnPlayerJump.Player = this;
+		event_OnPlayerJump.Velocity = myVelocity_;
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerJump));
+	}
+	/*if (currentActionState_.attack == ButtonState::Pressed) {
+		Lumina::Context::Instance().EventContext().TriggerEvent(
+			std::move(Game::Event::InGame::OnPlayerAttack{})
+		);
+	}*/
 }
 
 // メッシュバッチ自体はMeshManager::BatchBegin()とBatchEnd()の間に入れないといけないので

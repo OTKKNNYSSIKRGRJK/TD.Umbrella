@@ -23,6 +23,8 @@ import Game.Player;
 import Lumina.CG3D;
 import Lumina.CG3D.Animation;
 
+import Game.Events.InGame;
+
 namespace Game::Scene::Impl {
 	namespace {
 		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
@@ -445,7 +447,7 @@ namespace Game::Scene::Impl {
 
 		UB_WorldToHomogeneous_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 	}
-
+	
 	template<>
 	auto InGame::Initialize_<"Pipeline, Canvas, RenderPass">() -> void {
 		auto& context{ Lumina::Context::Instance() };
@@ -762,6 +764,9 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::Context const& d3d12Context_,
 		Lumina::D3D12::GraphicsDevice const& d3d12Device_
 	) -> void {
+
+		// * パイプライン初期化
+
 		auto config_ParticleSystem{
 			Lumina::Utils::LoadFromFile<nlohmann::json>(
 				"Assets/Configs/ParticleSystem.json"
@@ -776,17 +781,17 @@ namespace Game::Scene::Impl {
 
 		d3d12Context_.Compile(
 			VS_BasicParticle_,
-			L"Assets/Shaders/BasicParticle.VS.hlsl",
+			L"Assets/Shaders/Particle2.VS.hlsl",
 			L"vs_6_6",
 			L"main",
-			"BasicParticle.VS"
+			"Particle2.VS"
 		);
 		d3d12Context_.Compile(
 			PS_BasicParticle_,
-			L"Assets/Shaders/BasicParticle.PS.hlsl",
+			L"Assets/Shaders/Particle2.PS.hlsl",
 			L"ps_6_6",
 			L"main",
-			"BasicParticle.PS"
+			"Particle2.PS"
 		);
 
 		Lumina::D3D12::BlendState blendState_AdditiveMode{};
@@ -815,26 +820,70 @@ namespace Game::Scene::Impl {
 				.CullMode{ D3D12_CULL_MODE_NONE },
 			},
 			Lumina::D3D12::DepthStencilState{
-				.DepthEnable{ false },
+				.DepthEnable{ true },
+				.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+				.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
 				.StencilEnable{ false },
 			},
 			inputLayout_Particle,
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
-			{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, },
+			{
+				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+				DXGI_FORMAT_R8G8B8A8_UNORM,
+			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
 
+		// * 定数バッファ初期化
+
+		UB_WorldToProjective_.Initialize(d3d12Device_, 256LLU);
+		LocalHeap_CBV_.Initialize(d3d12Device_, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_CBV_.CPUHandle(0U), UB_WorldToProjective_);
+
+		// * レンダラ
+
 		AmbientSparkles_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		AmbientSparkles_->Initialize(d3d12Context_, 256U);
+		AmbientSparkles_->Initialize(d3d12Context_, 384U);
+		Raindrops_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		Raindrops_->Initialize(d3d12Context_, 1024U);
 
 		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		PlayerEffects_->Initialize(d3d12Context_, 512U);
+		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
 
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		KnockEffects_->Initialize(d3d12Context_, 256U);
 
 		EnemyEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		EnemyEffects_->Initialize(d3d12Context_, 512U);
+	}
+
+	template<>
+	auto InGame::Initialize_<"Events">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto& eventMngr{ context.EventContext() };
+
+		eventMngr.RegisterType<Event::InGame::OnPlayerMove>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerJump>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttack>();
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
+			[this] (Event::InGame::OnPlayerMove& event_) {
+				this->Update_<"OnPlayerMove">(event_);
+			}
+		);
+		eventMngr.AddEventListener<Event::InGame::OnPlayerJump>(
+			[this] (Event::InGame::OnPlayerJump& event_) {
+				this->Update_<"OnPlayerJump">(event_);
+			}
+		);
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttack>(
+			[this] (Event::InGame::OnPlayerAttack& event_) {
+				this->Update_<"OnPlayerAttack">(event_);
+			}
+		);
 	}
 
 	template<>
@@ -865,6 +914,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
+		Initialize_<"Events">();
 
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
 		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));

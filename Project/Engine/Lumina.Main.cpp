@@ -279,9 +279,13 @@ namespace Lumina {
 
 		MeshManager_ = std::make_unique<MeshManager>();
 		MeshManager_->Initialize(D3D12Context_, 1 << 12, 1 << 18);
+
+		EventManager_.Initialize();
 	}
 
 	void Context::Finalize() {
+		EventManager_.Finalize();
+
 		SceneManager::Instance().Finalize();
 
 		D3D12Context_.DirectQueue().SignalAndCPUWait();

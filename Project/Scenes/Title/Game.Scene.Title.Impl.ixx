@@ -98,6 +98,9 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 		std::unique_ptr<Lumina::Grassland> Grassland_;
 		
+	private:
+
+
 		// * パーティクル関連
 	private:
 		// * 雨パーティクル

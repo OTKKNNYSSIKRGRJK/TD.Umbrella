@@ -111,64 +111,74 @@ namespace Lumina {
 	concept Concept_Particle = std::is_base_of_v<Particle, T>;
 
 	export template<Concept_Particle T>
-		class ParticleSystem {
-		using ParticleUpdateFunc = bool(*)(T&, void const*);
-
-		public:
-			typename Lumina::List<T> const& InstanceList() const noexcept;
-
-		public:
-			void Emit(T&& p_) {
-				if (!Instances_.IsFull()) {
-					auto& p{ Instances_.New() };
-					p = std::move(p_);
-				}
+	class ParticleSystem {
+	public:
+		constexpr static auto DefaultUpdateCallback{
+			[] (T& p_, void const*) {
+				p_.Translate.X += p_.Velocity.X;
+				p_.Translate.Y += p_.Velocity.Y;
+				p_.Translate.Z += p_.Velocity.Z;
+				p_.Life -= 1.0f;
+				return (p_.Life > 0.0f);
 			}
-			void Clear() {
-				Instances_.Clear();
-				Count_Alive_ = 0U;
+		};
+
+	public:
+		typename Lumina::List<T> const& InstanceList() const noexcept;
+
+	public:
+		void Emit(T&& p_) {
+			if (!Instances_.IsFull()) {
+				auto& p{ Instances_.New() };
+				p = std::move(p_);
 			}
+		}
+		void Clear() {
+			Instances_.Clear();
+			Count_Alive_ = 0U;
+		}
 
-		public:
-			void Update(
-				Lumina::D3D12::CommandList const& cmdList_,
-				Lumina::Math::F32x4x4<> const& viewToWorld_,
-				ParticleUpdateFunc updateFunc_ = nullptr,
-				void const* updateFuncParam_ = nullptr
-			);
+	public:
+		template<typename UpdateCallback>
+		void Update(
+			Lumina::D3D12::CommandList const& cmdList_,
+			Lumina::Math::F32x4x4<> const& viewToWorld_,
+			UpdateCallback updateFunc_,
+			void const* updateFuncParam_ = nullptr
+		);
 
-			void Render(
-				Lumina::D3D12::CommandList const& cmdList_,
-				Lumina::D3D12::RootSignature const& rs_,
-				Lumina::D3D12::GraphicsPSO const& graphicsPSO_,
-				D3D12_CPU_DESCRIPTOR_HANDLE localCBV_SceneVars_,
-				D3D12_CPU_DESCRIPTOR_HANDLE localCBV_VP_,
-				Lumina::D3D12::DescriptorTable const& globalTable_Textures_,
-				Lumina::D3D12::DescriptorTable const& globalTable_Textures2_
-			);
+		void Render(
+			Lumina::D3D12::CommandList const& cmdList_,
+			Lumina::D3D12::RootSignature const& rs_,
+			Lumina::D3D12::GraphicsPSO const& graphicsPSO_,
+			D3D12_CPU_DESCRIPTOR_HANDLE localCBV_SceneVars_,
+			D3D12_CPU_DESCRIPTOR_HANDLE localCBV_VP_,
+			Lumina::D3D12::DescriptorTable const& globalTable_Textures_,
+			Lumina::D3D12::DescriptorTable const& globalTable_Textures2_
+		);
 
-		public:
-			void Initialize(
-				Lumina::D3D12::Context const& d3d12Context_,
-				uint32_t num_
-			);
+	public:
+		void Initialize(
+			Lumina::D3D12::Context const& d3d12Context_,
+			uint32_t num_
+		);
 
-		private:
-			Lumina::List<T> Instances_{};
-			uint32_t Count_Alive_{ 0U };
+	private:
+		Lumina::List<T> Instances_{};
+		uint32_t Count_Alive_{ 0U };
 
-		private:
-			Lumina::D3D12::Context const* D3D12Context_{ nullptr };
+	private:
+		Lumina::D3D12::Context const* D3D12Context_{ nullptr };
 
-			Lumina::D3D12::DefaultBuffer DB_Array_RenderData_{};
-			Lumina::D3D12::UploadBuffer UB_Array_RenderData_{};
+		Lumina::D3D12::DefaultBuffer DB_Array_RenderData_{};
+		Lumina::D3D12::UploadBuffer UB_Array_RenderData_{};
 
-			Lumina::D3D12::DescriptorTable GlobalTable_{};
+		Lumina::D3D12::DescriptorTable GlobalTable_{};
 
-			Lumina::D3D12::DefaultBuffer QuadVertexBuffer_{};
-			Lumina::D3D12::DefaultBuffer QuadIndexBuffer_{};
-			D3D12_VERTEX_BUFFER_VIEW QuadVBV_{};
-			D3D12_INDEX_BUFFER_VIEW QuadIBV_{};
+		Lumina::D3D12::DefaultBuffer QuadVertexBuffer_{};
+		Lumina::D3D12::DefaultBuffer QuadIndexBuffer_{};
+		D3D12_VERTEX_BUFFER_VIEW QuadVBV_{};
+		D3D12_INDEX_BUFFER_VIEW QuadIBV_{};
 	};
 
 	template<Concept_Particle T>
@@ -177,10 +187,11 @@ namespace Lumina {
 	}
 
 	template<Concept_Particle T>
+	template<typename UpdateCallback>
 	void ParticleSystem<T>::Update(
 		Lumina::D3D12::CommandList const& cmdList_,
 		Lumina::Math::F32x4x4<> const& viewToWorld_,
-		ParticleUpdateFunc updateFunc_,
+		UpdateCallback updateFunc_,
 		void const* updateFuncParam_
 	) {
 		Count_Alive_ = 0U;
@@ -190,22 +201,9 @@ namespace Lumina {
 			auto& particle{ (*it) };
 			int32_t isAlive{ 1 };
 
-			if (particle.Life <= 0.0f) {
+			if (!updateFunc_(particle, updateFuncParam_)) {
 				Instances_.Delete(it);
 				isAlive = 0;
-			}
-
-			if (updateFunc_ != nullptr) {
-				if (!updateFunc_(particle, updateFuncParam_)) {
-					Instances_.Delete(it);
-					isAlive = 0;
-				}
-			}
-			else {
-				particle.Translate.X += particle.Velocity.X;
-				particle.Translate.Y += particle.Velocity.Y;
-				particle.Translate.Z += particle.Velocity.Z;
-				particle.Life -= 1.0f;
 			}
 
 			if (isAlive) {

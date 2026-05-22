@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.cpp" />
     <ClCompile Include="Game\Debug\Game.ConvexColliderDebug.ixx" />
+    <ClCompile Include="Game\Events\Game.Events.InGame.ixx" />
     <ClCompile Include="Game\Game.BGMManager.cpp" />
     <ClCompile Include="Game\Game.Events.ixx" />
     <ClCompile Include="Game\Game.UIMenu.ixx" />
@@ -36,6 +37,9 @@
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Impl.ixx" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\EnemyEditor\Game.Scene.EnemyEditor.Update.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.Ambient.cpp" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.ixx" />
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.Player.cpp" />
     <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Impl.ixx" />
     <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Initialize.cpp" />
     <ClCompile Include="Scenes\ObjMotionEditor\Game.Scene.ObjMotionEditor.Update.cpp" />
