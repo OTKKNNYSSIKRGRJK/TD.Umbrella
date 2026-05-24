@@ -194,6 +194,13 @@ namespace Game::Scene::Impl {
 
 		// 敵用
 		EnemyMeshIndices_.clear();
+		
+		std::map<std::string, std::shared_ptr<SkinnedModel>> gltfCache_Skinned;
+		std::map<std::string, MeshRange> gltfCache_Static;
+		std::map<std::string, std::string> gltfCache_TexName;
+		std::map<std::string, std::string> gltfCache_TexPath;
+		std::map<std::string, uint32_t> texNameToIndex;
+
 		namespace fs = std::filesystem;
 		if (fs::exists("Assets/Data/Enemy/")) {
 			for (const auto& entry : fs::directory_iterator("Assets/Data/Enemy/")) {
@@ -204,6 +211,27 @@ namespace Game::Scene::Impl {
 					enemyEditor_.LoadEnemy(ed, fName);
 					
 					if (!ed.gltfPath.empty() && ed.gltfPath.size() > 4) {
+						if (gltfCache_Skinned.contains(ed.gltfPath)) {
+							EnemySkinnedModels_[ed.name] = gltfCache_Skinned[ed.gltfPath];
+							if (gltfCache_TexName.contains(ed.gltfPath)) {
+								std::string cachedTexName = gltfCache_TexName[ed.gltfPath];
+								if (texNameToIndex.contains(cachedTexName)) {
+									EnemyTextureIndices_[ed.name] = texNameToIndex[cachedTexName];
+								}
+							}
+							continue;
+						}
+						if (gltfCache_Static.contains(ed.gltfPath)) {
+							EnemyMeshIndices_[ed.name] = gltfCache_Static[ed.gltfPath];
+							if (gltfCache_TexName.contains(ed.gltfPath)) {
+								std::string cachedTexName = gltfCache_TexName[ed.gltfPath];
+								if (texNameToIndex.contains(cachedTexName)) {
+									EnemyTextureIndices_[ed.name] = texNameToIndex[cachedTexName];
+								}
+							}
+							continue;
+						}
+
 						std::string ext = ed.gltfPath.substr(ed.gltfPath.size() - 4);
 						for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
@@ -284,10 +312,15 @@ namespace Game::Scene::Impl {
 									skinnedModel->IBV_ = Lumina::D3D12::IBV::Create(skinnedModel->IndexBuffer_);
 									
 									EnemySkinnedModels_[ed.name] = skinnedModel;
+									gltfCache_Skinned[ed.gltfPath] = skinnedModel;
 									
 									if (!diffuseTexName.empty()) {
-										EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+										uint32_t newTexIdx = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+										EnemyTextureIndices_[ed.name] = newTexIdx;
 										AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
+										texNameToIndex[diffuseTexName] = newTexIdx;
+										gltfCache_TexName[ed.gltfPath] = diffuseTexName;
+										gltfCache_TexPath[ed.gltfPath] = diffuseTexPath;
 									}
 									continue; // Skip static mesh processing
 								}
@@ -371,10 +404,15 @@ namespace Game::Scene::Impl {
 
 							if (!validMeshes.empty()) {
 								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
+								gltfCache_Static[ed.gltfPath] = EnemyMeshIndices_[ed.name];
 								if (!diffuseTexName.empty()) {
 									// 既存の基本テクスチャ12枚の後に登録される前提でインデックスを計算
-									EnemyTextureIndices_[ed.name] = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+									uint32_t newTexIdx = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+									EnemyTextureIndices_[ed.name] = newTexIdx;
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
+									texNameToIndex[diffuseTexName] = newTexIdx;
+									gltfCache_TexName[ed.gltfPath] = diffuseTexName;
+									gltfCache_TexPath[ed.gltfPath] = diffuseTexPath;
 								}
 								addMeshesToBeUploaded(validMeshes);
 							}

@@ -142,12 +142,12 @@
         }
     ],
     "editorPos": {
-        "x": -1394.0,
-        "y": 28.0
+        "x": -1375.372802734375,
+        "y": 51.15821838378906
     },
     "enemies": [
         {
-            "enemyName": "TutorialEnemy",
+            "enemyName": "FlowerClover",
             "facingRight": false,
             "position": {
                 "x": 301.0399169921875,
@@ -156,11 +156,20 @@
             "sizeCategory": 1
         },
         {
-            "enemyName": "Slime",
+            "enemyName": "FlowerSunward",
             "facingRight": true,
             "position": {
-                "x": 558.3367919921875,
-                "y": 286.74786376953125
+                "x": 830.944091796875,
+                "y": 286.4299621582031
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerLotus",
+            "facingRight": true,
+            "position": {
+                "x": 562.8973999023438,
+                "y": 276.3147277832031
             },
             "sizeCategory": 1
         }

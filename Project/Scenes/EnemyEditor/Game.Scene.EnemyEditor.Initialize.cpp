@@ -204,15 +204,20 @@ namespace Game::Editor {
 		if (c == "Always") return true;
 
 		// --- BOOL: フラグ条件 ---
-		if (c.rfind("BOOL:", 0) == 0) {
-			std::string flag = c.substr(5);
+		if (c.rfind("BOOL:", 0) == 0 || c.rfind("!BOOL:", 0) == 0) {
+			bool negate = (c.rfind("!BOOL:", 0) == 0);
+			std::string flag = c.substr(negate ? 6 : 5);
+			if (!negate && !flag.empty() && flag.front() == '!') {
+				negate = true;
+				flag = flag.substr(1);
+			}
 			while (!flag.empty() && flag.front() == ' ') flag.erase(flag.begin());
 			while (!flag.empty() && flag.back() == ' ') flag.pop_back();
 			if (ctx.boolFlags) {
 				auto it = ctx.boolFlags->find(flag);
-				if (it != ctx.boolFlags->end()) return it->second;
+				if (it != ctx.boolFlags->end()) return negate ? !it->second : it->second;
 			}
-			return false;
+			return negate ? true : false;
 		}
 
 		// --- 時間条件 ---

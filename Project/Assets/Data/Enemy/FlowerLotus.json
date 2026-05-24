@@ -1,0 +1,304 @@
+{
+    "aggressiveness": 0.4000000059604645,
+    "aggroRadius": 15.0,
+    "animationMap": {
+        "BurstFire": "",
+        "Cooldown": "",
+        "DetectBelow": "",
+        "FireDown": "",
+        "Idle": "",
+        "LosingSight": ""
+    },
+    "attackCooldown": 2.0,
+    "attackRange": 15.0,
+    "attackType": "Ranged",
+    "collisionVertices": [
+        {
+            "x": -0.10000000149011612,
+            "y": 1.7333333492279053
+        },
+        {
+            "x": -1.5111111402511597,
+            "y": -0.6333333253860474
+        },
+        {
+            "x": 1.1777777671813965,
+            "y": -0.5666666626930237
+        }
+    ],
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
+    "hp": 100,
+    "links": [
+        {
+            "condition": "BOOL:playerBelow",
+            "from": 1,
+            "to": 2
+        },
+        {
+            "condition": "Time>=0.3",
+            "from": 2,
+            "to": 3
+        },
+        {
+            "condition": "Time>=1.5",
+            "from": 3,
+            "to": 4
+        },
+        {
+            "condition": "Time>=2.0",
+            "from": 4,
+            "to": 1
+        },
+        {
+            "condition": "Dist>15.0",
+            "from": 3,
+            "to": 1
+        },
+        {
+            "condition": "Dist>15.0",
+            "from": 2,
+            "to": 1
+        },
+        {
+            "condition": "!BOOL:playerBelow",
+            "from": 3,
+            "to": 5
+        },
+        {
+            "condition": "!BOOL:playerBelow",
+            "from": 4,
+            "to": 5
+        },
+        {
+            "condition": "Time>=3.0",
+            "from": 5,
+            "to": 1
+        },
+        {
+            "condition": "BOOL:playerBelow",
+            "from": 5,
+            "to": 3
+        }
+    ],
+    "motionMap": {
+        "BurstFire": "",
+        "Cooldown": "",
+        "DetectBelow": "",
+        "FireDown": "",
+        "Idle": "",
+        "LosingSight": ""
+    },
+    "moveSpeed": 0.0,
+    "name": "FlowerLotus",
+    "noSplit": true,
+    "nodes": [
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 1,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Idle",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.0,
+                "peak": 1.0,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Idle",
+            "velocityFrictionX": 1.0,
+            "x": 100.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 2,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "DetectBelow",
+            "prepHold": 0.20000000298023224,
+            "prepOffset": {
+                "x": 0.0,
+                "y": -0.10000000149011612
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.20000000298023224,
+                "peak": 1.0499999523162842,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "DetectBelow",
+            "velocityFrictionX": 1.0,
+            "x": 350.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "fireDown",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 3,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": true,
+            "loopCooldown": 0.4000000059604645,
+            "name": "FireDown",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "drop_particle",
+            "prepScale": {
+                "duration": 0.10000000149011612,
+                "peak": 0.949999988079071,
+                "start": 1.0499999523162842
+            },
+            "prepSound": "drop_shot",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "FireDown",
+            "velocityFrictionX": 1.0,
+            "x": 600.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 4,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Cooldown",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.5,
+                "peak": 1.0,
+                "start": 0.949999988079071
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Cooldown",
+            "velocityFrictionX": 1.0,
+            "x": 350.0,
+            "y": 300.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 5,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "LosingSight",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.0,
+                "peak": 1.0,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "LosingSight",
+            "velocityFrictionX": 1.0,
+            "x": 850.0,
+            "y": 100.0
+        }
+    ],
+    "patrolRadius": 0.0,
+    "power": 2.5,
+    "projectile": {
+        "actorName": "LotusPetal",
+        "colliderRadius": 0.25,
+        "damage": 12,
+        "homingStrength": 0.0,
+        "isHoming": false,
+        "lifetime": 5.0
+    },
+    "retreatThreshold": 0.0,
+    "sizeTiers": [
+        {
+            "hp": 50,
+            "power": 0.800000011920929,
+            "scale": 0.5
+        },
+        {
+            "hp": 100,
+            "power": 1.0,
+            "scale": 0.699999988079071
+        },
+        {
+            "hp": 200,
+            "power": 1.600000023841858,
+            "scale": 0.8999999761581421
+        }
+    ]
+}

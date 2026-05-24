@@ -1,0 +1,51 @@
+{
+    "name": "CloverBullet",
+    "transform": {
+        "posX": 0.0,
+        "posY": 1.6,
+        "posZ": 0.0,
+        "rotX": 0.0,
+        "rotY": 0.0,
+        "rotZ": 0.0,
+        "scaleX": 0.3,
+        "scaleY": 0.3,
+        "scaleZ": 0.3
+    },
+    "visual": {
+        "meshPath": "Assets\\cube.obj",
+        "materialIndex": 0
+    },
+    "movement": {
+        "type": 0,
+        "speed": 10.0,
+        "dirX": 1.0,
+        "dirY": 0.0,
+        "dirZ": 0.0,
+        "range": 5.0,
+        "easing": 0,
+        "splineMotionName": "",
+        "totalDuration": 3.0,
+        "loopSpline": false,
+        "nodeTimings": []
+    },
+    "interaction": {
+        "type": 0,
+        "damageValue": 8.0,
+        "pushForce": 2.0,
+        "activationTriggerID": ""
+    },
+    "collider": {
+        "type": 0,
+        "sizeX": 0.15,
+        "sizeY": 0.15,
+        "sizeZ": 0.15,
+        "collisionVertices": []
+    },
+    "lifecycle": {
+        "spawnTrigger": 0,
+        "spawnValue": 0.0,
+        "spawnEventID": "",
+        "lifetime": 3.0,
+        "autoDestroyOffscreen": true
+    }
+}

@@ -298,6 +298,19 @@ namespace Game {
 			proj.data.lifetime = proj.actorData.lifecycle.lifetime;
 			proj.data.damage = static_cast<int>(proj.actorData.interaction.damageValue);
 			proj.data.colliderRadius = proj.actorData.collider.sizeX;
+
+			// If NOT spawned as attached, but the actor data has a transform offset, apply it relative to the enemy's facing and scale!
+			if (!data.spawnAttached) {
+				auto* enemy = Game::EnemyManager::GetInstance()->GetInstance(ownerEnemyId);
+				if (enemy) {
+					float ox = proj.actorData.transform.posX;
+					float oy = proj.actorData.transform.posY;
+					float oz = proj.actorData.transform.posZ;
+					proj.position.X += (enemy->facingRight ? ox : -ox) * enemy->modelScale;
+					proj.position.Y += oy * enemy->modelScale;
+					proj.position.Z += oz * enemy->modelScale;
+				}
+			}
 		}
 
 		// If the template requests an attached spawn, mark and position the projectile accordingly.

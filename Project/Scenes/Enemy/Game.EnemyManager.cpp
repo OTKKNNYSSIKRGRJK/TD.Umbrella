@@ -510,6 +510,32 @@ namespace {
 					Game::ProjectileManager::GetInstance()->Fire(enemy.position, playerPosition, enemy.baseData.projectile, enemy.id);
 				}
 			}
+			else if (!fb.empty() && fb == "spreadFire") {
+				// Fire 5 CloverBullets in a spread!
+				float baseAngle = std::atan2(playerPosition.Y - enemy.position.Y, playerPosition.X - enemy.position.X);
+				float spreadAngles[] = { -0.5f, -0.25f, 0.0f, 0.25f, 0.5f };
+				for (float offset : spreadAngles) {
+					float angle = baseAngle + offset;
+					Lumina::Math::F32x3 target;
+					target.X = enemy.position.X + std::cos(angle) * 10.0f;
+					target.Y = enemy.position.Y + std::sin(angle) * 10.0f;
+					target.Z = 0.0f;
+					Game::ProjectileManager::GetInstance()->Fire(enemy.position, target, enemy.baseData.projectile, enemy.id);
+				}
+			}
+			else if (!fb.empty() && fb == "fireDown") {
+				// Fire 4 slow LotusPetals downwards!
+				float baseAngle = -3.14159265f / 2.0f; // Straight down
+				float spreadAngles[] = { -0.3f, -0.1f, 0.1f, 0.3f };
+				for (float offset : spreadAngles) {
+					float angle = baseAngle + offset;
+					Lumina::Math::F32x3 target;
+					target.X = enemy.position.X + std::cos(angle) * 10.0f;
+					target.Y = enemy.position.Y + std::sin(angle) * 10.0f;
+					target.Z = 0.0f;
+					Game::ProjectileManager::GetInstance()->Fire(enemy.position, target, enemy.baseData.projectile, enemy.id);
+				}
+			}
 			else if (fb.rfind("SpawnActor:", 0) == 0) {
 				std::string actorName = fb.substr(11);
 				Game::ProjectileData pd;
@@ -1349,7 +1375,14 @@ namespace Game {
 			Lumina::Math::F32x3 posBeforePhysics = enemy.position;
 
 			// --- 物理挙動（重力） ---
-			enemy.velocity.Y -= 9.8f * deltaTime;
+			if (enemy.baseData.name != "FlowerLotus" && enemy.baseData.name != "FlowerClover") {
+				enemy.velocity.Y -= 9.8f * deltaTime;
+			} else {
+				// Keep vertical velocity zero for flying enemies unless set by motion
+				if (!enemy.motionController.IsPlaying()) {
+					enemy.velocity.Y = 0.0f;
+				}
+			}
 			enemy.position.Y += enemy.velocity.Y * deltaTime;
 			enemy.position.X += enemy.velocity.X * deltaTime;
 			enemy.position.Z += enemy.velocity.Z * deltaTime;
@@ -1598,6 +1631,10 @@ namespace Game {
 			// ノードが定義されている敵はステートマシンで currentAction を駆動する
 			const Game::Editor::Node* currentNodeInfo = nullptr;
 			if (!enemy.baseData.nodes.empty()) {
+				// Automatically calculate playerBelow condition for Lotus and others (strictly below)
+				bool isBelow = (playerPosition.Y < enemy.position.Y && std::abs(dx) < 0.8f);
+				enemy.runtimeBoolFlags["playerBelow"] = isBelow;
+
 				int currentNodeId = EvaluateNodeTransitions(enemy, dist);
 
 				// currentNodeId からノード情報を取得

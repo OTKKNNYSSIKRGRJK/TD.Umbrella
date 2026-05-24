@@ -1,0 +1,239 @@
+{
+    "aggressiveness": 0.699999988079071,
+    "aggroRadius": 10.0,
+    "animationMap": {
+        "Aim": "",
+        "Cooldown": "",
+        "Idle": "",
+        "SpreadFire": ""
+    },
+    "attackCooldown": 3.0,
+    "attackRange": 10.0,
+    "attackType": "Ranged",
+    "collisionVertices": [
+        {
+            "x": -0.04444444552063942,
+            "y": 1.711111068725586
+        },
+        {
+            "x": -0.8999999761581421,
+            "y": -0.7666666507720947
+        },
+        {
+            "x": 0.3222222328186035,
+            "y": -0.7777777910232544
+        }
+    ],
+    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
+    "hp": 60,
+    "links": [
+        {
+            "condition": "Dist<=10.0",
+            "from": 1,
+            "to": 2
+        },
+        {
+            "condition": "Time>=0.5",
+            "from": 2,
+            "to": 3
+        },
+        {
+            "condition": "Time>=0.4",
+            "from": 3,
+            "to": 4
+        },
+        {
+            "condition": "Time>=2.5",
+            "from": 4,
+            "to": 1
+        },
+        {
+            "condition": "Dist>10.0",
+            "from": 4,
+            "to": 1
+        }
+    ],
+    "motionMap": {
+        "Aim": "",
+        "Cooldown": "",
+        "Idle": "",
+        "SpreadFire": ""
+    },
+    "moveSpeed": 0.0,
+    "name": "FlowerClover",
+    "noSplit": true,
+    "nodes": [
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 1,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Idle",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.0,
+                "peak": 1.0,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Idle",
+            "velocityFrictionX": 1.0,
+            "x": 100.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": true,
+            "id": 2,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Aim",
+            "prepHold": 0.30000001192092896,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "aim_glow",
+            "prepScale": {
+                "duration": 0.4000000059604645,
+                "peak": 1.100000023841858,
+                "start": 1.0
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Aim",
+            "velocityFrictionX": 1.0,
+            "x": 350.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "spreadFire",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.2000000476837158,
+            "facePlayer": true,
+            "id": 3,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "SpreadFire",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "spread_burst",
+            "prepScale": {
+                "duration": 0.10000000149011612,
+                "peak": 0.8500000238418579,
+                "start": 1.100000023841858
+            },
+            "prepSound": "spread_shot",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "SpreadFire",
+            "velocityFrictionX": 1.0,
+            "x": 600.0,
+            "y": 100.0
+        },
+        {
+            "animationName": "",
+            "boundBool": "",
+            "boundMotion": "",
+            "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0,
+            "facePlayer": false,
+            "id": 4,
+            "isAttack": false,
+            "jumpVelocityXMult": 0.0,
+            "jumpVelocityY": 0.0,
+            "loop": false,
+            "loopCooldown": 0.0,
+            "name": "Cooldown",
+            "prepHold": 0.0,
+            "prepOffset": {
+                "x": 0.0,
+                "y": 0.0
+            },
+            "prepParticle": "",
+            "prepScale": {
+                "duration": 0.30000001192092896,
+                "peak": 1.0,
+                "start": 0.8500000238418579
+            },
+            "prepSound": "",
+            "prepYaw": 0.0,
+            "proceduralPitch": false,
+            "requireGrounded": false,
+            "splineDuration": 1.0,
+            "splineMotionName": "",
+            "state": "Cooldown",
+            "velocityFrictionX": 1.0,
+            "x": 350.0,
+            "y": 300.0
+        }
+    ],
+    "patrolRadius": 0.0,
+    "power": 1.5,
+    "projectile": {
+        "actorName": "CloverBullet",
+        "colliderRadius": 0.15000000596046448,
+        "damage": 8,
+        "homingStrength": 0.0,
+        "isHoming": false,
+        "lifetime": 3.0
+    },
+    "retreatThreshold": 0.0,
+    "sizeTiers": [
+        {
+            "hp": 30,
+            "power": 0.699999988079071,
+            "scale": 0.3499999940395355
+        },
+        {
+            "hp": 60,
+            "power": 1.0,
+            "scale": 0.5
+        },
+        {
+            "hp": 120,
+            "power": 1.399999976158142,
+            "scale": 0.699999988079071
+        }
+    ]
+}
