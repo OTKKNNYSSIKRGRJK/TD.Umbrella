@@ -106,6 +106,7 @@ namespace PlayerStates {
 			float attackTimer_ = 0.0f;
 			std::string currentAttackID_;
 			std::string nextAttackID_;
+			float holdTimerY_ = 0.0f;
 			float holdTimerX_ = 0.0f;
 			bool hasTransformed_ = false; // 変形イベントが発動したかどうかのフラグ
 			// 現在再生中の攻撃データ
@@ -127,6 +128,7 @@ namespace PlayerStates {
 		private:
 			MotionController motion_;
 		};
+
 		class ThrowUmbrella : public Base {
 		public:
 			void Enter() override;
@@ -154,6 +156,9 @@ namespace PlayerStates {
 			void Enter() override;
 			void Update(float deltaTime) override;
 			void Exit() override;
+		private:
+			float evasionTimer_ = 0.0f;
+			float evasionDuration_ = 0.3f;
 		};
 		class DrawWeapon : public Base {
 		public:

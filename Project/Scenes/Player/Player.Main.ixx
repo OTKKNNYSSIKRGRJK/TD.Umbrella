@@ -169,6 +169,7 @@ public:
 	std::unique_ptr<PlayerStates::Action::ReverseCharge>reverseChargeState_;
 	std::unique_ptr<PlayerStates::Action::ReverseAttack>reverseAttackState_;
 	std::unique_ptr<PlayerStates::Action::ThrowUmbrella>throwUmbrellaState_;
+	std::unique_ptr<PlayerStates::Action::Evasion>evasionState_;
 
 	std::unique_ptr<PlayerStates::Action::UmbrellaOpen>umbrellaOpenState_;
 	std::unique_ptr<PlayerStates::Action::UmbrellaClose>umbrellaCloseState_;
@@ -220,6 +221,9 @@ public:
 	// 再生時間
 	float GetAnimationDuration() { return currentAnim_->DurationInSeconds; }
 
+	// 現在のアニメーションの名前
+	std::string GetCurrentAnimationName() { return currentAnimName_; }
+
 	// 再生が終わったかどうか
 	bool GetAnimationMoving() { return animTimer_ > currentAnim_->DurationInSeconds ? true : false; }
 
@@ -258,6 +262,8 @@ public:
 	void Jump();
 	// ワープ
 	void WarpToUmbrella();
+	// DiveAttack
+	void AirDiveAttack();
 public:
 	// 移動制御用の変数
 	Vector3 moveDirection_;// プレイヤーの移動したい方向
@@ -272,7 +278,7 @@ public:
 
 	// 【 ジャンプ 】
 	float jumpCoyoteTimer_ = 0.0f;
-	const float JUMP_COYOTE_MAX_TIME = 0.15f;
+	const float JUMP_COYOTE_MAX_TIME = 0.250f;
 
 	//////////////////////////////
 	///
@@ -337,6 +343,7 @@ private:
 	//////////////////////////////
 public:
 	Umbrella::Main& GetUmbrella() { return *umbrella_; }
+	void ReturnToMeUmbrella();
 private:
 	std::unique_ptr<Umbrella::Main>umbrella_;
 

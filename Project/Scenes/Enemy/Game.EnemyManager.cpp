@@ -876,6 +876,10 @@ namespace Game {
 							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 							Game::Event::AddHitStop(umbrellaTop->GetStatusComponent().GetHitStop());
 							//other->AddToHistory(col);
+							for (auto& col : colliders) {
+								// 当たったことのあるに追加する
+								other->AddToHistory(col.get());
+							}
 						}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
@@ -954,6 +958,8 @@ namespace Game {
 			if (isAttack) {
 				col->SetMyType(COL_Enemy | COL_Enemy_Attack);
 			} else {
+				// 攻撃していないタイミングで当たったか否かの履歴を全リセットする
+				col->ClearHitHistory();
 				col->SetMyType(COL_Enemy);
 			}
 

@@ -63,7 +63,12 @@ void InputHandler::HandleInput() {
         playerInput.attack
     );
 
-    input.evasion = ButtonState::None;
+    //input.evasion = ButtonState::None;
+
+    input.evasion = UpdateButtonState(
+        keyboard.IsPressed(KEY::J) || pad.IsHold(0x2000),
+        playerInput.attack
+    );
 
     input.sheathe = UpdateButtonState(
         keyboard.IsPressed(KEY::ENTER) || pad.IsHold(0x4000),

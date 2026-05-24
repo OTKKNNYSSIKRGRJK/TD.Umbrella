@@ -24,12 +24,14 @@ void StatusComponent::Heal(float amount) {
 }
 
 void StatusComponent::ApplyLevelBonus(uint32_t level) {
-    // 例: レベル1ごとに最大HPが20、攻撃力が5ずつ上がるとする
+    // 例: レベル1ごとに最大HPが20、攻撃力が5、防御力が0.5ずつ上がるとする
     float baseHp = 100.0f;
     float baseAtk = 10.0f;
+    float baseDef = 1.0f;
 
     maxHp_ = baseHp + (level - 1) * 20.0f;
     attack_ = baseAtk + (level - 1) * 5.0f;
+    defense_ = baseDef + (level - 1) * 0.25f;
 
     // レベルアップしたお祝いに、HPを全回復してあげる
     currentHp_ = maxHp_;

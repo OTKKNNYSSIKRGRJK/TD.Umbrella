@@ -116,6 +116,8 @@ public:
 		return std::find(hitHistory_.begin(), hitHistory_.end(), other) != hitHistory_.end();
 	}
 
+	bool IsHitHistory()const{return !hitHistory_.empty();}
+
 	// 相手を履歴に追加する
 	void AddToHistory(Collider* other) {
 		if (enableHitHistory) {
