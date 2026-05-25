@@ -233,8 +233,9 @@ namespace Lumina {
 
 		//----	------	------	------	------	----//
 
+		[[maybe_unused]] auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
+
 		#if defined(_DEBUG)
-		auto const& gpuDH{ D3D12Context_.GlobalDescriptorHeap() };
 		[[maybe_unused]] auto const& swapChain{ D3D12Context_.SwapChain() };
 		Lumina::Utils::ImGuiManager::Initialize(mainWindow.Handle(), device, swapChain, gpuDH);
 		WinAppContext_.RegisterCallback(Lumina::Utils::ImGuiManager::WindowProcedure);
@@ -278,9 +279,13 @@ namespace Lumina {
 
 		MeshManager_ = std::make_unique<MeshManager>();
 		MeshManager_->Initialize(D3D12Context_, 1 << 12, 1 << 18);
+
+		EventManager_.Initialize();
 	}
 
 	void Context::Finalize() {
+		EventManager_.Finalize();
+
 		SceneManager::Instance().Finalize();
 
 		D3D12Context_.DirectQueue().SignalAndCPUWait();

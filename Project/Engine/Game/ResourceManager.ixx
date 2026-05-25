@@ -88,6 +88,10 @@ namespace Lumina {
 		template<typename ResourceType>
 		D3D12::ViewID CreateUAV(ResourceType const& res_) { return DX12DescriptorManager_.CreateUAV(res_); }
 
+		auto GetResource(std::string_view name_) const noexcept -> void const* {
+			return DX12ResourceManager_.GetResource(name_);
+		}
+
 	private:
 		void Initialize(D3D12::Context const& dx12Context_) {
 			DX12ResourceManager_.Initialize(dx12Context_);

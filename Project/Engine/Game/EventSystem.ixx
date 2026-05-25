@@ -15,47 +15,51 @@ import <memory>;
 import Lumina.Core.Common;
 
 namespace Lumina {
-	template<typename EventType>
-	using EventCallbackFunction = std::function<void(const EventType&)>;
+	export template<typename _EventType>
+	using EventCallbackFunction = std::function<void(_EventType&)>;
 
-	class EventInterface {
+	export class EventInterface {
 	public:
-		using Handle = int;
+		using Handle = I32;
 
-		EventInterface() = default;
-		virtual ~EventInterface() = default;
+	public:
+		EventInterface() noexcept = default;
+		virtual ~EventInterface() noexcept = default;
 	};
 
-	template<typename T>
-	constexpr bool IsEvent = std::is_base_of_v<EventInterface, T>;
+	template<typename _T>
+	constexpr bool IsEvent = std::is_base_of_v<EventInterface, _T>;
 
 	class EventHandlerInterface {
 	private:
-		virtual void Callback(const EventInterface&) = 0;
+		virtual void Callback(EventInterface&) = 0;
 
 	public:
-		virtual ~EventHandlerInterface() = default;
+		inline void NotifyListener(
+			EventInterface& event_
+		) { Callback(event_); }
 
-		void Notify_Listener(const EventInterface& e) {
-			Callback(e);
-		}
+	public:
+		virtual ~EventHandlerInterface() noexcept = default;
 	};
 
-	template<typename EventType>
+	export template<typename _EventType>
 	class EventHandler : public EventHandlerInterface {
 	private:
-		EventCallbackFunction<EventType> CallbackFunction{ nullptr };
+		EventCallbackFunction<_EventType> CallbackFunction{ nullptr };
 
-		virtual void Callback(const EventInterface& event) override {
-			CallbackFunction(static_cast<const EventType&>(event));
+		virtual void Callback(EventInterface& event_) override {
+			CallbackFunction(static_cast<_EventType&>(event_));
 		}
 
 	public:
-		explicit EventHandler(std::function<void(const EventType&)> callbackFunc) : CallbackFunction(callbackFunc) {}
-		virtual ~EventHandler() = default;
+		EventHandler(
+			EventCallbackFunction<_EventType> callbackFunc_
+		) noexcept : CallbackFunction{ callbackFunc_ } {}
+		virtual ~EventHandler() noexcept = default;
 	};
 
-	class EventManager : public NonCopyable<EventManager> {
+	export class EventManager : public NonCopyable<EventManager> {
 	public:
 		static constexpr int MaxNum_EventType{ 512 };
 
@@ -67,10 +71,10 @@ namespace Lumina {
 		std::queue<std::pair<EventInterface::Handle, std::unique_ptr<EventInterface>>> Container_Event{};
 
 		template<typename EventType>
-		void Trigger_Event_with_TID(const EventType& _evt, const EventInterface::Handle _tid) {
-			auto& eventListeners{ Container_EventListeners.at(_tid) };
+		void TriggerEventWithTID(EventType&& event_, EventInterface::Handle tid_) {
+			auto& eventListeners{ Container_EventListeners.at(tid_) };
 			for (auto&& it{ eventListeners.cbegin() }; it != eventListeners.cend(); ++it) {
-				(*it)->Notify_Listener(_evt);
+				(*it)->NotifyListener(event_);
 			}
 		}
 
@@ -78,38 +82,45 @@ namespace Lumina {
 		void Initialize();
 		void Finalize();
 
-		template<typename EventType>
-		void Add_EventListener(const EventHandler<EventType>& _handler) {
-			static_assert(IsEvent<EventType>);
+		template<typename _EventType>
+		void AddEventListener(EventCallbackFunction<_EventType>&& handler_) {
+			static_assert(IsEvent<_EventType>);
 
-			std::unique_ptr<EventHandlerInterface> eventHandler{ std::make_unique<EventHandler<EventType>>(_handler) };
+			std::unique_ptr<EventHandlerInterface> eventHandler{
+				std::make_unique<EventHandler<_EventType>>(std::move(handler_))
+			};
 
-			EventInterface::Handle eventTID{ EventType::TypeHandle };
+			std::string_view name{ typeid(_EventType).name() };
+			EventInterface::Handle eventTID{ EventTypes[name] };
 			auto& eventListeners{ Container_EventListeners.at(eventTID) };
-			eventListeners.emplace_back(eventHandler);
+			eventListeners.emplace_back(std::move(eventHandler));
 		}
 
-		template<typename EventType>
-		void Remove_EventListener(const EventCallbackFunction<EventType>& callbackFunc) {
-			static_assert(IsEvent<EventType>);
+		template<typename _EventType>
+		void RemoveEventListener(EventCallbackFunction<_EventType> const& callbackFunc_) {
+			static_assert(IsEvent<_EventType>);
 		}
 
-		template<typename EventType>
-		inline void Trigger_Event(const EventType& _evt) {
-			static_assert(IsEvent<EventType>);
+		template<typename _EventType>
+		inline void TriggerEvent(_EventType&& event_) {
+			static_assert(IsEvent<_EventType>);
 
-			Trigger_Event_with_TID(_evt, EventType::TypeHandle);
+			std::string_view name{ typeid(_EventType).name() };
+			EventInterface::Handle eventTID{ EventTypes[name] };
+			TriggerEventWithTID(event_, eventTID);
 		}
 
-		template<typename EventType>
-		void Queue_Event(const EventType& evt) {
-			static_assert(IsEvent<EventType>);
+		template<typename _EventType>
+		void QueueEvent(_EventType&& event_) {
+			static_assert(IsEvent<_EventType>);
 
-			std::unique_ptr<EventInterface> newEvent{ std::make_unique<EventType>(evt) };
-			Container_Event.push(std::make_pair(EventType::Get_TID(), newEvent));
+			std::unique_ptr<EventInterface> newEvent{ std::make_unique<_EventType>(event_) };
+			std::string_view name{ typeid(_EventType).name() };
+			EventInterface::Handle eventTID{ EventTypes[name] };
+			Container_Event.push(std::make_pair(eventTID, newEvent));
 		}
 
-		void Dispatch_Event();
+		void DispatchEvent();
 
 	private:
 		EventInterface::Handle Count_EventTypeHandle{ 0 };
@@ -117,8 +128,8 @@ namespace Lumina {
 
 	public:
 		// Returns a new Handle if the SceneType is not yet registered, or returns the Handle of the SceneType.
-		template<typename EventType>
-		constexpr EventInterface::Handle Register_Type() {
+		template<typename _EventType>
+		constexpr EventInterface::Handle RegisterType() {
 			try {
 				if (Count_EventTypeHandle > MaxNum_EventType) {
 					throw "Cannot register any new EventType.\n";
@@ -126,24 +137,14 @@ namespace Lumina {
 			}
 			catch ([[maybe_unused]] const char* errorMsg) {}
 
-			if (!EventTypes.contains(EventType::TypeName)) {
+			std::string_view name{ typeid(_EventType).name() };
+			if (!EventTypes.contains(typeid(_EventType).name())) {
 				EventInterface::Handle newHandle{ Count_EventTypeHandle };
-				EventTypes.emplace(std::make_pair(EventType::TypeName, newHandle));
+				EventTypes.emplace(std::make_pair(name, newHandle));
 				++Count_EventTypeHandle;
 			}
 
-			return EventTypes[EventType::TypeName];
+			return EventTypes[name];
 		}
 	};
-
-
-	#define LUMINA_EVENT(T)\
-	class T : public Lumina::EventInterface
-
-	#define LUMINA_REGEISTER_EVENTTYPE(T)\
-	public:\
-		static constexpr std::string_view TypeName{ #T };\
-		static inline const Lumina::EventInterface::Handle TypeHandle{ Lumina::EventManager::Instance()->Register_Type<T>() }
-
-	#define ADD_EVENTLISTENER(_eventType, _callback) Lumina::EventManager::Instance()->Add_EventListener<_eventType>(EventHandler<_eventType>(_callback))
 }

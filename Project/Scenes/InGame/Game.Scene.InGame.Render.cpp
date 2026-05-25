@@ -18,6 +18,44 @@ import Game.Events;
 
 namespace Game::Scene::Impl {
 	template<>
+	auto InGame::Render_<"PrepareParticle">() -> void {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		PlayerEffects_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"PlayerEffectParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+		UmbrellaEffects_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"UmbrellaEffectParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+		Raindrops_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"RaindropParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+		AmbientSparkles_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"AmbientSparkleParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+	}
+
+	template<>
 	auto InGame::Render_<"Characters">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
@@ -153,12 +191,17 @@ namespace Game::Scene::Impl {
 				 D3D12_RESOURCE_STATE_RENDER_TARGET
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
+				 Canvas_GeometryPass_.RenderTexture(2U),
+				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				 D3D12_RESOURCE_STATE_RENDER_TARGET
+			 ),
+			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_GeometryPass_.DepthTexture(),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 				 D3D12_RESOURCE_STATE_DEPTH_WRITE
 			 ),
 		};
-		cmdList->ResourceBarrier(3U, barriers_PreGeometryPass);
+		cmdList->ResourceBarrier(4U, barriers_PreGeometryPass);
 
 		cmdList->RSSetViewports(
 			Canvas_GeometryPass_.Num_RenderTargets(),
@@ -383,6 +426,33 @@ namespace Game::Scene::Impl {
 				GlobalTable_SRV_ImageTexture_,
 				GlobalTable_SRV_ImageTexture_
 			);
+			UmbrellaEffects_->Render(
+				cmdList,
+				RS_ParticleSystem_,
+				GraphicsPSO_BasicParticle_AdditiveMode_,
+				LocalHeap_Scene_.CPUHandle(0U),
+				LocalHeap_Scene_.CPUHandle(0U),
+				GlobalTable_SRV_ImageTexture_,
+				GlobalTable_SRV_ImageTexture_
+			);
+			Raindrops_->Render(
+				cmdList,
+				RS_ParticleSystem_,
+				GraphicsPSO_BasicParticle_AdditiveMode_,
+				LocalHeap_Scene_.CPUHandle(0U),
+				LocalHeap_Scene_.CPUHandle(0U),
+				GlobalTable_SRV_ImageTexture_,
+				GlobalTable_SRV_ImageTexture_
+			);
+			AmbientSparkles_->Render(
+				cmdList,
+				RS_ParticleSystem_,
+				GraphicsPSO_BasicParticle_AdditiveMode_,
+				LocalHeap_Scene_.CPUHandle(0U),
+				LocalHeap_Scene_.CPUHandle(0U),
+				GlobalTable_SRV_ImageTexture_,
+				GlobalTable_SRV_ImageTexture_
+			);
 		}
 
 		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
@@ -412,13 +482,18 @@ namespace Game::Scene::Impl {
 				D3D12_RESOURCE_STATE_RENDER_TARGET,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
+			 Lumina::D3D12::Barrier::Transition(
+				 Canvas_GeometryPass_.RenderTexture(2U),
+				D3D12_RESOURCE_STATE_RENDER_TARGET,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			 ),
 			Lumina::D3D12::Barrier::Transition(
 				Canvas_GeometryPass_.DepthTexture(),
 				D3D12_RESOURCE_STATE_DEPTH_WRITE,
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 		};
-		cmdList->ResourceBarrier(3U, barriers_PostGeometryPass);
+		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
 
 		meshMngr.End();
 	}
@@ -473,6 +548,7 @@ namespace Game::Scene::Impl {
 		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
 		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
 
+		Render_<"PrepareParticle">();
 		Render_Geometry();
 		Render_Merge();
 

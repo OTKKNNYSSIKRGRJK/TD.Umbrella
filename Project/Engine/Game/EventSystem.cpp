@@ -12,9 +12,9 @@ namespace Lumina {
 		Container_EventListeners.clear();
 	}
 
-	void EventManager::Dispatch_Event() {
+	void EventManager::DispatchEvent() {
 		while (!Container_Event.empty()) {
-			Trigger_Event_with_TID(*(Container_Event.front().second.get()), Container_Event.front().first);
+			TriggerEventWithTID(*(Container_Event.front().second.get()), Container_Event.front().first);
 			delete Container_Event.front().second.release();
 			Container_Event.pop();
 		}

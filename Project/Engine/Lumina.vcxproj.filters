@@ -103,6 +103,18 @@
     <ClCompile Include="Utils\Utils.Color.ixx">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Watercolor\Watercolor.cpp">
+      <Filter>Watercolor</Filter>
+    </ClCompile>
+    <ClCompile Include="Watercolor\Watercolor.ixx">
+      <Filter>Watercolor</Filter>
+    </ClCompile>
+    <ClCompile Include="Grassland\Grassland.cpp">
+      <Filter>Grassland</Filter>
+    </ClCompile>
+    <ClCompile Include="Grassland\Grassland.ixx">
+      <Filter>Grassland</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
@@ -125,6 +137,12 @@
     </Filter>
     <Filter Include="Game\CG3D">
       <UniqueIdentifier>{327fb877-b353-4077-abfd-9a14ad42ed2a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Watercolor">
+      <UniqueIdentifier>{fcf9582e-8d08-424c-abe7-18458f7aace7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Grassland">
+      <UniqueIdentifier>{7f82fec8-8345-481d-8e68-f9c5f3ff2e3a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

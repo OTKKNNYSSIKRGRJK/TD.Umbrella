@@ -17,6 +17,8 @@ export import Lumina.Scene;
 export import Lumina.Sprite;
 export import Lumina.MeshManager;
 
+export import Lumina.EventSystem;
+
 #if defined(_DEBUG)
 import Lumina.Utils.ImGui;
 #endif
@@ -44,6 +46,8 @@ namespace Lumina {
 			-> SpriteRenderer& { return *SpriteRenderer_; }
 		auto MeshContext() const noexcept
 			-> MeshManager& { return *MeshManager_; }
+		auto EventContext() noexcept
+			->EventManager& { return EventManager_; }
 
 	public:
 		auto Run() -> I32;
@@ -73,5 +77,7 @@ namespace Lumina {
 		D3D12::Shader VS_Sprite_;
 		D3D12::Shader PS_Sprite_;
 		D3D12::GraphicsPSO PSO_Sprite_;
+
+		EventManager EventManager_;
 	};
 }

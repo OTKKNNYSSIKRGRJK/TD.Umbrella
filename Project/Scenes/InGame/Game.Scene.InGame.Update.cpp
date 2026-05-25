@@ -1,6 +1,7 @@
 module Game.Scene.InGame;
 
 import : Impl;
+import : Impl.Effect;
 
 import <cmath>;
 import <numbers>;
@@ -579,7 +580,7 @@ namespace Game::Scene::Impl {
 
 		#if defined(_DEBUG)
 		if (!isUsingDebugCamera) {
-			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_->Projection();
+			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_Player_->Projection();
 		}
 		else {
 			*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
@@ -1651,5 +1652,21 @@ namespace Game::Scene::Impl {
 			HandleFallDeath();
 			DrawGamePhaseUI();
 		}
+
+		Update_<"EffectVariables">();
+
+		Update_<"PlayerEffect.Common">();
+		Update_<"PlayerEffect.Perpetual">();
+		Update_<"PlayerEffect.Move">();
+		Update_<"PlayerEffect.Jump">();
+
+		Update_<"UmbrellaEffect.Perpetual">();
+		Update_<"UmbrellaEffect.Attack">();
+
+		Update_<"Effect.Ambient.Raindrops">();
+		Update_<"Effect.Ambient.Sparkle">();
+
+		constexpr float deltaTime{ 1.0f / 60.0f };
+		Watercolor_->Update(deltaTime);
 	}
 }

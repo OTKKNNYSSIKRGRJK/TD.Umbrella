@@ -39,6 +39,10 @@ import Collider;
 
 import Lumina.CG3D.Struct;
 
+import Lumina.Watercolor;
+
+import Game.Events.InGame;
+
 namespace Game::Scene::Impl {
 	export class InGame {
 	private:
@@ -148,9 +152,9 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
 
-	#if defined(_DEBUG)
+		#if defined(_DEBUG)
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
-#endif
+		#endif
 
 		std::unique_ptr<TerrainShapeCollection> TerrainScreenData_;
 		std::unique_ptr<TerrainShapeCollection> Terrain_;
@@ -265,7 +269,6 @@ namespace Game::Scene::Impl {
 		Game::UIMenu GameOverMenu_;
 
 		/// パーティクル・ライティング
-
 	private:
 		std::unique_ptr<Lumina::DeferredLighting> DeferredLighting_;
 		Lumina::List<Lumina::PointLight> List_PointLight_;
@@ -276,8 +279,16 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::Shader VS_BasicParticle_;
 		Lumina::D3D12::Shader PS_BasicParticle_;
 		Lumina::D3D12::GraphicsPSO GraphicsPSO_BasicParticle_AdditiveMode_;
+
+		// * パーティクルシェーダー用
+
+		Lumina::D3D12::DescriptorHeap LocalHeap_CBV_;
+		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
+
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> AmbientSparkles_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> Raindrops_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> UmbrellaEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
 
@@ -291,5 +302,7 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::UploadBuffer UB_Transforms_;
 
 		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
+
+		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 	};
 }
