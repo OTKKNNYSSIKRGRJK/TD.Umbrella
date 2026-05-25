@@ -907,6 +907,10 @@ namespace Game {
 							Game::EnemyManager::GetInstance()->DealDamage(this->id, (int)umbrellaTop->GetStatusComponent().GetAttack());
 							Game::Event::AddHitStop(umbrellaTop->GetStatusComponent().GetHitStop());
 							//other->AddToHistory(col);
+							for (auto& col : colliders) {
+								// 当たったことのあるに追加する
+								other->AddToHistory(col.get());
+							}
 						}
 				}
 				else if (other->GetMyType() == COL_Player_Attack_Smash) {
@@ -925,7 +929,7 @@ namespace Game {
 					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
 						this->recentlyDamagedThisFrame = true;
 						this->lastHitAttackId = attackId;
-						// 衝撃波により本当に少しだけ動きを止めたい(
+						// 衝撃波により本当に少しだけ動きを止めたい
 						Game::EnemyManager::GetInstance()->DealDamage(this->id, 10);
 						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
 					}
@@ -990,6 +994,8 @@ namespace Game {
 			if (isAttack) {
 				col->SetMyType(COL_Enemy | COL_Enemy_Attack);
 			} else {
+				// 攻撃していないタイミングで当たったか否かの履歴を全リセットする
+				col->ClearHitHistory();
 				col->SetMyType(COL_Enemy);
 			}
 

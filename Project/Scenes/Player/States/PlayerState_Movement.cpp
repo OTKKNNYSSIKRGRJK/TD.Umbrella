@@ -24,7 +24,7 @@ namespace PlayerStates::Movement {
 		//// 地上にいる際の処理 ////
 
 		// もし接地していない（崖から落ちた）なら、強制的に空中ステートへ
-		if (!player_->onGround_) {
+		if (!player_->onGround_ && player_->jumpCoyoteTimer_ >= player_->JUMP_COYOTE_MAX_TIME) {
 			player_->ChangeMovementState(player_->airborneState_.get());
 			return;
 		}
@@ -49,7 +49,7 @@ namespace PlayerStates::Movement {
 		// ※ 関数でまとめておく
 
 		// Y軸の速度
-		player_->externalVelocity_.Y -= 9.8f * deltaTime; // 通常の重力
+		player_->externalVelocity_.Y -= 9.8f * deltaTime * 2.0f; // 通常の重力
 
 		// ジャンプ
 		player_->Jump();
@@ -64,10 +64,10 @@ namespace PlayerStates::Movement {
 	}*/
 
 	void Airborne::Update(float deltaTime) {
-		float gravity = 25.2f; // 重力加速度
+		float gravity = 40.0f; // 重力加速度
 
 		// --------------------------------------------------------
-		// 1. 空中制御のパラメータ（マジックナンバーは後で定数化推奨）
+		// 1. 空中制御のパラメータ
 		// --------------------------------------------------------
 		float airMaxSpeed = 9.0f;       // 空中での最高速度（抜刀時などと同じくらい）
 		float airAcceleration = 4.0f;   // ★ココが重要！地上が15.0fなら、かなり小さくする
@@ -119,6 +119,14 @@ namespace PlayerStates::Movement {
 			player_->SetPosition(Game::Event::RespawnPos);
 			player_->GetStatusComponent().Heal(100.0f);
 		}
+
+		// アニメーションの制御
+		if(player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+			if (player_->GetCurrentAnimationName() != "Swinging") {
+				player_->PlayAnimation("Swinging", true);
+			}
+		}
+
 	}
 
 	/*void Airborne::Exit() {
@@ -130,12 +138,27 @@ namespace PlayerStates::Movement {
 	// 
 	////////////////////////////
 	void Idle::Enter() {
-		
+		if(player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened || player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Reverse) {
+			player_->PlayAnimation("IdleOpen", true);
+		} else {
+			player_->PlayAnimation("Idle", true);
+		}
 	}
 
 	void Idle::Update(float deltaTime) {
 		if (parentState_) {
 			parentState_->Update(deltaTime);
+		}
+
+		if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+			if (player_->GetCurrentAnimationName() != "IdleOpen") {
+				player_->PlayAnimation("IdleOpen", true);
+			}
+		}
+		else if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Closed) {
+			if (player_->GetCurrentAnimationName() != "Idle") {
+				player_->PlayAnimation("Idle", true);
+			}
 		}
 
 		// 【追加】Grounded内でジャンプして空中に移行したなら、以降の処理をキャンセル！
@@ -193,15 +216,15 @@ namespace PlayerStates::Movement {
 		// 武器の状態で切り替え
 		switch (player_->GetWeaponStance()) {
 		case WeaponStance::Sheathed:
-			targetSpeed = 12.0f;
+			targetSpeed = 17.0f;
 			break;
 		case WeaponStance::Drawn:
-			targetSpeed = 10.0f;
+			targetSpeed = 15.0f;
 			break;
 		}
 
 		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
-			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.6f));
+			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana()));
 		}
 
 		float acceleration = 15.0f;

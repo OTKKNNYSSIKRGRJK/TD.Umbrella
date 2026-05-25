@@ -155,26 +155,45 @@ void Player::LoadAnimation() {
 	PlayerSkinnedInstance_->MeshRotate_ = { 0.0f, 0.0f, 0.0f };
 	PlayerSkinnedInstance_->MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
 
-	auto animation_idle{ Lumina::CG3D::LoadAnimationFile("Idle.gltf", "Assets/Neki") };
+	auto animation_idle{ Lumina::CG3D::LoadAnimationFile("Idle_Drawn_H.gltf", "Assets/Neki") };
+	auto animation_idleOpen{ Lumina::CG3D::LoadAnimationFile("Idle_Drawn_Open_H.gltf", "Assets/Neki") };
 	auto animation_idleHoldingUmbrella{ Lumina::CG3D::LoadAnimationFile("IdleHoldingUmbrella.gltf", "Assets/Neki") };
 
-	animDatabase_["Idle"] = animation_idle[0];
+	animDatabase_["Idle"] = animation_idle[1];
+	animDatabase_["IdleOpen"] = animation_idleOpen[1];
 	animDatabase_["IdleHoldingUmbrella"] = animation_idleHoldingUmbrella[0];
 
 	auto animation_run{ Lumina::CG3D::LoadAnimationFile("Cool_Run.gltf", "Assets/Neki") };
+	auto animation_forwardFlip{ Lumina::CG3D::LoadAnimationFile("Forward_Flip.gltf", "Assets/Neki") };
 
 	animDatabase_["Run"] = animation_run[0];
+	animDatabase_["ForwardFlip"] = animation_forwardFlip[0];
+
+	auto animation_swinging{ Lumina::CG3D::LoadAnimationFile("Swinging.gltf", "Assets/Neki") };
+
+	animDatabase_["Swinging"] = animation_swinging[5];
+
+	auto animation_guard{ Lumina::CG3D::LoadAnimationFile("guard.gltf", "Assets/Neki") };
+
+	animDatabase_["Guard"] = animation_guard[1];
 
 	auto animation_atkX1{ Lumina::CG3D::LoadAnimationFile("ATKY1_H2.gltf", "Assets/Neki") };
 	auto animation_atkX2{ Lumina::CG3D::LoadAnimationFile("ATKY2_H2.gltf", "Assets/Neki") };
 	auto animation_atkX3{ Lumina::CG3D::LoadAnimationFile("ATKY3_H3.gltf", "Assets/Neki") };
 	auto animation_atkRot{ Lumina::CG3D::LoadAnimationFile("Rotate_H.gltf", "Assets/Neki") };
+	auto animation_airDiveAttack{ Lumina::CG3D::LoadAnimationFile("AirDiveAttack.gltf", "Assets/Neki") };
 	
 	animDatabase_["AtkX1"] = animation_atkX1[0];
 	animDatabase_["AtkX2"] = animation_atkX2[0];
 	animDatabase_["AtkX3"] = animation_atkX3[0];
 	animDatabase_["AtkRot"] = animation_atkRot[0];
+	animDatabase_["AirDiveAttack"] = animation_airDiveAttack[4];
 
+	auto animation_reverseCharge{ Lumina::CG3D::LoadAnimationFile("ReverseCharge.gltf", "Assets/Neki") };
+	auto animation_reverseChargeAttack{ Lumina::CG3D::LoadAnimationFile("ReverseChargeAttack.gltf", "Assets/Neki") };
+
+	animDatabase_["ReverseCharge"] = animation_reverseCharge[1];
+	animDatabase_["ReverseChargeAttack"] = animation_reverseChargeAttack[2];
 }
 
 void Player::Initialize() {
@@ -261,11 +280,13 @@ void Player::Initialize() {
 
 					// 地面の上なのでリセット
 					if (this->externalVelocity_.Y < 0.0f) {
-						this->externalVelocity_.Y = 0.0f;
+						
 					}
 					if (this->myVelocity_.Y < 0.0f) {
-						this->myVelocity_.Y = 0.0f;
+						
 					}
+					this->externalVelocity_.Y = 0.0f;
+					this->myVelocity_.Y = 0.0f;
 				}
 			}
 
@@ -396,28 +417,17 @@ void Player::Update(float deltaTime) {
 
 	// 見つかったかどうかチェック
 	if (it != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
-		//auto const& row3{ (PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace)[3] };
-		//Vector3 pos = { row3.Get(0),
-		//	row3.Get(1) + 0.4f,
-		//	row3.Get(2) };
-		//rightHandJoint_.SetPos(Vector3( pos.X/* * (eyesDirection_.X > 0.0f ? -1.0f : 1.0f)*/,pos.Y,0.0f) + Position_);
-
-		//rightHandJoint_.SetPos(Position_);
 		rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 		rightHandJoint_.MultiplyMatrixToMe(PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it->second].SkeletonSpace);
 		rightHandJoint_.MultiplyMatrixToMe(*WorldMatrix_);
 	}
-	//Vector3 angle = EulerAngle_;
-	//angle.X = Lumina::Math::DegToRad(90.0f * (1.0f - 0.5f));
-	//angle.Y = Lumina::Math::DegToRad(eyesDirection_.X > 0.0f ? 0.0f : 0.0f);
-	//rightHandJoint_.SetRot(angle);
-	//rightHandJoint_.Update(); // 右手Joint自身の行列を計算
 
 	Vector3 backPos = Position_;
 	backPos.Y += 1.0f;
 	backPos.Z += 1.0f;
 	backJoint_.SetPos(backPos);
 	backJoint_.Update();
+	//backJoint_.MultiplyMatrixToMe(*WorldMatrix_);
 	
 	// 傘
 	umbrella_->Update(deltaTime);
@@ -548,6 +558,14 @@ void Player::ChangeActionState(PlayerStates::Base* newState) {
 	}
 }
 
+void Player::ReturnToMeUmbrella() {
+	umbrella_->top_->GetRootJoint()->AttachTo(umbrella_->handle_->GetTipJoint());
+	umbrella_->top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
+
+	umbrella_->top_->ChangeState(new UmbrellaStates::Attached());
+	umbrella_->top_->ChangeForm(UmbrellaForm::Closed);
+}
+
 void Player::InitializeStates() {
 
 	//// MovementStateの初期化 ////
@@ -576,6 +594,7 @@ void Player::InitializeStates() {
 	reverseChargeState_ = std::make_unique<Action::ReverseCharge>();reverseChargeState_->SetInfo(this);
 	reverseAttackState_ = std::make_unique<Action::ReverseAttack>();reverseAttackState_->SetInfo(this);
 	throwUmbrellaState_ = std::make_unique<Action::ThrowUmbrella>();throwUmbrellaState_->SetInfo(this);
+	evasionState_ = std::make_unique<Action::Evasion>();evasionState_->SetInfo(this);
 
 	umbrellaOpenState_ = std::make_unique<Action::UmbrellaOpen>();umbrellaOpenState_->SetInfo(this);
 	umbrellaCloseState_ = std::make_unique<Action::UmbrellaClose>();umbrellaCloseState_->SetInfo(this);
@@ -591,7 +610,7 @@ void Player::InitializeComponents() {
 	mana_ = std::make_unique<ManaComponent>(100.0f);
 	//// StatusComponentの初期化 ////
 	// HP , Attack , Defence
-	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 0.1f);
+	status_ = std::make_unique<StatusComponent>(100.0f, 20.0f, 1.0f);
 
 	experience_ = std::make_unique<ExperienceComponent>();
 	experience_->Initialize();
@@ -614,6 +633,8 @@ void Player::Jump() {
 			// フラグの処理
 			this->onGround_ = false;
 			this->jumpCoyoteTimer_ = this->JUMP_COYOTE_MAX_TIME;
+
+			PlayAnimation("ForwardFlip", false);
 
 			// ステートを「空中」に切り替える！
 			ChangeMovementState(airborneState_.get());
@@ -671,12 +692,13 @@ void Player::WarpToUmbrella() {
 	smashCollider_->ClearVertices();
 	smashCollider_->SetMyType(COL_Player_Attack_SmashWave);
 	float radius = 3.0f;
+	float jakkanue = 0.7f;
 	smashCollider_->SetVertices({
-		{  0.0000f * radius,  1.0000f * radius, 0.0f }, // 1. 真上
-		{ -0.9511f * radius,  0.3090f * radius, 0.0f }, // 2. 左上
-		{ -0.5878f * radius, -0.8090f * radius, 0.0f }, // 3. 左下
-		{  0.5878f * radius, -0.8090f * radius, 0.0f }, // 4. 右下
-		{  0.9511f * radius,  0.3090f * radius, 0.0f }  // 5. 右上
+		{  0.0000f * radius,  1.0000f * radius + jakkanue, 0.0f }, // 1. 真上
+		{ -0.9511f * radius,  0.3090f * radius + jakkanue, 0.0f }, // 2. 左上
+		{ -0.5878f * radius, -0.8090f * radius + jakkanue, 0.0f }, // 3. 左下
+		{  0.5878f * radius, -0.8090f * radius + jakkanue, 0.0f }, // 4. 右下
+		{  0.9511f * radius,  0.3090f * radius + jakkanue, 0.0f }  // 5. 右上
 	});
 
 	warpTimer_ = 0.0f;
@@ -695,10 +717,38 @@ void Player::WarpToUmbrella() {
 	ChangeActionState(normalDrawnState_.get());
 }
 
+///////////////////
+///
+///   アニメーション
+///
+///////////////////
+
 void Player::UpdateAnimation() {
 	if (!currentAnim_) return;
 
-	animTimer_ += 1.0f / 60.0f * 3.0f;
+	animTimer_ += 1.0f / 60.0f * 4.0f;
+
+	if (currentAnimName_ == "Run") {
+		animTimer_ -= 1.0f / 60.0f * 2.0f;
+	}
+	else if (currentAnimName_ == "AtkRot") {
+		animTimer_ += 1.0f / 60.0f * 0.0f;
+	}
+	else if (currentAnimName_ == "AtkX3") {
+		animTimer_ += 1.0f / 60.0f * 1.2f;
+	}
+	else if (currentAnimName_ == "ForwardFlip") {
+		animTimer_ -= 1.0f / 60.0f * 1.0f;
+	}
+	else if(currentAnimName_ == "AirDiveAttack") {
+		animTimer_ -= 1.0f / 60.0f * 1.0f;
+	}
+	else if (currentAnimName_ == "IdleOpen") {
+		animTimer_ -= 1.0f / 60.0f * 3.0f;
+	}
+	else if (currentAnimName_ == "Swinging") {
+		animTimer_ -= 1.0f / 60.0f * 3.0f;
+	}
 
 	if (currentAnimName_ == "Run") {
 		animTimer_ -= 1.0f / 60.0f * 1.0f;
@@ -741,6 +791,12 @@ void Player::GainXp(uint32_t amount) {
 
 void Player::TakeDamage(float damege, const Vector3& pos) {
 
+	if (currentActionState_ == evasionState_.get()) {
+		// 攻撃を喰らわない -> MISS
+
+		return;
+	}
+
 	float actualDamage = damege;
 	if (currentActionState_ == guardState_.get()) {
 		// もしガード状態なら
@@ -754,4 +810,19 @@ void Player::TakeDamage(float damege, const Vector3& pos) {
 	}
 
 	status_->TakeDamage(actualDamage);
+}
+
+void Player::AirDiveAttack() {
+	// 敵に当たったら、上方向に強制ポップ！
+	float hopPower = 18.0f;
+	myVelocity_.Y = hopPower;
+
+	// 突進は終わったので、少しだけ左右慣性を残すかゼロにする
+	myVelocity_.X = myVelocity_.X * -0.6f;
+
+	// 浮いたので、アクションを通常（空中）状態に戻して、次の行動（開く等）を受け付ける
+	ChangeActionState(normalDrawnState_.get());
+	ChangeMovementState(airborneState_.get());
+
+	PlayAnimation("ForwardFlip", false);
 }

@@ -110,7 +110,7 @@ namespace Game::Scene::Impl {
 			TerrainScreenData_->ConvertToWorldCoordinate(
 				*Terrain_,
 				*Camera_,
-				{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
+				{ 0.0f, 0.0f, 1280.0f * 0.5f, 720.0f, 0.0f, 1.0f }
 			);
 #if defined(_DEBUG)
 			TerrainEditor_->SetShapes(*Terrain_);
@@ -175,7 +175,7 @@ namespace Game::Scene::Impl {
 			auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
 			tmp /= tmp.W();
 
-			Lumina::F32 const inv_ViewportWidth{ 1.0f / 1280.0f };
+			Lumina::F32 const inv_ViewportWidth{ 1.0f / 640.0f };
 			Lumina::F32 const inv_ViewportHeight{ 1.0f / 720.0f };
 			
 			auto const& inv_View{ Camera_->ViewInverse() };

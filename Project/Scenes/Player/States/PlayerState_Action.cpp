@@ -114,18 +114,12 @@ namespace PlayerStates::Action {
 		const auto& umbrella = player_->GetUmbrella();
 		const auto umbrellaForm = umbrella.top_->GetUmbrellaForm();
 
-		// 【 RightJointの位置決め 】
-		//Vector3 handPos = player_->GetPosition();
-		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		//handPos.Y += 1.0f; // 少し上へ
-		//player_->GetRightHandJoint()->SetPos(handPos);
-
 		// 特になにもしていない時のState
 		if (input.attack == ButtonState::Pressed) {
 			if (umbrellaForm == UmbrellaForm::Closed) {
 				if (player_->onGround_ == false && player_->jumpCoyoteTimer_ >= player_->JUMP_COYOTE_MAX_TIME) {
 					// 空中にいるなら空中コンボにつながる
-					player_->attackState_->SetAttackID("AerialCombo1");
+					player_->attackState_->SetAttackID("AirDive");
 					player_->ChangeActionState(player_->attackState_.get());
 					return;
 				}
@@ -138,6 +132,14 @@ namespace PlayerStates::Action {
 				}
 
 				//Game::Event::OnAttack();
+				player_->attackState_->SetAttackID("Close_Y1");
+				player_->ChangeActionState(player_->attackState_.get());
+				return;
+			}
+			else if (umbrellaForm == UmbrellaForm::AirStop || umbrellaForm == UmbrellaForm::Flying) {
+				// ここに傘を手元に戻す処理を書く
+				player_->ReturnToMeUmbrella();
+
 				player_->attackState_->SetAttackID("Close_Y1");
 				player_->ChangeActionState(player_->attackState_.get());
 				return;
@@ -174,17 +176,21 @@ namespace PlayerStates::Action {
 			}
 		}
 
-		if (input.guard == ButtonState::Pressed) {
-			// 抜刀状態なので傘は開いているか確認する
-			if ((umbrellaForm == UmbrellaForm::Opened) || (umbrellaForm == UmbrellaForm::Reverse)) {
-				player_->ChangeActionState(player_->guardState_.get());
-				return;
-			}
-			else {
-				if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
-					// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
-					player_->ChangeActionState(player_->umbrellaOpenState_.get());
-					return;
+		if (input.aim != ButtonState::Held) {
+			if (input.guard == ButtonState::Pressed) {
+				// 抜刀状態なので傘は開いているか確認する
+				if ((umbrellaForm == UmbrellaForm::Opened) || (umbrellaForm == UmbrellaForm::Reverse)) {
+					if (player_->onGround_) {
+						player_->ChangeActionState(player_->guardState_.get());
+						return;
+					}
+				}
+				else {
+					if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
+						// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
+						player_->ChangeActionState(player_->umbrellaOpenState_.get());
+						return;
+					}
 				}
 			}
 		}
@@ -268,25 +274,32 @@ namespace PlayerStates::Action {
 	}
 
 	void Attack::Update(float deltaTime) {
+		const auto& umbrella = player_->GetUmbrella();
+
 		attackTimer_ += deltaTime;
 		if (currentAttackData_.animationName == "AtkX1") {
-			attackTimer_ += deltaTime * 2.0f;
+			attackTimer_ += deltaTime * 4.0f;
 		}
-		if (currentAttackData_.animationName == "AtkX2") {
-			attackTimer_ += deltaTime * 2.0f;
+		else if (currentAttackData_.animationName == "AtkX2") {
+			attackTimer_ += deltaTime * 4.0f;
 		}
-		if (currentAttackData_.animationName == "AtkX3") {
-			attackTimer_ += deltaTime * 2.0f;
+		else if (currentAttackData_.animationName == "AtkX3") {
+			attackTimer_ += deltaTime * 4.8f;
+		}
+		else if (currentAttackData_.animationName == "AtkRot") {
+			attackTimer_ += deltaTime * 4.0f;
+		}
+		else if (currentAttackData_.animationName == "AirDiveAttack") {
+			attackTimer_ += deltaTime * 1.0f;
 		}
 
 		const auto& input = player_->GetInput();
 
-		// 【 手の位置の上下シフト 】
-		/*Vector3 handPos = player_->GetPosition();
-		handPos.X += 1.0f * player_->eyesDirection_.X;
-		float shiftAmount = input.moveDirection.Y * 0.5f;
-		handPos.Y += 1.0f + shiftAmount;
-		player_->GetRightHandJoint()->SetPos(motion_.Update(deltaTime, player_->eyesDirection_) + handPos);*/
+		if (input.evasion == ButtonState::Pressed) {
+			// 回避でキャンセルした場合
+			player_->ChangeActionState(player_->evasionState_.get());
+			return;
+		}
 
 		//   ==================
 		// 【 特定の攻撃の処理 】
@@ -297,6 +310,14 @@ namespace PlayerStates::Action {
 				// 強制終了して着地ステートへ
 				player_->ChangeActionState(player_->normalDrawnState_.get());
 				player_->ChangeMovementState(player_->idleState_.get());
+				player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
+				return;
+			}
+		}
+
+		if (currentAttackData_.animationName == "AirDiveAttack") {
+			if (umbrella.top_->GetCollider()->IsHitHistory()) {
+				player_->AirDiveAttack();
 				player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
 				return;
 			}
@@ -322,6 +343,15 @@ namespace PlayerStates::Action {
 							canBranch = true;
 						}
 					}
+					else if (branch.input == "AttackY_Held") {
+						if (input.attack == ButtonState::Held) {
+							holdTimerY_ += deltaTime;
+							// 0.2秒以上押しっぱなしなら派生成立！
+							if (holdTimerY_ > 0.1f) {
+								canBranch = true;
+							}
+						}
+					}
 					// --- Xボタン（強攻撃） ---
 					else if (branch.input == "AttackX") {
 						if (input.sheathe == ButtonState::Pressed) canBranch = true;
@@ -337,10 +367,8 @@ namespace PlayerStates::Action {
 							}
 						}
 					}
-					// --- 回避 ---
-					else if (branch.input == "Evasion") {
-						if (input.evasion == ButtonState::Pressed) canBranch = true;
-					}
+					//// --- 回避 ---
+					//if (input.evasion == ButtonState::Pressed)canBranch = true;
 				}
 				// 2. 入力タイプが "Auto" の場合（時間が来たら自動で派生）
 				else if (branch.type == "Auto") {
@@ -364,17 +392,14 @@ namespace PlayerStates::Action {
 					if (branch.consumeMana > 0.0f) {
 						player_->GetManaComponent().ConsumeMana(branch.consumeMana);
 					}
-
+					// 次の攻撃へ！
+					SetAttackID(branch.nextAttack);
+					Enter();
 					// 次のステートへ移行！
-					if (false/*branch.input == "Evasion"*/) {
-						// 回避でキャンセルした場合
-						//player_->ChangeActionState(player_->evasionState_.get());
-					}
-					else {
-						// 次の攻撃へ！
-						SetAttackID(branch.nextAttack);
-						Enter();
-					}
+					
+					/*else {
+						
+					}*/
 					return; // 派生したのでUpdateはここで終わり
 				}
 			}
@@ -396,6 +421,7 @@ namespace PlayerStates::Action {
 		// =================================
 		
 		// 攻撃判定(Collider)をオフにする処理などもここに書く
+		player_->GetUmbrella().top_->GetCollider()->ClearHitHistory();
 	}
 
 	////////////////////////////
@@ -408,15 +434,9 @@ namespace PlayerStates::Action {
 	}
 
 	void ThrowUmbrella::Update([[maybe_unused]] float deltaTime) {
-		// プレイヤーの手の位置に傘を追従させる
-		//Vector3 handPos = player_->GetPosition();
-		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		//handPos.Y += 1.0f; // 少し上へ
-		//player_->GetRightHandJoint()->SetPos(handPos);
-
 		if (true/*再生が終わったら*/) {
 			Vector3 throwVelocity = player_->GetTargetPos() - player_->GetPosition();
-			float throwSpeed = 1.0f; // 投げる速度の調整用の定数
+			float throwSpeed = 2.0f; // 投げる速度の調整用の定数
 			throwVelocity.X *= throwSpeed;
 			throwVelocity.Y *= throwSpeed;
 			player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Flying(throwVelocity));
@@ -439,13 +459,9 @@ namespace PlayerStates::Action {
 	}
 
 	void ReverseCharge::Update(float deltaTime) {
-		// =================================
-		// 【 手のJoint位置の設定 】
-		// =================================
-		//Vector3 handPos = player_->GetPosition();
-		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		//handPos.Y += 1.0f; // 少し上へ
-		//player_->GetRightHandJoint()->SetPos(handPos);
+		if (player_->GetCurrentAnimationName() != "ReverseCharge") {
+			player_->PlayAnimation("ReverseCharge", true);
+		}
 
 		// 1秒間に溜まるマナの量
 		float chargeSpeed = 10.0f * deltaTime;
@@ -465,8 +481,9 @@ namespace PlayerStates::Action {
 			player_->GetSmashCollider()->ClearVertices();
 			player_->GetSmashCollider()->SetVertices({
 				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
-				{0.0f,2.0f,0.0f},
-				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f}
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
+				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),1.5f,0.0f},
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),1.5f,0.0f}
 			});
 		}
 
@@ -505,7 +522,11 @@ namespace PlayerStates::Action {
 		// ※ プレイヤーの攻撃モーション（バシャーン！と水をぶちまける）を再生
 		motion_.Play("Swing", { 0.0f,0.0f,0.0f }, 0.5f);
 
+		player_->PlayAnimation("ReverseChargeAttack", false);
+
 		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
+
+		player_->ChangeMovementState(player_->restrictedState_.get());
 	}
 
 	void ReverseAttack::Update([[maybe_unused]] float deltaTime) {
@@ -533,6 +554,8 @@ namespace PlayerStates::Action {
 
 		player_->GetSmashCollider()->ClearVertices();
 		player_->GetSmashCollider()->SetMyType(COL_None);
+
+		player_->ChangeMovementState(player_->idleState_.get());
 	}
 
 	////////////////////////////
@@ -551,6 +574,10 @@ namespace PlayerStates::Action {
 	void Guard::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
 
+		if (player_->GetCurrentAnimationName() != "Guard") {
+			player_->PlayAnimation("Guard", true);
+		}
+
 		if (input.guard == ButtonState::Released) {
 			// ガードボタンを離したら終わる
 			player_->ChangeActionState(player_->normalDrawnState_.get());
@@ -560,6 +587,38 @@ namespace PlayerStates::Action {
 	void Guard::Exit() {
 		// ここでなにかするかも
 		//player_->GetCollider()->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
+	}
+	///////////////////////
+	///
+	/// Evasion
+	///
+	///////////////////////
+	void Evasion::Enter() {
+		// 2. 移動ステートを制限状態に強制変更
+		player_->ChangeMovementState(player_->restrictedState_.get());
+		evasionTimer_ = 0.0f;
+		float forward = player_->eyesDirection_.X > 0.0f ? 1.0f : -1.0f;
+		player_->myVelocity_.X = 70.0f * forward;
+	}
+
+	void Evasion::Update([[maybe_unused]] float deltaTime) {
+		evasionTimer_ += deltaTime;
+
+		// アニメーション（または固定時間）が終わったら
+		if (evasionTimer_ >= evasionDuration_) {
+			// 1. アクションを通常状態に戻す
+			player_->ChangeActionState(player_->normalDrawnState_.get());
+		}
+	}
+
+	void Evasion::Exit() {
+		// 2. ここが大事！移動側も「今の状態」に合わせて戻してあげる
+		if (player_->onGround_) {
+			player_->ChangeMovementState(player_->idleState_.get());
+		}
+		else {
+			player_->ChangeMovementState(player_->airborneState_.get());
+		}
 	}
 
 	////////////////////////////
@@ -680,7 +739,8 @@ namespace PlayerStates::Action {
 			if (IsButtonUp(player_->GetInput().aim)) {
 				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
 					player_->GetManaComponent().ConsumeMana(25.0f);
-					player_->externalVelocity_.Y = 9.0f; // 上昇の初速を与える（数値は調整用）
+					player_->myVelocity_.Y = 10.0f; // 上昇の初速を与える（数値は調整用）
+					player_->externalVelocity_.Y = 0.0f; // 上昇の初速を与える（数値は調整用）
 				}
 			}
 		}

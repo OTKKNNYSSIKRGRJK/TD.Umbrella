@@ -38,6 +38,18 @@
         { "type": "Input", "input": "AttackX", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y3_X1" }
       ]
     },
+    "AirDive": {
+      "name": "斜め下にぶっさす ",
+      "stance": "Close",
+      "animation": "AirDiveAttack",
+      "motion": "AirDiveAttack",
+      "duration": 1.0,
+      "damage": 1.0,
+      "physics": { "velocityX": 40.0, "velocityY": -30.0, "gravityScale": 1.0 },
+      "feel": { "hitStop": 0.05 },
+      "branches": [
+      ]
+    },
 
     "Close_Y1_X1": {
       "name": "垂直斬り上げ",
@@ -159,7 +171,7 @@
       "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
       "feel": { "hitStop": 0.1, "cameraShake": 0.15 },
       "branches": [
-        { "type": "Input", "input": "AttackX_Hold", "timeMin": 0.3, "timeMax": 0.9, "nextAttack": "Open_Y1" }
+        { "type": "Input", "input": "AttackY_Hold", "timeMin": 0.2, "timeMax": 0.9, "nextAttack": "Open_Y1" }
       ]
     },
     "Open_X2": {

@@ -86,7 +86,7 @@ namespace UmbrellaStates {
 
 	}
 	void Attached::Update([[maybe_unused]] float deltaTime) {
-		
+		top_->GetRootJoint()->SetInfo({ 0.0f,0.0f,0.0f }, { 0.0f,0.0f,0.0f });
 	}
 	void Attached::Exit() {
 
@@ -139,7 +139,7 @@ namespace UmbrellaStates {
 		pos.Z += velocity_.Z * deltaTime * 8.0f;
 		top_->GetRootJoint()->SetPos(pos);
 		// Velocityをだんだん減速させる
-		float deceleration = 3.5f; // ブレーキの強さ
+		float deceleration = 5.5f; // ブレーキの強さ
 		velocity_.X = std::lerp(velocity_.X, 0.0f, deceleration * deltaTime);
 		velocity_.Y = std::lerp(velocity_.Y, 0.0f, deceleration * deltaTime);
 
