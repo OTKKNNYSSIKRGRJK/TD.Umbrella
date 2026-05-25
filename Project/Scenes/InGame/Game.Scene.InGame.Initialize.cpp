@@ -849,7 +849,7 @@ namespace Game::Scene::Impl {
 		Raindrops_->Initialize(d3d12Context_, 1024U);
 
 		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		PlayerEffects_->Initialize(d3d12Context_, 512U);
+		PlayerEffects_->Initialize(d3d12Context_, 1024U);
 		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle2>>();
 		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
 
@@ -868,6 +868,7 @@ namespace Game::Scene::Impl {
 		eventMngr.RegisterType<Event::InGame::OnPlayerMove>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerJump>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerAttack>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerWarp>();
 
 		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
 			[this] (Event::InGame::OnPlayerMove& event_) {
@@ -883,6 +884,11 @@ namespace Game::Scene::Impl {
 			[this] (Event::InGame::OnPlayerAttack& event_) {
 				this->Update_<"OnPlayerAttack">(event_);
 			}
+		);
+		eventMngr.AddEventListener<Event::InGame::OnPlayerWarp>(
+			[this](Event::InGame::OnPlayerWarp& event_) {
+			this->Update_<"OnPlayerWarp">(event_);
+		}
 		);
 	}
 

@@ -17,4 +17,7 @@ namespace Game::Event::InGame {
 
 	export struct OnPlayerAttack : public Lumina::EventInterface {
 	};
+
+	export struct OnPlayerWarp : public Lumina::EventInterface {
+	};
 }
