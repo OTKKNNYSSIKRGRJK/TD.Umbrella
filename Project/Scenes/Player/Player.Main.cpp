@@ -508,11 +508,11 @@ void Player::Update(float deltaTime) {
 		event_OnPlayerJump.Velocity = myVelocity_;
 		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerJump));
 	}
-	if (inputData_.jump == ButtonState::Pressed) {
+	/*if (inputData_.jump == ButtonState::Pressed) {
 		Lumina::Context::Instance().EventContext().TriggerEvent(
 			std::move(Game::Event::InGame::OnPlayerWarp{})
 		);
-	}
+	}*/
 	if (currentActionState_ == attackState_.get()) {
 		Lumina::Context::Instance().EventContext().TriggerEvent(
 			std::move(Game::Event::InGame::OnPlayerAttack{})
