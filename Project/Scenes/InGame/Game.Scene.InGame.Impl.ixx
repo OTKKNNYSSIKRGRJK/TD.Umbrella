@@ -33,6 +33,7 @@ import Lumina.DeferredLighting;
 import ParticleSystem;
 
 import Game.Player;
+import Game.ExpOrbManager;
 import CollisionManager;
 import Game.ConvexColliderDebug;
 import Collider;

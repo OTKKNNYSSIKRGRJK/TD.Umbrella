@@ -574,6 +574,9 @@ namespace Game::Scene::Impl {
 
 				PrimitiveManager_Tutorial_->Begin(cmdList);
 
+				// 経験値オーブの描画
+				Game::ExpOrbManager::GetInstance()->Draw(PrimitiveManager_Tutorial_.get(), *WorldToHomogeneous_);
+
 				// ---------------------------------
 				// プレイヤーHPバー描画（左上）
 				// ---------------------------------

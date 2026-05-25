@@ -242,6 +242,7 @@ namespace Game::Scene::Impl {
 		playState_.Enemies.clear();
 		Game::EnemyManager::GetInstance()->ClearInstances();
 		Game::ProjectileManager::GetInstance()->ClearAll();
+		Game::ExpOrbManager::GetInstance()->Clear();
 
 		for (auto& ep : playState_.CurrentArea.enemies) {
 			PlayEnemy pe;
@@ -335,6 +336,9 @@ namespace Game::Scene::Impl {
 		}
 
 		Player_->Update(1.0f / 60.0f);
+
+		// 経験値オーブの更新
+		Game::ExpOrbManager::GetInstance()->Update(1.0f / 60.0f, Player_->GetPosition(), Player_.get());
 
 		playState_.Player.Position.X = Player_->GetPosition().X;
 		playState_.Player.Position.Y = Player_->GetPosition().Y;

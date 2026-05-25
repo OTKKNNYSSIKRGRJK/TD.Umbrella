@@ -14,6 +14,7 @@ import Game.Umbrella;
 import Game.ProjectileManager;
 
 import Game.Events;
+import Game.ExpOrbManager;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -929,9 +930,9 @@ namespace Game {
 					if (this->hurtTimer <= 0.0f && !this->recentlyDamagedThisFrame && this->lastHitAttackId != attackId) {
 						this->recentlyDamagedThisFrame = true;
 						this->lastHitAttackId = attackId;
-						// 衝撃波により本当に少しだけ動きを止めたい
+						// 衝撃波により本当に少しだけ動きを止めたい (明示的に0.18秒のヒットストップ)
 						Game::EnemyManager::GetInstance()->DealDamage(this->id, 10);
-						Game::Event::AddHitStop(player->GetUmbrella().top_->GetStatusComponent().GetHitStop());
+						Game::Event::AddHitStop(0.18f);
 					}
 				}
 			};
@@ -1712,6 +1713,11 @@ namespace Game {
 			enemy->currentHP = 0;
 			enemy->isDead = true;
 			++Event::EnemiesDefeated;
+			
+			// 経験値オーブをスポーンさせる
+			uint32_t xp = (enemy->sizeTier + 1) * 10 + static_cast<uint32_t>(enemy->baseData.hp * 0.1f);
+			Game::ExpOrbManager::GetInstance()->Spawn(enemy->position, xp);
+
 			if (onDeathCallback_) {
 				onDeathCallback_(*enemy);
 			}
@@ -1766,6 +1772,11 @@ namespace Game {
 				enemy.currentHP = 0;
 				enemy.isDead = true;
 				++Event::EnemiesDefeated;
+
+				// 経験値オーブをスポーンさせる
+				uint32_t xp = (enemy.sizeTier + 1) * 10 + static_cast<uint32_t>(enemy.baseData.hp * 0.1f);
+				Game::ExpOrbManager::GetInstance()->Spawn(enemy.position, xp);
+
 				if (onDeathCallback_) {
 					onDeathCallback_(enemy);
 				}
