@@ -153,7 +153,7 @@ namespace Lumina {
 	void Context::Initialize() {
 		Lumina::OS::Windows::WindowConfig mainWindowConfig_{
 			.Name{ L"Main" },
-			.Title{ L"Usus Magister Est Optimus" },
+			.Title{ L"3125_雨宿り" },
 			.Style{
 				Lumina::OS::Windows::WindowStyle::TitleBar |
 				Lumina::OS::Windows::WindowStyle::WindowMenu |
