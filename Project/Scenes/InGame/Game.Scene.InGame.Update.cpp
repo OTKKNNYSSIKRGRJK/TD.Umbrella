@@ -383,8 +383,6 @@ namespace Game::Scene::Impl {
 
 	template<>
 	void InGame::Update_<"Enemies-2">() {
-		// 死亡済みプロジェクタイルを除去
-		Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
 		playState_.Enemies.clear();
@@ -1616,6 +1614,9 @@ namespace Game::Scene::Impl {
 			}
 
 			if (deltaTime > 0.0f) {
+				// 前フレームで死亡したプロジェクタイルを破棄（Render終了後に安全に消去するためここで実行）
+				Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
+
 				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
 				
 				Update_<"Enemies-1">(1.0f / 60.0f);
