@@ -32,7 +32,7 @@ namespace Game::Scene::Impl {
 		UmbrellaEffects_->Update(
 			cmdList,
 			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle& p_, void const*) -> bool {
+			[this] (Lumina::Particle2& p_, void const*) -> bool {
 				this->Update_<"UmbrellaEffectParticle">(p_);
 				return (p_.Life > 0.0f);
 			}

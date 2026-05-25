@@ -3,6 +3,8 @@ module Game.Terrain;
 import : Render;
 import : Shape;
 
+import : Render.Impl;
+
 import Lumina.Main;
 
 namespace Game {
@@ -61,6 +63,8 @@ namespace Game {
 			L"Assets/Shaders/Terrain.Debug.VS.hlsl",
 			L"Assets/Shaders/Terrain.Debug.PS.hlsl"
 		);
+
+		Impl_ = std::make_unique<Impl::TerrainRenderer>();
 	}
 
 	TerrainRenderer::TerrainRenderer() {}

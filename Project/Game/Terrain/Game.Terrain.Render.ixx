@@ -9,6 +9,8 @@ import Lumina.D3D12;
 import Lumina.Primitive;
 
 namespace Game {
+	namespace Impl { class TerrainRenderer; }
+
 	export class TerrainRenderer {
 	public:
 		auto DebugRenderCollidersBatch(
@@ -26,7 +28,8 @@ namespace Game {
 		TerrainRenderer();
 		~TerrainRenderer();
 
-	public:
+	private:
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
+		std::unique_ptr<Impl::TerrainRenderer> Impl_{ nullptr };
 	};
 }

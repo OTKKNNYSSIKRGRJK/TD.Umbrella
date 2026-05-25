@@ -850,7 +850,7 @@ namespace Game::Scene::Impl {
 
 		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		PlayerEffects_->Initialize(d3d12Context_, 512U);
-		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle2>>();
 		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
 
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();

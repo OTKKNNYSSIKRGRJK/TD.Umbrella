@@ -19,6 +19,7 @@
     <ClCompile Include="Game\Game.UIMenu.ixx" />
     <ClCompile Include="Game\Game.TutorialManager.ixx" />
     <ClCompile Include="Game\Game.TutorialManager.cpp" />
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.Impl.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.cpp" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.ixx" />
     <ClCompile Include="Game\Terrain\Game.Terrain.Shape.cpp" />

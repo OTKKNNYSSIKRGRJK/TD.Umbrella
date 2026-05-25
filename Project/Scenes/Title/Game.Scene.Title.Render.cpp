@@ -51,7 +51,13 @@ namespace Game::Scene::Impl {
 		Raindrops_->Update(
 			cmdList,
 			Lumina::Math::F32x4x4<>::Identity,
-			Lumina::ParticleSystem<Lumina::Particle>::DefaultUpdateCallback
+			[] (Lumina::Particle& p_, void const*) {
+				p_.Translate.X += p_.Velocity.X;
+				p_.Translate.Y += p_.Velocity.Y;
+				p_.Translate.Z += p_.Velocity.Z;
+				p_.Life -= 1.0f;
+				return (p_.Life > 0.0f);
+			}
 		);
 
 		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
