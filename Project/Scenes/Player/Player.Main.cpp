@@ -173,6 +173,10 @@ void Player::LoadAnimation() {
 
 	animDatabase_["Swinging"] = animation_swinging[5];
 
+	auto animation_guard{ Lumina::CG3D::LoadAnimationFile("guard.gltf", "Assets/Neki") };
+
+	animDatabase_["Guard"] = animation_guard[1];
+
 	auto animation_atkX1{ Lumina::CG3D::LoadAnimationFile("ATKY1_H2.gltf", "Assets/Neki") };
 	auto animation_atkX2{ Lumina::CG3D::LoadAnimationFile("ATKY2_H2.gltf", "Assets/Neki") };
 	auto animation_atkX3{ Lumina::CG3D::LoadAnimationFile("ATKY3_H3.gltf", "Assets/Neki") };
@@ -184,6 +188,12 @@ void Player::LoadAnimation() {
 	animDatabase_["AtkX3"] = animation_atkX3[0];
 	animDatabase_["AtkRot"] = animation_atkRot[0];
 	animDatabase_["AirDiveAttack"] = animation_airDiveAttack[4];
+
+	auto animation_reverseCharge{ Lumina::CG3D::LoadAnimationFile("ReverseCharge.gltf", "Assets/Neki") };
+	auto animation_reverseChargeAttack{ Lumina::CG3D::LoadAnimationFile("ReverseChargeAttack.gltf", "Assets/Neki") };
+
+	animDatabase_["ReverseCharge"] = animation_reverseCharge[1];
+	animDatabase_["ReverseChargeAttack"] = animation_reverseChargeAttack[2];
 }
 
 void Player::Initialize() {
@@ -417,6 +427,7 @@ void Player::Update(float deltaTime) {
 	backPos.Z += 1.0f;
 	backJoint_.SetPos(backPos);
 	backJoint_.Update();
+	//backJoint_.MultiplyMatrixToMe(*WorldMatrix_);
 	
 	// 傘
 	umbrella_->Update(deltaTime);

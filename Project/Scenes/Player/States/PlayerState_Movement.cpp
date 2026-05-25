@@ -138,7 +138,7 @@ namespace PlayerStates::Movement {
 	// 
 	////////////////////////////
 	void Idle::Enter() {
-		if(player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+		if(player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened || player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Reverse) {
 			player_->PlayAnimation("IdleOpen", true);
 		} else {
 			player_->PlayAnimation("Idle", true);
@@ -224,7 +224,7 @@ namespace PlayerStates::Movement {
 		}
 
 		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
-			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana() * 0.6f));
+			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana()));
 		}
 
 		float acceleration = 15.0f;

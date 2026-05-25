@@ -176,17 +176,21 @@ namespace PlayerStates::Action {
 			}
 		}
 
-		if (input.guard == ButtonState::Pressed) {
-			// 抜刀状態なので傘は開いているか確認する
-			if ((umbrellaForm == UmbrellaForm::Opened) || (umbrellaForm == UmbrellaForm::Reverse)) {
-				player_->ChangeActionState(player_->guardState_.get());
-				return;
-			}
-			else {
-				if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
-					// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
-					player_->ChangeActionState(player_->umbrellaOpenState_.get());
-					return;
+		if (input.aim != ButtonState::Held) {
+			if (input.guard == ButtonState::Pressed) {
+				// 抜刀状態なので傘は開いているか確認する
+				if ((umbrellaForm == UmbrellaForm::Opened) || (umbrellaForm == UmbrellaForm::Reverse)) {
+					if (player_->onGround_) {
+						player_->ChangeActionState(player_->guardState_.get());
+						return;
+					}
+				}
+				else {
+					if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
+						// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
+						player_->ChangeActionState(player_->umbrellaOpenState_.get());
+						return;
+					}
 				}
 			}
 		}
@@ -455,13 +459,9 @@ namespace PlayerStates::Action {
 	}
 
 	void ReverseCharge::Update(float deltaTime) {
-		// =================================
-		// 【 手のJoint位置の設定 】
-		// =================================
-		//Vector3 handPos = player_->GetPosition();
-		//handPos.X += 1.0f * player_->eyesDirection_.X; // プレイヤーの右方向へオフセット
-		//handPos.Y += 1.0f; // 少し上へ
-		//player_->GetRightHandJoint()->SetPos(handPos);
+		if (player_->GetCurrentAnimationName() != "ReverseCharge") {
+			player_->PlayAnimation("ReverseCharge", true);
+		}
 
 		// 1秒間に溜まるマナの量
 		float chargeSpeed = 10.0f * deltaTime;
@@ -481,8 +481,9 @@ namespace PlayerStates::Action {
 			player_->GetSmashCollider()->ClearVertices();
 			player_->GetSmashCollider()->SetVertices({
 				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
-				{0.0f,2.0f,0.0f},
-				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f}
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),-1.5f,0.0f},
+				{-0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),1.5f,0.0f},
+				{0.125f * player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana(),1.5f,0.0f}
 			});
 		}
 
@@ -521,7 +522,11 @@ namespace PlayerStates::Action {
 		// ※ プレイヤーの攻撃モーション（バシャーン！と水をぶちまける）を再生
 		motion_.Play("Swing", { 0.0f,0.0f,0.0f }, 0.5f);
 
+		player_->PlayAnimation("ReverseChargeAttack", false);
+
 		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
+
+		player_->ChangeMovementState(player_->restrictedState_.get());
 	}
 
 	void ReverseAttack::Update([[maybe_unused]] float deltaTime) {
@@ -549,6 +554,8 @@ namespace PlayerStates::Action {
 
 		player_->GetSmashCollider()->ClearVertices();
 		player_->GetSmashCollider()->SetMyType(COL_None);
+
+		player_->ChangeMovementState(player_->idleState_.get());
 	}
 
 	////////////////////////////
@@ -566,6 +573,10 @@ namespace PlayerStates::Action {
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
+
+		if (player_->GetCurrentAnimationName() != "Guard") {
+			player_->PlayAnimation("Guard", true);
+		}
 
 		if (input.guard == ButtonState::Released) {
 			// ガードボタンを離したら終わる
