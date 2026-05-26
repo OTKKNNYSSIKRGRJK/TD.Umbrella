@@ -119,7 +119,6 @@ namespace Umbrella {
 			currentState_->Update(deltaTime);
 		}
 		UpdateColliderShape();
-		rootJoint_.Update();
 
 		switch (form_) {
 		case UmbrellaForm::Closed:
@@ -152,6 +151,8 @@ namespace Umbrella {
 			#endif
 			break;
 		}
+
+		rootJoint_.Update();
 
 		if (collider_->GetMyType() != COL_None) {
 			
@@ -237,7 +238,7 @@ namespace Umbrella {
 			// 逆さ状態：雨（マナ）を受け止めるための、上向きのお椀（または広い箱）のような判定
 			// ※とりあえず、開いた傘と同じか、少し広めの直方体（板）にしておく
 			float w = 1.0f;  // 半径1mくらいの広さ
-			float h = 0.2f;  // 厚み
+			float h = 1.0f;  // 厚み
 			float y = 0.0f;  // 持ち手から少し上の位置
 			vertices = {
 				{-w, y, -w}, { w, y, -w}, {-w, y,  w}, { w, y,  w},

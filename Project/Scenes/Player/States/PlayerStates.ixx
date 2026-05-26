@@ -144,6 +144,7 @@ namespace PlayerStates {
 			void Exit() override;
 		private:
 			MotionController motion_;
+			float firstEyeDirectionX_;
 		};
 		class Dash : public Base {
 		public:

@@ -403,7 +403,7 @@ namespace Game {
 				for (auto& p : const_cast<std::vector<Projectile>&>(mgr->GetAll())) {
 					if (p.id == id) {
                         if (player != nullptr) {
-							player->GetStatusComponent().TakeDamage(static_cast<float>((std::max)(1, p.data.damage)));
+							player->TakeDamage(static_cast<float>((std::max)(1, p.data.damage)), p.position);
 						}
 						p.isDead = true;
 						break;

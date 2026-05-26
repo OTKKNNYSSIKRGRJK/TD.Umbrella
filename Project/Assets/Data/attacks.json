@@ -7,7 +7,7 @@
       "motion": "Motion_StepForward_Light",
       "duration": 1.4,
       "damage": 10.0,
-      "physics": { "velocityX": 20.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "physics": { "velocityX": 5.0, "velocityY": 0.0, "gravityScale": 1.0 },
       "branches": [
         { "type": "Input", "input": "Attack", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y2" }
       ]
@@ -19,7 +19,7 @@
       "motion": "Motion_StepForward_Light",
       "duration": 0.5,
       "damage": 12.0,
-      "physics": { "velocityX": 15.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "physics": { "velocityX": 5.0, "velocityY": 0.0, "gravityScale": 1.0 },
       "branches": [
         { "type": "Input", "input": "AttackY", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y3" },
         { "type": "Input", "input": "AttackX", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y2_X1" }
@@ -32,7 +32,7 @@
       "motion": "Motion_StepForward_Medium",
       "duration": 1.6,
       "damage": 15.0,
-      "physics": { "velocityX": 10.0, "velocityY": 0.0, "gravityScale": 1.0 },
+      "physics": { "velocityX": 5.0, "velocityY": 0.0, "gravityScale": 1.0 },
       "feel": { "hitStop": 0.05 },
       "branches": [
         { "type": "Input", "input": "AttackX", "timeMin": 0.5, "timeMax": 0.9, "nextAttack": "Close_Y3_X1" }

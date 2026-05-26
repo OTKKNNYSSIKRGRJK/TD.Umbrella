@@ -214,8 +214,8 @@ void Player::Initialize() {
 
 	backJoint_.SetType(AttachmentType::PlayerBack);
 	backJoint_.SetAcceptType(AttachmentType::UmbrellaHandle);
-	backJoint_.SetInfo({ 0.0f,-0.0f,0.0f }, { 0.0f,0.0f,0.0f });
-	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(45.0f)});
+	backJoint_.SetInfo({ 0.0f,-0.0f,-0.3f }, { 0.0f,0.0f,0.0f });
+	backJoint_.SetRot({0.0f,0.0f,Lumina::Math::DegToRad(225.0f)});
 
 	umbrella_ = std::make_unique<Umbrella::Main>();
 	umbrella_->Initialize();
@@ -423,13 +423,14 @@ void Player::Update(float deltaTime) {
 		rightHandJoint_.MultiplyMatrixToMe(*WorldMatrix_);
 	}
 
-	Vector3 backPos = Position_;
-	backPos.Y += 1.0f;
-	backPos.Z += 1.0f;
-	backJoint_.SetPos(backPos);
-	backJoint_.Update();
-	//backJoint_.MultiplyMatrixToMe(*WorldMatrix_);
-	
+	auto it2 = PlayerSkinnedInstance_->Skeleton_.IDX_Joint.find("Bone.003");
+	// 見つかったかどうかチェック
+	if (it2 != PlayerSkinnedInstance_->Skeleton_.IDX_Joint.end()) {
+		backJoint_.Update(); // 右手Joint自身の行列を計算
+		backJoint_.MultiplyMatrixToMe(PlayerSkinnedInstance_->Skeleton_.ARR_Joint[it2->second].SkeletonSpace);
+		backJoint_.MultiplyMatrixToMe(*WorldMatrix_);
+	}
+
 	// 傘
 	umbrella_->Update(deltaTime);
 
@@ -811,19 +812,17 @@ void Player::GainXp(uint32_t amount) {
 }
 
 void Player::TakeDamage(float damege, const Vector3& pos) {
-
+	Vector3 vector = pos - GetPosition();
 	if (currentActionState_ == evasionState_.get()) {
 		// 攻撃を喰らわない -> MISS
 
 		return;
 	}
-
 	float actualDamage = damege;
 	if (currentActionState_ == guardState_.get()) {
 		// もしガード状態なら
-		Vector3 vector = pos - GetPosition();
 		float dot = eyesDirection_.X * vector.X + eyesDirection_.Y * vector.Y;
-		if (dot > 0) {
+		if (dot > 0.0f) {
 			// ガードしている方向と同じなら
 			actualDamage *= 0.0f;
 			externalVelocity_.X = -vector.X * 1.5f;
@@ -831,6 +830,11 @@ void Player::TakeDamage(float damege, const Vector3& pos) {
 	}
 
 	status_->TakeDamage(actualDamage);
+
+	if (actualDamage > 0.0f) {
+		externalVelocity_.X = -vector.X * 0.5f * actualDamage;
+		externalVelocity_.Y = 0.05f;
+	}
 }
 
 void Player::AirDiveAttack() {

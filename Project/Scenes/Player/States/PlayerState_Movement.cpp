@@ -226,6 +226,9 @@ namespace PlayerStates::Movement {
 		if (player_->GetCurrentActionState() == player_->reverseChargeState_.get()) {
 			targetSpeed = 8.0f - 8.0f * (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() / (player_->GetUmbrella().top_->GetManaComponent().GetMaxMana()));
 		}
+		else if (player_->GetCurrentActionState() == player_->guardState_.get()) {
+			targetSpeed = 5.0f;
+		}
 
 		float acceleration = 15.0f;
 		float targetVelocityX = input.moveDirection.X * targetSpeed;

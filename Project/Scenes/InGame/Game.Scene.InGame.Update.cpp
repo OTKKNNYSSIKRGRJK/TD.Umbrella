@@ -559,7 +559,7 @@ namespace Game::Scene::Impl {
 			}
 			else {
 				newCameraPos = {
-					cameraPos.X * 0.95f + playerPos.X * 0.05f,
+					cameraPos.X * 0.95f + playerPos.X * 0.05f + (Player_->eyesDirection_.X > 0.0f ? 1.0f : -1.0f) * 0.1f,
 					cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
 					-30.0f
 				};

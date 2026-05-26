@@ -569,10 +569,14 @@ namespace PlayerStates::Action {
 		// 座標の設定をする
 
 		//player_->GetCollider()->SetYourType(COL_Ground | COL_Umbrella_Ground);
+
+		firstEyeDirectionX_ = player_->eyesDirection_.X;
 	}
 
 	void Guard::Update([[maybe_unused]] float deltaTime) {
 		const auto& input = player_->GetInput();
+
+		player_->eyesDirection_.X = firstEyeDirectionX_;
 
 		if (player_->GetCurrentAnimationName() != "Guard") {
 			player_->PlayAnimation("Guard", true);
