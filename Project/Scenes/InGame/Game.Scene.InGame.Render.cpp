@@ -272,33 +272,6 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		// ポータルを薄い立方体（cube.obj）で表現
-		// Connectionsの座標はすでにワールド座標に変換されているため、そのまま使用する。
-		for (const auto& conn : playState_.CurrentArea.connections) {
-			float cx = conn.position.x;
-			float cy = conn.position.y;
-
-			float sx = 1.5f;
-			float sy = 1.5f;
-			float sz = 0.5f; // "薄く表示する" (ジオメトリとしての厚みを薄くする)
-
-			Lumina::Math::F32x4x4<> worldMat{
-				sx,  0.0f, 0.0f, 0.0f,
-				0.0f, sy,  0.0f, 0.0f,
-				0.0f, 0.0f, sz,  0.0f,
-				cx,   cy,   0.0f, 1.0f
-			};
-			
-			if (CubeMeshIdx_ < MeshShaderAssets_.size()) {
-				meshMngr.Batch(
-					MeshShaderAssets_[CubeMeshIdx_],
-					1U,
-					LocalHeap_Materials_.CPUHandle(0U),
-					worldMat
-				);
-			}
-		}
-
 		meshMngr.BatchEnd();
 
 		GeometryPass_.Begin(cmdList);
@@ -406,6 +379,44 @@ namespace Game::Scene::Impl {
 		meshMngr.End();
 	}
 
+	template<>
+	void InGame::Render_<"Portal">(
+		Lumina::I32&& idx_,
+		Lumina::F32x2&& worldPos_
+	) {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
+
+		static Lumina::Math::F32x4x4<> world{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f,
+		};
+		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
+		Portals_[idx_]->Render(cmdList, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_);
+	}
+	template<>
+	void InGame::Render_<"Portals">() {
+		int idx_Portal{ 0 };
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			float cx = conn.position.x;
+			float cy = conn.position.y;
+
+			Render_<"Portal">(int{ idx_Portal }, Lumina::F32x2{ cx, cy });
+			++idx_Portal;
+		}
+	}
+
+	template<>
+	void InGame::Render_<"Skybox">() {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		Skybox_->Render(cmdList, LocalHeap_Scene_.CPUHandle(0U));
+	}
+
 	void InGame::Render_Merge() {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
@@ -437,6 +448,10 @@ namespace Game::Scene::Impl {
 		MergePass_.Begin(cmdList);
 		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, Lumina::Math::F32x4x4<>::Identity, 1);
 		MergePass_.End();
+
+		//auto rtv = swapChain.BackBufferRTVCPUHandle();
+		//auto dsv = swapChain.DSVCPUHandle();
+		//cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
 	}
 
 	void InGame::Render() {
@@ -458,6 +473,7 @@ namespace Game::Scene::Impl {
 
 		Render_<"PrepareParticle">();
 		Render_Geometry();
+		Render_<"Portals">();
 		Render_Merge();
 
 			// オーバーレイ描画（プレイヤーHPバー、敵HPバー、チュートリアル等）

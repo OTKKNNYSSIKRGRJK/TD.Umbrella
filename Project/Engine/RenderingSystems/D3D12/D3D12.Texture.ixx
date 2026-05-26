@@ -158,6 +158,7 @@ export namespace Lumina::D3D12 {
 
 		inline uint32_t Width() const noexcept;
 		inline uint32_t Height() const noexcept;
+		inline bool IsCubemap() const noexcept { return IsCubemap_; }
 
 		inline STATUS Status() const noexcept;
 		inline const Intermediate& IntermediateData() const noexcept;
@@ -201,6 +202,7 @@ export namespace Lumina::D3D12 {
 
 	private:
 		D3D12_RESOURCE_DESC ResourceDesc_{};
+		int IsCubemap_{ 0 };
 
 		STATUS Status_{ STATUS::READY_TO_UPLOAD };
 		Intermediate* IntermediateData_{ nullptr };
@@ -275,15 +277,28 @@ namespace Lumina::D3D12 {
 	//----	------	------	------	------	----//
 
 	ImageSet::ImageSet(std::string_view filePath_, DirectX::WIC_FLAGS flags_) {
-		DirectX::LoadFromWICFile(
-			WString{ filePath_.data() }.Data(),
-			flags_,
-			nullptr,
-			static_cast<DirectX::ScratchImage&>(*this)
-		) ||
-		Debug::ThrowIfFailed{
-			std::format("<D3D12.ImageSet> Failed to load \"{}\"!\n", filePath_)
-		};
+		if (filePath_.ends_with(".dds")) {
+			DirectX::LoadFromDDSFile(
+				WString{ filePath_.data() }.Data(),
+				DirectX::DDS_FLAGS_NONE,
+				nullptr,
+				static_cast<DirectX::ScratchImage&>(*this)
+			) ||
+			Debug::ThrowIfFailed{
+				std::format("<DX12.ImageSet> Failed to load \"{}\"!\n", filePath_)
+			};
+		}
+		else {
+			DirectX::LoadFromWICFile(
+				WString{ filePath_.data() }.Data(),
+				flags_,
+				nullptr,
+				static_cast<DirectX::ScratchImage&>(*this)
+			) ||
+			Debug::ThrowIfFailed{
+				std::format("<DX12.ImageSet> Failed to load \"{}\"!\n", filePath_)
+			};
+		}
 		Logger().Message<0U>(
 			"ImageSet,\"{}\",Image loaded successfully.\n",
 			filePath_
@@ -689,12 +704,27 @@ namespace Lumina::D3D12 {
 	inline const ImageTexture::Intermediate& ImageTexture::IntermediateData() const noexcept { return *IntermediateData_; }
 
 	inline D3D12_SHADER_RESOURCE_VIEW_DESC ImageTexture::SRVDesc() const noexcept {
-		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{
-			.Format{ ResourceDesc_.Format },
-			.ViewDimension{ D3D12_SRV_DIMENSION_TEXTURE2D },
-			.Shader4ComponentMapping{ D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING },
-			.Texture2D{ .MipLevels{ static_cast<uint32_t>(ResourceDesc_.MipLevels) }, },
-		};
+		D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+		if (IsCubemap_) {
+			srvDesc = {
+				//.Format{ ResourceDesc_.Format },
+				.ViewDimension{ D3D12_SRV_DIMENSION_TEXTURECUBE },
+				//.Shader4ComponentMapping{ D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING },
+				.TextureCube{
+					.MostDetailedMip{ 0 },
+					.MipLevels{ UINT_MAX },
+					.ResourceMinLODClamp{ 0.0f },
+				},
+			};
+		}
+		else{
+			srvDesc = {
+				.Format{ ResourceDesc_.Format },
+				.ViewDimension{ D3D12_SRV_DIMENSION_TEXTURE2D },
+				.Shader4ComponentMapping{ D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING },
+				.Texture2D{ .MipLevels{ static_cast<uint32_t>(ResourceDesc_.MipLevels) }, },
+			};
+		}
 		return srvDesc;
 	}
 
@@ -725,10 +755,13 @@ namespace Lumina::D3D12 {
 	) {
 		auto const& mipChainMetadata{ mipChain_.Metadata() };
 
+		IsCubemap_ = mipChainMetadata.IsCubemap();
+
 		DefaultTexture2D::Initialize(
 			device_,
 			static_cast<uint32_t>(mipChainMetadata.width),
 			static_cast<uint32_t>(mipChainMetadata.height),
+			static_cast<uint32_t>(mipChainMetadata.arraySize),
 			static_cast<uint16_t>(mipChainMetadata.mipLevels),
 			mipChainMetadata.format,
 			debugName_

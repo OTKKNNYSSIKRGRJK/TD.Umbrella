@@ -1,0 +1,159 @@
+{
+  "RS": {
+    "Parameters": [
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<PS> Parameters",
+        "Namespace": ""
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<PS> Material Database",
+        "Namespace": ""
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<PS> Surface",
+        "Namespace": "Surface"
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<PS> Maps",
+        "Namespace": "Maps"
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<PS> Output",
+        "Namespace": "Output"
+      }
+    ],
+
+    "<PS> Parameters": [
+      {
+        "Name" : "cbuffer Parameters",
+        "Entries": [
+          "float2 Scale_SurfaceBlendUV",
+          "float Scale_SurfaceNormal",
+          "float Scale_MaterialNormal"
+        ],
+        "RangeType": "CBV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 64,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "<PS> Material Database": [
+      {
+        "Entries": [
+          "StructuredBuffer<Material> MaterialDatabase"
+        ],
+        "RangeType": "SRV",
+        "NumDescriptors": 32,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 64,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "<PS> Surface": [
+      {
+        "Entries": [
+          "Texture2D<uint> Material",
+          "Texture2D<float2> Blend",
+          "Texture2D<float> NormalHeight"
+        ],
+        "RangeType": "SRV",
+        "NumDescriptors": 3,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 72,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "<PS> Maps": [
+      {
+        "Entries": [
+          "Texture2D<float4> Albedo[]"
+        ],
+        "RangeType": "SRV",
+        "NumDescriptors": 32,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 80,
+        "OffsetInDescriptorsFromTableStart": -1
+      },
+      {
+        "Entries": [
+          "Texture2D<float4> Normal[]"
+        ],
+        "RangeType": "SRV",
+        "NumDescriptors": 32,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 81,
+        "OffsetInDescriptorsFromTableStart": -1
+      },
+      {
+        "Entries": [
+          "Texture2D<float4> Height[]"
+        ],
+        "RangeType": "SRV",
+        "NumDescriptors": 32,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 82,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "<PS> Output": [
+      {
+        "Entries": [
+          "RWTexture2D<float> Height"
+        ],
+        "RangeType": "UAV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 96,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
+    "StaticSamplers": [
+      {
+        "Name": "BilinearWrap",
+        "Filter": {
+          "ReductionType": "Standard",
+          "IsAnisotropic": 0,
+          "MinFilter": "Bilinear",
+          "MagFilter": "Bilinear",
+          "MipFilter": "Bilinear"
+        },
+        "TextureAddressU": "Wrap",
+        "TextureAddressV": "Wrap",
+        "TextureAddressW": "Wrap",
+        "ShaderRegister": 0,
+        "ShaderVisibility": "Pixel"
+      },
+      {
+        "Name": "PointWrap",
+        "Filter": {
+          "ReductionType": "Standard",
+          "IsAnisotropic": 0,
+          "MinFilter": "Point",
+          "MagFilter": "Point",
+          "MipFilter": "Point"
+        },
+        "TextureAddressU": "Wrap",
+        "TextureAddressV": "Wrap",
+        "TextureAddressW": "Wrap",
+        "ShaderRegister": 1,
+        "ShaderVisibility": "Pixel"
+      }
+    ]
+  }
+}

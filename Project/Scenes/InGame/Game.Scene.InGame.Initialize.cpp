@@ -25,6 +25,8 @@ import Lumina.CG3D.Animation;
 
 import Game.Events.InGame;
 
+import Lumina.Cylinder;
+
 namespace Game::Scene::Impl {
 	namespace {
 		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
@@ -902,6 +904,92 @@ namespace Game::Scene::Impl {
 		Watercolor_->Initialize();
 	}
 
+	template<>
+	auto InGame::Initialize_<"Skybox">(
+		Lumina::D3D12::Context const& d3d12Context_,
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_
+	) -> void {
+		Skybox_ = std::make_unique<Lumina::Skybox>();
+		Skybox_->Initialize(d3d12Context_, d3d12Device_, "Assets/Img/Skybox.dds");
+	}
+
+	template<>
+	auto InGame::Initialize_<"Portals">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		auto settings{ Lumina::Utils::LoadFromFile<nlohmann::json>("Cylinder.json", "Assets/Configs") };
+		auto rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(settings.at("RS")) };
+		RS_Portal_.Initialize(d3d12Device, rsSetup, "Cylinder RS");
+
+		d3d12Context.Compile(
+			VS_Portal_,
+			L"Assets/Shaders/Cylinder.VS.hlsl",
+			L"vs_6_6",
+			L"main",
+			"Cylinder.VS"
+		);
+		d3d12Context.Compile(
+			PS_Portal_,
+			L"Assets/Shaders/Cylinder.PS.hlsl",
+			L"ps_6_6",
+			L"main",
+			"Cylinder.PS"
+		);
+		Lumina::D3D12::GraphicsPipelineState::Setup graphicsPSOSetup{};
+		Lumina::D3D12::BlendState blendState{ .IndependentBlendEnable{ true }, };
+		blendState.RenderTarget[0] = {
+			.BlendEnable{ true },
+			.LogicOpEnable{ false },
+			.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlend{ D3D12_BLEND_ONE },
+			.BlendOp{ D3D12_BLEND_OP_ADD },
+			.SrcBlendAlpha{ D3D12_BLEND_ONE },
+			.DestBlendAlpha{ D3D12_BLEND_ONE },
+			.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
+			.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
+		};
+		Lumina::D3D12::RasterizerState rasterizerState{
+			.FillMode{ D3D12_FILL_MODE_SOLID },
+			.CullMode{ D3D12_CULL_MODE_NONE },
+		};
+		Lumina::D3D12::DepthStencilState depthStencilState{
+			.DepthEnable{ true },
+			.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+			.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+		};
+		Lumina::D3D12::GraphicsPipelineState::InputLayout inputLayout{};
+		inputLayout.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		inputLayout.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
+		inputLayout.Append("NORMAL", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
+		std::vector<DXGI_FORMAT> rtvFormats{
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+		};
+		graphicsPSOSetup <<
+			RS_Portal_ <<
+			VS_Portal_ <<
+			PS_Portal_ <<
+			blendState <<
+			rasterizerState <<
+			depthStencilState <<
+			inputLayout <<
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE <<
+			rtvFormats <<
+			Lumina::D3D12::GraphicsPipelineState::DefaultDSVFormat;
+		PSO_Portal_.Initialize(
+			d3d12Device,
+			graphicsPSOSetup,
+			"Portal.GraphicsPSO"
+		);
+
+		for (auto& portal : Portals_) {
+			portal = std::make_unique<Lumina::Cylinder>();
+			portal->Initialize(d3d12Context, d3d12Device);
+			portal->Reset({ 24U, 0.0f, 3.0f, 1.0f });
+		}
+	}
+
 	void InGame::Initialize() {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
@@ -921,6 +1009,9 @@ namespace Game::Scene::Impl {
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
 		Initialize_<"Events">();
+
+		Initialize_<"Skybox">(d3d12Context, d3d12Device);
+		Initialize_<"Portals">();
 
 		Terrain_ = std::make_unique<TerrainShapeCollection>();
 		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));

@@ -39,9 +39,10 @@ import Collider;
 
 import Lumina.CG3D.Struct;
 
-import Lumina.Watercolor;
-
 import Game.Events.InGame;
+import Lumina.Cylinder;
+import Lumina.Skybox;
+import Lumina.Watercolor;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -282,5 +283,19 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Scene_;
 
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
+
+		// * Portal Cylinders
+
+	private:
+		Lumina::D3D12::RootSignature RS_Portal_;
+		Lumina::D3D12::Shader VS_Portal_;
+		Lumina::D3D12::Shader PS_Portal_;
+		Lumina::D3D12::GraphicsPSO PSO_Portal_;
+		std::unique_ptr<Lumina::Cylinder> Portals_[8];
+
+		// * Skybox
+
+	private:
+		std::unique_ptr<Lumina::Skybox> Skybox_;
 	};
 }
