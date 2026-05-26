@@ -215,6 +215,7 @@ namespace Game::Scene::Impl {
 			float VisualYaw = 0.0f;
             // Runtime id for matching across frames
 			uint32_t Id = 0;
+			int PlacementIndex = -1;
 			bool WalkActive = false; // debug flag from behavior
 			bool MotionPlaying = false;
 			int ActiveNodeIndex = -1;
@@ -233,6 +234,7 @@ namespace Game::Scene::Impl {
 			std::set<int> VisitedAreas;
 			Character Player;
 			std::vector<PlayEnemy> Enemies;
+			std::set<std::pair<int, int>> DefeatedEnemies;
 
 			
 			float PlayerSpeedMultiplier = 1.0f;

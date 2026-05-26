@@ -105,6 +105,7 @@ export namespace Game {
 			, currentAction(std::move(other.currentAction))
 			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
 			, lastHitAttackId(other.lastHitAttackId)
+			, placementIndex(other.placementIndex)
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -143,6 +144,7 @@ export namespace Game {
 				currentAction = std::move(other.currentAction);
 				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
 				lastHitAttackId = other.lastHitAttackId;
+				placementIndex = other.placementIndex;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -184,6 +186,7 @@ export namespace Game {
 			, currentAction(other.currentAction)
 			, runtimeBoolFlags(other.runtimeBoolFlags)
 			, lastHitAttackId(other.lastHitAttackId)
+			, placementIndex(other.placementIndex)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -224,6 +227,7 @@ export namespace Game {
 				currentAction = other.currentAction;
 				runtimeBoolFlags = other.runtimeBoolFlags;
 				lastHitAttackId = other.lastHitAttackId;
+				placementIndex = other.placementIndex;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -238,6 +242,7 @@ export namespace Game {
 
 		// --- ランタイム状態 ---
 		uint32_t id = 0;                              // ユニークID
+		int placementIndex = -1;
 		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
 		Lumina::Math::F32x3 rootMotionOffset{ 0.0f, 0.0f, 0.0f }; // ルートボーンから抽出されたアニメーションオフセット
 		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };

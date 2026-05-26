@@ -41,7 +41,7 @@ namespace {
 	constexpr float Inv_0xFFFFFFFF{ 1.0f / static_cast<float>(0xFFFFFFFFU) };
 	constexpr float BossPresentationDuration{ 2.0f };
 	constexpr float BossPresentationCameraZoom{ 6.0f };
-	constexpr char BossEnemyName[]{ "KingSlime" };
+	constexpr char BossEnemyName[]{ "Boss" };
 	
 	bool UpdatePlayerEffect(Lumina::Particle& p_, void const*) {
 		p_.Translate.X += p_.Velocity.X;
@@ -244,7 +244,14 @@ namespace Game::Scene::Impl {
 		Game::ProjectileManager::GetInstance()->ClearAll();
 		Game::ExpOrbManager::GetInstance()->Clear();
 
+		int placementIndex = 0;
 		for (auto& ep : playState_.CurrentArea.enemies) {
+			// すでに倒されている敵ならスポーンしない
+			if (playState_.DefeatedEnemies.contains({ playState_.CurrentArea.index, placementIndex })) {
+				placementIndex++;
+				continue;
+			}
+
 			PlayEnemy pe;
 			enemyEditor_.LoadEnemy(pe.BaseData, ep.enemyName + ".json");
 			pe.Position.X = ep.position.x;
@@ -261,11 +268,16 @@ namespace Game::Scene::Impl {
 			pe.CurrentHP = pe.BaseData.hp;
 			pe.IsDead = false;
 			pe.FacingRight = ep.facingRight;
-           pe.RenderFacingYaw = pe.FacingRight ? 0.0f : 3.14159265f;
+			pe.RenderFacingYaw = pe.FacingRight ? 0.0f : 3.14159265f;
+			pe.PlacementIndex = placementIndex;
 			playState_.Enemies.push_back(pe);
 
 			// EnemyManager側にも生成
-			Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
+			auto* inst = Game::EnemyManager::GetInstance()->SpawnFromData(pe.BaseData, pe.Position, pe.FacingRight, pe.Scale, pe.SizeTier);
+			if (inst) {
+				inst->placementIndex = placementIndex;
+			}
+			placementIndex++;
 		}
 
 		if (Player_) {
@@ -389,6 +401,14 @@ namespace Game::Scene::Impl {
 	void InGame::Update_<"Enemies-2">() {
 
 		const auto& enemyInstances = Game::EnemyManager::GetInstance()->GetAllInstances();
+		
+		// 死亡した敵を記録する
+		for (const auto& inst : enemyInstances) {
+			if (inst.isDead && inst.placementIndex != -1) {
+				playState_.DefeatedEnemies.insert({ playState_.CurrentArea.index, inst.placementIndex });
+			}
+		}
+
 		playState_.Enemies.clear();
 		playState_.Enemies.reserve(enemyInstances.size());
 		for (const auto& inst : enemyInstances) {
@@ -397,14 +417,15 @@ namespace Game::Scene::Impl {
 			pe.Position = inst.position;
 			pe.CurrentHP = inst.isDead ? 0 : inst.currentHP;
 			pe.IsDead = inst.isDead;
-          pe.HurtTimer = inst.hurtTimer;
+			pe.HurtTimer = inst.hurtTimer;
 			pe.FacingRight = inst.facingRight;
-            pe.RenderFacingYaw = inst.renderFacingYaw;
+			pe.RenderFacingYaw = inst.renderFacingYaw;
 			pe.RenderPitch = inst.renderPitch;
 			pe.SizeTier = inst.sizeTier;
 			pe.Scale = inst.modelScale;
 			pe.Id = inst.id;
 			pe.CurrentAction = inst.currentAction;
+			pe.PlacementIndex = inst.placementIndex;
 			// pull debug flag from behavior if available
 			if (inst.behavior) {
 				pe.WalkActive = inst.behavior->IsWalkActive();
@@ -446,8 +467,19 @@ namespace Game::Scene::Impl {
 				auto& model = EnemySkinnedModels_[e.BaseData.name];
 				
 				int targetAnimIdx = 0;
-				if (e.CurrentAction == "Walk" || e.CurrentAction == "Chase") targetAnimIdx = 1;
-				else if (e.CurrentAction == "Attack" || e.CurrentAction == "AttackCharge") targetAnimIdx = 2;
+				// Resolve the current action through animationMap if available,
+				// so node-based enemies (e.g. Boss) map state names like "SwordSlashP1" -> "Attack"
+				std::string resolvedAnim = e.CurrentAction;
+				{
+					auto it = e.BaseData.animationMap.find(e.CurrentAction);
+					if (it != e.BaseData.animationMap.end() && !it->second.empty()) {
+						resolvedAnim = it->second;
+					}
+				}
+				if (resolvedAnim == "Walk" || resolvedAnim == "Chase") targetAnimIdx = 1;
+				else if (resolvedAnim == "Attack" || resolvedAnim == "AttackCharge") targetAnimIdx = 2;
+				else if (resolvedAnim == "Enrage") targetAnimIdx = (model->Animations_.size() > 3) ? 3 : 2;
+				else if (resolvedAnim == "Death") targetAnimIdx = (model->Animations_.size() > 4) ? 4 : 0;
 				
 				if (targetAnimIdx >= model->Animations_.size()) targetAnimIdx = 0; // Fallback
 				
@@ -1497,6 +1529,7 @@ namespace Game::Scene::Impl {
 						TutorialManager_->CompletedSequences_.clear();
 					}
 					playState_.VisitedAreas.clear();
+					playState_.DefeatedEnemies.clear();
 					CheckAndLoadArea(0);
 				}
 				
