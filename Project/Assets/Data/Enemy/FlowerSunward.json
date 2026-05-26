@@ -2,30 +2,50 @@
     "aggressiveness": 0.6000000238418579,
     "aggroRadius": 12.0,
     "animationMap": {
-        "Charge": "",
-        "Cooldown": "",
-        "FacePlayer": "",
-        "Fire": "",
-        "Idle": ""
+        "Charge": "Attack_Wait",
+        "Cooldown": "Idle",
+        "Death": "Death",
+        "Fire": "Attack",
+        "Idle": "Idle"
     },
     "attackCooldown": 2.5,
     "attackRange": 10.0,
     "attackType": "Ranged",
     "collisionVertices": [
         {
-            "x": -0.2666666805744171,
-            "y": 1.6333333253860474
+            "x": 0.24691355228424072,
+            "y": 1.7654318809509277
         },
         {
-            "x": -1.5555555820465088,
-            "y": -0.6000000238418579
+            "x": -0.9876542091369629,
+            "y": 0.8456789255142212
         },
         {
-            "x": 1.100000023841858,
-            "y": -0.6777777671813965
+            "x": -0.5123456120491028,
+            "y": 0.9259258508682251
+        },
+        {
+            "x": -0.06172838807106018,
+            "y": 0.7222221493721008
+        },
+        {
+            "x": -0.0555555485188961,
+            "y": -0.08641974627971649
+        },
+        {
+            "x": 0.06790123134851456,
+            "y": -0.09259258210659027
+        },
+        {
+            "x": 0.049382712692022324,
+            "y": 0.7716048359870911
+        },
+        {
+            "x": -0.07407406717538834,
+            "y": 1.191357970237732
         }
     ],
-    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
+    "gltfPath": "Assets\\Enemy\\FlowerSunward\\FlowerSunward.gltf",
     "hp": 80,
     "links": [
         {
@@ -34,17 +54,27 @@
             "to": 2
         },
         {
+            "condition": "Dist>12.0",
+            "from": 2,
+            "to": 1
+        },
+        {
             "condition": "Time>=0.3",
             "from": 2,
             "to": 3
         },
         {
-            "condition": "Time>=1.0",
+            "condition": "Dist>12.0",
+            "from": 3,
+            "to": 1
+        },
+        {
+            "condition": "Time>=0.8",
             "from": 3,
             "to": 4
         },
         {
-            "condition": "Time>=0.3",
+            "condition": "Time>=0.5",
             "from": 4,
             "to": 5
         },
@@ -52,22 +82,12 @@
             "condition": "Time>=2.0",
             "from": 5,
             "to": 1
-        },
-        {
-            "condition": "Dist>12.0",
-            "from": 2,
-            "to": 1
-        },
-        {
-            "condition": "Dist>12.0",
-            "from": 5,
-            "to": 1
         }
     ],
     "motionMap": {
         "Charge": "",
         "Cooldown": "",
-        "FacePlayer": "",
+        "Death": "",
         "Fire": "",
         "Idle": ""
     },
@@ -271,17 +291,17 @@
         {
             "hp": 40,
             "power": 0.800000011920929,
-            "scale": 0.4000000059604645
+            "scale": 0.5
         },
         {
             "hp": 80,
             "power": 1.0,
-            "scale": 0.6000000238418579
+            "scale": 0.699999988079071
         },
         {
             "hp": 160,
             "power": 1.5,
-            "scale": 0.800000011920929
+            "scale": 1.0
         }
     ]
 }

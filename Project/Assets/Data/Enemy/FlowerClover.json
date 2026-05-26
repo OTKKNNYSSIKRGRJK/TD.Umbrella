@@ -2,35 +2,43 @@
     "aggressiveness": 0.699999988079071,
     "aggroRadius": 10.0,
     "animationMap": {
-        "Aim": "",
-        "Cooldown": "",
-        "Idle": "",
-        "SpreadFire": ""
+        "Aim": "Attack_Wait",
+        "Idle": "Wait",
+        "SpreadFire": "Attack"
     },
     "attackCooldown": 3.0,
     "attackRange": 10.0,
     "attackType": "Ranged",
     "collisionVertices": [
         {
-            "x": -0.04444444552063942,
-            "y": 1.711111068725586
+            "x": -0.08888889104127884,
+            "y": -0.1666666716337204
         },
         {
-            "x": -0.8999999761581421,
-            "y": -0.7666666507720947
+            "x": -0.13333334028720856,
+            "y": 2.2444443702697754
         },
         {
-            "x": 0.3222222328186035,
-            "y": -0.7777777910232544
+            "x": 0.14444445073604584,
+            "y": 2.2444443702697754
+        },
+        {
+            "x": 0.14444445073604584,
+            "y": -0.15555556118488312
         }
     ],
-    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
+    "gltfPath": "Assets\\Enemy\\FlowerClover\\FlowerClover.gltf",
     "hp": 60,
     "links": [
         {
             "condition": "Dist<=10.0",
             "from": 1,
             "to": 2
+        },
+        {
+            "condition": "Dist>10.0",
+            "from": 2,
+            "to": 1
         },
         {
             "condition": "Time>=0.5",
@@ -46,16 +54,10 @@
             "condition": "Time>=2.5",
             "from": 4,
             "to": 1
-        },
-        {
-            "condition": "Dist>10.0",
-            "from": 4,
-            "to": 1
         }
     ],
     "motionMap": {
         "Aim": "",
-        "Cooldown": "",
         "Idle": "",
         "SpreadFire": ""
     },

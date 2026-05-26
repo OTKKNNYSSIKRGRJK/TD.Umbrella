@@ -281,6 +281,47 @@ namespace Game::Scene::Impl {
 								auto animations = Lumina::CG3D::LoadAnimationFile(luminaFileName, luminaDirPath);
 								
 								bool hasAnimation = !animations.empty();
+
+								if (hasAnimation && collection.Meshes.size() > 1) {
+									Lumina::CG3D::Mesh combinedMesh;
+									combinedMesh.Name = collection.Meshes[0].Name;
+									combinedMesh.Index_Material = collection.Meshes[0].Index_Material;
+									
+									size_t vertexOffset = 0;
+									
+									for (size_t mIdx = 0; mIdx < collection.Meshes.size(); ++mIdx) {
+										const auto& mesh = collection.Meshes[mIdx];
+										
+										combinedMesh.Vertices.insert(
+											combinedMesh.Vertices.end(),
+											mesh.Vertices.begin(),
+											mesh.Vertices.end()
+										);
+										
+										for (auto idx : mesh.Indices) {
+											combinedMesh.Indices.push_back(idx + static_cast<uint32_t>(vertexOffset));
+										}
+										
+										for (const auto& pair : mesh.SkinClusterData) {
+											const auto& jointName = pair.first;
+											const auto& jointWeight = pair.second;
+											
+											auto& targetWeight = combinedMesh.SkinClusterData[jointName];
+											targetWeight.INV_BindPose = jointWeight.INV_BindPose;
+											
+											for (const auto& vw : jointWeight.VertexWeights) {
+												auto vwCopy = vw;
+												vwCopy.VertexID += static_cast<uint32_t>(vertexOffset);
+												targetWeight.VertexWeights.push_back(vwCopy);
+											}
+										}
+										
+										vertexOffset = combinedMesh.Vertices.size();
+									}
+									
+									collection.Meshes.clear();
+									collection.Meshes.push_back(std::move(combinedMesh));
+								}
 								
 								if (!collection.Materials.empty() && !collection.Materials[0].FilePath_Diffuse.empty()) {
 									diffuseTexName = ed.name + "_diffuse";

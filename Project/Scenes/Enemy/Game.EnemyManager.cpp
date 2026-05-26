@@ -864,7 +864,8 @@ namespace Game {
 						// 壁や急な斜面に直面している場合、ジャンプして凹みを乗り越える
 						bool isBlockedForward = (this->facingRight && normal.X < 0.0f) || (!this->facingRight && normal.X > 0.0f);
 						// 大幅に落下中でなければジャンプ（穴から抜け出す）
-						if (isBlockedForward && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
+						// 固定砲台など移動しない敵（moveSpeed == 0.0）はジャンプしないように制限
+						if (isBlockedForward && this->baseData.moveSpeed > 0.0f && this->velocity.Y >= -2.0f && this->velocity.Y <= 1.0f) {
 							this->velocity.Y = 6.5f; // 脱出用ジャンプ
 						}
 					}

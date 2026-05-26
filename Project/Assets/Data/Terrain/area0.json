@@ -147,20 +147,20 @@
     },
     "enemies": [
         {
-            "enemyName": "FlowerClover",
-            "facingRight": false,
-            "position": {
-                "x": 301.0399169921875,
-                "y": 183.6824188232422
-            },
-            "sizeCategory": 1
-        },
-        {
             "enemyName": "FlowerSunward",
             "facingRight": true,
             "position": {
-                "x": 830.944091796875,
-                "y": 286.4299621582031
+                "x": 221.510009765625,
+                "y": 198.046630859375
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": true,
+            "position": {
+                "x": 785.5042114257813,
+                "y": 110.13594055175781
             },
             "sizeCategory": 1
         },
@@ -168,8 +168,8 @@
             "enemyName": "FlowerLotus",
             "facingRight": true,
             "position": {
-                "x": 562.8973999023438,
-                "y": 276.3147277832031
+                "x": 560.0,
+                "y": 172.0
             },
             "sizeCategory": 1
         }

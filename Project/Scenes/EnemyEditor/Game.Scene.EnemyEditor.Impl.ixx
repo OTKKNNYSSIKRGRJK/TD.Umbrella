@@ -228,6 +228,7 @@ export namespace Game::Editor {
 		// ワイヤーフレームビューモード (0=正面XY, 1=側面ZY, 2=上面XZ)
 		int meshViewMode_ = 0;
 		bool showMeshWireframe_ = true;
+		int previewSizeTier_ = 1; // メッシュプレビューに適用するサイズ段階 (0=S, 1=M, 2=L)
 
 		// キャンバス移動オフセット
 		float canvasOffsetX_ = 0.0f;

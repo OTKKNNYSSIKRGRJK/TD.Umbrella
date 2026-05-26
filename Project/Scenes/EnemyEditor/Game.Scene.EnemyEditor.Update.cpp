@@ -518,6 +518,9 @@ namespace Game::Editor {
 				const char* viewNames[] = { "Front (XY)", "Side (ZY)", "Top (XZ)" };
 				ImGui::SetNextItemWidth(120.0f);
 				ImGui::Combo("View", &meshViewMode_, viewNames, 3);
+				const char* tierPreviewNames[] = { "Small", "Medium", "Large" };
+				ImGui::SetNextItemWidth(100.0f);
+				ImGui::Combo("Preview Size", &previewSizeTier_, tierPreviewNames, 3);
 			}
 		}
 
@@ -605,9 +608,9 @@ namespace Game::Editor {
 			ExtractMeshWireframe(editingEnemy_.gltfPath);
 		}
 
-		// --- アニメーションスキン更新 ---
-		if (!cachedMeshPositions_.empty() && !cachedSkeleton_.ARR_Joint.empty() && !cachedAnimations_.empty()) {
-			if (selectedPreviewAnimation_ >= 0 && selectedPreviewAnimation_ < static_cast<int>(cachedAnimations_.size())) {
+		// --- アニメーションスキン更新（バインドポーズ常時適用） ---
+		if (!cachedMeshPositions_.empty() && !cachedSkeleton_.ARR_Joint.empty()) {
+			if (!cachedAnimations_.empty() && selectedPreviewAnimation_ >= 0 && selectedPreviewAnimation_ < static_cast<int>(cachedAnimations_.size())) {
 				if (isPreviewPlaying_) {
 					previewTime_ += ImGui::GetIO().DeltaTime;
 					float duration = cachedAnimations_[selectedPreviewAnimation_].DurationInSeconds;
@@ -616,32 +619,33 @@ namespace Game::Editor {
 					}
 				}
 				Lumina::CG3D::ApplyAnimation(cachedSkeleton_, cachedAnimations_[selectedPreviewAnimation_], previewTime_);
-				Lumina::CG3D::Update(cachedSkeleton_);
-				for (size_t i = 0; i < cachedSkeleton_.ARR_Joint.size(); ++i) {
-					currentJointMatrices_[i] = invBindPoses_[i] * cachedSkeleton_.ARR_Joint[i].SkeletonSpace; 
-				}
-
-				for (size_t v = 0; v < cachedMeshPositions_.size(); ++v) {
-					const auto& origPos = cachedMeshPositions_[v];
-					if (v < vertexWeightsCache_.size() && !vertexWeightsCache_[v].empty()) {
-						float pX = 0, pY = 0, pZ = 0;
-						for (const auto& jw : vertexWeightsCache_[v]) {
-							const auto& mat = currentJointMatrices_[jw.first];
-							float tx = origPos[0] * mat[0].Get(0) + origPos[1] * mat[1].Get(0) + origPos[2] * mat[2].Get(0) + mat[3].Get(0);
-							float ty = origPos[0] * mat[0].Get(1) + origPos[1] * mat[1].Get(1) + origPos[2] * mat[2].Get(1) + mat[3].Get(1);
-							float tz = origPos[0] * mat[0].Get(2) + origPos[1] * mat[1].Get(2) + origPos[2] * mat[2].Get(2) + mat[3].Get(2);
-							pX += tx * jw.second;
-							pY += ty * jw.second;
-							pZ += tz * jw.second;
-						}
-						posedMeshPositions_[v] = { pX, pY, pZ };
-					} else {
-						posedMeshPositions_[v] = origPos;
-					}
-				}
-			} else {
-				posedMeshPositions_ = cachedMeshPositions_;
 			}
+			// Always compute skeleton space (handles bind pose even without animation)
+			Lumina::CG3D::Update(cachedSkeleton_);
+			for (size_t i = 0; i < cachedSkeleton_.ARR_Joint.size(); ++i) {
+				currentJointMatrices_[i] = invBindPoses_[i] * cachedSkeleton_.ARR_Joint[i].SkeletonSpace; 
+			}
+
+			for (size_t v = 0; v < cachedMeshPositions_.size(); ++v) {
+				const auto& origPos = cachedMeshPositions_[v];
+				if (v < vertexWeightsCache_.size() && !vertexWeightsCache_[v].empty()) {
+					float pX = 0, pY = 0, pZ = 0;
+					for (const auto& jw : vertexWeightsCache_[v]) {
+						const auto& mat = currentJointMatrices_[jw.first];
+						float tx = origPos[0] * mat[0].Get(0) + origPos[1] * mat[1].Get(0) + origPos[2] * mat[2].Get(0) + mat[3].Get(0);
+						float ty = origPos[0] * mat[0].Get(1) + origPos[1] * mat[1].Get(1) + origPos[2] * mat[2].Get(1) + mat[3].Get(1);
+						float tz = origPos[0] * mat[0].Get(2) + origPos[1] * mat[1].Get(2) + origPos[2] * mat[2].Get(2) + mat[3].Get(2);
+						pX += tx * jw.second;
+						pY += ty * jw.second;
+						pZ += tz * jw.second;
+					}
+					posedMeshPositions_[v] = { pX, pY, pZ };
+				} else {
+					posedMeshPositions_[v] = origPos;
+				}
+			}
+		} else {
+			posedMeshPositions_ = cachedMeshPositions_;
 		}
 
 		// --- メッシュ描画（ソリッドポリゴン） ---
