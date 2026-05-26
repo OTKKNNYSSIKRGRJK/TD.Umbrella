@@ -1715,7 +1715,7 @@ namespace Game {
 			++Event::EnemiesDefeated;
 			
 			// 経験値オーブをスポーンさせる
-			uint32_t xp = (enemy->sizeTier + 1) * 10 + static_cast<uint32_t>(enemy->baseData.hp * 0.1f);
+			uint32_t xp = (enemy->sizeTier + 1) * 20 + static_cast<uint32_t>(enemy->baseData.hp * 0.5f);
 			Game::ExpOrbManager::GetInstance()->Spawn(enemy->position, xp);
 
 			if (onDeathCallback_) {
@@ -1774,7 +1774,7 @@ namespace Game {
 				++Event::EnemiesDefeated;
 
 				// 経験値オーブをスポーンさせる
-				uint32_t xp = (enemy.sizeTier + 1) * 10 + static_cast<uint32_t>(enemy.baseData.hp * 0.1f);
+				uint32_t xp = (enemy.sizeTier + 1) * 20 + static_cast<uint32_t>(enemy.baseData.hp * 0.5f);
 				Game::ExpOrbManager::GetInstance()->Spawn(enemy.position, xp);
 
 				if (onDeathCallback_) {
