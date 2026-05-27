@@ -1,6 +1,6 @@
 {
 	"asset":{
-		"generator":"Khronos glTF Blender I/O v4.5.51",
+		"generator":"Khronos glTF Blender I/O v5.1.20",
 		"version":"2.0"
 	},
 	"scene":0,
@@ -42,7 +42,7 @@
 			"mesh":2,
 			"name":"\u7acb\u65b9\u4f53.001",
 			"scale":[
-				1,
+				0.9422008991241455,
 				8.15776538848877,
 				2.5390820503234863
 			],
@@ -56,7 +56,7 @@
 	"materials":[
 		{
 			"doubleSided":true,
-			"name":"\u30de\u30c6\u30ea\u30a2\u30eb",
+			"name":"\u753b\u50cf\u30de\u30c6\u8336",
 			"pbrMetallicRoughness":{
 				"baseColorTexture":{
 					"index":0
@@ -76,7 +76,8 @@
 						"NORMAL":1,
 						"TEXCOORD_0":2
 					},
-					"indices":3
+					"indices":3,
+					"material":0
 				}
 			]
 		},
@@ -103,7 +104,7 @@
 						"NORMAL":9,
 						"TEXCOORD_0":10
 					},
-					"indices":7,
+					"indices":11,
 					"material":0
 				}
 			]
@@ -118,174 +119,186 @@
 	"images":[
 		{
 			"mimeType":"image/png",
-			"name":"white12",
-			"uri":"white12.png"
+			"name":"Sword",
+			"uri":"Sword.png"
 		}
 	],
 	"accessors":[
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":192,
+			"count":1794,
 			"max":[
 				1,
 				1,
-				1
+				1.915095567703247
 			],
 			"min":[
 				-1,
-				-1,
-				-1
+				-1.05085289478302,
+				-1.7673391103744507
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":192,
+			"count":1794,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":192,
+			"count":1794,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":372,
+			"count":1908,
 			"type":"SCALAR"
 		},
 		{
 			"bufferView":4,
 			"componentType":5126,
-			"count":24,
+			"count":391,
 			"max":[
-				1,
-				1,
-				1
+				1.6024019718170166,
+				1.476003885269165,
+				1.5797820091247559
 			],
 			"min":[
-				-1,
-				-1,
-				-1
+				-1.792482852935791,
+				-1.8296756744384766,
+				-1.4392309188842773
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":5,
 			"componentType":5126,
-			"count":24,
+			"count":391,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":6,
 			"componentType":5126,
-			"count":24,
+			"count":391,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":7,
 			"componentType":5123,
-			"count":36,
+			"count":432,
 			"type":"SCALAR"
 		},
 		{
 			"bufferView":8,
 			"componentType":5126,
-			"count":24,
+			"count":545,
 			"max":[
 				1,
-				1,
-				1
+				1.4610146284103394,
+				1.7354841232299805
 			],
 			"min":[
 				-1,
 				-1,
-				-1
+				-1.7979390621185303
 			],
 			"type":"VEC3"
 		},
 		{
 			"bufferView":9,
 			"componentType":5126,
-			"count":24,
+			"count":545,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":10,
 			"componentType":5126,
-			"count":24,
+			"count":545,
 			"type":"VEC2"
+		},
+		{
+			"bufferView":11,
+			"componentType":5123,
+			"count":624,
+			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":2304,
+			"byteLength":21528,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":2304,
-			"byteOffset":2304,
+			"byteLength":21528,
+			"byteOffset":21528,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":1536,
-			"byteOffset":4608,
+			"byteLength":14352,
+			"byteOffset":43056,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":744,
-			"byteOffset":6144,
+			"byteLength":3816,
+			"byteOffset":57408,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":6888,
+			"byteLength":4692,
+			"byteOffset":61224,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":7176,
+			"byteLength":4692,
+			"byteOffset":65916,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":7464,
+			"byteLength":3128,
+			"byteOffset":70608,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":72,
-			"byteOffset":7656,
+			"byteLength":864,
+			"byteOffset":73736,
 			"target":34963
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":7728,
+			"byteLength":6540,
+			"byteOffset":74600,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":288,
-			"byteOffset":8016,
+			"byteLength":6540,
+			"byteOffset":81140,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":192,
-			"byteOffset":8304,
+			"byteLength":4360,
+			"byteOffset":87680,
 			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":1248,
+			"byteOffset":92040,
+			"target":34963
 		}
 	],
 	"samplers":[
@@ -296,7 +309,7 @@
 	],
 	"buffers":[
 		{
-			"byteLength":8496,
+			"byteLength":93288,
 			"uri":"Sword.bin"
 		}
 	]
