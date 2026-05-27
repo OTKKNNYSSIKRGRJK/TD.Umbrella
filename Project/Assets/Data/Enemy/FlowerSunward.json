@@ -5,6 +5,7 @@
         "Charge": "Attack_Wait",
         "Cooldown": "Idle",
         "Death": "Death",
+        "FacePlayer": "Idle",
         "Fire": "Attack",
         "Idle": "Idle"
     },
@@ -69,12 +70,12 @@
             "to": 1
         },
         {
-            "condition": "Time>=0.8",
+            "condition": "Time>=2.5",
             "from": 3,
             "to": 4
         },
         {
-            "condition": "Time>=0.5",
+            "condition": "Time>=2.5",
             "from": 4,
             "to": 5
         },
@@ -88,6 +89,7 @@
         "Charge": "",
         "Cooldown": "",
         "Death": "",
+        "FacePlayer": "",
         "Fire": "",
         "Idle": ""
     },
@@ -196,7 +198,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 2.5,
             "splineMotionName": "",
             "state": "Charge",
             "velocityFrictionX": 1.0,
@@ -211,7 +213,7 @@
             "damageMultiplier": 1.5,
             "facePlayer": true,
             "id": 4,
-            "isAttack": false,
+            "isAttack": true,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
             "loop": false,
@@ -232,7 +234,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 2.5,
             "splineMotionName": "",
             "state": "Fire",
             "velocityFrictionX": 1.0,

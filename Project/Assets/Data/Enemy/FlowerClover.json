@@ -3,6 +3,7 @@
     "aggroRadius": 10.0,
     "animationMap": {
         "Aim": "Attack_Wait",
+        "Cooldown": "Wait",
         "Idle": "Wait",
         "SpreadFire": "Attack"
     },
@@ -41,12 +42,12 @@
             "to": 1
         },
         {
-            "condition": "Time>=0.5",
+            "condition": "Time>=2.0",
             "from": 2,
             "to": 3
         },
         {
-            "condition": "Time>=0.4",
+            "condition": "Time>=1.9583",
             "from": 3,
             "to": 4
         },
@@ -58,6 +59,7 @@
     ],
     "motionMap": {
         "Aim": "",
+        "Cooldown": "",
         "Idle": "",
         "SpreadFire": ""
     },
@@ -130,7 +132,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 2.0,
             "splineMotionName": "",
             "state": "Aim",
             "velocityFrictionX": 1.0,
@@ -145,7 +147,7 @@
             "damageMultiplier": 1.2000000476837158,
             "facePlayer": true,
             "id": 3,
-            "isAttack": false,
+            "isAttack": true,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
             "loop": false,
@@ -166,7 +168,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 1.9583,
             "splineMotionName": "",
             "state": "SpreadFire",
             "velocityFrictionX": 1.0,

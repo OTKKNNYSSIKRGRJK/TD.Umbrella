@@ -2,9 +2,12 @@
     "aggressiveness": 0.4000000059604645,
     "aggroRadius": 15.0,
     "animationMap": {
+        "Cooldown": "Idle",
+        "Death": "Death",
         "DetectBelow": "Attack_Wait",
-        "FireDown": "Attack",
-        "Idle": "Idle"
+        "FireDown": "Attack_Wait",
+        "Idle": "Idle",
+        "LosingSight": "Idle"
     },
     "attackCooldown": 2.0,
     "attackRange": 15.0,
@@ -72,7 +75,7 @@
             "to": 2
         },
         {
-            "condition": "Time>=0.3",
+            "condition": "Time>=2.0",
             "from": 2,
             "to": 3
         },
@@ -118,9 +121,11 @@
         }
     ],
     "motionMap": {
+        "Cooldown": "",
         "DetectBelow": "",
         "FireDown": "",
-        "Idle": ""
+        "Idle": "",
+        "LosingSight": ""
     },
     "moveSpeed": 0.0,
     "name": "FlowerLotus",
@@ -191,7 +196,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 2.0,
             "splineMotionName": "",
             "state": "DetectBelow",
             "velocityFrictionX": 1.0,
@@ -206,7 +211,7 @@
             "damageMultiplier": 1.0,
             "facePlayer": false,
             "id": 3,
-            "isAttack": false,
+            "isAttack": true,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
             "loop": true,
