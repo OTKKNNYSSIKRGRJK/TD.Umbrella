@@ -140,8 +140,9 @@ namespace Game {
 		tmp /= tmp.W();
 		tmp.Z(viewport_.MinDepth + tmp.Z() * (viewport_.MaxDepth - viewport_.MinDepth));
 
-		Lumina::F32 const inv_ViewportWidth{ 1.0f / viewport_.Width };
-		Lumina::F32 const inv_ViewportHeight{ 1.0f / viewport_.Height };
+		//Lumina::F32 const inv_ViewportWidth{ 1.0f / viewport_.Width };
+		Lumina::F32 const inv_ViewportWidth{ 1.0f / (1280.0f * 0.25f) };
+		Lumina::F32 const inv_ViewportHeight{ 1.0f / (720.0f * 0.25f) };
 		Lumina::F32 const inv_ViewportDepthDiff{ 1.0f / (viewport_.MaxDepth - viewport_.MinDepth) };
 		auto screenToNDC{
 			[&] (Lumina::Math::F32x3 const& screenPos_) noexcept -> Lumina::Math::F32x4 {
@@ -211,8 +212,8 @@ namespace Game {
 					retGroundVert0->Pos,
 					retGroundVert1->Pos,
 					//	便宜上ｙ座標を一旦適当なマイナスナンバーにする
-					{ retGroundVert1->Pos.X, -10.0f, retGroundVert1->Pos.Z },
-					{ retGroundVert0->Pos.X, -10.0f, retGroundVert0->Pos.Z }
+					{ retGroundVert1->Pos.X, -100.0f, retGroundVert1->Pos.Z },
+					{ retGroundVert0->Pos.X, -100.0f, retGroundVert0->Pos.Z }
 				}
 			);
 			collider->SetMyType(COL_Ground);

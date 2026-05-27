@@ -111,7 +111,7 @@ namespace Game::Scene::Impl {
 			TerrainScreenData_->ConvertToWorldCoordinate(
 				*Terrain_,
 				*Camera_,
-				{ 0.0f, 0.0f, 1280.0f * 0.5f, 720.0f, 0.0f, 1.0f }
+				{ 0.0f, 0.0f, 1280.0f * 0.25f, 720.0f * 0.25f, 0.0f, 1.0f }
 			);
 #if defined(_DEBUG)
 			TerrainEditor_->SetShapes(*Terrain_);
@@ -176,8 +176,8 @@ namespace Game::Scene::Impl {
 			auto tmp{ Lumina::Math::F32x4{ 0.0f, 0.0f, 0.0f, 1.0f } * worldToHomogeneous_c };
 			tmp /= tmp.W();
 
-			Lumina::F32 const inv_ViewportWidth{ 1.0f / 640.0f };
-			Lumina::F32 const inv_ViewportHeight{ 1.0f / 720.0f };
+			Lumina::F32 const inv_ViewportWidth{ 1.0f / (1280.0f * 0.25f)};
+			Lumina::F32 const inv_ViewportHeight{ 1.0f / (720.0f * 0.25f)};
 			
 			auto const& inv_View{ Camera_->ViewInverse() };
 			auto const inv_Proj{ Camera_->Projection().Inverse() };
@@ -218,17 +218,17 @@ namespace Game::Scene::Impl {
 				float wSizeX = 1.5f;
 				float wSizeY = 1.5f;
 				auto col = std::make_shared<ConvexCollider>();
-				col->SetMyType(COL_None);
-				col->SetYourType(COL_None);
+				col->SetMyType(COL_Warp);
+				col->SetYourType(COL_Player);
 				std::vector<Lumina::Math::F32x3> verts = {
-					{ connWPos.first - wSizeX, connWPos.second - wSizeY, -0.5f },
-					{ connWPos.first + wSizeX, connWPos.second - wSizeY, -0.5f },
-					{ connWPos.first + wSizeX, connWPos.second + wSizeY, -0.5f },
-					{ connWPos.first - wSizeX, connWPos.second + wSizeY, -0.5f },
-					{ connWPos.first - wSizeX, connWPos.second - wSizeY, 0.5f },
-					{ connWPos.first + wSizeX, connWPos.second - wSizeY, 0.5f },
-					{ connWPos.first + wSizeX, connWPos.second + wSizeY, 0.5f },
-					{ connWPos.first - wSizeX, connWPos.second + wSizeY, 0.5f }
+					{ connWPos.first - wSizeX, connWPos.second - wSizeY, -1.5f },
+					{ connWPos.first + wSizeX, connWPos.second - wSizeY, -1.5f },
+					{ connWPos.first + wSizeX, connWPos.second + wSizeY, -1.5f },
+					{ connWPos.first - wSizeX, connWPos.second + wSizeY, -1.5f },
+					{ connWPos.first - wSizeX, connWPos.second - wSizeY, 1.5f },
+					{ connWPos.first + wSizeX, connWPos.second - wSizeY, 1.5f },
+					{ connWPos.first + wSizeX, connWPos.second + wSizeY, 1.5f },
+					{ connWPos.first - wSizeX, connWPos.second + wSizeY, 1.5f }
 				};
 				col->SetVertices(verts);
 				col->UpdateAABB();
@@ -513,8 +513,8 @@ namespace Game::Scene::Impl {
 				using Lumina::OS::Windows::KEY;
 
 				for (const auto& conn : playState_.CurrentArea.connections) {
-					if (std::abs(pos.X - conn.position.x) <= 1.5f &&
-						std::abs(pos.Y - conn.position.y) <= 1.5f) {
+					if (std::abs(pos.X - conn.position.x) <= 2.5f &&
+						std::abs(pos.Y - conn.position.y) <= 3.0f) {
 
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;

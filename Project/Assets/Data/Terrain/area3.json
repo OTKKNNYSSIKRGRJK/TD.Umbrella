@@ -4,8 +4,8 @@
             "ID": 0,
             "NextID": 1,
             "Pos": [
-                2.0,
-                114.0
+                4.545454978942871,
+                488.6363830566406
             ],
             "PrevID": -1
         },
@@ -13,8 +13,8 @@
             "ID": 1,
             "NextID": 2,
             "Pos": [
-                72.0,
-                245.0
+                1038.6361083984375,
+                488.63641357421875
             ],
             "PrevID": 0
         },
@@ -22,122 +22,126 @@
             "ID": 2,
             "NextID": 3,
             "Pos": [
-                164.0,
-                212.0
+                1040.9088134765625,
+                440.90924072265625
             ],
             "PrevID": 1
         },
         {
             "ID": 3,
-            "NextID": 4,
-            "Pos": [
-                287.0,
-                243.0
-            ],
-            "PrevID": 2
-        },
-        {
-            "ID": 4,
-            "NextID": 5,
-            "Pos": [
-                440.0,
-                216.0
-            ],
-            "PrevID": 3
-        },
-        {
-            "ID": 5,
-            "NextID": 6,
-            "Pos": [
-                622.0,
-                79.0
-            ],
-            "PrevID": 4
-        },
-        {
-            "ID": 6,
-            "NextID": 7,
-            "Pos": [
-                787.0,
-                120.0
-            ],
-            "PrevID": 5
-        },
-        {
-            "ID": 7,
-            "NextID": 8,
-            "Pos": [
-                869.0,
-                209.0
-            ],
-            "PrevID": 6
-        },
-        {
-            "ID": 8,
-            "NextID": 9,
-            "Pos": [
-                973.0,
-                249.0
-            ],
-            "PrevID": 7
-        },
-        {
-            "ID": 9,
-            "NextID": 10,
-            "Pos": [
-                1027.0,
-                328.0
-            ],
-            "PrevID": 8
-        },
-        {
-            "ID": 10,
-            "NextID": 11,
-            "Pos": [
-                1054.0,
-                298.0
-            ],
-            "PrevID": 9
-        },
-        {
-            "ID": 11,
             "NextID": -1,
             "Pos": [
-                1120.0,
-                298.0
+                2559.999755859375,
+                445.4543762207031
             ],
-            "PrevID": 10
+            "PrevID": 2
         }
     ],
     "MapInfo": {
         "Size": [
-            1120.0,
-            344.0
+            2560.0,
+            720.0
         ]
     },
-    "Polygons": [],
+    "Polygons": [
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        643.1823120117188,
+                        390.9091491699219
+                    ]
+                },
+                {
+                    "Pos": [
+                        640.9096069335938,
+                        456.8182373046875
+                    ]
+                },
+                {
+                    "Pos": [
+                        750.0003662109375,
+                        454.5455322265625
+                    ]
+                },
+                {
+                    "Pos": [
+                        747.7276611328125,
+                        388.6364440917969
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        747.7271118164063,
+                        356.81817626953125
+                    ]
+                },
+                {
+                    "Pos": [
+                        859.0907592773438,
+                        415.9090881347656
+                    ]
+                },
+                {
+                    "Pos": [
+                        752.2725830078125,
+                        484.0909118652344
+                    ]
+                }
+            ]
+        }
+    ],
     "backgroundMusic": "",
     "collisionGroups": [],
     "connections": [
         {
             "position": {
-                "x": 1064.0,
-                "y": 84.0
+                "x": 951.7015380859375,
+                "y": 256.9165954589844
+            },
+            "targetAreaIndex": 2
+        },
+        {
+            "position": {
+                "x": 2501.646484375,
+                "y": 291.35430908203125
             },
             "targetAreaIndex": 4
         }
     ],
     "editorPos": {
-        "x": -1396.0,
-        "y": 610.0
+        "x": -1214.463134765625,
+        "y": 241.72821044921875
     },
     "enemies": [
         {
             "enemyName": "Slime",
             "facingRight": true,
             "position": {
-                "x": 376.0,
-                "y": 290.0
+                "x": 118.91484069824219,
+                "y": 252.18496704101563
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 215.5085906982422,
+                "y": 252.0792999267578
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "NewEnemy",
+            "facingRight": true,
+            "position": {
+                "x": 311.1656188964844,
+                "y": 252.0791015625
             },
             "sizeCategory": 2
         },
@@ -145,19 +149,73 @@
             "enemyName": "Slime",
             "facingRight": false,
             "position": {
-                "x": 690.0,
-                "y": 288.0
+                "x": 1294.7164306640625,
+                "y": 293.7759704589844
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 1333.9605712890625,
+                "y": 293.7759704589844
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 1375.656982421875,
+                "y": 293.7759704589844
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 1419.806640625,
+                "y": 293.7759704589844
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "slime-kai",
+            "facingRight": false,
+            "position": {
+                "x": 1711.6832275390625,
+                "y": 394.3384704589844
             },
             "sizeCategory": 1
         },
         {
-            "enemyName": "Slime",
-            "facingRight": true,
+            "enemyName": "slime-kai",
+            "facingRight": false,
             "position": {
-                "x": 102.0,
-                "y": 162.0
+                "x": 2202.23193359375,
+                "y": 394.3384704589844
             },
             "sizeCategory": 2
+        },
+        {
+            "enemyName": "slime-kai",
+            "facingRight": false,
+            "position": {
+                "x": 2099.216796875,
+                "y": 288.8705139160156
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "slime-kai",
+            "facingRight": false,
+            "position": {
+                "x": 2306.51953125,
+                "y": 293.3822326660156
+            },
+            "sizeCategory": 0
         }
     ],
     "goalPosition": {
@@ -165,8 +223,8 @@
         "y": 360.0
     },
     "hasGoal": false,
-    "height": 344,
+    "height": 720,
     "index": 3,
     "name": 3,
-    "width": 1120
+    "width": 2560
 }

@@ -237,7 +237,7 @@ void Player::Initialize() {
 
 	// 2. 属性の設定（自分はPlayer、当たる相手はEnemyやEnemyの攻撃）
 	collider_->SetMyType(COL_Player);
-	collider_->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground);
+	collider_->SetYourType(COL_Enemy | COL_Enemy_Attack | COL_Ground | COL_Umbrella_Ground | COL_Warp);
 
 	// 3. ローカル頂点データの設定（例：プレイヤーを囲む四角形やひし形など）
 	std::vector<Vector3> localVertices = {

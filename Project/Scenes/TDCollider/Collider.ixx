@@ -40,6 +40,7 @@ export enum COLLISIONATTRIBUTE : int{
 	COL_Umbrella_Ground = 1 << 5,
 	COL_Player_Attack_Smash = 1 << 6,
 	COL_Player_Attack_SmashWave = 1 << 7,
+	COL_Warp = 1 << 8,
 };
 
 export enum class ColliderShape {

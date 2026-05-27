@@ -43,7 +43,7 @@ export namespace Game::Event {
 	// ==============================
 	//  落下リスポーン
 	// ==============================
-	inline float FallDeathThresholdY = -30.0f;  // この Y 座標以下で落下死判定
+	inline float FallDeathThresholdY = -80.0f;  // この Y 座標以下で落下死判定
 	inline int FallDeathCount = 0;              // リザルト用: 落下回数
 
 	// ==============================
