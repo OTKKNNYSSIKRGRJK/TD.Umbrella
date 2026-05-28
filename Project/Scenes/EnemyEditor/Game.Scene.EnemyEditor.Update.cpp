@@ -650,27 +650,17 @@ namespace Game::Editor {
 
 		// --- メッシュ描画（ソリッドポリゴン） ---
 		if (showMeshWireframe_ && !cachedMeshFaces_.empty()) {
-			// ルートジョイントのバインドポーズ（初期オフセット）の取得
-			float bindOffsetX = 0.0f;
-			float bindOffsetY = 0.0f;
-			if (!cachedSkeleton_.ARR_Joint.empty()) {
-				uint32_t rootID = cachedSkeleton_.ID_Root;
-				auto bindMat = invBindPoses_[rootID].Inverse();
-				bindOffsetX = bindMat[3].Get(0);
-				bindOffsetY = bindMat[3].Get(1);
-			}
-
 			auto project3D = [&](const std::array<float, 3>& pos) -> ImVec2 {
 				float px, py;
 				switch (meshViewMode_) {
 				case 0: // Front (XY)
-					px = pos[0] + bindOffsetX; py = pos[1] + bindOffsetY; break;
+					px = pos[0]; py = pos[1]; break;
 				case 1: // Side (ZY)
-					px = pos[2]; py = pos[1] + bindOffsetY; break;
+					px = pos[2]; py = pos[1]; break;
 				case 2: // Top (XZ)
-					px = pos[0] + bindOffsetX; py = pos[2]; break;
+					px = pos[0]; py = pos[2]; break;
 				default:
-					px = pos[0] + bindOffsetX; py = pos[1] + bindOffsetY; break;
+					px = pos[0]; py = pos[1]; break;
 				}
 				return ImVec2(center.x + px * scale, center.y - py * scale);
 			};
