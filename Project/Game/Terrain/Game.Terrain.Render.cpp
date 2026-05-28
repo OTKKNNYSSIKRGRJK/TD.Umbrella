@@ -252,11 +252,20 @@ namespace Game::Impl {
 		Lumina::D3D12::GraphicsDevice const& d3d12Device_,
 		Lumina::D3D12::CommandList const& cmdList_,
 		Lumina::D3D12::Canvas const& canvas_,
-		[[maybe_unused]] Lumina::Math::F32x4x4<> const& worldToProjective_
+		Lumina::Math::F32x3 const& worldPos_Camera_,
+		Lumina::Math::F32x4x4<> const& worldToProjective_
 	) -> void {
-		UB_WorldToProjective_.Store(&worldToProjective_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+		HSParameters_.WorldPosition_Camera = worldPos_Camera_;
+		UB_HSParameters_.Store(&HSParameters_, sizeof(HSParameters), 0LLU);
 
-		D3D12_RESOURCE_BARRIER const barriers_PrePass[]{
+		std::memcpy(
+			&DSParameters_.WorldToProjective,
+			&worldToProjective_,
+			sizeof(Lumina::Math::F32x4x4<>)
+		);
+		UB_DSParameters_.Store(&DSParameters_, sizeof(DSParameters), 0LLU);
+
+		/*D3D12_RESOURCE_BARRIER const barriers_PrePass[]{
 			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_LowPoly_.RenderTexture(0U),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -273,7 +282,7 @@ namespace Game::Impl {
 				 D3D12_RESOURCE_STATE_DEPTH_WRITE
 			 ),
 		};
-		cmdList_->ResourceBarrier(3U, barriers_PrePass);
+		cmdList_->ResourceBarrier(3U, barriers_PrePass);*/
 
 		cmdList_->SetGraphicsRootSignature(RS_LowPoly_.Get());
 		cmdList_->SetPipelineState(PSO_LowPoly_.Get());
@@ -335,7 +344,7 @@ namespace Game::Impl {
 			);
 			cmdList_->SetGraphicsRootDescriptorTable(
 				1U,
-				GlobalTable_CBV_Transforms_.GPUHandle(0U)
+				GlobalTable_CBV_DSParameters_.GPUHandle(0U)
 			);
 			cmdList_->SetGraphicsRootDescriptorTable(
 				2U,
@@ -353,8 +362,12 @@ namespace Game::Impl {
 				5U,
 				GlobalTable_SRV_TerrainMaterialMap_Albedo_.GPUHandle(0U)
 			);
+			cmdList_->SetGraphicsRootDescriptorTable(
+				7U,
+				GlobalTable_CBV_HSParameters_.GPUHandle(0U)
+			);
 
-			cmdList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			cmdList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
 			cmdList_->IASetVertexBuffers(0U, 1U, &VBVs_LowPoly_[idx]);
 
 			cmdList_->DrawInstanced(mesh.Num_Vertices(), 1U, 0U, 0U);
@@ -364,7 +377,7 @@ namespace Game::Impl {
 
 		//RenderPass_LowPoly_.End();
 
-		D3D12_RESOURCE_BARRIER const barriers_PostPass[]{
+		/*D3D12_RESOURCE_BARRIER const barriers_PostPass[]{
 			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_LowPoly_.RenderTexture(0U),
 				 D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -381,7 +394,7 @@ namespace Game::Impl {
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			 ),
 		};
-		cmdList_->ResourceBarrier(3U, barriers_PostPass);
+		cmdList_->ResourceBarrier(3U, barriers_PostPass);*/
 
 		#if defined(_DEBUG)
 		ImGui::Begin("TerrainDebug");
@@ -395,6 +408,7 @@ namespace Game::Impl {
 	template<>
 	auto TerrainRenderer::Render(
 		Lumina::D3D12::Canvas const& canvas_,
+		Lumina::Math::F32x3 const& worldPos_Camera_,
 		Lumina::Math::F32x4x4<> const& worldToProjective_
 	) -> void {
 		auto const& context{ Lumina::Context::Instance() };
@@ -402,7 +416,7 @@ namespace Game::Impl {
 		auto const& d3d12Device{ d3d12Context.Device() };
 		auto const& cmdList{ context.MainCommandList() };
 
-		Render<"LowPoly">(d3d12Device, cmdList, canvas_, worldToProjective_);
+		Render<"LowPoly">(d3d12Device, cmdList, canvas_, worldPos_Camera_, worldToProjective_);
 	}
 }
 
@@ -484,6 +498,27 @@ namespace Game::Impl {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+
+		Lumina::D3D12::CommandAllocator cmdAllocator{};
+		Lumina::D3D12::CommandList cmdList{};
+		cmdAllocator.Initialize(d3d12Device_);
+		cmdList.Initialize(d3d12Device_, cmdAllocator);
+
+		std::vector<D3D12_RESOURCE_BARRIER> barriers{};
+		for (auto const& entry : imageTexturesToLoad) {
+			barriers.emplace_back(
+				Lumina::D3D12::Barrier::Transition(
+					*static_cast<Lumina::D3D12::ImageTexture const*>(
+						resMngr.Graphics().GetResource(entry.first)
+					),
+					D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+					D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
+				)
+			);
+		}
+		cmdList->ResourceBarrier(static_cast<Lumina::U32>(barriers.size()), barriers.data());
+		d3d12Context_.DirectQueue() << cmdList;
+		d3d12Context_.DirectQueue().CPUWait(d3d12Context_.DirectQueue().ExecuteBatchedCommandLists());
 	}
 
 	template<>
@@ -636,6 +671,20 @@ namespace Game::Impl {
 			"LowPoly.VS"
 		);
 		d3d12Context_.Compile(
+			HS_LowPoly_,
+			L"Assets/Terrain/Shaders/LowPoly.HS.hlsl",
+			L"hs_6_6",
+			L"main",
+			"LowPoly.HS"
+		);
+		d3d12Context_.Compile(
+			DS_LowPoly_,
+			L"Assets/Terrain/Shaders/LowPoly.DS.hlsl",
+			L"ds_6_6",
+			L"main",
+			"LowPoly.DS"
+		);
+		d3d12Context_.Compile(
 			PS_LowPoly_,
 			L"Assets/Terrain/Shaders/LowPoly.PS.hlsl",
 			L"ps_6_6",
@@ -661,6 +710,8 @@ namespace Game::Impl {
 			d3d12Device_,
 			RS_LowPoly_,
 			VS_LowPoly_,
+			HS_LowPoly_,
+			DS_LowPoly_,
 			PS_LowPoly_,
 			blendState_None,
 			Lumina::D3D12::RasterizerState{
@@ -674,7 +725,7 @@ namespace Game::Impl {
 				.StencilEnable{ false },
 			},
 			inputLayout,
-			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH,
 			{
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 				DXGI_FORMAT_R8G8B8A8_UNORM,
@@ -688,16 +739,35 @@ namespace Game::Impl {
 		Lumina::D3D12::Context const& d3d12Context_,
 		Lumina::D3D12::GraphicsDevice const& d3d12Device_
 	) -> void {
-		UB_WorldToProjective_.Initialize(
+		UB_HSParameters_.Initialize(
 			d3d12Device_,
 			256LLU
 		);
-		GlobalTable_CBV_Transforms_ = d3d12Context_.GlobalDescriptorHeap().Allocate(1U);
+		GlobalTable_CBV_HSParameters_ = d3d12Context_.GlobalDescriptorHeap().Allocate(1U);
 		Lumina::D3D12::CBV::Create(
 			d3d12Device_,
-			GlobalTable_CBV_Transforms_.CPUHandle(0U),
-			UB_WorldToProjective_
+			GlobalTable_CBV_HSParameters_.CPUHandle(0U),
+			UB_HSParameters_
 		);
+		HSParameters_.Distance_MIN = 50.0f;
+		HSParameters_.Distance_MAX = 500.0f;
+		HSParameters_.Tessellation_MIN = 13.0f;
+		HSParameters_.Tessellation_MAX = 14.0f;
+		UB_HSParameters_.Store(&HSParameters_, sizeof(HSParameters), 0LLU);
+
+		UB_DSParameters_.Initialize(
+			d3d12Device_,
+			256LLU
+		);
+		GlobalTable_CBV_DSParameters_ = d3d12Context_.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::CBV::Create(
+			d3d12Device_,
+			GlobalTable_CBV_DSParameters_.CPUHandle(0U),
+			UB_DSParameters_
+		);
+		DSParameters_.Scale_SurfaceElevation = 0.5f;
+		DSParameters_.Scale_MaterialElevation = 0.125f;
+		//UB_DSParameters_.Store(&DSParameters_, sizeof(DSParameters), 0LLU);
 
 		// * Non-ground, Ground
 		GlobalTable_SRV_VertexElementArray_ = d3d12Context_.GlobalDescriptorHeap().Allocate(4U * 2U);
@@ -938,17 +1008,17 @@ namespace Game::Impl {
 			 Lumina::D3D12::Barrier::Transition(
 				 Surface_MaterialID_.Texture(),
 				 D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+				 D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
 				 Surface_BlendAndElevation_.Texture(),
 				 D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+				 D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
 			 ),
 			 Lumina::D3D12::Barrier::Transition(
 				 Surface_Normal_.Texture(),
 				 D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
-				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+				 D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
 			 ),
 		};
 		cmdList->ResourceBarrier(3U, barriers);
@@ -1071,9 +1141,10 @@ namespace Game {
 	template<>
 	auto TerrainRenderer::Render(
 		Lumina::D3D12::Canvas const& canvas_,
+		Lumina::Math::F32x3 const& worldPos_Camera_,
 		Lumina::Math::F32x4x4<> const& worldToProjective_
 	) -> void {
-		Impl_->Render(canvas_, worldToProjective_);
+		Impl_->Render(canvas_, worldPos_Camera_, worldToProjective_);
 	}
 
 	auto TerrainRenderer::Initialize() -> void {

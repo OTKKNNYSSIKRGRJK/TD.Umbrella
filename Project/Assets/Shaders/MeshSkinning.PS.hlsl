@@ -24,11 +24,30 @@ struct MATERIAL {
 #define SPACE_MATERIAL space3
 ConstantBuffer<MATERIAL> Material : register(b0, SPACE_MATERIAL);
 
+TextureCube<float4> SRV_EnvironmentMap : register(t0, space17);
+cbuffer Parameter_Space17Slot0 : register(b0, space17) {
+	float3 WorldPos_Camera;
+}
+
+float4 CalcEnv(
+	in float3 worldPos_,
+	in float3 norm_
+) {
+	const float3 dir_EyeToTarget = normalize(worldPos_ - WorldPos_Camera.xyz);
+	
+	const float3 refl = reflect(dir_EyeToTarget, norm_);
+	const float4 envColor = SRV_EnvironmentMap.Sample(Sampler, refl);
+	
+	return envColor;
+}
+
 PSOutput main(VSOutput input_) {
 	PSOutput output;
 	
-	float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
-	output.Diffuse = diffuseColor * Material.Color;
+	float4 envColor = CalcEnv(input_.WorldPos.xyz, input_.Normal) * 0.5f;
+	
+	//float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
+	output.Diffuse = envColor * Material.Color;
 	const float3 normal = normalize(input_.Normal.xyz);
 	output.Normal = float4(normal * 0.5f + 0.5f, 1.0f);
 	// * Bleeding

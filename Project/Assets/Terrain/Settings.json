@@ -7,30 +7,30 @@
         "TableName": "<VS> VertexElementArray"
       },
       {
-        "ShaderVisibility": "Vertex",
+        "ShaderVisibility": "Domain",
         "ParameterType": "DescriptorTable",
-        "TableName": "<VS> Transforms"
+        "TableName": "<DS> Parameters"
       },
       {
-        "ShaderVisibility": "Pixel",
+        "ShaderVisibility": "All",
         "ParameterType": "DescriptorTable",
         "TableName": "<PS> Parameters",
         "Namespace": ""
       },
       {
-        "ShaderVisibility": "Pixel",
+        "ShaderVisibility": "All",
         "ParameterType": "DescriptorTable",
         "TableName": "<PS> Material Database",
         "Namespace": ""
       },
       {
-        "ShaderVisibility": "Pixel",
+        "ShaderVisibility": "All",
         "ParameterType": "DescriptorTable",
         "TableName": "<PS> Surface",
         "Namespace": "Surface"
       },
       {
-        "ShaderVisibility": "Pixel",
+        "ShaderVisibility": "All",
         "ParameterType": "DescriptorTable",
         "TableName": "<PS> Maps",
         "Namespace": "Maps"
@@ -40,6 +40,12 @@
         "ParameterType": "DescriptorTable",
         "TableName": "<PS> Output",
         "Namespace": "Output"
+      },
+      {
+        "ShaderVisibility": "Hull",
+        "ParameterType": "DescriptorTable",
+        "TableName": "<HS> Parameters",
+        "Namespace": ""
       }
     ],
 
@@ -78,12 +84,8 @@
       }
     ],
 
-    "<VS> Transforms": [
+    "<DS> Parameters": [
       {
-        "Name" : "cbuffer Parameters_B0Space0",
-        "Entries": [
-          "float4x4 Matrix_WorldToProjective"
-        ],
         "RangeType": "CBV",
         "NumDescriptors": 1,
         "BaseShaderRegister": 0,
@@ -182,6 +184,17 @@
       }
     ],
 
+    "<HS> Parameters": [
+      {
+        "Name" : "cbuffer Paramaters_Space0Slot2",
+        "RangeType": "CBV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 2,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
     "StaticSamplers": [
       {
         "Name": "BilinearWrap",
@@ -196,7 +209,7 @@
         "TextureAddressV": "Wrap",
         "TextureAddressW": "Wrap",
         "ShaderRegister": 0,
-        "ShaderVisibility": "Pixel"
+        "ShaderVisibility": "All"
       },
       {
         "Name": "PointWrap",

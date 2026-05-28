@@ -239,24 +239,31 @@ namespace Lumina::D3D12 {
 		DXGI_FORMAT viewFormat_
 	) noexcept {
 
-		//----	------	------	------	------	----//
-		//	Typed									//
-		//----	------	------	------	------	----//
-
-		if constexpr (!std::is_void_v<ElementType>) {
+		if constexpr (std::is_same_v<Tex2DType, ImageTexture>) {
+			auto const desc{ reinterpret_cast<ImageTexture const&>(tex2D_).SRVDesc() };
+			static_cast<D3D12_SHADER_RESOURCE_VIEW_DESC&>(*this) = std::move(desc);
 		}
-
-		//----	------	------	------	------	----//
-		//	Typeless								//
-		//----	------	------	------	------	----//
-
 		else {
-			Format = (viewFormat_ == DXGI_FORMAT_UNKNOWN) ? (tex2D_.Format()) : (viewFormat_);
-			ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			Texture2D = D3D12_TEX2D_SRV{
-				.MipLevels{ static_cast<uint32_t>(tex2D_.MipLevels()) },
-			};
+
+			//----	------	------	------	------	----//
+			//	Typed									//
+			//----	------	------	------	------	----//
+
+			if constexpr (!std::is_void_v<ElementType>) {
+			}
+
+			//----	------	------	------	------	----//
+			//	Typeless								//
+			//----	------	------	------	------	----//
+
+			else {
+				Format = (viewFormat_ == DXGI_FORMAT_UNKNOWN) ? (tex2D_.Format()) : (viewFormat_);
+				ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+				Texture2D = D3D12_TEX2D_SRV{
+					.MipLevels{ static_cast<uint32_t>(tex2D_.MipLevels()) },
+				};
+			}
 		}
 	}
 }

@@ -314,11 +314,11 @@ namespace Lumina::D3D12 {
 
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::VERTEX_SHADER, VIEW_TYPE::CBV),
-			16U
+			32U
 		);
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::VERTEX_SHADER, VIEW_TYPE::SRV),
-			48U
+			64U
 		);
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::VERTEX_SHADER, VIEW_TYPE::UAV),
@@ -326,11 +326,11 @@ namespace Lumina::D3D12 {
 		);
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::PIXEL_SHADER, VIEW_TYPE::CBV),
-			16U
+			32U
 		);
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::PIXEL_SHADER, VIEW_TYPE::SRV),
-			48U
+			64U
 		);
 		Context_->GlobalDescriptorHeap().Allocate(
 			GlobalTable(SHADER_TYPE::PIXEL_SHADER, VIEW_TYPE::UAV),

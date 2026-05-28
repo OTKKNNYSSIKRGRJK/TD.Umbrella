@@ -129,6 +129,8 @@ namespace Lumina::D3D12 {
 				{ "All", D3D12_SHADER_VISIBILITY_ALL },
 				{ "Vertex", D3D12_SHADER_VISIBILITY_VERTEX },
 				{ "Pixel", D3D12_SHADER_VISIBILITY_PIXEL },
+				{ "Hull", D3D12_SHADER_VISIBILITY_HULL },
+				{ "Domain", D3D12_SHADER_VISIBILITY_DOMAIN },
 			};
 
 			static inline const Section<D3D12_ROOT_PARAMETER_TYPE> RootParameterTypes_{

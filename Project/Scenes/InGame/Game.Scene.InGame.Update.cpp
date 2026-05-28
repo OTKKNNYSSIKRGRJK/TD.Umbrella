@@ -607,10 +607,10 @@ namespace Game::Scene::Impl {
 				float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
 				Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
 				float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
-				newCameraPos += { dir.X* mag, dir.Y* mag, 0.0f };
+				newCameraPos += { dir.X * mag, dir.Y * mag, 0.0f };
 				--Event::CameraShakingTimer;
 			}
-			Camera_Player_->LookAt(newCameraPos, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
+			Camera_Player_->LookAt(newCameraPos + Lumina::Math::F32x3{ 0.0f, 0.1f, 0.0f }, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
 		}
 
 		#if defined(_DEBUG)

@@ -18,6 +18,16 @@ import Game.Events;
 
 namespace Game::Scene::Impl {
 	template<>
+	void InGame::Render_<"Skybox">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) {
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList_->OMSetRenderTargets(1U, &rtv, false, &dsv);
+		Skybox_->Render(cmdList_, LocalHeap_Scene_.CPUHandle(0U));
+	}
+
+	template<>
 	void InGame::Render_<"Portal">(
 		Lumina::D3D12::CommandList const& cmdList_,
 		Lumina::I32&& idx_,
@@ -102,6 +112,9 @@ namespace Game::Scene::Impl {
 			cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
 			cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
 			cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
+			auto const& cameraPos{ Camera_Player_->WorldPosition() };
+			cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
 
 			D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
 				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
@@ -408,6 +421,8 @@ namespace Game::Scene::Impl {
 		Render_<"Characters">();
 		GeometryPass_.End();
 
+		Render_<"Skybox">(cmdList);
+
 		{
 			auto rtv{ Canvas_GeometryPass_.RTV(0U) };
 			auto dsv{ Canvas_GeometryPass_.DSV() };
@@ -463,6 +478,7 @@ namespace Game::Scene::Impl {
 
 		TerrainRenderer_->Render(
 			static_cast<Lumina::D3D12::Canvas const&>(Canvas_GeometryPass_),
+			Camera_Player_->WorldPosition(),
 			static_cast<Lumina::Math::F32x4x4<> const&>(*WorldToHomogeneous_)
 		);
 
@@ -493,12 +509,6 @@ namespace Game::Scene::Impl {
 		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
 
 		meshMngr.End();
-	}
-
-	template<>
-	void InGame::Render_<"Skybox">() {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-		Skybox_->Render(cmdList, LocalHeap_Scene_.CPUHandle(0U));
 	}
 
 	void InGame::Render_Merge() {

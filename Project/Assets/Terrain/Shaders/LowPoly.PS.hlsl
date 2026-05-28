@@ -11,7 +11,7 @@ struct PSOutput {
 	float4 Normal : SV_TARGET1;
 };
 
-cbuffer Parameters_B0Space64 : register(b0, space64) {
+cbuffer Parameters_Space64Slot0 : register(b0, space64) {
 	float2 Scale_SurfaceBlendUV;
 	float Scale_SurfaceNormal;
 	float Scale_MaterialNormal;
@@ -74,12 +74,10 @@ static const float Kernel[25] = {
 void Convolve(
 	inout float4 albedo_,
 	inout float3 normal_,
-	inout float elevation_,
 	in float2 uv_
 ) {
 	albedo_ = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	normal_ = float3(0.0f, 0.0f, 0.0f);
-	elevation_ = 0.0f;
 	
 	for (uint y = 0; y < 5; ++y) {
 		for (uint x = 0; x < 5; ++x) {
@@ -97,9 +95,6 @@ void Convolve(
 			
 			const float4 normal_Fetch = Maps::Normal[material.ID_Normal].Sample(BilinearWrap, uv);
 			normal_ += normal_Fetch.rgb * Kernel[idx];
-			
-			const float4 elevation_Fetch = Maps::Elevation[material.ID_Elevation].Sample(BilinearWrap, uv);
-			elevation_ += elevation_Fetch.r * Kernel[idx];
 		}
 	}
 	
@@ -110,13 +105,11 @@ void Convolve(
 void BlendMaterial(
 	out float4 albedo_,
 	out float3 normal_,
-	out float elevation_,
 	in float2 uv_
 ) {
 	Convolve(
 		albedo_,
 		normal_,
-		elevation_,
 		uv_
 	);
 	
@@ -198,11 +191,9 @@ float3 CalculateSurfaceMaterialNormal(
 PSOutput main(in PSInput input_) {
 	float4 albedo_Material;
 	float3 normal_Material;
-	float elevation_Material;
 	BlendMaterial(
 		albedo_Material,
 		normal_Material,
-		elevation_Material,
 		input_.UV
 	);
 	

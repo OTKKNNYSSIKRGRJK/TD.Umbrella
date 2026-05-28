@@ -79,6 +79,22 @@ export namespace Lumina::D3D12 {
 		);
 		void Initialize(
 			GraphicsDevice const& device_,
+			RootSignature const& rs_,
+			Shader const& vertexShader_,
+			Shader const& hullShader_,
+			Shader const& domainShader_,
+			Shader const& pixelShader_,
+			BlendState const& blendState_,
+			RasterizerState const& rasterizerState_,
+			DepthStencilState const& depthStencilState_,
+			InputLayout const& inputLayout_,
+			PrimitiveTopologyType primitiveTopologyType_,
+			std::vector<ResourceFormat> const& rtvFormats_,
+			ResourceFormat dsvFormat_,
+			std::string_view debugName_ = "GraphicsPSO"
+		);
+		void Initialize(
+			GraphicsDevice const& device_,
 			Setup const& psoSetup_,
 			std::string_view debugName_ = "GraphicsPSO"
 		);
@@ -384,6 +400,75 @@ namespace Lumina::D3D12 {
 		SetDebugName(debugName_);
 	}
 
+
+	void GraphicsPipelineState::Initialize(
+		GraphicsDevice const& device_,
+		RootSignature const& rs_,
+		Shader const& vertexShader_,
+		Shader const& hullShader_,
+		Shader const& domainShader_,
+		Shader const& pixelShader_,
+		BlendState const& blendState_,
+		RasterizerState const& rasterizerState_,
+		DepthStencilState const& depthStencilState_,
+		InputLayout const& inputLayout_,
+		PrimitiveTopologyType primitiveTopologyType_,
+		std::vector<ResourceFormat> const& rtvFormats_,
+		ResourceFormat dsvFormat_,
+		std::string_view debugName_
+	) {
+		ThrowIfInitialized(debugName_);
+
+		auto&& inputElements{ inputLayout_() };
+
+		uint32_t num_RenderTargets{ static_cast<uint32_t>(rtvFormats_.size()) };
+		(num_RenderTargets > 0U) ||
+			Debug::ThrowIfFalse{
+				std::format(
+					"<D3D12.GraphicsPSO - {}> No RTV formats have been specified!\n",
+					debugName_
+				)
+		};
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc{
+			.pRootSignature{ rs_.Get() },
+			.VS{ vertexShader_->GetBufferPointer(), vertexShader_->GetBufferSize() },
+			.PS{ pixelShader_->GetBufferPointer(), pixelShader_->GetBufferSize() },
+			.DS{ domainShader_->GetBufferPointer(), domainShader_->GetBufferSize() },
+			.HS{ hullShader_->GetBufferPointer(), hullShader_->GetBufferSize() },
+			.BlendState{ blendState_ },
+			.SampleMask{ D3D12_DEFAULT_SAMPLE_MASK },
+			.RasterizerState{ rasterizerState_ },
+			.DepthStencilState{ depthStencilState_ },
+			.InputLayout{ inputElements.data(), static_cast<uint32_t>(inputElements.size()) },
+			.PrimitiveTopologyType{ primitiveTopologyType_ },
+			.NumRenderTargets{ num_RenderTargets },
+			.DSVFormat{ dsvFormat_ },
+			.SampleDesc{.Count{ 1U }, },
+		};
+		uint32_t num_RTVsWithNonUnknownFormat{ 0U };
+		for (size_t i{ 0LLU }; i < std::min<size_t>(rtvFormats_.size(), 8LLU); ++i) {
+			psoDesc.RTVFormats[i] = rtvFormats_.at(i);
+			if (psoDesc.RTVFormats[i] != DXGI_FORMAT_UNKNOWN) { ++num_RTVsWithNonUnknownFormat; }
+		}
+		if (num_RTVsWithNonUnknownFormat == 0U) {
+			psoDesc.NumRenderTargets = 0U;
+		}
+
+		device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&Wrapped_)) ||
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.GraphicsPSO> Failed to create {}!\n",
+				debugName_
+			)
+		};
+		Logger().Message<0U>(
+			"GraphicsPSO,{},PSO created successfully.\n", debugName_
+		);
+
+		SetDebugName(debugName_);
+	}
+
 	void GraphicsPipelineState::Initialize(
 		GraphicsDevice const& device_,
 		GraphicsPipelineState::Setup const& psoSetup_,
@@ -421,11 +506,11 @@ namespace Lumina::D3D12 {
 		}
 
 		device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&Wrapped_)) ||
-			Debug::ThrowIfFailed{
-				std::format(
-					"<D3D12.GraphicsPSO> Failed to create {}!\n",
-					debugName_
-				)
+		Debug::ThrowIfFailed{
+			std::format(
+				"<D3D12.GraphicsPSO> Failed to create {}!\n",
+				debugName_
+			)
 		};
 		Logger().Message<0U>(
 			"GraphicsPSO,{},PSO created successfully.\n", debugName_

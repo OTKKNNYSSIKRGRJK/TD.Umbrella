@@ -7,9 +7,9 @@ namespace VertexElementArray {
 	StructuredBuffer<float3> Tangent : register(t0, space19);
 }
 
-cbuffer Paramaters_B0Space0 : register(b0, space0) {
-	float4x4 Matrix_WorldToProjective;
-}
+//cbuffer Paramaters_Space0Slot0 : register(b0, space0) {
+//	float4x4 Matrix_WorldToProjective;
+//}
 
 struct VSInput {
 	uint Index_Position : IDX_POSITION0;
@@ -19,7 +19,7 @@ struct VSInput {
 };
 
 struct VSOutput {
-	float4 Position : SV_POSITION;
+	float3 Position : SV_POSITION;
 	float2 UV : UV0;
 	float3 Normal : NORMAL0;
 	float3 Tangent : TANGENT0;
@@ -34,7 +34,8 @@ VSOutput main(VSInput input_) {
 	const float3 normal = VertexElementArray::Normal[input_.Index_Normal];
 	const float3 tangent = VertexElementArray::Tangent[input_.Index_Tangent];
 	
-	output.Position = mul(float4(pos_World, 1.0f), Matrix_WorldToProjective);
+	//output.Position = mul(float4(pos_World, 1.0f), Matrix_WorldToProjective);
+	output.Position = pos_World;
 	output.UV = uv;
 	
 	output.Normal = normal;

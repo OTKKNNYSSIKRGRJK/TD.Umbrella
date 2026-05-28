@@ -22,8 +22,9 @@ ConstantBuffer<MATERIAL> Materials[] : register(b0, SPACE_MATERIAL);
 PSOutput main(VSOutput input_) {
 	PSOutput output;
 	
-	float4 diffuseColor = Textures[Materials[MeshIndex].ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
-	output.Diffuse = diffuseColor * Materials[MeshIndex].Color;
+	//float4 diffuseColor = Textures[Materials[MeshIndex].ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
+	//output.Diffuse = diffuseColor * Materials[MeshIndex].Color;
+	output.Diffuse = float4(0.5f, 0.1f, 0.2f, 1.0f);
 	output.Normal = float4(normalize(input_.Normal.xyz) * 0.5f + 0.5f, 1.0f);
 	// * Bleeding
 	output.Factors0.r = abs(output.Normal.x);

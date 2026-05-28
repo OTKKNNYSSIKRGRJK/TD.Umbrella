@@ -51,7 +51,7 @@ namespace Game::Scene::Impl {
 						p.Velocity.Y = RNDEngine() * Inv_0xFFFFFFFF + (-2.0f);
 						p.Velocity.Z = (RNDEngine() * Inv_0xFFFFFFFF - 0.5f) * 0.01f;
 
-						p.Scale.X = 0.25f;
+						p.Scale.X = 0.125f;
 						p.Scale.Y = 2.5f;
 
 						p.Life = 18.0f;
@@ -70,7 +70,7 @@ namespace Game::Scene::Impl {
 							rgb_Base.R,
 							rgb_Base.G,
 							rgb_Base.B,
-							0.45f
+							0.25f
 						};
 						p.RenderData.DiffuseID = 1U;
 						p.RenderData.DiffuseAtlasID = 0U;
@@ -163,7 +163,7 @@ namespace Game::Scene::Impl {
 		};
 
 		p_.RenderData.RGBA.W =
-			factor * 0.75f +
+			factor * 0.25f +
 			std::sin(p_.Life * 0.375f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f) * 0.15f;
 
 		p_.Scale.X = factor * 1.5f;

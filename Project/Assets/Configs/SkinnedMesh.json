@@ -25,6 +25,18 @@
         "ShaderVisibility": "Pixel",
         "ParameterType": "DescriptorTable",
         "TableName": "Lighting"
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "EnvMap"
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "32BitConstants",
+        "ShaderRegister": 0,
+        "RegisterSpace": 17,
+        "Num32BitValues": 3
       }
     ],
 
@@ -71,6 +83,15 @@
         "NumDescriptors": 1,
         "BaseShaderRegister": 0,
         "RegisterSpace": 2,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+    "EnvMap": [
+      {
+        "RangeType": "SRV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 17,
         "OffsetInDescriptorsFromTableStart": -1
       }
     ],

@@ -79,6 +79,8 @@ namespace Game::Impl {
 	private:
 		Lumina::D3D12::RootSignature RS_LowPoly_;
 		Lumina::D3D12::Shader VS_LowPoly_;
+		Lumina::D3D12::Shader HS_LowPoly_;
+		Lumina::D3D12::Shader DS_LowPoly_;
 		Lumina::D3D12::Shader PS_LowPoly_;
 		Lumina::D3D12::GraphicsPSO PSO_LowPoly_;
 
@@ -88,12 +90,45 @@ namespace Game::Impl {
 
 	private:
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_VertexElementArray_;
-		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Transforms_;
-		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
 
 		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
 
 		Lumina::D3D12::VertexBufferView VBVs_LowPoly_[2];
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Resources & Views for Hull Shader						--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+
+	private:
+		struct HSParameters {
+			Lumina::Math::F32x3 WorldPosition_Camera;
+			// * Distance at which `Tessellation_MAX` is applied
+			Lumina::F32 Distance_MIN;
+			// * Distance at which `Tessellation_MIN` is applied
+			Lumina::F32 Distance_MAX;
+			Lumina::F32 Tessellation_MIN;
+			Lumina::F32 Tessellation_MAX;
+		};
+
+	private:
+		Lumina::D3D12::DescriptorTable GlobalTable_CBV_HSParameters_;
+		Lumina::D3D12::UploadBuffer UB_HSParameters_;
+		HSParameters HSParameters_;
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Resources & Views for Domain Shader						--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+
+	private:
+		struct DSParameters {
+			Lumina::F32 WorldToProjective[4][4];
+			Lumina::F32 Scale_SurfaceElevation;
+			Lumina::F32 Scale_MaterialElevation;
+		};
+
+		Lumina::D3D12::DescriptorTable GlobalTable_CBV_DSParameters_;
+		Lumina::D3D12::UploadBuffer UB_DSParameters_;
+		DSParameters DSParameters_;
 
 		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 		//==--	Resources & Views for Pixel Shader						--==//
