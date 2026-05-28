@@ -380,10 +380,10 @@ namespace PlayerStates::Action {
 					if (player_->GetManaComponent().GetCurrentMana() < branch.condition.minMana) {
 						canBranch = false; // マナが足りないから派生できない！
 					}
-					// そもそもマナを使おうとしているかチェック
-					if (input.useMana == false) {
-						canBranch = false;// 使う気がないので派生なし
-					}
+					//// そもそもマナを使おうとしているかチェック
+					//if (input.useMana == false) {
+					//	canBranch = false;// 使う気がないので派生なし
+					//}
 				}
 
 				// 条件を全てクリアして派生が決定した場合！
@@ -742,11 +742,10 @@ namespace PlayerStates::Action {
 		if (player_->onGround_ == false) {
 			if (IsButtonUp(player_->GetInput().aim)) {
 				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
-					player_->GetManaComponent().ConsumeMana(25.0f);
-					
+					//player_->GetManaComponent().ConsumeMana(25.0f);
+					player_->myVelocity_.Y = 10.0f; // 上昇の初速を与える（数値は調整用）
+					player_->externalVelocity_.Y = 0.0f; // 上昇の初速を与える（数値は調整用）
 				}
-				player_->myVelocity_.Y = 10.0f; // 上昇の初速を与える（数値は調整用）
-				player_->externalVelocity_.Y = 0.0f; // 上昇の初速を与える（数値は調整用）
 			}
 		}
 	}
