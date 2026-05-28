@@ -743,9 +743,10 @@ namespace PlayerStates::Action {
 			if (IsButtonUp(player_->GetInput().aim)) {
 				if (player_->GetManaComponent().HasEnoughMana(25.0f)) {
 					player_->GetManaComponent().ConsumeMana(25.0f);
-					player_->myVelocity_.Y = 10.0f; // 上昇の初速を与える（数値は調整用）
-					player_->externalVelocity_.Y = 0.0f; // 上昇の初速を与える（数値は調整用）
+					
 				}
+				player_->myVelocity_.Y = 10.0f; // 上昇の初速を与える（数値は調整用）
+				player_->externalVelocity_.Y = 0.0f; // 上昇の初速を与える（数値は調整用）
 			}
 		}
 	}
