@@ -1,5 +1,5 @@
 {
-    "aggressiveness": 0.6000000238418579,
+    "aggressiveness": 0.6,
     "aggroRadius": 12.0,
     "animationMap": {
         "Charge": "Attack_Wait",
@@ -13,77 +13,23 @@
     "attackRange": 10.0,
     "attackType": "Ranged",
     "collisionVertices": [
-        {
-            "x": 0.24691355228424072,
-            "y": 1.7654318809509277
-        },
-        {
-            "x": -0.9876542091369629,
-            "y": 0.8456789255142212
-        },
-        {
-            "x": -0.5123456120491028,
-            "y": 0.9259258508682251
-        },
-        {
-            "x": -0.06172838807106018,
-            "y": 0.7222221493721008
-        },
-        {
-            "x": -0.0555555485188961,
-            "y": -0.08641974627971649
-        },
-        {
-            "x": 0.06790123134851456,
-            "y": -0.09259258210659027
-        },
-        {
-            "x": 0.049382712692022324,
-            "y": 0.7716048359870911
-        },
-        {
-            "x": -0.07407406717538834,
-            "y": 1.191357970237732
-        }
+        { "x": 0.24691355228424072, "y": 1.7654318809509277 },
+        { "x": -0.9876542091369629, "y": 0.8456789255142212 },
+        { "x": -0.5123456120491028, "y": 0.9259258508682251 },
+        { "x": -0.06172838807106018, "y": 0.7222221493721008 },
+        { "x": -0.0555555485188961, "y": -0.08641974627971649 },
+        { "x": 0.06790123134851456, "y": -0.09259258210659027 },
+        { "x": 0.049382712692022324, "y": 0.7716048359870911 },
+        { "x": -0.07407406717538834, "y": 1.191357970237732 }
     ],
     "gltfPath": "Assets\\Enemy\\FlowerSunward\\FlowerSunward.gltf",
     "hp": 80,
     "links": [
-        {
-            "condition": "Dist<=12.0",
-            "from": 1,
-            "to": 2
-        },
-        {
-            "condition": "Dist>12.0",
-            "from": 2,
-            "to": 1
-        },
-        {
-            "condition": "Time>=0.3",
-            "from": 2,
-            "to": 3
-        },
-        {
-            "condition": "Dist>12.0",
-            "from": 3,
-            "to": 1
-        },
-        {
-            "condition": "Time>=2.5",
-            "from": 3,
-            "to": 4
-        },
-        {
-            "condition": "Time>=2.5",
-            "from": 4,
-            "to": 5
-        },
-        {
-            "condition": "Time>=2.0",
-            "from": 5,
-            "to": 1
-        }
+        { "condition": "Dist<=12.0", "from": 1, "to": 2 },
+        { "condition": "Time>=0.4", "from": 2, "to": 3 },
+        { "condition": "Time>=1.2", "from": 3, "to": 4 },
+        { "condition": "Time>=0.5", "from": 4, "to": 5 },
+        { "condition": "Time>=2.0", "from": 5, "to": 1 }
     ],
     "motionMap": {
         "Charge": "",
@@ -98,191 +44,61 @@
     "noSplit": true,
     "nodes": [
         {
-            "animationName": "",
-            "boundBool": "",
-            "boundMotion": "",
-            "boundMotionNodeIndex": -1,
-            "damageMultiplier": 1.0,
-            "facePlayer": false,
-            "id": 1,
-            "isAttack": false,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
-            "loop": false,
-            "loopCooldown": 0.0,
-            "name": "Idle",
-            "prepHold": 0.0,
-            "prepOffset": {
-                "x": 0.0,
-                "y": 0.0
-            },
-            "prepParticle": "",
-            "prepScale": {
-                "duration": 0.0,
-                "peak": 1.0,
-                "start": 1.0
-            },
-            "prepSound": "",
-            "prepYaw": 0.0,
-            "proceduralPitch": false,
-            "requireGrounded": false,
-            "splineDuration": 1.0,
-            "splineMotionName": "",
-            "state": "Idle",
-            "velocityFrictionX": 1.0,
-            "x": 100.0,
-            "y": 100.0
+            "animationName": "", "boundBool": "", "boundMotion": "", "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0, "facePlayer": false, "id": 1, "isAttack": false,
+            "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "loop": false, "loopCooldown": 0.0,
+            "name": "Idle", "prepHold": 0.0, "prepOffset": { "x": 0.0, "y": 0.0 },
+            "prepParticle": "", "prepScale": { "duration": 0.0, "peak": 1.0, "start": 1.0 },
+            "prepSound": "", "prepYaw": 0.0, "proceduralPitch": false, "requireGrounded": false,
+            "splineDuration": 1.0, "splineMotionName": "", "state": "Idle",
+            "velocityFrictionX": 1.0, "x": 100.0, "y": 100.0
         },
         {
-            "animationName": "",
-            "boundBool": "",
-            "boundMotion": "",
-            "boundMotionNodeIndex": -1,
-            "damageMultiplier": 1.0,
-            "facePlayer": true,
-            "id": 2,
-            "isAttack": false,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
-            "loop": false,
-            "loopCooldown": 0.0,
-            "name": "FacePlayer",
-            "prepHold": 0.0,
-            "prepOffset": {
-                "x": 0.0,
-                "y": 0.0
-            },
-            "prepParticle": "",
-            "prepScale": {
-                "duration": 0.0,
-                "peak": 1.0,
-                "start": 1.0
-            },
-            "prepSound": "",
-            "prepYaw": 0.0,
-            "proceduralPitch": false,
-            "requireGrounded": false,
-            "splineDuration": 1.0,
-            "splineMotionName": "",
-            "state": "FacePlayer",
-            "velocityFrictionX": 1.0,
-            "x": 350.0,
-            "y": 100.0
+            "animationName": "", "boundBool": "", "boundMotion": "", "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0, "facePlayer": true, "id": 2, "isAttack": false,
+            "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "loop": false, "loopCooldown": 0.0,
+            "name": "FacePlayer", "prepHold": 0.0, "prepOffset": { "x": 0.0, "y": 0.0 },
+            "prepParticle": "", "prepScale": { "duration": 0.0, "peak": 1.0, "start": 1.0 },
+            "prepSound": "", "prepYaw": 0.0, "proceduralPitch": false, "requireGrounded": false,
+            "splineDuration": 1.0, "splineMotionName": "", "state": "FacePlayer",
+            "velocityFrictionX": 1.0, "x": 350.0, "y": 100.0
         },
         {
-            "animationName": "",
-            "boundBool": "",
-            "boundMotion": "",
-            "boundMotionNodeIndex": -1,
-            "damageMultiplier": 1.0,
-            "facePlayer": true,
-            "id": 3,
-            "isAttack": false,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
-            "loop": false,
-            "loopCooldown": 0.0,
-            "name": "Charge",
-            "prepHold": 0.5,
-            "prepOffset": {
-                "x": 0.0,
-                "y": 0.0
-            },
-            "prepParticle": "charge_glow",
-            "prepScale": {
-                "duration": 0.800000011920929,
-                "peak": 1.149999976158142,
-                "start": 1.0
-            },
-            "prepSound": "charge_wind",
-            "prepYaw": 0.0,
-            "proceduralPitch": false,
-            "requireGrounded": false,
-            "splineDuration": 2.5,
-            "splineMotionName": "",
-            "state": "Charge",
-            "velocityFrictionX": 1.0,
-            "x": 600.0,
-            "y": 100.0
+            "animationName": "", "boundBool": "", "boundMotion": "", "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0, "facePlayer": true, "id": 3, "isAttack": false,
+            "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "loop": false, "loopCooldown": 0.0,
+            "name": "Charge", "prepHold": 0.5, "prepOffset": { "x": 0.0, "y": 0.0 },
+            "prepParticle": "charge_glow", "prepScale": { "duration": 0.8, "peak": 1.15, "start": 1.0 },
+            "prepSound": "charge_wind", "prepYaw": 0.0, "proceduralPitch": false, "requireGrounded": false,
+            "splineDuration": 1.2, "splineMotionName": "", "state": "Charge",
+            "velocityFrictionX": 1.0, "x": 600.0, "y": 100.0
         },
         {
-            "animationName": "",
-            "boundBool": "fire",
-            "boundMotion": "",
-            "boundMotionNodeIndex": -1,
-            "damageMultiplier": 1.5,
-            "facePlayer": true,
-            "id": 4,
-            "isAttack": true,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
-            "loop": false,
-            "loopCooldown": 0.0,
-            "name": "Fire",
-            "prepHold": 0.0,
-            "prepOffset": {
-                "x": 0.0,
-                "y": 0.0
-            },
-            "prepParticle": "muzzle_flash",
-            "prepScale": {
-                "duration": 0.10000000149011612,
-                "peak": 0.8999999761581421,
-                "start": 1.149999976158142
-            },
-            "prepSound": "flower_shot",
-            "prepYaw": 0.0,
-            "proceduralPitch": false,
-            "requireGrounded": false,
-            "splineDuration": 2.5,
-            "splineMotionName": "",
-            "state": "Fire",
-            "velocityFrictionX": 1.0,
-            "x": 850.0,
-            "y": 100.0
+            "animationName": "", "boundBool": "fire", "boundMotion": "", "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.5, "facePlayer": true, "id": 4, "isAttack": true,
+            "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "loop": false, "loopCooldown": 0.0,
+            "name": "Fire", "prepHold": 0.0, "prepOffset": { "x": 0.0, "y": 0.0 },
+            "prepParticle": "muzzle_flash", "prepScale": { "duration": 0.1, "peak": 0.9, "start": 1.15 },
+            "prepSound": "flower_shot", "prepYaw": 0.0, "proceduralPitch": false, "requireGrounded": false,
+            "splineDuration": 0.5, "splineMotionName": "", "state": "Fire",
+            "velocityFrictionX": 1.0, "x": 850.0, "y": 100.0
         },
         {
-            "animationName": "",
-            "boundBool": "",
-            "boundMotion": "",
-            "boundMotionNodeIndex": -1,
-            "damageMultiplier": 1.0,
-            "facePlayer": false,
-            "id": 5,
-            "isAttack": false,
-            "jumpVelocityXMult": 0.0,
-            "jumpVelocityY": 0.0,
-            "loop": false,
-            "loopCooldown": 0.0,
-            "name": "Cooldown",
-            "prepHold": 0.0,
-            "prepOffset": {
-                "x": 0.0,
-                "y": 0.0
-            },
-            "prepParticle": "",
-            "prepScale": {
-                "duration": 0.5,
-                "peak": 1.0,
-                "start": 0.8999999761581421
-            },
-            "prepSound": "",
-            "prepYaw": 0.0,
-            "proceduralPitch": false,
-            "requireGrounded": false,
-            "splineDuration": 1.0,
-            "splineMotionName": "",
-            "state": "Cooldown",
-            "velocityFrictionX": 1.0,
-            "x": 600.0,
-            "y": 300.0
+            "animationName": "", "boundBool": "", "boundMotion": "", "boundMotionNodeIndex": -1,
+            "damageMultiplier": 1.0, "facePlayer": false, "id": 5, "isAttack": false,
+            "jumpVelocityXMult": 0.0, "jumpVelocityY": 0.0, "loop": false, "loopCooldown": 0.0,
+            "name": "Cooldown", "prepHold": 0.0, "prepOffset": { "x": 0.0, "y": 0.0 },
+            "prepParticle": "", "prepScale": { "duration": 0.5, "peak": 1.0, "start": 0.9 },
+            "prepSound": "", "prepYaw": 0.0, "proceduralPitch": false, "requireGrounded": false,
+            "splineDuration": 1.0, "splineMotionName": "", "state": "Cooldown",
+            "velocityFrictionX": 1.0, "x": 600.0, "y": 300.0
         }
     ],
     "patrolRadius": 0.0,
     "power": 2.0,
     "projectile": {
         "actorName": "FlowerBullet",
-        "colliderRadius": 0.20000000298023224,
+        "colliderRadius": 0.2,
         "damage": 15,
         "homingStrength": 2.0,
         "isHoming": true,
@@ -290,20 +106,8 @@
     },
     "retreatThreshold": 0.0,
     "sizeTiers": [
-        {
-            "hp": 40,
-            "power": 0.800000011920929,
-            "scale": 0.5
-        },
-        {
-            "hp": 80,
-            "power": 1.0,
-            "scale": 0.699999988079071
-        },
-        {
-            "hp": 160,
-            "power": 1.5,
-            "scale": 1.0
-        }
+        { "hp": 40, "power": 0.8, "scale": 0.5 },
+        { "hp": 80, "power": 1.0, "scale": 0.7 },
+        { "hp": 160, "power": 1.5, "scale": 1.0 }
     ]
 }
