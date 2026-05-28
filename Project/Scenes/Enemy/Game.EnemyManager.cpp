@@ -30,13 +30,6 @@ namespace {
 	constexpr float kSplitVerticalVelocity = 2.5f;
 	constexpr float kSplitSpawnInvulnerability = 0.15f;
 	constexpr float kEnemyHpScale = 0.45f;
-	constexpr float kLargeAttackWindup = 0.75f;
-	constexpr float kMediumAttackWindup = 0.45f;
-	constexpr float kSmallAttackWindup = 0.2f;
-    constexpr float kLargeBurstSpeed = 3.4f;
-	constexpr float kMediumBurstSpeed = 1.9f;
-   constexpr float kSmallBurstSpeed = 1.0f;
-	constexpr float kSmallStrafeAmplitude = 1.8f;
 	constexpr float kLargeLandingStunDuration = 0.3f;
 	constexpr float kLargeLandingImpactThreshold = 3.0f;
 
@@ -64,28 +57,7 @@ namespace {
 		);
 	}
 
-	void ConfigureEnemyBehaviorBySize(Game::EnemyInstance& enemy) {
-		switch (enemy.sizeTier) {
-		case 2:
-			enemy.attackWindupDuration = kLargeAttackWindup;
-			enemy.attackDuration = 0.5f;
-			enemy.burstSpeedMultiplier = kLargeBurstSpeed;
-			enemy.preferredCombatDistance = enemy.baseData.attackRange * 0.9f;
-			break;
-		case 1:
-			enemy.attackWindupDuration = kMediumAttackWindup;
-			enemy.attackDuration = 0.35f;
-			enemy.burstSpeedMultiplier = kMediumBurstSpeed;
-			enemy.preferredCombatDistance = enemy.baseData.attackRange;
-			break;
-		default:
-			enemy.attackWindupDuration = kSmallAttackWindup;
-			enemy.attackDuration = 0.2f;
-			enemy.burstSpeedMultiplier = kSmallBurstSpeed;
-			enemy.preferredCombatDistance = enemy.baseData.attackRange * 1.3f;
-			break;
-		}
-	}
+
 
 	// 2D外積 (p1-p0) x (p2-p0)
 	float Cross2D(const Vector2& p0, const Vector2& p1, const Vector2& p2) {
@@ -1272,7 +1244,6 @@ namespace Game {
        inst.renderFacingYaw = facingRight ? 0.0f : kTurnedFacingYaw;
 		inst.sizeTier = sizeTier;
 		inst.InitFromBase();
-		ConfigureEnemyBehaviorBySize(inst);
 		if (scale > 0.0f) {
 			inst.modelScale = scale;
 		}
@@ -1409,65 +1380,15 @@ namespace Game {
 				enemy.hurtTimer -= deltaTime;
 			}
 
-			// --- 攻撃クールダウン更新 ---
-			if (enemy.attackCooldownTimer > 0.0f) {
-				enemy.attackCooldownTimer -= deltaTime;
-			}
-			if (enemy.preAttackTimer > 0.0f) {
-				enemy.preAttackTimer -= deltaTime;
-			}
-			if (enemy.attackTimer > 0.0f) {
-				enemy.attackTimer -= deltaTime;
-			}
+			// --- タイマー更新 ---
 			if (enemy.landingStunTimer > 0.0f) {
 				enemy.landingStunTimer -= deltaTime;
 			}
 
-            // --- プレイヤーとの距離計算 ---
+			// --- プレイヤーとの距離計算 ---
 			float dx = playerPosition.X - enemy.position.X;
 			float dy = playerPosition.Y - enemy.position.Y;
 			float dist = std::sqrt(dx * dx + dy * dy);
-
-			// プレイヤーの方向を常に向くかどうか（旧AI用）。Node AIの場合はApplyNodePhysics内で処理する。
-			if (enemy.baseData.nodes.empty()) {
-				enemy.facingRight = (dx > 0.0f);
-			}
-
-				// Debug: for Boss instances, log AI state and timers to file for diagnosis
-				if (enemy.baseData.name == "Boss") {
-					try {
-						static std::ofstream bossLog("boss_debug.log", std::ios::app);
-						if (bossLog) {
-							bossLog << "posX=" << enemy.position.X
-								<< " posY=" << enemy.position.Y
-								<< " aiState=" << static_cast<int>(enemy.aiState)
-								<< " preAttack=" << enemy.preAttackTimer
-								<< " attack=" << enemy.attackTimer
-								<< " cooldown=" << enemy.attackCooldownTimer
-								<< " motionPlaying=" << enemy.motionController.IsPlaying()
-								<< " velX=" << enemy.velocity.X
-								<< " dist=" << dist
-								<< " currentAction=" << enemy.currentAction
-								<< "\n";
-						}
-                    } catch (...) {}
-				}
-
-				// If enemy began PreAttack but the player immediately left beyond a
-				// safe cancel distance, cancel PreAttack and resume Chase so the
-				// enemy does not remain stuck waiting for a player who moved away.
-               if (enemy.aiState == EnemyInstance::AIState::PreAttack) {
-					float cancelDist = enemy.preferredCombatDistance * 1.35f;
-					if (dist > cancelDist) {
-						// revert to Chase and give a small movement impulse
-						enemy.aiState = EnemyInstance::AIState::Chase;
-						enemy.preAttackTimer = 0.0f;
-						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
-						// small cooldown to avoid immediate re-entering PreAttack
-						enemy.attackCooldownTimer = (std::max)(enemy.attackCooldownTimer, 0.25f);
-					}
-				}
 
 			if (enemy.landingStunTimer > 0.0f) {
 				enemy.currentAction = "Idle";
@@ -1477,157 +1398,6 @@ namespace Game {
 				continue;
 			}
 
-			// --- 撤退判定 ---
-			float hpRatio = (enemy.baseData.hp > 0)
-				? static_cast<float>(enemy.currentHP) / enemy.baseData.hp
-				: 1.0f;
-
-			if (enemy.baseData.retreatThreshold > 0.0f && hpRatio <= enemy.baseData.retreatThreshold) {
-				enemy.aiState = EnemyInstance::AIState::Retreat;
-			}
-
-			// --- AI 状態遷移 ---
-			// ノード（JSONステート）が定義されている場合はレガシーAIスイッチを無視する
-			if (enemy.baseData.nodes.empty()) {
-				switch (enemy.aiState) {
-				case EnemyInstance::AIState::Idle:
-					enemy.currentAction = "Idle";
-					enemy.velocity.X *= 0.9f;
-				// 索敵範囲にプレイヤーが入った場合
-				if (dist < enemy.baseData.aggroRadius) {
-					if (enemy.baseData.aggressiveness > 0.0f) {
-						enemy.aiState = EnemyInstance::AIState::Chase;
-					}
-				}
-				break;
-
-			case EnemyInstance::AIState::Patrol:
-				enemy.currentAction = "Walk";
-				// パトロール中にプレイヤーを発見
-				if (dist < enemy.baseData.aggroRadius) {
-					enemy.aiState = EnemyInstance::AIState::Chase;
-				}
-				break;
-
-			case EnemyInstance::AIState::Chase:
-				enemy.currentAction = "Walk";
-				
-				// 遠距離タイプの敵で、プレイヤーに近づきすぎた場合は攻撃よりも後退を優先する
-				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged && dist < enemy.preferredCombatDistance * 0.5f) {
-					float moveDir = (dx > 0.0f) ? -1.0f : 1.0f;
-					enemy.position.X += moveDir * enemy.baseData.moveSpeed * deltaTime;
-					enemy.facingRight = (dx > 0.0f);
-				}
-				// 攻撃範囲に入ったら攻撃前アクションへ
-				else if (dist <= enemy.preferredCombatDistance && enemy.attackCooldownTimer <= 0.0f) {
-					enemy.aiState = EnemyInstance::AIState::PreAttack;
-					enemy.preAttackTimer = enemy.attackWindupDuration;
-					enemy.velocity.X = 0.0f;
-				}
-				// 索敵範囲外に出たら Idle に戻る
-				else if (dist > enemy.baseData.aggroRadius * 1.5f) {
-					enemy.aiState = EnemyInstance::AIState::Idle;
-				}
-				// 追跡移動または距離調整
-				else {
-					float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-					float moveSpeed = enemy.baseData.moveSpeed;
-					
-                    if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
-						// 遠距離タイプは適正距離の範囲内で姿勢を保つ
-						// Use hysteresis so the enemy does not stick when the player
-						// moves slightly in/out of preferred range.
-						float keepDistanceMin = enemy.preferredCombatDistance * 0.8f;
-                        // Stop/resume thresholds (hysteresis). Keep resume threshold close
-						// to avoid enemies getting stuck when the player jiggles near the
-						// boundary.
-						float stopThreshold = enemy.preferredCombatDistance * 0.95f;
-						float resumeThreshold = enemy.preferredCombatDistance * 1.02f;
-						if (dist < keepDistanceMin) {
-							moveDir = (dx > 0.0f) ? -1.0f : 1.0f; // 少し近いので離れる
-                        } else if (dist <= stopThreshold) {
-							// Instead of fully stopping, keep a small idle movement so the
-							// enemy doesn't get permanently stuck due to micro-movements.
-							moveSpeed = enemy.baseData.moveSpeed * 0.18f;
-						} else if (dist >= resumeThreshold) {
-							// player moved away enough: resume following
-							moveSpeed = enemy.baseData.moveSpeed;
-						}
-					} else if (enemy.sizeTier == kMinEnemySizeTier) {
-						float orbitOffset = std::sin(enemy.stateTimer * 6.0f + enemy.id) * kSmallStrafeAmplitude;
-						float desiredX = playerPosition.X - moveDir * enemy.preferredCombatDistance + orbitOffset;
-						moveDir = (desiredX > enemy.position.X) ? 1.0f : -1.0f;
-						moveSpeed *= 1.35f;
-					}
-					
-					enemy.position.X += moveDir * moveSpeed * deltaTime;
-					enemy.facingRight = (dx > 0.0f);
-				}
-				break;
-
-			case EnemyInstance::AIState::PreAttack:
-				enemy.currentAction = "Walk";
-				enemy.velocity.X *= 0.8f;
-				enemy.facingRight = (dx > 0.0f);
-				if (dist > enemy.baseData.aggroRadius * 1.5f) {
-					enemy.aiState = EnemyInstance::AIState::Idle;
-				}
-				else if (enemy.preAttackTimer <= 0.0f) {
-					enemy.aiState = EnemyInstance::AIState::Attack;
-					enemy.attackTimer = enemy.attackDuration;
-
-					if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Ranged) {
-						// 遠距離攻撃: プロジェクタイルを発射
-						ProjectileManager::GetInstance()->Fire(
-							enemy.position,
-							playerPosition,
-							enemy.baseData.projectile,
-							enemy.id
-						);
-						// 遠距離攻撃時は突進しない
-						enemy.velocity.X *= 0.3f;
-					} else {
-						// 近接攻撃: 従来の突進
-						float attackDir = (dx > 0.0f) ? 1.0f : -1.0f;
-						enemy.velocity.X = attackDir * enemy.baseData.moveSpeed * enemy.burstSpeedMultiplier;
-						enemy.velocity.Y = (std::max)(enemy.velocity.Y, 1.5f);
-					}
-				}
-				break;
-
-			case EnemyInstance::AIState::Attack:
-				enemy.currentAction = "Attack";
-				if (enemy.attackTimer <= 0.0f) {
-              // Base cooldown, extended for melee burst/sliding attacks to prevent
-				// spammy horizontal slides. Scale extra cooldown with burstSpeedMultiplier.
-				if (enemy.baseData.attackType == Editor::EnemyData::AttackType::Melee) {
-					float extra = (enemy.burstSpeedMultiplier - 1.0f) * 0.8f; // tuned factor
-					if (extra < 0.0f) extra = 0.0f;
-					enemy.attackCooldownTimer = enemy.baseData.attackCooldown + extra;
-				} else {
-					enemy.attackCooldownTimer = enemy.baseData.attackCooldown;
-				}
-					enemy.aiState = EnemyInstance::AIState::Chase;
-					enemy.velocity.X *= 0.35f;
-				}
-				break;
-
-			case EnemyInstance::AIState::Retreat:
-				enemy.currentAction = "Walk";
-				// プレイヤーと反対方向に逃げる
-				{
-					float retreatDir = (dx > 0.0f) ? -1.0f : 1.0f;
-					enemy.position.X += retreatDir * enemy.baseData.moveSpeed * 1.5f * deltaTime;
-					enemy.facingRight = (retreatDir > 0.0f);
-				}
-				// HP が回復したら（将来の拡張）あるいは十分離れたら Idle に戻る
-				if (dist > enemy.baseData.aggroRadius * 2.0f) {
-					enemy.aiState = EnemyInstance::AIState::Idle;
-				}
-				break;
-				} // end switch(enemy.aiState)
-			} // end if(enemy.baseData.nodes.empty())
-
 			// --- 状態タイマー更新 ---
 			enemy.stateTimer += deltaTime;
 
@@ -1635,11 +1405,10 @@ namespace Game {
 				enemy.behavior->Update(enemy, deltaTime, playerPosition);
 			}
 
-			// --- JSON ステートマシンによる行動制御 ---
-			// ノードが定義されている敵はステートマシンで currentAction を駆動する
+			// --- ノードAIステートマシンによる行動制御 ---
 			const Game::Editor::Node* currentNodeInfo = nullptr;
-			if (!enemy.baseData.nodes.empty()) {
-				// Automatically calculate playerBelow condition for Lotus and others (strictly below)
+			{
+				// playerBelow 条件の自動算出
 				bool isBelow = (playerPosition.Y < enemy.position.Y && std::abs(dx) < 0.8f);
 				enemy.runtimeBoolFlags["playerBelow"] = isBelow;
 
@@ -1652,9 +1421,6 @@ namespace Game {
 
 				// ノードの物理挙動を適用
 				ApplyNodePhysics(enemy, currentNodeInfo, deltaTime, dx, posBeforePhysics, playerPosition);
-
-				// ステートマシンで駆動されているのでデフォルトAIを上書き
-				enemy.aiState = EnemyInstance::AIState::Idle;
 			}
 
 			if (currentNodeInfo && currentNodeInfo->proceduralPitch && !enemy.isGrounded) {
@@ -1665,7 +1431,7 @@ namespace Game {
 				enemy.renderPitch *= 0.8f;
 			}
 
-            float targetFacingYaw = enemy.facingRight ? 0.0f : kTurnedFacingYaw;
+			float targetFacingYaw = enemy.facingRight ? 0.0f : kTurnedFacingYaw;
 			float turnStep = kEnemyFacingTurnSpeed * deltaTime;
 			if (enemy.renderFacingYaw < targetFacingYaw) {
 				enemy.renderFacingYaw = (std::min)(enemy.renderFacingYaw + turnStep, targetFacingYaw);
@@ -1673,19 +1439,7 @@ namespace Game {
 				enemy.renderFacingYaw = (std::max)(enemy.renderFacingYaw - turnStep, targetFacingYaw);
 			}
 
-            // --- コライダー位置更新 ---
-			// If an enemy is in Chase state but has effectively zero horizontal
-			// velocity while the player is outside preferred range, it's likely
-			// stuck due to small thresholding or motion cancellation. Apply a
-			// gentle forced resume to avoid permanent sticking.
-			if (enemy.aiState == EnemyInstance::AIState::Chase) {
-				if (std::abs(enemy.velocity.X) < 0.05f && !enemy.motionController.IsPlaying()) {
-					if (dist > enemy.preferredCombatDistance * 1.05f) {
-						float moveDir = (dx > 0.0f) ? 1.0f : -1.0f;
-						enemy.velocity.X = moveDir * enemy.baseData.moveSpeed * 0.9f;
-					}
-				}
-			}
+			// --- コライダー位置更新 ---
 			enemy.UpdateCollider();
 		}
 	}
