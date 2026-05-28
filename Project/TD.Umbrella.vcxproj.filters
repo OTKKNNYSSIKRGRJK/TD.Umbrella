@@ -40,6 +40,9 @@
     <Filter Include="Scenes\Enemy">
       <UniqueIdentifier>{a4e1f3d2-8b7c-4e5f-9d6a-1c2b3d4e5f6a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\ExpOrb">
+      <UniqueIdentifier>{a4e1f3d2-8b7c-4e5f-9d6a-1c2b3d4e5f6b}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Scenes\ActorEditor">
       <UniqueIdentifier>{3d7d60de-743e-49ca-b6f2-64eab9b7f1d0}</UniqueIdentifier>
     </Filter>
@@ -216,6 +219,12 @@
     </ClCompile>
     <ClCompile Include="Scenes\Enemy\Game.ProjectileManager.cpp">
       <Filter>Scenes\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\ExpOrb\Game.ExpOrbManager.cpp">
+      <Filter>Scenes\ExpOrb</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\ExpOrb\Game.ExpOrbManager.ixx">
+      <Filter>Scenes\ExpOrb</Filter>
     </ClCompile>
     <ClCompile Include="Scenes\ActorEditor\Game.Scene.ActorEditor.Impl.ixx">
       <Filter>Scenes\ActorEditor</Filter>

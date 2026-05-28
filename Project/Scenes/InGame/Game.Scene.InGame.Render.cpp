@@ -575,6 +575,9 @@ namespace Game::Scene::Impl {
 
 				PrimitiveManager_Tutorial_->Begin(cmdList);
 
+				// 経験値オーブの描画
+				Game::ExpOrbManager::GetInstance()->Draw(PrimitiveManager_Tutorial_.get(), *WorldToHomogeneous_);
+
 				// ---------------------------------
 				// プレイヤーHPバー描画（左上）
 				// ---------------------------------
@@ -583,11 +586,55 @@ namespace Game::Scene::Impl {
 					float p_maxHp = Player_->GetStatusComponent().GetMaxHp();
 					float p_ratio = p_hp / (std::max)(1.0f, p_maxHp);
 
-					// NDCでの左上の座標・サイズ
-					float base_x = -0.95f;
-					float base_y = 0.9f;
-					float width = 1.06f;  // バーの長さ (元: 0.4f, 53%程度)
-					float height = 0.08f; // バーの太さ (元: 0.04f)
+					// 経験値進捗の取得
+					float currentXp = static_cast<float>(Player_->GetExperienceComponent().GetCurrentXp());
+					float nextLevelXp = static_cast<float>(Player_->GetExperienceComponent().GetNextLevelXp());
+					float xp_ratio = currentXp / (std::max)(1.0f, nextLevelXp);
+					xp_ratio = (std::max)(0.0f, (std::min)(1.0f, xp_ratio));
+
+					// 頭部の座標・サイズ (アスペクト比 1280.0f / 720.0f を考慮して正方形にする)
+					float head_w = 0.12f;
+					float head_h = head_w * (1280.0f / 720.0f);
+					float head_x = -0.95f;
+					float head_y = 0.94f;
+
+					// 1. 暗い頭部背景（暗転：明度0.2f, アルファ0.8f）
+					Lumina::F32x4 darkHeadCol{ 0.2f, 0.2f, 0.2f, 0.8f };
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { head_x, head_y, 0.0f, 1.0f }, darkHeadCol, {0.0f, 0.0f}, 13U },
+						{ { head_x + head_w, head_y, 0.0f, 1.0f }, darkHeadCol, {1.0f, 0.0f}, 13U },
+						{ { head_x, head_y - head_h, 0.0f, 1.0f }, darkHeadCol, {0.0f, 1.0f}, 13U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { head_x + head_w, head_y, 0.0f, 1.0f }, darkHeadCol, {1.0f, 0.0f}, 13U },
+						{ { head_x + head_w, head_y - head_h, 0.0f, 1.0f }, darkHeadCol, {1.0f, 1.0f}, 13U },
+						{ { head_x, head_y - head_h, 0.0f, 1.0f }, darkHeadCol, {0.0f, 1.0f}, 13U }
+					);
+
+					// 2. 経験値の量に応じて下から徐々に明るく（明度1.0f, アルファ1.0f）
+					if (xp_ratio > 0.0f) {
+						Lumina::F32x4 brightHeadCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+						float active_top_y = (head_y - head_h) + head_h * xp_ratio;
+						float active_top_v = 1.0f - xp_ratio;
+
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { head_x, active_top_y, 0.0f, 1.0f }, brightHeadCol, {0.0f, active_top_v}, 13U },
+							{ { head_x + head_w, active_top_y, 0.0f, 1.0f }, brightHeadCol, {1.0f, active_top_v}, 13U },
+							{ { head_x, head_y - head_h, 0.0f, 1.0f }, brightHeadCol, {0.0f, 1.0f}, 13U }
+						);
+						PrimitiveManager_Tutorial_->BatchTriangle(
+							{ { head_x + head_w, active_top_y, 0.0f, 1.0f }, brightHeadCol, {1.0f, active_top_v}, 13U },
+							{ { head_x + head_w, head_y - head_h, 0.0f, 1.0f }, brightHeadCol, {1.0f, 1.0f}, 13U },
+							{ { head_x, head_y - head_h, 0.0f, 1.0f }, brightHeadCol, {0.0f, 1.0f}, 13U }
+						);
+					}
+
+					// HPバーは頭部の右隣に配置するため右へシフト
+					float base_x = head_x + head_w + 0.02f;
+					float height = 0.08f;
+					// 頭部画像の下端 (head_y - head_h) とHPバーの下端を揃える
+					float base_y = (head_y - head_h) + height; 
+					float width = 0.92f;  // 頭部スペースの分、バーの長さを調整
 
 					// 背景（暗いグレー）
 					Lumina::F32x4 bgCol{ 0.1f, 0.1f, 0.1f, 0.8f };

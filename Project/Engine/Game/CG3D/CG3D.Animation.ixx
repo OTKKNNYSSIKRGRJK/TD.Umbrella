@@ -35,18 +35,16 @@ namespace Lumina::CG3D {
 			std::optional<U32> const& id_Parent_,
 			Node const& node_
 		) -> U32 {
-			auto& joint{ joints_.emplace_back() };
-			{
-				joint.Name = node_.Name;
-				joint.Local = node_.Transform_Local;
-				joint.SkeletonSpace = Math::F32x4x4<>::Identity;
-				joint.Transform = node_.Transform;
-				joint.ID = static_cast<U32>(joints_.size()) - 1U;
-				joint.ID_Parent = id_Parent_;
-				joint.IDs_Child = {};
-			}
+			U32 const id = static_cast<U32>(joints_.size());
 
-			U32 const id{ joint.ID };
+			joints_.emplace_back();
+			joints_[id].Name = node_.Name;
+			joints_[id].Local = node_.Transform_Local;
+			joints_[id].SkeletonSpace = Math::F32x4x4<>::Identity;
+			joints_[id].Transform = node_.Transform;
+			joints_[id].ID = id;
+			joints_[id].ID_Parent = id_Parent_;
+			joints_[id].IDs_Child = {};
 
 			if (!node_.Children.empty()) {
 				for (auto const& child : node_.Children) {
@@ -55,7 +53,7 @@ namespace Lumina::CG3D {
 				}
 			}
 
-			return joint.ID;
+			return id;
 		}
 	}
 

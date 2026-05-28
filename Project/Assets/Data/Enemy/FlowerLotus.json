@@ -2,31 +2,71 @@
     "aggressiveness": 0.4000000059604645,
     "aggroRadius": 15.0,
     "animationMap": {
-        "BurstFire": "",
-        "Cooldown": "",
-        "DetectBelow": "",
-        "FireDown": "",
-        "Idle": "",
-        "LosingSight": ""
+        "Cooldown": "Idle",
+        "Death": "Death",
+        "DetectBelow": "Attack_Wait",
+        "FireDown": "Attack_Wait",
+        "Idle": "Idle",
+        "LosingSight": "Idle"
     },
     "attackCooldown": 2.0,
     "attackRange": 15.0,
     "attackType": "Ranged",
     "collisionVertices": [
         {
-            "x": -0.10000000149011612,
-            "y": 1.7333333492279053
+            "x": -0.5333333611488342,
+            "y": 3.0999999046325684
         },
         {
-            "x": -1.5111111402511597,
-            "y": -0.6333333253860474
+            "x": -1.6222221851348877,
+            "y": 1.9222222566604614
         },
         {
-            "x": 1.1777777671813965,
-            "y": -0.5666666626930237
+            "x": -0.8444444537162781,
+            "y": 1.6111111640930176
+        },
+        {
+            "x": -0.6333333253860474,
+            "y": 1.1666666269302368
+        },
+        {
+            "x": -1.0555555820465088,
+            "y": 0.9333333373069763
+        },
+        {
+            "x": -0.7555555701255798,
+            "y": -0.011111111380159855
+        },
+        {
+            "x": -0.03333333507180214,
+            "y": -0.31111112236976624
+        },
+        {
+            "x": 0.7555555701255798,
+            "y": -0.0
+        },
+        {
+            "x": 1.1111111640930176,
+            "y": 0.9444444179534912
+        },
+        {
+            "x": 0.644444465637207,
+            "y": 1.1777777671813965
+        },
+        {
+            "x": 0.8222222328186035,
+            "y": 1.6111111640930176
+        },
+        {
+            "x": 1.5666667222976685,
+            "y": 1.9333332777023315
+        },
+        {
+            "x": 0.5555555820465088,
+            "y": 3.0333333015441895
         }
     ],
-    "gltfPath": "Assets\\Enemy\\Slime\\slime.gltf",
+    "gltfPath": "Assets\\Enemy\\FlowerLotus\\FlowerLotus.gltf",
     "hp": 100,
     "links": [
         {
@@ -35,7 +75,7 @@
             "to": 2
         },
         {
-            "condition": "Time>=0.3",
+            "condition": "Time>=2.0",
             "from": 2,
             "to": 3
         },
@@ -81,7 +121,6 @@
         }
     ],
     "motionMap": {
-        "BurstFire": "",
         "Cooldown": "",
         "DetectBelow": "",
         "FireDown": "",
@@ -157,7 +196,7 @@
             "prepYaw": 0.0,
             "proceduralPitch": false,
             "requireGrounded": false,
-            "splineDuration": 1.0,
+            "splineDuration": 2.0,
             "splineMotionName": "",
             "state": "DetectBelow",
             "velocityFrictionX": 1.0,
@@ -172,7 +211,7 @@
             "damageMultiplier": 1.0,
             "facePlayer": false,
             "id": 3,
-            "isAttack": false,
+            "isAttack": true,
             "jumpVelocityXMult": 0.0,
             "jumpVelocityY": 0.0,
             "loop": true,

@@ -79,6 +79,7 @@ namespace Game::Scene::Impl {
 			{ "minimap_ui", "Assets/Img/Tutorial/minimap.png" },
 			{ "minimap_close_ui", "Assets/Img/Tutorial/minimap_close.png" },
 			{ "pause_UI", "Assets/Img/UI/pause_UI.png" },
+			{ "playerHead", "Assets/Img/UI/playerHead.png" },
 		};
 		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
@@ -280,6 +281,47 @@ namespace Game::Scene::Impl {
 								auto animations = Lumina::CG3D::LoadAnimationFile(luminaFileName, luminaDirPath);
 								
 								bool hasAnimation = !animations.empty();
+
+								if (hasAnimation && collection.Meshes.size() > 1) {
+									Lumina::CG3D::Mesh combinedMesh;
+									combinedMesh.Name = collection.Meshes[0].Name;
+									combinedMesh.Index_Material = collection.Meshes[0].Index_Material;
+									
+									size_t vertexOffset = 0;
+									
+									for (size_t mIdx = 0; mIdx < collection.Meshes.size(); ++mIdx) {
+										const auto& mesh = collection.Meshes[mIdx];
+										
+										combinedMesh.Vertices.insert(
+											combinedMesh.Vertices.end(),
+											mesh.Vertices.begin(),
+											mesh.Vertices.end()
+										);
+										
+										for (auto idx : mesh.Indices) {
+											combinedMesh.Indices.push_back(idx + static_cast<uint32_t>(vertexOffset));
+										}
+										
+										for (const auto& pair : mesh.SkinClusterData) {
+											const auto& jointName = pair.first;
+											const auto& jointWeight = pair.second;
+											
+											auto& targetWeight = combinedMesh.SkinClusterData[jointName];
+											targetWeight.INV_BindPose = jointWeight.INV_BindPose;
+											
+											for (const auto& vw : jointWeight.VertexWeights) {
+												auto vwCopy = vw;
+												vwCopy.VertexID += static_cast<uint32_t>(vertexOffset);
+												targetWeight.VertexWeights.push_back(vwCopy);
+											}
+										}
+										
+										vertexOffset = combinedMesh.Vertices.size();
+									}
+									
+									collection.Meshes.clear();
+									collection.Meshes.push_back(std::move(combinedMesh));
+								}
 								
 								if (!collection.Materials.empty() && !collection.Materials[0].FilePath_Diffuse.empty()) {
 									diffuseTexName = ed.name + "_diffuse";
@@ -317,7 +359,7 @@ namespace Game::Scene::Impl {
 									gltfCache_Skinned[ed.gltfPath] = skinnedModel;
 									
 									if (!diffuseTexName.empty()) {
-										uint32_t newTexIdx = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+										uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
 										EnemyTextureIndices_[ed.name] = newTexIdx;
 										AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 										texNameToIndex[diffuseTexName] = newTexIdx;
@@ -409,7 +451,7 @@ namespace Game::Scene::Impl {
 								gltfCache_Static[ed.gltfPath] = EnemyMeshIndices_[ed.name];
 								if (!diffuseTexName.empty()) {
 									// 既存の基本テクスチャ12枚の後に登録される前提でインデックスを計算
-									uint32_t newTexIdx = static_cast<uint32_t>(13 + AdditionalTextures_.size());
+									uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
 									EnemyTextureIndices_[ed.name] = newTexIdx;
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 									texNameToIndex[diffuseTexName] = newTexIdx;
@@ -1050,7 +1092,7 @@ namespace Game::Scene::Impl {
 		TutorialManager_->Initialize();
 		TutorialManager_->RegisterSequences();
 		// チュートリアルテクスチャは基本テクスチャ11枚 + 追加テクスチャの直後に配置
-		TutorialManager_->TutorialTextureStartIndex = 13U + static_cast<uint32_t>(AdditionalTextures_.size());
+		TutorialManager_->TutorialTextureStartIndex = 14U + static_cast<uint32_t>(AdditionalTextures_.size());
 		TutorialManager_->TutorialTextureCount = 4U;
 
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）

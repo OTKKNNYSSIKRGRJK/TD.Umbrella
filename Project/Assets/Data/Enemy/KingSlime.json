@@ -54,7 +54,7 @@
             "y": 1.0777777433395386
         }
     ],
-    "gltfPath": "Assets\\Enemy\\KingSlime\\Kingslime.obj",
+    "gltfPath": "Assets/Enemy/KingSlime/KingSlime.obj",
     "hp": 200,
     "links": [
         {

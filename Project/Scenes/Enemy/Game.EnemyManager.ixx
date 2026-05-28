@@ -85,26 +85,19 @@ export namespace Game {
 			, isDead(other.isDead)
 			, lastGroundedY(other.lastGroundedY)
 			, facingRight(other.facingRight)
-          , renderFacingYaw(other.renderFacingYaw)
-          , spawnTimer(other.spawnTimer)
+			, renderFacingYaw(other.renderFacingYaw)
+			, renderPitch(other.renderPitch)
+			, spawnTimer(other.spawnTimer)
 			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
-			, preAttackTimer(other.preAttackTimer)
-			, attackTimer(other.attackTimer)
 			, landingStunTimer(other.landingStunTimer)
-			, attackWindupDuration(other.attackWindupDuration)
-			, attackDuration(other.attackDuration)
-			, burstSpeedMultiplier(other.burstSpeedMultiplier)
-			, preferredCombatDistance(other.preferredCombatDistance)
-			, strafeDirection(other.strafeDirection)
-			, aiState(other.aiState)
-			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(std::move(other.currentAction))
 			, runtimeBoolFlags(std::move(other.runtimeBoolFlags))
 			, lastHitAttackId(other.lastHitAttackId)
+			, placementIndex(other.placementIndex)
 		{
 			if (!other.colliders.empty()) {
 				InitCollider();
@@ -123,26 +116,19 @@ export namespace Game {
 				isDead = other.isDead;
 				lastGroundedY = other.lastGroundedY;
 				facingRight = other.facingRight;
-              renderFacingYaw = other.renderFacingYaw;
-              spawnTimer = other.spawnTimer;
+				renderFacingYaw = other.renderFacingYaw;
+				renderPitch = other.renderPitch;
+				spawnTimer = other.spawnTimer;
 				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
-				preAttackTimer = other.preAttackTimer;
-				attackTimer = other.attackTimer;
 				landingStunTimer = other.landingStunTimer;
-				attackWindupDuration = other.attackWindupDuration;
-				attackDuration = other.attackDuration;
-				burstSpeedMultiplier = other.burstSpeedMultiplier;
-				preferredCombatDistance = other.preferredCombatDistance;
-				strafeDirection = other.strafeDirection;
-				aiState = other.aiState;
-				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = std::move(other.currentAction);
 				runtimeBoolFlags = std::move(other.runtimeBoolFlags);
 				lastHitAttackId = other.lastHitAttackId;
+				placementIndex = other.placementIndex;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -163,27 +149,19 @@ export namespace Game {
 			, isDead(other.isDead)
 			, lastGroundedY(other.lastGroundedY)
 			, facingRight(other.facingRight)
-          , renderFacingYaw(other.renderFacingYaw)
-		  , renderPitch(other.renderPitch)
-          , spawnTimer(other.spawnTimer)
+			, renderFacingYaw(other.renderFacingYaw)
+			, renderPitch(other.renderPitch)
+			, spawnTimer(other.spawnTimer)
 			, spawnDuration(other.spawnDuration)
 			, sizeTier(other.sizeTier)
 			, modelScale(other.modelScale)
 			, hurtTimer(other.hurtTimer)
-			, preAttackTimer(other.preAttackTimer)
-			, attackTimer(other.attackTimer)
 			, landingStunTimer(other.landingStunTimer)
-			, attackWindupDuration(other.attackWindupDuration)
-			, attackDuration(other.attackDuration)
-			, burstSpeedMultiplier(other.burstSpeedMultiplier)
-			, preferredCombatDistance(other.preferredCombatDistance)
-			, strafeDirection(other.strafeDirection)
-			, aiState(other.aiState)
-			, attackCooldownTimer(other.attackCooldownTimer)
 			, stateTimer(other.stateTimer)
 			, currentAction(other.currentAction)
 			, runtimeBoolFlags(other.runtimeBoolFlags)
 			, lastHitAttackId(other.lastHitAttackId)
+			, placementIndex(other.placementIndex)
 			// colliders は再生成する
 		{
 			if (!other.colliders.empty()) {
@@ -203,27 +181,19 @@ export namespace Game {
 				isDead = other.isDead;
 				lastGroundedY = other.lastGroundedY;
 				facingRight = other.facingRight;
-              renderFacingYaw = other.renderFacingYaw;
-			  renderPitch = other.renderPitch;
-              spawnTimer = other.spawnTimer;
+				renderFacingYaw = other.renderFacingYaw;
+				renderPitch = other.renderPitch;
+				spawnTimer = other.spawnTimer;
 				spawnDuration = other.spawnDuration;
 				sizeTier = other.sizeTier;
 				modelScale = other.modelScale;
 				hurtTimer = other.hurtTimer;
-				preAttackTimer = other.preAttackTimer;
-				attackTimer = other.attackTimer;
 				landingStunTimer = other.landingStunTimer;
-				attackWindupDuration = other.attackWindupDuration;
-				attackDuration = other.attackDuration;
-				burstSpeedMultiplier = other.burstSpeedMultiplier;
-				preferredCombatDistance = other.preferredCombatDistance;
-				strafeDirection = other.strafeDirection;
-				aiState = other.aiState;
-				attackCooldownTimer = other.attackCooldownTimer;
 				stateTimer = other.stateTimer;
 				currentAction = other.currentAction;
 				runtimeBoolFlags = other.runtimeBoolFlags;
 				lastHitAttackId = other.lastHitAttackId;
+				placementIndex = other.placementIndex;
 				colliders.clear();
 				if (!other.colliders.empty()) {
 					InitCollider();
@@ -238,6 +208,7 @@ export namespace Game {
 
 		// --- ランタイム状態 ---
 		uint32_t id = 0;                              // ユニークID
+		int placementIndex = -1;
 		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
 		Lumina::Math::F32x3 rootMotionOffset{ 0.0f, 0.0f, 0.0f }; // ルートボーンから抽出されたアニメーションオフセット
 		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };
@@ -252,14 +223,7 @@ export namespace Game {
 		int sizeTier = 1;
 		float modelScale = 1.0f;	// サイズ段階のスケール倍率
 		float hurtTimer = 0.0f;
-		float preAttackTimer = 0.0f;
-		float attackTimer = 0.0f;
 		float landingStunTimer = 0.0f;
-		float attackWindupDuration = 0.4f;
-		float attackDuration = 0.25f;
-		float burstSpeedMultiplier = 1.0f;
-		float preferredCombatDistance = 2.0f;
-		float strafeDirection = 1.0f;
 		// ガード: 同一フレーム中の重複ダメージを防ぐ
 		bool recentlyDamagedThisFrame = false;
 		// 接地判定フラグ（物理ベースの遷移条件で使用）
@@ -268,10 +232,7 @@ export namespace Game {
 		// 攻撃インスタンスIDガード: 同一アクション中の重複ヒットを防ぐ
 		uint32_t lastHitAttackId = 0;
 
-		// --- AI 状態 ---
-		enum class AIState { Idle, Patrol, Chase, PreAttack, Attack, Retreat };
-		AIState aiState = AIState::Idle;
-		float attackCooldownTimer = 0.0f;
+		// --- ノードAI 状態 ---
 		float stateTimer = 0.0f;                      // 現在の状態維持タイマー
 
 		// --- アニメーション ---
@@ -291,22 +252,13 @@ export namespace Game {
 			ApplySizeTier(sizeTier);
 			isDead = false;
 			hurtTimer = 0.0f;
-			preAttackTimer = 0.0f;
-			attackTimer = 0.0f;
 			landingStunTimer = 0.0f;
-			attackCooldownTimer = 0.0f;
 			stateTimer = 0.0f;
-			aiState = AIState::Idle;
 			currentAction = "Idle";
-            spawnTimer = 0.0f;
+			spawnTimer = 0.0f;
 			spawnDuration = 0.0f;
-			burstSpeedMultiplier = 1.0f;
 			runtimeBoolFlags.clear();
 			lastHitAttackId = 0;
-			preferredCombatDistance = baseData.attackRange;
-			attackWindupDuration = 0.4f;
-			attackDuration = 0.25f;
-			strafeDirection = 1.0f;
 		}
 
 		/// <summary>
