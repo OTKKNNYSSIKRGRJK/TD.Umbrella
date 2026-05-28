@@ -80,6 +80,7 @@ namespace Game::Scene::Impl {
 			{ "minimap_close_ui", "Assets/Img/Tutorial/minimap_close.png" },
 			{ "pause_UI", "Assets/Img/UI/pause_UI.png" },
 			{ "playerHead", "Assets/Img/UI/playerHead.png" },
+			{ "reticle", "Assets/Img/UI/Umbrella_Reticle.png" },
 		};
 		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
@@ -359,7 +360,7 @@ namespace Game::Scene::Impl {
 									gltfCache_Skinned[ed.gltfPath] = skinnedModel;
 									
 									if (!diffuseTexName.empty()) {
-										uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
+										uint32_t newTexIdx = static_cast<uint32_t>(15 + AdditionalTextures_.size());
 										EnemyTextureIndices_[ed.name] = newTexIdx;
 										AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 										texNameToIndex[diffuseTexName] = newTexIdx;
@@ -451,7 +452,7 @@ namespace Game::Scene::Impl {
 								gltfCache_Static[ed.gltfPath] = EnemyMeshIndices_[ed.name];
 								if (!diffuseTexName.empty()) {
 									// 既存の基本テクスチャ12枚の後に登録される前提でインデックスを計算
-									uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
+									uint32_t newTexIdx = static_cast<uint32_t>(15 + AdditionalTextures_.size());
 									EnemyTextureIndices_[ed.name] = newTexIdx;
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 									texNameToIndex[diffuseTexName] = newTexIdx;
