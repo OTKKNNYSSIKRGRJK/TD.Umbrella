@@ -243,6 +243,7 @@ namespace Game::Scene::Impl {
 		Game::EnemyManager::GetInstance()->ClearInstances();
 		Game::ProjectileManager::GetInstance()->ClearAll();
 		Game::ExpOrbManager::GetInstance()->Clear();
+		EnemySkinnedInstances_.clear();
 
 		int placementIndex = 0;
 		for (auto& ep : playState_.CurrentArea.enemies) {
