@@ -113,6 +113,7 @@ namespace Game::Scene::Impl {
 				*Camera_,
 				{ 0.0f, 0.0f, 1280.0f * 0.25f, 720.0f * 0.25f, 0.0f, 1.0f }
 			);
+			TerrainRenderer_->PrepareMesh(*Terrain_);
 #if defined(_DEBUG)
 			TerrainEditor_->SetShapes(*Terrain_);
 #endif

@@ -331,7 +331,7 @@ namespace Game::Impl {
 
 			cmdList_->SetGraphicsRootDescriptorTable(
 				0U,
-				GlobalTable_SRV_VertexElementArray_.GPUHandle(0U)
+				GlobalTable_SRV_VertexElementArray_.GPUHandle(idx * 4U)
 			);
 			cmdList_->SetGraphicsRootDescriptorTable(
 				1U,
@@ -665,7 +665,7 @@ namespace Game::Impl {
 			blendState_None,
 			Lumina::D3D12::RasterizerState{
 				.FillMode{ D3D12_FILL_MODE_SOLID },
-				.CullMode{ D3D12_CULL_MODE_BACK },
+				.CullMode{ D3D12_CULL_MODE_NONE },
 			},
 			Lumina::D3D12::DepthStencilState{
 				.DepthEnable{ true },
