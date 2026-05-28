@@ -1,5 +1,6 @@
 export module Game.Terrain : Render.Impl;
 
+import <array>;
 import <vector>;
 import <memory>;
 import <format>;
@@ -11,19 +12,14 @@ import Lumina.D3D12;
 import Lumina.D3D12.Aux.View;
 import Lumina.Main;
 import : Shape;
-import Lumina.MeshManager;
+import Lumina.ProceduralMap;
 
 namespace Game::Impl {
 	export class TerrainRenderer {
-		struct Material {
-			// * Texture where material IDs are written
-			Lumina::U32 MaterialMap;
-			// * Texture of gradient (vector field) of a scalar noise map
-			Lumina::U32 BlendMap;
-		};
-
 	public:
-		auto PrepareMesh(TerrainShapeCollection const& shapeCollection_) -> void;
+		auto PrepareMesh(
+			TerrainShapeCollection const& shapeCollection_
+		) -> void;
 
 	private:
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
@@ -43,246 +39,102 @@ namespace Game::Impl {
 	public:
 		auto Initialize() -> void;
 
+		//++##	++##++	##++##	++##++	##++##	++##++	##++##	++##++	##++//
+		//##++	Low Poly												++##//
+		//++##	++##++	##++##	++##++	##++##	++##++	##++##	++##++	##++//
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Procedural Generation									--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		
 	private:
-		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
-		Lumina::D3D12::DescriptorTable GlobalTable_SRV_Noise_;
+		Lumina::ProceduralMap Surface_MaterialID_;
+		Lumina::ProceduralMap Surface_BlendAndElevation_;
+		Lumina::ProceduralMap Surface_Normal_;
+
+		Lumina::D3D12::RootSignature RS_Surface_{};
+		Lumina::D3D12::ComputePSO PSO_Surface_{};
+		Lumina::D3D12::ComputePSO PSO_Surface2_{};
+		Lumina::D3D12::Shader CS_Surface_{};
+		Lumina::D3D12::Shader CS_Surface2_{};
+
+		Lumina::D3D12::UploadBuffer UB_Parameter_Common_{};
+		Lumina::D3D12::UploadBuffer UB_Parameter_Material_{};
+		Lumina::D3D12::UploadBuffer UB_Parameter_Blend_{};
+		Lumina::D3D12::UploadBuffer UB_Parameter_Height_{};
+		Lumina::D3D12::DescriptorTable GlobalTable_Surface_{};
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Canvas, Render Pass										--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
 
 	private:
+		Lumina::D3D12::Canvas Canvas_LowPoly_;
+		Lumina::D3D12::RenderPass RenderPass_LowPoly_;
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Pipeline												--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+
+	private:
+		Lumina::D3D12::RootSignature RS_LowPoly_;
+		Lumina::D3D12::Shader VS_LowPoly_;
+		Lumina::D3D12::Shader PS_LowPoly_;
+		Lumina::D3D12::GraphicsPSO PSO_LowPoly_;
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Resources & Views for Vertex Shader						--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+
+	private:
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_VertexElementArray_;
+		Lumina::D3D12::DescriptorTable GlobalTable_CBV_Transforms_;
+		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
+
 		std::vector<Lumina::MeshShaderAsset> MeshShaderAssets_;
 
+		Lumina::D3D12::VertexBufferView VBVs_LowPoly_[2];
+
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		//==--	Resources & Views for Pixel Shader						--==//
+		//--==	--==--	==--==	--==--	==--==	--==--	==--==	--==--	==--//
+		
+	private:
+		struct TerrainMaterial {
+			Lumina::U32 ID_Albedo;
+			Lumina::U32 ID_Normal;
+			Lumina::U32 ID_Height;
+		};
+
+		struct PSParameters {
+			Lumina::F32x2 Scale_SurfaceBlendUV;
+			Lumina::F32 Scale_SurfaceNormal;
+			Lumina::F32 Scale_MaterialNormal;
+		};
+
+	private:
+		Lumina::D3D12::DescriptorTable GlobalTable_CBV_PSParameters_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_TerrainMaterialMap_Albedo_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_TerrainMaterialMap_Normal_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_TerrainMaterialMap_Height_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_TerrainMaterialDatabase_;
+
+		//Lumina::D3D12::DescriptorTable GlobalTable_SRV_Noise_;
+
+		constexpr static Lumina::U32 Capacity_TerrainMaterialDatabase_{ 32U };
+		Lumina::D3D12::UploadBuffer UB_TerrainMaterialDatabase_;
+		std::array<TerrainMaterial, Capacity_TerrainMaterialDatabase_> TerrainMaterialDatabase_;
+		Lumina::D3D12::UploadBuffer UB_PSParameters_;
+		PSParameters PSParameters_;
+
+		Lumina::D3D12::ComputeTexture2D CT_HeightMap_LowPoly_;
+		Lumina::D3D12::DescriptorTable GlobalTable_UAV_SRV_HeightMap_LowPoly_;
+
+	private:
 		Lumina::D3D12::UploadBuffer VertexBuffer_XY_;
 		Lumina::D3D12::UploadBuffer VertexBuffer_Z_;
 		Lumina::D3D12::VertexBufferView VBV_;
 
 		constexpr static Lumina::U32 MaxNum_Vertices_{ 1024U };
-
-		std::vector<Material> Materials_;
-		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
-		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
-
-		struct Vertex {
-			Lumina::F32x4 Position;
-			Lumina::F32x2 TexCoord;
-			Lumina::F32x3 Normal;
-			Lumina::F32x3 Tangent;
-		};
-
-	private:
-		Lumina::D3D12::RootSignature RS_Geometry_;
-		Lumina::D3D12::Shader VS_Geometry_;
-		Lumina::D3D12::Shader PS_Geometry_;
-		Lumina::D3D12::GraphicsPSO PSO_Geometry_;
 	};
-}
-
-namespace Game::Impl {
-	auto TerrainRenderer::PrepareMesh(TerrainShapeCollection const& shapeCollection_) -> void {
-		Lumina::Utils::Mesh mesh_Nonground{};
-
-		auto const& polygons{ shapeCollection_.PolygonsData() };
-		for (auto const& polygon : polygons) {
-			if (polygon.Vertices.size() > 2LLU) {
-
-				for (auto const& vert : polygon.Vertices) {
-					mesh_Nonground.Positions.emplace_back(
-						vert.Pos.X,
-						vert.Pos.Y,
-						vert.Pos.Z - 0.05f
-					);
-				}
-
-				for (auto const& vert : polygon.Vertices) {
-					mesh_Nonground.TexCoords.emplace_back(
-						vert.Pos.X * 0.5f,
-						vert.Pos.Y * 0.5f
-					);
-				}
-
-				mesh_Nonground.Normals.emplace_back(Lumina::Math::F32x3{ 0.0f, 0.0f, -1.0f });
-				mesh_Nonground.Tangents.emplace_back(Lumina::Math::F32x3{ 0.0f, -1.0f, 0.0f });
-
-				for (Lumina::U32 i{ 2U }; i < static_cast<Lumina::U32>(polygon.Vertices.size()); ++i) {
-					mesh_Nonground.Vertices.emplace_back(0, 0, 0, 0);
-					mesh_Nonground.Vertices.emplace_back(i - 1, i - 1, 0, 0);
-					mesh_Nonground.Vertices.emplace_back(i, i, 0, 0);
-				}
-			}
-		}
-
-		Lumina::Utils::Mesh mesh_Ground{};
-
-		mesh_Ground.Normals.emplace_back(Lumina::Math::F32x3{ 0.0f, 0.0f, -1.0f });
-		mesh_Ground.Tangents.emplace_back(Lumina::Math::F32x3{ 0.0f, -1.0f, 0.0f });
-
-		auto const& ground{ shapeCollection_.GroundData() };
-		for (auto const& collider : ground.Colliders) {
-			auto const& verts{ collider->GetVertices() };
-
-			for (auto const& vert : verts) {
-				mesh_Ground.Positions.emplace_back(vert.X, vert.Y, vert.Z - 0.05f);
-				mesh_Ground.TexCoords.emplace_back(
-					vert.X * 0.5f,
-					vert.Y * 0.5f
-				);
-			}
-
-			Lumina::U32 offset{ static_cast<Lumina::U32>(mesh_Ground.Positions.size()) - 4U };
-			mesh_Ground.Vertices.emplace_back(offset + 0, offset + 0, 0, 0);
-			mesh_Ground.Vertices.emplace_back(offset + 1, offset + 1, 0, 0);
-			mesh_Ground.Vertices.emplace_back(offset + 3, offset + 3, 0, 0);
-			mesh_Ground.Vertices.emplace_back(offset + 1, offset + 1, 0, 0);
-			mesh_Ground.Vertices.emplace_back(offset + 2, offset + 2, 0, 0);
-			mesh_Ground.Vertices.emplace_back(offset + 3, offset + 3, 0, 0);
-		}
-
-		auto const& context{ Lumina::Context::Instance() };
-		auto const& d3d12Context{ context.D3D12Context() };
-
-		Lumina::MeshUploader meshUploader{};
-		meshUploader.Initialize(d3d12Context);
-		meshUploader.Begin();
-		meshUploader.Batch(mesh_Nonground);
-		meshUploader.Batch(mesh_Ground);
-		meshUploader.End(MeshShaderAssets_);
-	}
-}
-
-namespace Game::Impl {
-	template<>
-	auto TerrainRenderer::Render<"Batch">(
-		Lumina::Math::F32x4x4<> const& world_
-	) -> void {
-		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
-		meshMngr.Batch(
-			MeshShaderAssets_[0],
-			1U,
-			LocalHeap_Materials_.CPUHandle(0U),
-			world_
-		);
-		meshMngr.Batch(
-			MeshShaderAssets_[1],
-			1U,
-			LocalHeap_Materials_.CPUHandle(1U),
-			world_
-		);
-		/*meshMngr.Batch(
-			MeshShaderAssets_[2],
-			1U,
-			LocalHeap_Materials_.CPUHandle(2U),
-			world_
-		);*/
-	}
-
-	template<>
-	auto TerrainRenderer::Render(
-		Lumina::Math::F32x4x4<> const& world_
-	) -> void {
-		Render<"Batch">(world_);
-	}
-}
-
-namespace Game::Impl {
-	template<>
-	auto TerrainRenderer::Initialize<"Materials : ImageTextures">() -> void {
-		auto& context{ Lumina::Context::Instance() };
-		auto& resMngr{ context.ResourceContext() };
-		auto const& d3d12Context{ context.D3D12Context() };
-		auto const& d3d12Device{ d3d12Context.Device() };
-
-		auto entryOfImageToLoad{
-			[] (
-				std::string_view name_,
-				std::string_view type_
-			) -> std::pair<std::string, std::string> {
-				std::string name{ std::format("{}.{}", name_, type_) };
-				std::string filePath{ std::format("Assets/Img/Terrain/{}/{}.png", name_, type_) };
-				return std::pair{ std::move(name), std::move(filePath) };
-			}
-		};
-
-		auto appendListOfImageToLoad{
-			[&] (
-				std::vector<std::pair<std::string, std::string>> list_,
-				std::string_view name_
-			) -> void {
-				list_.emplace_back(entryOfImageToLoad(name_, "Albedo"));
-				list_.emplace_back(entryOfImageToLoad(name_, "Normal"));
-				list_.emplace_back(entryOfImageToLoad(name_, "Height"));
-			}
-		};
-
-		std::vector<std::pair<std::string, std::string>> imageTexturesToLoad{};
-		appendListOfImageToLoad(imageTexturesToLoad, "Soil0");
-		appendListOfImageToLoad(imageTexturesToLoad, "Soil1");
-		appendListOfImageToLoad(imageTexturesToLoad, "Moss0");
-		appendListOfImageToLoad(imageTexturesToLoad, "Moss1");
-		appendListOfImageToLoad(imageTexturesToLoad, "Rock0");
-		appendListOfImageToLoad(imageTexturesToLoad, "Rock1");
-		appendListOfImageToLoad(imageTexturesToLoad, "Bricks0");
-		appendListOfImageToLoad(imageTexturesToLoad, "Bricks1");
-
-		std::vector<uint32_t> texIDs{};
-		resMngr.Graphics().LoadImageTextures(
-			texIDs,
-			imageTexturesToLoad
-		);
-
-		GlobalTable_SRV_ImageTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(
-			static_cast<Lumina::U32>(imageTexturesToLoad.size())
-		);
-		for (Lumina::U32 idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
-			d3d12Device->CopyDescriptorsSimple(
-				1U,
-				GlobalTable_SRV_ImageTexture_.CPUHandle(idx),
-				resMngr.Graphics().CPUHandle(texIDs.at(idx)),
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
-		}
-	}
-
-	template<>
-	auto TerrainRenderer::Initialize<"Materials : Buffers & CBVs">() -> void {
-		auto& context{ Lumina::Context::Instance() };
-		auto const& d3d12Context{ context.D3D12Context() };
-		auto const& d3d12Device{ d3d12Context.Device() };
-
-		// * Upload Buffers for Stroing Materials
-		UB_Materials_.resize(64U);
-		for (auto& ub : UB_Materials_) {
-			ub = std::make_unique<Lumina::D3D12::UploadBuffer>();
-			ub->Initialize(d3d12Device, 256LLU);
-		}
-
-		// * Local Descriptor Heap for Materials
-		LocalHeap_Materials_.Initialize(
-			d3d12Device,
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-			64U,
-			false
-		);
-
-		// * CBV Creation
-		for (Lumina::U32 idx{ 0U }; idx < 64U; ++idx) {
-			Lumina::D3D12::CBV::Create(
-				d3d12Device,
-				LocalHeap_Materials_.CPUHandle(0U),
-				*UB_Materials_[0]
-			);
-		}
-
-		Materials_.resize(64U);
-		Materials_[0].MaterialMap = 0U;
-		Materials_[0].BlendMap = 0U;
-		UB_Materials_[0]->Store(&Materials_[0], sizeof(Material), 0LLU);
-	}
-
-	template<>
-	auto TerrainRenderer::Initialize<"Pipeline">() -> void {
-	}
-
-	auto TerrainRenderer::Initialize() -> void {
-		Initialize<"Materials : ImageTextures">();
-		Initialize<"Materials : Buffers & CBVs">();
-		Initialize<"Pipeline">();
-	}
 }

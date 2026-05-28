@@ -22,7 +22,7 @@ namespace Lumina {
 	public:
 		void Render(
 			D3D12::CommandList const& cmdList_,
-			D3D12_GPU_DESCRIPTOR_HANDLE cbv_WorldToProjective_
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_WorldToProjective_
 		);
 
 		void Initialize(

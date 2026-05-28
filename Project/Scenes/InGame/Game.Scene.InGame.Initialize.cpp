@@ -1013,11 +1013,18 @@ namespace Game::Scene::Impl {
 		Initialize_<"Skybox">(d3d12Context, d3d12Device);
 		Initialize_<"Portals">();
 
-		Terrain_ = std::make_unique<TerrainShapeCollection>();
-		Terrain_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));
+		TerrainScreenData_ = std::make_unique<TerrainShapeCollection>();
+		TerrainScreenData_->Initialize(Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Data/Terrain/area0.json"));
 
+		Terrain_ = std::make_unique<TerrainShapeCollection>();
+		TerrainScreenData_->ConvertToWorldCoordinate(
+			*Terrain_,
+			*Camera_,
+			{ 0.0f, 0.0f, 1280.0f, 720.0f, 0.0f, 1.0f }
+		);
 		TerrainRenderer_ = std::make_unique<TerrainRenderer>();
 		TerrainRenderer_->Initialize();
+		TerrainRenderer_->PrepareMesh(*Terrain_);
 
 		Initialize_<"[Debug]">();
 

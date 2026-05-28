@@ -98,6 +98,8 @@
     <ClCompile Include="Game\Scene.ixx" />
     <ClCompile Include="Game\Sprite.ixx" />
     <ClCompile Include="Game\Sprite.Renderer.cpp" />
+    <ClCompile Include="Game\Test\ProceduralMap.cpp" />
+    <ClCompile Include="Game\Test\ProceduralMap.ixx" />
     <ClCompile Include="GFX\Cylinder.cpp" />
     <ClCompile Include="GFX\Cylinder.ixx" />
     <ClCompile Include="GFX\Ring.ixx" />

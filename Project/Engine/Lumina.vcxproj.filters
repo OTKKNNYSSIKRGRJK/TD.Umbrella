@@ -130,6 +130,12 @@
     <ClCompile Include="GFX\Skybox.cpp">
       <Filter>GFX</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Test\ProceduralMap.ixx">
+      <Filter>Game\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="Game\Test\ProceduralMap.cpp">
+      <Filter>Game\Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
@@ -161,6 +167,9 @@
     </Filter>
     <Filter Include="GFX">
       <UniqueIdentifier>{d81c81ef-2624-4677-a42b-548c25312101}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Game\Test">
+      <UniqueIdentifier>{c65809e2-ec77-4924-8913-192b1ced3f96}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

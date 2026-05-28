@@ -18,6 +18,39 @@ import Game.Events;
 
 namespace Game::Scene::Impl {
 	template<>
+	void InGame::Render_<"Portal">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::I32&& idx_,
+		Lumina::F32x2&& worldPos_
+	) {
+		static Lumina::Math::F32x4x4<> world{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f,
+		};
+		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
+		Portals_[idx_]->Render(cmdList_, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_);
+	}
+	template<>
+	void InGame::Render_<"Portals">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) {
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList_->OMSetRenderTargets(1U, &rtv, false, &dsv);
+
+		int idx_Portal{ 0 };
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			float cx = conn.position.x;
+			float cy = conn.position.y;
+
+			Render_<"Portal">(cmdList_, int{ idx_Portal }, Lumina::F32x2{ cx, cy });
+			++idx_Portal;
+		}
+	}
+
+	template<>
 	auto InGame::Render_<"PrepareParticle">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
@@ -336,21 +369,12 @@ namespace Game::Scene::Impl {
 			);
 		}
 
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
-		
-		TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
-		TerrainRenderer_->DebugRenderColliders(
-			GlobalTable_SRV_CanvasTexture_,
-			*WorldToHomogeneous_
+		TerrainRenderer_->Render(
+			static_cast<Lumina::D3D12::Canvas const&>(Canvas_GeometryPass_),
+			static_cast<Lumina::Math::F32x4x4<> const&>(*WorldToHomogeneous_)
 		);
 
-		ConvexColliderDebugRenderer_->BatchColliders(CollisionManager_->GetColliders());
-		ConvexColliderDebugRenderer_->RenderBatched(
-			GlobalTable_SRV_CanvasTexture_,
-			*WorldToHomogeneous_
-		);
+		Render_<"Portals">(cmdList);
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
@@ -377,38 +401,6 @@ namespace Game::Scene::Impl {
 		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
 
 		meshMngr.End();
-	}
-
-	template<>
-	void InGame::Render_<"Portal">(
-		Lumina::I32&& idx_,
-		Lumina::F32x2&& worldPos_
-	) {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
-
-		static Lumina::Math::F32x4x4<> world{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f,
-		};
-		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
-		Portals_[idx_]->Render(cmdList, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_);
-	}
-	template<>
-	void InGame::Render_<"Portals">() {
-		int idx_Portal{ 0 };
-		for (const auto& conn : playState_.CurrentArea.connections) {
-			float cx = conn.position.x;
-			float cy = conn.position.y;
-
-			Render_<"Portal">(int{ idx_Portal }, Lumina::F32x2{ cx, cy });
-			++idx_Portal;
-		}
 	}
 
 	template<>
@@ -473,7 +465,6 @@ namespace Game::Scene::Impl {
 
 		Render_<"PrepareParticle">();
 		Render_Geometry();
-		Render_<"Portals">();
 		Render_Merge();
 
 			// オーバーレイ描画（プレイヤーHPバー、敵HPバー、チュートリアル等）

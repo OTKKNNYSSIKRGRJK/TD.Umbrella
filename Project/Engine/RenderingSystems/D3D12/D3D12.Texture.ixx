@@ -824,10 +824,14 @@ namespace Lumina::D3D12 {
 	}
 
 	std::future<void> ImageTextureUploader::End(CommandQueue& cmdQueue_) {
-		(IsInBeginEndBlock_ == 1) ||
+		/*(IsInBeginEndBlock_ == 1) ||
 		Debug::ThrowIfFalse<std::logic_error>{
 			"<D3D12.ImageTextureUploader> Can't call End() outside a Begin-End block!\n"
-		};
+		};*/
+
+		if (IsInBeginEndBlock_ == 0) {
+			return std::future<void>{};
+		}
 
 		IsInBeginEndBlock_ = 0;
 

@@ -55,7 +55,7 @@ namespace Lumina::D3D12 {
 	) -> RootSignature::Setup;
 	
 	export template<typename T>
-	auto LoadSetup(nlohmann::json& dict_Setup_) -> typename T::Setup;
+	auto LoadSetup(nlohmann::json const& dict_Setup_) -> typename T::Setup;
 
 	export void LoadGraphicsPipelineState(
 		GraphicsPipelineState& graphicsPSO_,
@@ -320,8 +320,8 @@ namespace Lumina::D3D12 {
 	//////	//////	//////	//////	//////	//////
 
 	template<>
-	auto LoadSetup<RootSignature>(nlohmann::json& dict_Setup_)
-		-> typename RootSignature::Setup { return LoadRootSignatureSetup(dict_Setup_); }
+	auto LoadSetup<RootSignature>(nlohmann::json const& dict_Setup_)
+		-> RootSignature::Setup { return LoadRootSignatureSetup(dict_Setup_); }
 
 	auto LoadRootSignatureSetup(
 		const nlohmann::json& dict_RSSetup_

@@ -13,6 +13,11 @@ namespace Game {
 
 	export class TerrainRenderer {
 	public:
+		auto PrepareMesh(
+			TerrainShapeCollection const& shapeCollection_
+		) -> void;
+
+	public:
 		auto DebugRenderCollidersBatch(
 			TerrainShapeCollection const& shapeCollection_
 		) -> void;
@@ -20,6 +25,10 @@ namespace Game {
 			Lumina::D3D12::DescriptorTable const& srvTable_,
 			Lumina::Math::F32x4x4<> const& vp_
 		) -> void;
+
+	public:
+		template<typename..._ARGs>
+		auto Render(_ARGs&&...args_) -> void;
 
 	public:
 		auto Initialize() -> void;

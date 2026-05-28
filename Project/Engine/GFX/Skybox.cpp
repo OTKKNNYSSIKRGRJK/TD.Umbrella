@@ -18,10 +18,17 @@ import Lumina.Main;
 namespace Lumina {
 	void Skybox::Render(
 		D3D12::CommandList const& cmdList_,
-		D3D12_GPU_DESCRIPTOR_HANDLE cbv_WorldToProjective_
+		D3D12_CPU_DESCRIPTOR_HANDLE cbv_WorldToProjective_
 	) {
+		Lumina::Context::Instance().D3D12Context().Device()->CopyDescriptorsSimple(
+			1U,
+			CBV_.CPUHandle(0U),
+			cbv_WorldToProjective_,
+			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+		);
+		
 		cmdList_->SetGraphicsRootSignature(RS_.Get());
-		cmdList_->SetGraphicsRootDescriptorTable(0U, cbv_WorldToProjective_);
+		cmdList_->SetGraphicsRootDescriptorTable(0U, CBV_.GPUHandle(0U));
 		cmdList_->SetGraphicsRootDescriptorTable(1U, SRV_Textures_.GPUHandle(0U));
 		cmdList_->SetPipelineState(PSO_.Get());
 		cmdList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -120,16 +127,16 @@ namespace Lumina {
 
 		auto settings{ Utils::LoadFromFile<nlohmann::json>("Skybox.json", "Assets/Configs") };
 		auto rsSetup{ D3D12::LoadSetup<D3D12::RootSignature>(settings.at("RS"))};
-		RS_.Initialize(device_, rsSetup, "Skybox RS");
+		RS_.Initialize(d3d12Device_, rsSetup, "Skybox RS");
 
-		dxContext_.Compile(
+		d3d12Context_.Compile(
 			VS_,
 			L"Assets/Shaders/Skybox.VS.hlsl",
 			L"vs_6_6",
 			L"main",
 			"Skybox.VS"
 		);
-		dxContext_.Compile(
+		d3d12Context_.Compile(
 			PS_,
 			L"Assets/Shaders/Skybox.PS.hlsl",
 			L"ps_6_6",
@@ -187,7 +194,7 @@ namespace Lumina {
 			rtvFormats <<
 			D3D12::GraphicsPipelineState::DefaultDSVFormat;
 		PSO_.Initialize(
-			device_,
+			d3d12Device_,
 			graphicsPSOSetup,
 			"Skybox.GraphicsPSO"
 		);
