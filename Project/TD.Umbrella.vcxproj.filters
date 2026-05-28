@@ -305,6 +305,9 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.ixx">
       <Filter>Scenes\InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Terrain\Game.Terrain.Render.Impl.ixx">
+      <Filter>Game\Terrain</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

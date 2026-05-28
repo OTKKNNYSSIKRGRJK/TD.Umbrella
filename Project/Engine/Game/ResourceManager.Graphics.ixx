@@ -164,12 +164,17 @@ namespace Lumina::D3D12 {
 		for (ResourceID resID : unuploadedResIDs_) {
 			auto* res{ GetResource(resID) };
 			RESOURCE_TYPE const resType{ GetResourceType(resID) };
-			if (resType == RESOURCE_TYPE::IMAGE_TEXTURE2D) {
+			if (
+				resType == RESOURCE_TYPE::IMAGE_TEXTURE2D &&
+				reinterpret_cast<ImageTexture*>(res)->Status() == ImageTexture::STATUS::READY_TO_UPLOAD
+			) {
 				Uploader_ << (*reinterpret_cast<ImageTexture*>(res));
 			}
 		}
 		auto future_UploadTexs{ Uploader_.End(Context_->DirectQueue()) };
-		future_UploadTexs.wait();
+		if (future_UploadTexs.valid()) {
+			future_UploadTexs.wait();
+		}
 	}
 
 	void ResourceManager::Initialize(Context const& context_) {

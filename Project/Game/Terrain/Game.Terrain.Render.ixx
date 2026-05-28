@@ -9,7 +9,14 @@ import Lumina.D3D12;
 import Lumina.Primitive;
 
 namespace Game {
+	namespace Impl { class TerrainRenderer; }
+
 	export class TerrainRenderer {
+	public:
+		auto PrepareMesh(
+			TerrainShapeCollection const& shapeCollection_
+		) -> void;
+
 	public:
 		auto DebugRenderCollidersBatch(
 			TerrainShapeCollection const& shapeCollection_
@@ -20,13 +27,18 @@ namespace Game {
 		) -> void;
 
 	public:
+		template<typename..._ARGs>
+		auto Render(_ARGs&&...args_) -> void;
+
+	public:
 		auto Initialize() -> void;
 
 	public:
 		TerrainRenderer();
 		~TerrainRenderer();
 
-	public:
+	private:
 		std::unique_ptr<Lumina::PrimitiveManager> PrimitiveManager_;
+		std::unique_ptr<Impl::TerrainRenderer> Impl_{ nullptr };
 	};
 }

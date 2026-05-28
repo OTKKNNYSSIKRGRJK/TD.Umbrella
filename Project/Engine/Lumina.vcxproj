@@ -98,6 +98,13 @@
     <ClCompile Include="Game\Scene.ixx" />
     <ClCompile Include="Game\Sprite.ixx" />
     <ClCompile Include="Game\Sprite.Renderer.cpp" />
+    <ClCompile Include="Game\Test\ProceduralMap.cpp" />
+    <ClCompile Include="Game\Test\ProceduralMap.ixx" />
+    <ClCompile Include="GFX\Cylinder.cpp" />
+    <ClCompile Include="GFX\Cylinder.ixx" />
+    <ClCompile Include="GFX\Ring.ixx" />
+    <ClCompile Include="GFX\Skybox.cpp" />
+    <ClCompile Include="GFX\Skybox.ixx" />
     <ClCompile Include="Grassland\Grassland.cpp" />
     <ClCompile Include="Grassland\Grassland.ixx" />
     <ClCompile Include="Lumina.ixx" />

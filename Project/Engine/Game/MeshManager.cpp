@@ -22,7 +22,7 @@ namespace Lumina {
 
 		auto& meshShaderAsset{ MeshShaderAssets_.emplace_back() };
 
-		meshShaderAsset.LocalHeap_.reset(new D3D12::DescriptorHeap{});
+		meshShaderAsset.LocalHeap_ = std::make_unique<D3D12::DescriptorHeap>();
 		meshShaderAsset.LocalHeap_->Initialize(
 			device,
 			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -30,7 +30,7 @@ namespace Lumina {
 			false
 		);
 
-		meshShaderAsset.Positions_.reset(new D3D12::DefaultBuffer{});
+		meshShaderAsset.Positions_ = std::make_unique<D3D12::DefaultBuffer>();
 		meshShaderAsset.Positions_->Initialize(
 			device,
 			sizeof(Math::F32x3) * mesh_.Positions.size(),
@@ -42,7 +42,7 @@ namespace Lumina {
 			*meshShaderAsset.Positions_
 		);
 		auto& uploadBuf_Positions{ UploadBuffers_.emplace_back() };
-		uploadBuf_Positions.reset(new D3D12::UploadBuffer{});
+		uploadBuf_Positions = std::make_unique<D3D12::UploadBuffer>();
 		uploadBuf_Positions->Initialize(
 			device,
 			meshShaderAsset.Positions_->SizeInBytes()
@@ -57,7 +57,7 @@ namespace Lumina {
 			uploadBuf_Positions->Get()
 		);
 
-		meshShaderAsset.TexCoords_.reset(new D3D12::DefaultBuffer{});
+		meshShaderAsset.TexCoords_ = std::make_unique<D3D12::DefaultBuffer>();
 		meshShaderAsset.TexCoords_->Initialize(
 			device,
 			sizeof(Math::F32x2) * mesh_.TexCoords.size(),
@@ -69,7 +69,7 @@ namespace Lumina {
 			*meshShaderAsset.TexCoords_
 		);
 		auto& uploadBuf_TexCoords{ UploadBuffers_.emplace_back() };
-		uploadBuf_TexCoords.reset(new D3D12::UploadBuffer{});
+		uploadBuf_TexCoords = std::make_unique<D3D12::UploadBuffer>();
 		uploadBuf_TexCoords->Initialize(
 			device,
 			meshShaderAsset.TexCoords_->SizeInBytes()
@@ -84,7 +84,7 @@ namespace Lumina {
 			uploadBuf_TexCoords->Get()
 		);
 
-		meshShaderAsset.Normals_.reset(new D3D12::DefaultBuffer{});
+		meshShaderAsset.Normals_ = std::make_unique<D3D12::DefaultBuffer>();
 		meshShaderAsset.Normals_->Initialize(
 			device,
 			sizeof(Math::F32x3) * mesh_.Normals.size(),
@@ -96,7 +96,7 @@ namespace Lumina {
 			*meshShaderAsset.Normals_
 		);
 		auto& uploadBuf_Normals{ UploadBuffers_.emplace_back() };
-		uploadBuf_Normals.reset(new D3D12::UploadBuffer{});
+		uploadBuf_Normals = std::make_unique<D3D12::UploadBuffer>();
 		uploadBuf_Normals->Initialize(
 			device,
 			meshShaderAsset.Normals_->SizeInBytes()
@@ -111,7 +111,7 @@ namespace Lumina {
 			uploadBuf_Normals->Get()
 		);
 
-		meshShaderAsset.Tangents_.reset(new D3D12::DefaultBuffer{});
+		meshShaderAsset.Tangents_ = std::make_unique<D3D12::DefaultBuffer>();
 		meshShaderAsset.Tangents_->Initialize(
 			device,
 			sizeof(Math::F32x3) * mesh_.Tangents.size(),
@@ -123,7 +123,7 @@ namespace Lumina {
 			*meshShaderAsset.Tangents_
 		);
 		auto& uploadBuf_Tangents{ UploadBuffers_.emplace_back() };
-		uploadBuf_Tangents.reset(new D3D12::UploadBuffer{});
+		uploadBuf_Tangents = std::make_unique<D3D12::UploadBuffer>();
 		uploadBuf_Tangents->Initialize(
 			device,
 			meshShaderAsset.Tangents_->SizeInBytes()
@@ -139,7 +139,7 @@ namespace Lumina {
 		);
 
 		meshShaderAsset.Num_Vertices_ = static_cast<uint32_t>(mesh_.Vertices.size());
-		meshShaderAsset.VertexBuffer_.reset(new D3D12::DefaultBuffer{});
+		meshShaderAsset.VertexBuffer_ = std::make_unique<D3D12::DefaultBuffer>();
 		meshShaderAsset.VertexBuffer_->Initialize(
 			D3D12Context_->Device(),
 			sizeof(Utils::Mesh::Vertex) * meshShaderAsset.Num_Vertices_,
@@ -147,7 +147,7 @@ namespace Lumina {
 		);
 		meshShaderAsset.VBV_ = D3D12::VBV::Create<Utils::Mesh::Vertex>(*meshShaderAsset.VertexBuffer_);
 		auto& uploadBuf_Vertices{ UploadBuffers_.emplace_back() };
-		uploadBuf_Vertices.reset(new D3D12::UploadBuffer{});
+		uploadBuf_Vertices = std::make_unique<D3D12::UploadBuffer>();
 		uploadBuf_Vertices->Initialize(
 			D3D12Context_->Device(),
 			meshShaderAsset.VertexBuffer_->SizeInBytes()

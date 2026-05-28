@@ -17,6 +17,7 @@ namespace Game::Scene::Impl {
 		int PlayerMoveEffectEmitFrameCount{ 0 };
 		int PlayerJumpEffectEmitFrameCount{ 0 };
 		int PlayerAttackEffectEmitFrameCount{ 0 };
+		int PlayerWarpEffectEmitFrameCount{ 0 };
 
 		Lumina::F32 PlayerEffectTimeFactor{ 0.0f };
 
@@ -64,8 +65,9 @@ namespace Game::Scene::Impl {
 
 		World_Hip = hip.SkeletonSpace * Player_->WorldMatrix();
 
-		WorldPos_UmbrellaRoot = Player_->GetUmbrella().handle_->GetBaseJoint()->GetWorldPos();
-		WorldPos_UmbrellaTip = Player_->GetUmbrella().handle_->GetTipJoint()->GetWorldPos();
+		auto const& umbrella{ Player_->GetUmbrella() };
+		WorldPos_UmbrellaRoot = umbrella.handle_->GetBaseJoint()->GetWorldPos();
+		WorldPos_UmbrellaTip = umbrella.handle_->GetTipJoint()->GetWorldPos();
 
 		PlayerEffectTimeFactor += 0.5f;
 	}
@@ -209,6 +211,164 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Update_<"PlayerEffect.Warp.0">() -> void {
+		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
+
+		static float effectTimeFactor{ 0.0f };
+		effectTimeFactor += 0.5f;
+
+		constexpr Lumina::F32 inv_32{ 1.0f / 32.0f };
+
+		for (int i = 0; i < 32; ++i) {
+			Lumina::Particle p{};
+			{
+				Lumina::F32 const theta{ i * inv_32 * 2.0f * Pi };
+				p.Translate = {
+					std::cos(theta) * 0.75f * PlayerWarpEffectEmitFrameCount,
+					std::sin(theta) * 0.75f * PlayerWarpEffectEmitFrameCount,
+					0.0f
+				};
+
+				p.Velocity.X = p.Translate.X * 0.1f;
+				p.Velocity.Y = p.Translate.Y * 0.1f;
+
+				p.Translate.X += World_Hip[3].X();
+				p.Translate.Y += World_Hip[3].Y();
+				p.Translate.Z += World_Hip[3].Z();
+
+				p.Scale.X = 2.0f + RNDEngine() * Inv_0xFFFFFFFF;
+				p.Scale.Y = 2.0f + RNDEngine() * Inv_0xFFFFFFFF;
+
+				p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
+
+				p.Life = 36.0f;
+
+				auto const rgb_Base = Lumina::Utils::Color::Convert(
+					Lumina::Utils::Color::HSV{
+						RNDEngine() * Inv_0xFFFFFFFF * 45.0f + theta * 90.0f,
+						RNDEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
+						0.75f
+					}
+				);
+				p.RenderData.RGBA = {
+					rgb_Base.R,
+					rgb_Base.G,
+					rgb_Base.B,
+					0.45f
+				};
+				p.RenderData.DiffuseID = 1U;
+				p.RenderData.DiffuseAtlasID = 5U;
+				PlayerEffects_->Emit(std::move(p));
+			}
+		}
+	}
+	template<>
+	auto InGame::Update_<"PlayerEffect.Warp.1">() -> void {
+		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
+
+		static float effectTimeFactor{ 0.0f };
+		effectTimeFactor += 0.5f;
+
+		constexpr Lumina::F32 inv_32{ 1.0f / 32.0f };
+
+		Lumina::F32 const factor2{ RNDEngine() * Inv_0xFFFFFFFF };
+
+		for (int i = 0; i < 32; ++i) {
+			Lumina::Particle p{};
+			{
+				Lumina::F32 const theta{ i * inv_32 * 2.0f * Pi };
+
+				Lumina::F32 const factor{ std::abs(std::cos(theta * 4.0f + factor2)) + 0.01f };
+
+				p.Velocity.X = std::cos(theta) * 0.1f * PlayerWarpEffectEmitFrameCount * factor;
+				p.Velocity.Y = std::sin(theta) * 0.1f * PlayerWarpEffectEmitFrameCount * factor;
+
+				p.Translate.X += World_Hip[3].X();
+				p.Translate.Y += World_Hip[3].Y();
+				p.Translate.Z += World_Hip[3].Z();
+
+				p.Scale.X = 2.5f;
+				p.Scale.Y = 0.75f;
+
+				p.Rotate.Z = theta;
+
+				p.Life = 18.0f;
+
+				auto const rgb_Base = Lumina::Utils::Color::Convert(
+					Lumina::Utils::Color::HSV{
+						RNDEngine() * Inv_0xFFFFFFFF * 45.0f,
+						RNDEngine() * Inv_0xFFFFFFFF * 0.3f + 0.2f,
+						0.75f
+					}
+				);
+				p.RenderData.RGBA = {
+					rgb_Base.R,
+					rgb_Base.G,
+					rgb_Base.B,
+					0.9f
+				};
+				p.RenderData.DiffuseID = 1U;
+				p.RenderData.DiffuseAtlasID = 0U;
+				PlayerEffects_->Emit(std::move(p));
+			}
+		}
+	}
+	template<>
+	auto InGame::Update_<"PlayerEffect.Warp.2">() -> void {
+		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
+
+		static float effectTimeFactor{ 0.0f };
+		effectTimeFactor += 0.5f;
+
+		for (int i = 0; i < 4; ++i) {
+			Lumina::Particle p{};
+			{
+				Lumina::F32 const theta{ RNDEngine() * Inv_0xFFFFFFFF * 2.0f * Pi };
+
+				p.Velocity.X = std::cos(theta) * 0.05f * PlayerWarpEffectEmitFrameCount;
+				p.Velocity.Y = std::sin(theta) * 0.05f * PlayerWarpEffectEmitFrameCount;
+
+				p.Translate.X += World_Hip[3].X();
+				p.Translate.Y += World_Hip[3].Y();
+				p.Translate.Z += World_Hip[3].Z();
+
+				p.Scale.X = 5.0f;
+				p.Scale.Y = 5.0f;
+
+				p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * 2.0f * Pi;
+
+				p.Life = 24.0f;
+
+				auto const rgb_Base = Lumina::Utils::Color::Convert(
+					Lumina::Utils::Color::HSV{
+						RNDEngine() * Inv_0xFFFFFFFF * 45.0f,
+						RNDEngine() * Inv_0xFFFFFFFF * 0.1f + 0.1f,
+						0.75f
+					}
+				);
+				p.RenderData.RGBA = {
+					rgb_Base.R,
+					rgb_Base.G,
+					rgb_Base.B,
+					0.15f
+				};
+				p.RenderData.DiffuseID = 1U;
+				p.RenderData.DiffuseAtlasID = 6U;
+				PlayerEffects_->Emit(std::move(p));
+			}
+		}
+	}
+
+	template<>
+	auto InGame::Update_<"PlayerEffect.Warp">() -> void {
+		Update_<"PlayerEffect.Warp.0">();
+		Update_<"PlayerEffect.Warp.1">();
+		Update_<"PlayerEffect.Warp.2">();
+
+		--PlayerWarpEffectEmitFrameCount;
+	}
+
+	template<>
 	auto InGame::Update_<"PlayerEffectParticle">(Lumina::Particle& p_) -> void {
 		p_.Translate.X += p_.Velocity.X;
 		p_.Translate.Y += p_.Velocity.Y;
@@ -223,28 +383,36 @@ namespace Game::Scene::Impl {
 	auto InGame::Update_<"UmbrellaEffect.Perpetual">() -> void {
 		auto tipEffect{
 			[&, this](Lumina::I32 i_) {
-				Lumina::Particle p{};
+				Lumina::Particle2 p{};
 				{
-					p.Translate = {
-						std::cos(PlayerEffectTimeFactor * 0.14f + i_ * 2.4f) * 0.15f,
-						std::sin(PlayerEffectTimeFactor * 0.13f - i_ * 3.6f) * 0.15f,
-						std::sin(PlayerEffectTimeFactor * 0.12f - i_ * 1.2f) * 0.15f
-					};
+					std::memcpy(
+						&p.World,
+						Lumina::Math::F32x4x4<>::Identity,
+						sizeof(Lumina::Math::F32x4x4<>)
+					);
 
-					p.Velocity.X = p.Translate.X * (-0.05f);
-					p.Velocity.Y = p.Translate.Y * (-0.05f);
-					p.Velocity.Z = p.Translate.Z * (-0.05f);
+					p.World[3][0] = std::cos(PlayerEffectTimeFactor * 0.14f + i_ * 2.4f) * 0.15f;
+					p.World[3][1] = std::sin(PlayerEffectTimeFactor * 0.13f - i_ * 3.6f) * 0.15f;
+					p.World[3][2] = std::sin(PlayerEffectTimeFactor * 0.12f - i_ * 1.2f) * 0.15f;
 
-					p.Translate.X += WorldPos_UmbrellaTip.X;
-					p.Translate.Y += WorldPos_UmbrellaTip.Y;
-					p.Translate.Z += WorldPos_UmbrellaTip.Z;
+					p.Velocity.X = p.World[3][0] * (-0.05f);
+					p.Velocity.Y = p.World[3][1] * (-0.05f);
+					p.Velocity.Z = p.World[3][2] * (-0.05f);
 
-					p.Scale.X = 0.75f;
-					p.Scale.Y = 0.75f;
+					p.World[3][0] += WorldPos_UmbrellaTip.X;
+					p.World[3][1] += WorldPos_UmbrellaTip.Y;
+					p.World[3][2] += WorldPos_UmbrellaTip.Z;
 
-					p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
+					Lumina::F32 const rotZ{ RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f };
+					Lumina::F32 const cos_RotZ{ std::cos(rotZ) };
+					Lumina::F32 const sin_RotZ{ std::sin(rotZ) };
 
-					p.Life = 32.0f;
+					p.World[0][0] = cos_RotZ * 0.75f;
+					p.World[0][1] = sin_RotZ * 0.75f;
+					p.World[1][0] = -sin_RotZ * 0.75f;
+					p.World[1][1] = cos_RotZ * 0.75f;
+
+					p.Life = 48.0f;
 
 					p.RenderData.RGBA = {
 						RGB_Gaming.R * 0.3f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
@@ -268,45 +436,95 @@ namespace Game::Scene::Impl {
 	auto InGame::Update_<"UmbrellaEffect.Attack">() -> void {
 		if (PlayerAttackEffectEmitFrameCount <= 0) { return; }
 
-		auto tipEffect{
+		auto const worldPos{ (WorldPos_UmbrellaRoot + WorldPos_UmbrellaTip) * 0.5f };
+		auto const dPos{ (WorldPos_UmbrellaTip - WorldPos_UmbrellaRoot) * 0.5f };
+
+		auto emitEffect{
 			[&, this]() {
-				Lumina::Particle p{};
+				Lumina::Particle2 p{};
 				{
-					p.Translate.X += WorldPos_UmbrellaRoot.X;
-					p.Translate.Y += WorldPos_UmbrellaRoot.Y;
-					p.Translate.Z += WorldPos_UmbrellaRoot.Z;
+					auto const& umbrella{ Player_->GetUmbrella() };
+					auto const& world_Umbrella{ umbrella.handle_->GetBaseJoint()->GetMatrix() };
 
-					p.Scale.X = 15.0f;
-					p.Scale.Y = 15.0f;
+					std::memcpy(
+					   &p.World,
+					   world_Umbrella,
+					   sizeof(Lumina::Math::F32x4x4<>)
+					);
 
-					p.Life = 32.0f;
+					p.World[3][0] = worldPos.X;
+					p.World[3][1] = worldPos.Y;
+					p.World[3][2] = worldPos.Z;
+
+					p.World[0][0] *= 3.0f;
+					p.World[0][1] *= 3.0f;
+					p.World[0][2] *= 3.0f;
+					p.World[1][0] *= 3.0f;
+					p.World[1][1] *= 3.0f;
+					p.World[1][2] *= 3.0f;
+					p.World[2][0] *= 3.0f;
+					p.World[2][1] *= 3.0f;
+					p.World[2][2] *= 3.0f;
+
+					p.Velocity = { dPos.X * 0.0625f, dPos.Y * 0.0625f, dPos.Z * 0.0625f };
+
+					p.Life = 48.0f;
 
 					p.RenderData.RGBA = {
-						RGB_Gaming.R * 0.3f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-						RGB_Gaming.G * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-						RGB_Gaming.B * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-						0.75f
+						RGB_Gaming.R * 0.2f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						RGB_Gaming.G * 0.8f + 0.2f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						RGB_Gaming.B * 0.8f + 0.2f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						0.5f
 					};
 					p.RenderData.DiffuseID = 1U;
-					p.RenderData.DiffuseAtlasID = 0U;
-					UmbrellaEffects_->Emit(std::move(p));
+					p.RenderData.DiffuseAtlasID = 5U;
 				}
+
+				Lumina::Particle2 p2{};
+				{
+					std::memcpy(&p2, &p, sizeof(Lumina::Particle2));
+					
+					p2.Velocity.X *= -1.0f;
+					p2.Velocity.Y *= -1.0f;
+					p2.Velocity.Z *= -1.0f;
+
+					p2.RenderData.RGBA = {
+						RGB_Gaming.R * 0.2f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						RGB_Gaming.G * 0.8f + 0.2f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						RGB_Gaming.B * 0.6f + 0.4f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+						0.5f
+					};
+				}
+
+				UmbrellaEffects_->Emit(std::move(p));
+				UmbrellaEffects_->Emit(std::move(p2));
 			}
 		};
 
-		tipEffect();
+		emitEffect();
 
 		--PlayerAttackEffectEmitFrameCount;
 	}
 
 	template<>
-	auto InGame::Update_<"UmbrellaEffectParticle">(Lumina::Particle& p_) -> void {
-		p_.Translate.X += p_.Velocity.X;
-		p_.Translate.Y += p_.Velocity.Y;
+	auto InGame::Update_<"UmbrellaEffectParticle">(Lumina::Particle2& p_) -> void {
+		p_.World[3][0] += p_.Velocity.X;
+		p_.World[3][1] += p_.Velocity.Y;
+		p_.World[3][2] += p_.Velocity.Z;
+
+		p_.World[0][0] *= 0.99f;
+		p_.World[0][1] *= 0.99f;
+		p_.World[0][2] *= 0.99f;
+		p_.World[1][0] *= 0.99f;
+		p_.World[1][1] *= 0.99f;
+		p_.World[1][0] *= 0.99f;
+		p_.World[1][2] *= 0.99f;
+		p_.World[2][1] *= 0.99f;
+		p_.World[2][0] *= 0.99f;
+		p_.World[2][2] *= 0.99f;
+
 		p_.RenderData.RGBA.W *= 0.97f;
-		p_.Scale.X *= 0.93f;
-		p_.Scale.Y *= 0.93f;
-		p_.Rotate.Z += p_.Velocity.Z * 0.02f;
+		
 		p_.Life -= 1.0f;
 	}
 
@@ -328,5 +546,12 @@ namespace Game::Scene::Impl {
 		[[maybe_unused]] Event::InGame::OnPlayerAttack& event_
 	) {
 		PlayerAttackEffectEmitFrameCount = 2;
+	}
+
+	template<>
+	void InGame::Update_<"OnPlayerWarp">(
+		[[maybe_unused]] Event::InGame::OnPlayerWarp& event_
+	) {
+		PlayerWarpEffectEmitFrameCount = 3;
 	}
 }

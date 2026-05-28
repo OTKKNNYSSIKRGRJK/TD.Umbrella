@@ -18,6 +18,39 @@ import Game.Events;
 
 namespace Game::Scene::Impl {
 	template<>
+	void InGame::Render_<"Portal">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::I32&& idx_,
+		Lumina::F32x2&& worldPos_
+	) {
+		static Lumina::Math::F32x4x4<> world{
+			1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f,
+		};
+		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
+		Portals_[idx_]->Render(cmdList_, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_);
+	}
+	template<>
+	void InGame::Render_<"Portals">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) {
+		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
+		auto dsv{ Canvas_GeometryPass_.DSV() };
+		cmdList_->OMSetRenderTargets(1U, &rtv, false, &dsv);
+
+		int idx_Portal{ 0 };
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			float cx = conn.position.x;
+			float cy = conn.position.y;
+
+			Render_<"Portal">(cmdList_, int{ idx_Portal }, Lumina::F32x2{ cx, cy });
+			++idx_Portal;
+		}
+	}
+
+	template<>
 	auto InGame::Render_<"PrepareParticle">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
@@ -32,7 +65,7 @@ namespace Game::Scene::Impl {
 		UmbrellaEffects_->Update(
 			cmdList,
 			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle& p_, void const*) -> bool {
+			[this] (Lumina::Particle2& p_, void const*) -> bool {
 				this->Update_<"UmbrellaEffectParticle">(p_);
 				return (p_.Life > 0.0f);
 			}
@@ -364,33 +397,6 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		// ポータルを薄い立方体（cube.obj）で表現
-		// Connectionsの座標はすでにワールド座標に変換されているため、そのまま使用する。
-		for (const auto& conn : playState_.CurrentArea.connections) {
-			float cx = conn.position.x;
-			float cy = conn.position.y;
-
-			float sx = 1.5f;
-			float sy = 1.5f;
-			float sz = 0.5f; // "薄く表示する" (ジオメトリとしての厚みを薄くする)
-
-			Lumina::Math::F32x4x4<> worldMat{
-				sx,  0.0f, 0.0f, 0.0f,
-				0.0f, sy,  0.0f, 0.0f,
-				0.0f, 0.0f, sz,  0.0f,
-				cx,   cy,   0.0f, 1.0f
-			};
-			
-			if (CubeMeshIdx_ < MeshShaderAssets_.size()) {
-				meshMngr.Batch(
-					MeshShaderAssets_[CubeMeshIdx_],
-					1U,
-					LocalHeap_Materials_.CPUHandle(0U),
-					worldMat
-				);
-			}
-		}
-
 		meshMngr.BatchEnd();
 
 		GeometryPass_.Begin(cmdList);
@@ -455,22 +461,12 @@ namespace Game::Scene::Impl {
 			);
 		}
 
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
-		
-		TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
-		TerrainRenderer_->DebugRenderColliders(
-			GlobalTable_SRV_CanvasTexture_,
-			*WorldToHomogeneous_
+		TerrainRenderer_->Render(
+			static_cast<Lumina::D3D12::Canvas const&>(Canvas_GeometryPass_),
+			static_cast<Lumina::Math::F32x4x4<> const&>(*WorldToHomogeneous_)
 		);
-#if defined(_DEBUG)
-		ConvexColliderDebugRenderer_->BatchColliders(CollisionManager_->GetColliders());
-		ConvexColliderDebugRenderer_->RenderBatched(
-			GlobalTable_SRV_CanvasTexture_,
-			*WorldToHomogeneous_
-		);
-#endif// _DEBUG
+
+		Render_<"Portals">(cmdList);
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(
@@ -497,6 +493,12 @@ namespace Game::Scene::Impl {
 		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
 
 		meshMngr.End();
+	}
+
+	template<>
+	void InGame::Render_<"Skybox">() {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		Skybox_->Render(cmdList, LocalHeap_Scene_.CPUHandle(0U));
 	}
 
 	void InGame::Render_Merge() {
@@ -530,6 +532,10 @@ namespace Game::Scene::Impl {
 		MergePass_.Begin(cmdList);
 		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, Lumina::Math::F32x4x4<>::Identity, 1);
 		MergePass_.End();
+
+		//auto rtv = swapChain.BackBufferRTVCPUHandle();
+		//auto dsv = swapChain.DSVCPUHandle();
+		//cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
 	}
 
 	void InGame::Render() {

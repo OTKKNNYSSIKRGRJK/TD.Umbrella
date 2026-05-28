@@ -107,22 +107,27 @@ namespace Lumina {
 		RenderDataCollection RenderData;
 	};
 
+	export struct Particle2 {
+		Lumina::F32 World[4][4];
+
+		Lumina::F32x3 Velocity;
+
+		float Life{ 10.0f };
+
+		struct RenderDataCollection {
+			Lumina::F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
+			uint32_t DiffuseID;
+			uint32_t DiffuseAtlasID;
+		};
+
+		RenderDataCollection RenderData;
+	};
+
 	template<typename T>
-	concept Concept_Particle = std::is_base_of_v<Particle, T>;
+	concept Concept_Particle = std::is_base_of_v<Particle, T> || std::is_base_of_v<Particle2, T>;
 
 	export template<Concept_Particle T>
 	class ParticleSystem {
-	public:
-		constexpr static auto DefaultUpdateCallback{
-			[] (T& p_, void const*) {
-				p_.Translate.X += p_.Velocity.X;
-				p_.Translate.Y += p_.Velocity.Y;
-				p_.Translate.Z += p_.Velocity.Z;
-				p_.Life -= 1.0f;
-				return (p_.Life > 0.0f);
-			}
-		};
-
 	public:
 		typename Lumina::List<T> const& InstanceList() const noexcept;
 
@@ -207,38 +212,69 @@ namespace Lumina {
 			}
 
 			if (isAlive) {
-				auto&& transform{
-					SRT(
-						Lumina::Math::F32x3{ &particle.Scale.X },
-						Lumina::Math::F32x3{ &particle.Rotate.X },
-						Lumina::Math::F32x3{ &particle.Translate.X }
-					)
-				};
+				if constexpr (std::is_base_of_v<Particle, T>) {
+					auto&& transform{
+						SRT(
+							Lumina::Math::F32x3{ &particle.Scale.X },
+							Lumina::Math::F32x3{ &particle.Rotate.X },
+							Lumina::Math::F32x3{ &particle.Translate.X }
+						)
+					};
 
-				Lumina::Math::F32x4x4<>::Multiply(transform, transform, viewToWorld_);
-				transform[3] = {
-					particle.Translate.X,
-					particle.Translate.Y,
-					particle.Translate.Z,
-					1.0f
-				};
+					transform = transform * viewToWorld_;
+					transform[3] = {
+						particle.Translate.X,
+						particle.Translate.Y,
+						particle.Translate.Z,
+						1.0f
+					};
 
-				// Transform
-				UB_Array_RenderData_.Store(
-					&transform,
-					sizeof(Lumina::Math::F32x4x4<>),
-					(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
-					Count_Alive_ + 0LLU
-				);
-				// RGBA, TextureID, AtlasID
-				UB_Array_RenderData_.Store(
-					&particle.RenderData,
-					sizeof(typename T::RenderDataCollection),
-					(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
-					Count_Alive_ + sizeof(Lumina::Math::F32x4x4<>)
-				);
+					// Transform
+					UB_Array_RenderData_.Store(
+						&transform,
+						sizeof(Lumina::Math::F32x4x4<>),
+						(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
+						Count_Alive_ + 0LLU
+					);
+					// RGBA, TextureID, AtlasID
+					UB_Array_RenderData_.Store(
+						&particle.RenderData,
+						sizeof(typename T::RenderDataCollection),
+						(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
+						Count_Alive_ + sizeof(Lumina::Math::F32x4x4<>)
+					);
 
-				++Count_Alive_;
+					++Count_Alive_;
+				}
+				else if constexpr (std::is_base_of_v<Particle2, T>) {
+					Lumina::Math::F32x4x4<> transform{};
+					std::memcpy(&transform, &particle.World, sizeof(Lumina::Math::F32x4x4<>));
+					transform = transform * viewToWorld_;
+
+					transform[3] = {
+						particle.World[3][0],
+						particle.World[3][1],
+						particle.World[3][2],
+						1.0f
+					};
+
+					// Transform
+					UB_Array_RenderData_.Store(
+						&transform,
+						sizeof(Lumina::Math::F32x4x4<>),
+						(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
+						Count_Alive_ + 0LLU
+					);
+					// RGBA, TextureID, AtlasID
+					UB_Array_RenderData_.Store(
+						&particle.RenderData,
+						sizeof(typename T::RenderDataCollection),
+						(sizeof(Lumina::Math::F32x4x4<>) + sizeof(typename T::RenderDataCollection)) *
+						Count_Alive_ + sizeof(Lumina::Math::F32x4x4<>)
+					);
+
+					++Count_Alive_;
+				}
 			}
 		}
 

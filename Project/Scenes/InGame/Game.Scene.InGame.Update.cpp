@@ -1697,6 +1697,7 @@ namespace Game::Scene::Impl {
 		Update_<"PlayerEffect.Perpetual">();
 		Update_<"PlayerEffect.Move">();
 		Update_<"PlayerEffect.Jump">();
+		Update_<"PlayerEffect.Warp">();
 
 		Update_<"UmbrellaEffect.Perpetual">();
 		Update_<"UmbrellaEffect.Attack">();

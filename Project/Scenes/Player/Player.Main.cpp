@@ -540,11 +540,16 @@ void Player::Update(float deltaTime) {
 		event_OnPlayerJump.Velocity = myVelocity_;
 		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerJump));
 	}
-	/*if (currentActionState_.attack == ButtonState::Pressed) {
+	/*if (inputData_.jump == ButtonState::Pressed) {
+		Lumina::Context::Instance().EventContext().TriggerEvent(
+			std::move(Game::Event::InGame::OnPlayerWarp{})
+		);
+	}*/
+	if (currentActionState_ == attackState_.get()) {
 		Lumina::Context::Instance().EventContext().TriggerEvent(
 			std::move(Game::Event::InGame::OnPlayerAttack{})
 		);
-	}*/
+	}
 }
 
 // メッシュバッチ自体はMeshManager::BatchBegin()とBatchEnd()の間に入れないといけないので
@@ -737,6 +742,10 @@ void Player::WarpToUmbrella() {
 	// 4. 空中状態にするなどの後処理
 	ChangeMovementState(airborneState_.get());
 	ChangeActionState(normalDrawnState_.get());
+
+	Lumina::Context::Instance().EventContext().TriggerEvent(
+		std::move(Game::Event::InGame::OnPlayerWarp{})
+	);
 }
 
 ///////////////////
