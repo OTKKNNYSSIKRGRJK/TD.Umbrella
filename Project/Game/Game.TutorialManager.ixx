@@ -23,7 +23,7 @@ namespace Game {
 		uint32_t TextureIndex{ 0U };
 
 		// テキスト画像の表示位置とサイズ（スクリーン座標 0~1280, 0~720）
-		Lumina::Math::F32x2 TextPosition{ 400.0f, 550.0f };
+		Lumina::Math::F32x2 TextPosition{ 400.0f, 470.0f };
 		Lumina::Math::F32x2 TextSize{ 480.0f, 120.0f };
 
 		// 進行条件
@@ -34,11 +34,13 @@ namespace Game {
 			Auto,          // 一定時間後に自動進行
 			MoveDuration,  // 一定時間移動入力をし続けたら進行
 			GuardDuration, // 傘開き（R2 / Iキー）を一定時間続けたら進行
+			AreaExit,      // 特定のエリアから退出したら進行
 		} trigger{ Trigger::AnyInput };
 
 		uint16_t RequiredPadButton{ 0U };   // Trigger::PadButton の場合
 		uint16_t RequiredKey{ 0U };         // 対応するキーボードのキー
 		float AutoDuration{ 3.0f };         // Trigger::Auto / MoveDuration の場合（秒）
+		int RequiredAreaIndex{ -1 };        // Trigger::AreaExit の場合
 
 		// 許可する入力のビットフラグ
 		enum AllowedInput : uint16_t {
@@ -58,13 +60,28 @@ namespace Game {
 		uint16_t AllowedInputs{ Input_All };
 	};
 
+	/// 地点イベントトリガー情報
+	export struct LocationTrigger {
+		int AreaIndex{ 0 };
+		Lumina::Math::F32x3 Position{ 0.0f, 0.0f, 0.0f };
+		float Radius{ 50.0f };
+		std::string EventName{};
+		bool Triggered{ false };
+	};
+
 	/// チュートリアルマネージャー
 	export class TutorialManager {
 	public:
 		void Initialize();
 
-		/// チュートリアルのシーケンス（手順群）を登録
-		void RegisterSequences();
+		/// JSONファイルからチュートリアルシーケンスを読み込む
+		/// @param jsonPath JSONファイルのパス（例: "Assets/Data/Tutorial/tutorial_sequences.json"）
+		void LoadFromJSON(const std::string& jsonPath);
+
+		/// イベントを発火し、対応するシーケンスがあれば開始する
+		/// @param eventName イベント名（例: "area_enter_0", "first_enemy_near"）
+		/// @return 実際にチュートリアルが開始されたらtrue
+		bool FireEvent(const std::string& eventName);
 
 		/// 指定されたシーケンスIDのチュートリアルを開始（未完了の場合のみ）
 		/// @return 実際に開始されたらtrue
@@ -77,7 +94,15 @@ namespace Game {
 		void Skip();
 
 		/// 毎フレーム更新
-		void Update(float deltaTime);
+		void Update(float deltaTime, int currentAreaIndex = -1);
+
+		/// 地点トリガーの進捗を含め、すべての進行状況をリセットする
+		void ResetProgress();
+
+		/// プレイヤーの位置情報に基づいて特定の地点に入った時にイベントを自動的に発火する
+		/// @param currentAreaIndex 現在のエリアインデックス
+		/// @param playerPosition プレイヤーの位置座標
+		void UpdateLocationTriggers(int currentAreaIndex, const Lumina::Math::F32x3& playerPosition);
 
 		/// PrimitiveManagerでオーバーレイ描画（NDC空間）
 		void RenderOverlay(Lumina::PrimitiveManager& primMngr);
@@ -91,6 +116,9 @@ namespace Game {
 		/// 現在のステップで許可されている入力フラグを取得
 		uint16_t GetAllowedInputs() const noexcept;
 
+		/// JSONから収集したテクスチャファイル名リスト（重複なし、順序保持）
+		const std::vector<std::string>& GetTextureFiles() const noexcept { return TextureFiles_; }
+
 		// セッション内で表示済みかのフラグ群
 		std::unordered_set<std::string> CompletedSequences_;
 
@@ -101,8 +129,19 @@ namespace Game {
 		/// ハイライト枠線をバッチ
 		void BatchHighlightBorder(Lumina::PrimitiveManager& primMngr, float pulse);
 
+		/// キー名文字列をKEY列挙値に変換
+		static uint16_t KeyNameToCode(const std::string& keyName);
+
+		/// trigger文字列をTrigger列挙値に変換
+		static TutorialStep::Trigger TriggerFromString(const std::string& str);
+
+		/// allowedInputs文字列配列をビットフラグに変換
+		static uint16_t AllowedInputsFromStrings(const std::vector<std::string>& inputs);
+
 	private:
 		std::unordered_map<std::string, std::vector<TutorialStep>> Sequences_;
+		std::unordered_map<std::string, std::string> EventToSequence_; // イベント名 → シーケンスID
+		std::vector<LocationTrigger> LocationTriggers_;
 		std::string ActiveSequenceId_{};
 
 		std::vector<TutorialStep> Steps_;
@@ -113,9 +152,18 @@ namespace Game {
 		bool Active_{ false };
 		bool Completed_{ false };
 
+		// JSONから収集したテクスチャファイル名と名前→インデックスマップ
+		std::vector<std::string> TextureFiles_;
+		std::unordered_map<std::string, uint32_t> TextureNameToIndex_;
+
+		// デフォルト表示位置・サイズ（JSONから読み込み）
+		Lumina::Math::F32x2 DefaultTextPosition_{ 400.0f, 470.0f };
+		Lumina::Math::F32x2 DefaultTextSize_{ 480.0f, 120.0f };
+
 		// テクスチャ情報（InGameから設定される）
 	public:
 		uint32_t TutorialTextureStartIndex{ 0U };
 		uint32_t TutorialTextureCount{ 0U };
+		uint32_t WhiteTextureIndex{ 0U };
 	};
 }

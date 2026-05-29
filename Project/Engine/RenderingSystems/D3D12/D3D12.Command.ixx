@@ -89,7 +89,7 @@ namespace Lumina::D3D12 {
 			std::string_view debugName_ = "CommandQueue"
 		);
 
-		//----	------	------	------	------	----//
+		////----	------	------	------	------	----//
 
 	public:
 		constexpr CommandQueue() noexcept;

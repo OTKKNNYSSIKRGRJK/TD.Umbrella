@@ -257,6 +257,9 @@ namespace Game::Scene::Impl {
 			float ScreenFadeAlpha = 1.0f;
 			int ScreenFadeNextAction = 0;
 			float ScreenFadeSpeed = 1.5f;
+
+			// チュートリアル用: 前フレームのプレイヤーHP（ダメージ検知用）
+			float PrevPlayerHp = -1.0f;
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);

@@ -50,6 +50,7 @@ export namespace Game::Event {
 	//  ポーズ用パッド前回状態
 	// ==============================
 	inline bool PrevPadStart = false;
+	inline bool PrevPadBack = false;
 
 	// ==============================
 	//  フェーズリセット
