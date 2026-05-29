@@ -35,7 +35,8 @@ namespace Lumina {
 			D3D12::RootSignature const& rs_,
 			D3D12::GraphicsPSO const& graphicsPSO_,
 			Math::F32x4x4<> const& localToWorld_,
-			Math::F32x4x4<> const& worldToProjective_
+			Math::F32x4x4<> const& worldToProjective_,
+			U32 num_Instances_ = 1U
 		);
 
 		void Initialize(

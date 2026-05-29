@@ -40,7 +40,7 @@ namespace Game::Scene::Impl {
 			0.0f, 0.0f, 0.0f, 1.0f,
 		};
 		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
-		Portals_[idx_]->Render(cmdList_, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_);
+		Portals_[idx_]->Render(cmdList_, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_, 2U);
 	}
 	template<>
 	void InGame::Render_<"Portals">(
@@ -483,6 +483,9 @@ namespace Game::Scene::Impl {
 		);
 
 		Render_<"Portals">(cmdList);
+
+		//TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
+		//TerrainRenderer_->DebugRenderColliders(GlobalTable_SRV_ImageTexture_, *WorldToHomogeneous_);
 
 		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
 			Lumina::D3D12::Barrier::Transition(

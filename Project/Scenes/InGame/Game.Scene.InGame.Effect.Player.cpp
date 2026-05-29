@@ -25,14 +25,16 @@ namespace Game::Scene::Impl {
 		Lumina::Math::F32x4x4<> World_Feet[2]{};
 
 		Lumina::Math::F32x4x4<> World_Hip{};
-		
+
 		Lumina::Math::F32x3 WorldPos_UmbrellaRoot{};
 		Lumina::Math::F32x3 WorldPos_UmbrellaTip{};
 
 		using Effect::RGB_Gaming;
 		using Effect::RNDEngine;
 	}
+}
 
+namespace Game::Scene::Impl {
 	template<>
 	auto InGame::Update_<"PlayerEffect.Common">() -> void {
 		static auto const& animatedModel{ Player_->GetAnimatedModel() };
@@ -96,18 +98,18 @@ namespace Game::Scene::Impl {
 				p.Translate.Y += worldPos_Hand.Y();
 				p.Translate.Z += worldPos_Hand.Z();
 
-				p.Scale.X = 1.0f;
-				p.Scale.Y = 1.0f;
+				p.Scale.X = 0.75f;
+				p.Scale.Y = 0.75f;
 
 				p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
 
-				p.Life = 64.0f;
+				p.Life = 36.0f;
 
 				p.RenderData.RGBA = {
 					RGB_Gaming.R * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 					RGB_Gaming.G * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 					RGB_Gaming.B * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-					0.7875f
+					0.375f
 				};
 				p.RenderData.DiffuseID = 1U;
 				p.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
@@ -121,7 +123,7 @@ namespace Game::Scene::Impl {
 		if (PlayerMoveEffectEmitFrameCount <= 0) { return; }
 
 		// * Feet
-		
+
 		for (int i{ 0 }; i < 2; ++i) {
 			Lumina::Particle p_Move{};
 			{
@@ -132,8 +134,8 @@ namespace Game::Scene::Impl {
 				};
 				p_Move.Translate.Z = p_Move.Translate.X;
 
-				p_Move.Velocity.X = Effect::PlayerVelocity.X * (-0.015625f);
-				p_Move.Velocity.Y = p_Move.Translate.X * (-0.5f);
+				p_Move.Velocity.X = Effect::PlayerVelocity.X * (-0.015625f) * 0.75f;
+				p_Move.Velocity.Y = p_Move.Translate.X * (-0.5f) * 0.75f;
 
 				auto const& world_Foot{ World_Feet[i][3] };
 				p_Move.Translate.X += world_Foot.X();
@@ -145,7 +147,7 @@ namespace Game::Scene::Impl {
 
 				p_Move.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
 
-				p_Move.Life = 32.0f;
+				p_Move.Life = 48.0f;
 
 				p_Move.RenderData.RGBA = {
 					0.2f + RGB_Gaming.R * 0.5f,
@@ -169,7 +171,7 @@ namespace Game::Scene::Impl {
 		auto& rndEngine{ Lumina::Math::Random::Generator() };
 
 		// * Feet
-		
+
 		for (int i{ 0 }; i < 2; ++i) {
 			Lumina::Particle p_Move{};
 			{
@@ -193,7 +195,7 @@ namespace Game::Scene::Impl {
 
 				p_Move.Rotate.Z = rndEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
 
-				p_Move.Life = 24.0f;
+				p_Move.Life = 36.0f;
 
 				p_Move.RenderData.RGBA = {
 					0.5f + RGB_Gaming.R * 0.1f + rndEngine() * Inv_0xFFFFFFFF * 0.3f,
@@ -243,7 +245,7 @@ namespace Game::Scene::Impl {
 
 				p.Life = 36.0f;
 
-				auto const rgb_Base = Lumina::Utils::Color::Convert(
+				auto const rgb_Gaming = Lumina::Utils::Color::Convert(
 					Lumina::Utils::Color::HSV{
 						RNDEngine() * Inv_0xFFFFFFFF * 45.0f + theta * 90.0f,
 						RNDEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
@@ -251,10 +253,10 @@ namespace Game::Scene::Impl {
 					}
 				);
 				p.RenderData.RGBA = {
-					rgb_Base.R,
-					rgb_Base.G,
-					rgb_Base.B,
-					0.45f
+					rgb_Gaming.R * 0.75f + 0.25f,
+					rgb_Gaming.G * 0.9f + 0.1f,
+					rgb_Gaming.B,
+					0.25f
 				};
 				p.RenderData.DiffuseID = 1U;
 				p.RenderData.DiffuseAtlasID = 5U;
@@ -369,6 +371,17 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Update_<"PlayerEffect.Charge.Cylinder">() -> void {
+		
+	}
+	template<>
+	auto InGame::Update_<"PlayerEffect.Charge.Spring">() -> void {
+		
+	}
+}
+
+namespace Game::Scene::Impl {
+	template<>
 	auto InGame::Update_<"PlayerEffectParticle">(Lumina::Particle& p_) -> void {
 		p_.Translate.X += p_.Velocity.X;
 		p_.Translate.Y += p_.Velocity.Y;
@@ -378,7 +391,9 @@ namespace Game::Scene::Impl {
 		p_.Rotate.Z += p_.Velocity.Z * 0.01f;
 		p_.Life -= 1.0f;
 	}
+}
 
+namespace Game::Scene::Impl {
 	template<>
 	auto InGame::Update_<"UmbrellaEffect.Perpetual">() -> void {
 		auto tipEffect{
@@ -418,7 +433,7 @@ namespace Game::Scene::Impl {
 						RGB_Gaming.R * 0.3f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 						RGB_Gaming.G * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 						RGB_Gaming.B * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-						0.375f
+						0.125f
 					};
 					p.RenderData.DiffuseID = 1U;
 					p.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
@@ -466,7 +481,7 @@ namespace Game::Scene::Impl {
 					p.World[2][1] *= 3.0f;
 					p.World[2][2] *= 3.0f;
 
-					p.Velocity = { dPos.X * 0.0625f, dPos.Y * 0.0625f, dPos.Z * 0.0625f };
+					//p.Velocity = { dPos.X * 0.0625f, dPos.Y * 0.0625f, dPos.Z * 0.0625f };
 
 					p.Life = 48.0f;
 
@@ -483,7 +498,7 @@ namespace Game::Scene::Impl {
 				Lumina::Particle2 p2{};
 				{
 					std::memcpy(&p2, &p, sizeof(Lumina::Particle2));
-					
+
 					p2.Velocity.X *= -1.0f;
 					p2.Velocity.Y *= -1.0f;
 					p2.Velocity.Z *= -1.0f;
@@ -505,7 +520,9 @@ namespace Game::Scene::Impl {
 
 		--PlayerAttackEffectEmitFrameCount;
 	}
+}
 
+namespace Game::Scene::Impl {
 	template<>
 	auto InGame::Update_<"UmbrellaEffectParticle">(Lumina::Particle2& p_) -> void {
 		p_.World[3][0] += p_.Velocity.X;

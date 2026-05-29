@@ -139,7 +139,8 @@ namespace Lumina {
 		D3D12::RootSignature const& rs_,
 		D3D12::GraphicsPSO const& graphicsPSO_,
 		Math::F32x4x4<> const& localToWorld_,
-		Math::F32x4x4<> const& worldToProjective_
+		Math::F32x4x4<> const& worldToProjective_,
+		U32 num_Instances_
 	) {
 		Time_ += 0.0166667f;
 
@@ -166,7 +167,13 @@ namespace Lumina {
 		cmdList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		cmdList_->IASetVertexBuffers(0U, 1U, &VBV_);
 		cmdList_->IASetIndexBuffer(&IBV_);
-		cmdList_->DrawIndexedInstanced(CylinderProperties_.NUM_Division * 6U, 1U, 0U, 0U, 0U);
+		cmdList_->DrawIndexedInstanced(
+			CylinderProperties_.NUM_Division * 6U,
+			num_Instances_,
+			0U,
+			0U,
+			0U
+		);
 	}
 
 	void Cylinder::Initialize(

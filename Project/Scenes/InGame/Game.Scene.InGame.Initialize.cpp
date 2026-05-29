@@ -1077,28 +1077,104 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Initialize_<"PlayerChargeCylinder">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		auto settings{ Lumina::Utils::LoadFromFile<nlohmann::json>("Cylinder.json", "Assets/Configs") };
+		auto rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(settings.at("PlayerChargeRS")) };
+		RS_PlayerChargeCylinder_.Initialize(d3d12Device, rsSetup, "PlayerChargeRS");
+
+		d3d12Context.Compile(
+			VS_PlayerChargeCylinder_,
+			L"Assets/Shaders/Player/ChargeCylinder.VS.hlsl",
+			L"vs_6_6",
+			L"main",
+			"Player.ChargeCylinder.VS"
+		);
+		d3d12Context.Compile(
+			PS_PlayerChargeCylinder_,
+			L"Assets/Shaders/Player/ChargeCylinder.PS.hlsl",
+			L"ps_6_6",
+			L"main",
+			"Player.ChargeCylinder.PS"
+		);
+		Lumina::D3D12::GraphicsPipelineState::Setup graphicsPSOSetup{};
+		Lumina::D3D12::BlendState blendState{ .IndependentBlendEnable{ true }, };
+		blendState.RenderTarget[0] = {
+			.BlendEnable{ true },
+			.LogicOpEnable{ false },
+			.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
+			.DestBlend{ D3D12_BLEND_ONE },
+			.BlendOp{ D3D12_BLEND_OP_ADD },
+			.SrcBlendAlpha{ D3D12_BLEND_ONE },
+			.DestBlendAlpha{ D3D12_BLEND_ONE },
+			.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
+			.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
+		};
+		Lumina::D3D12::RasterizerState rasterizerState{
+			.FillMode{ D3D12_FILL_MODE_SOLID },
+			.CullMode{ D3D12_CULL_MODE_NONE },
+		};
+		Lumina::D3D12::DepthStencilState depthStencilState{
+			.DepthEnable{ true },
+			.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+			.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+		};
+		Lumina::D3D12::GraphicsPipelineState::InputLayout inputLayout{};
+		inputLayout.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		inputLayout.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
+		inputLayout.Append("NORMAL", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
+		std::vector<DXGI_FORMAT> rtvFormats{
+			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
+		};
+		graphicsPSOSetup <<
+			RS_PlayerChargeCylinder_ <<
+			VS_PlayerChargeCylinder_ <<
+			PS_PlayerChargeCylinder_ <<
+			blendState <<
+			rasterizerState <<
+			depthStencilState <<
+			inputLayout <<
+			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE <<
+			rtvFormats <<
+			Lumina::D3D12::GraphicsPipelineState::DefaultDSVFormat;
+
+		PSO_PlayerChargeCylinder_.Initialize(
+			d3d12Device,
+			graphicsPSOSetup,
+			"Player.ChargeCylinder.GraphicsPSO"
+		);
+
+		PlayerChargeCylinder_ = std::make_unique<Lumina::Cylinder>();
+		PlayerChargeCylinder_->Initialize(d3d12Context, d3d12Device);
+		PlayerChargeCylinder_->Reset({ 12U, 0.0f, 1.5f, 1.0f });
+	}
+
+	template<>
 	auto InGame::Initialize_<"Portals">() -> void {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
 
 		auto settings{ Lumina::Utils::LoadFromFile<nlohmann::json>("Cylinder.json", "Assets/Configs") };
-		auto rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(settings.at("RS")) };
-		RS_Portal_.Initialize(d3d12Device, rsSetup, "Cylinder RS");
+		auto rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(settings.at("PortalRS")) };
+		RS_Portal_.Initialize(d3d12Device, rsSetup, "PortalRS");
 
 		d3d12Context.Compile(
 			VS_Portal_,
-			L"Assets/Shaders/Cylinder.VS.hlsl",
+			L"Assets/Terrain/Shaders/Portal.VS.hlsl",
 			L"vs_6_6",
 			L"main",
-			"Cylinder.VS"
+			"Portal.VS"
 		);
 		d3d12Context.Compile(
 			PS_Portal_,
-			L"Assets/Shaders/Cylinder.PS.hlsl",
+			L"Assets/Terrain/Shaders/Portal.PS.hlsl",
 			L"ps_6_6",
 			L"main",
-			"Cylinder.PS"
+			"Portal.PS"
 		);
 		Lumina::D3D12::GraphicsPipelineState::Setup graphicsPSOSetup{};
 		Lumina::D3D12::BlendState blendState{ .IndependentBlendEnable{ true }, };
@@ -1193,9 +1269,13 @@ namespace Game::Scene::Impl {
 		Initialize_<"Camera">();
 		Initialize_<"Resource, View">(d3d12Device);
 		Initialize_<"Pipeline, Canvas, RenderPass">();
+
 		Initialize_<"Player">();
+		Initialize_<"PlayerChargeCylinder">();
+		
 		Initialize_<"Lighting">(d3d12Context);
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
+
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
 

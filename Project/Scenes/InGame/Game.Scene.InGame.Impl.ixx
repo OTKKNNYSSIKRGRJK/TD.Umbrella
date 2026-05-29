@@ -288,6 +288,7 @@ namespace Game::Scene::Impl {
 
 		// * パーティクルシェーダー用
 
+	private:
 		Lumina::D3D12::DescriptorHeap LocalHeap_CBV_;
 		Lumina::D3D12::UploadBuffer UB_WorldToProjective_;
 
@@ -297,6 +298,13 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle2>> UmbrellaEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
+
+	private:
+		Lumina::D3D12::RootSignature RS_PlayerChargeCylinder_;
+		Lumina::D3D12::Shader VS_PlayerChargeCylinder_;
+		Lumina::D3D12::Shader PS_PlayerChargeCylinder_;
+		Lumina::D3D12::GraphicsPSO PSO_PlayerChargeCylinder_;
+		std::unique_ptr<Lumina::Cylinder> PlayerChargeCylinder_;
 
 	private:
 		Lumina::D3D12::RootSignature RS_Skinning_;
