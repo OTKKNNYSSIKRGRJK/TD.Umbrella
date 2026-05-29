@@ -17,6 +17,7 @@ import Lumina.CG3D.Struct;
 import Lumina.Watercolor;
 import Lumina.Grassland;
 import ParticleSystem;
+import Lumina.Skybox;
 
 namespace Game::Scene::Impl {
 	export class Title {
@@ -97,6 +98,7 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::Watercolor> Watercolor_;
 		std::unique_ptr<Lumina::Grassland> Grassland_;
+		std::unique_ptr<Lumina::Skybox> Skybox_;
 
 		// * パーティクル関連
 	private:

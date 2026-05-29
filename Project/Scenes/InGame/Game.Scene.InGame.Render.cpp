@@ -204,6 +204,9 @@ namespace Game::Scene::Impl {
 				cmdList->SetGraphicsRootDescriptorTable(1U, inst->SkinCluster_.PaletteSRVHandle.second);
 				cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(materialIdx));
 				cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+				cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
+				auto const& cameraPos{ Camera_Player_->WorldPosition() };
+				cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
 
 				D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
 					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(model->VBV_),
