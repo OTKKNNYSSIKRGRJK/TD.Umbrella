@@ -562,7 +562,7 @@ namespace Game::Scene::Impl {
 		// CBV作成
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 0;
+		Material0_.ID_DiffuseMap = 999;
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 
 		// 敵用のマテリアルを設定

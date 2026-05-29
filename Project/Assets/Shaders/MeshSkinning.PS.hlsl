@@ -46,8 +46,12 @@ PSOutput main(VSOutput input_) {
 	
 	float4 envColor = CalcEnv(input_.WorldPos.xyz, input_.Normal) * 0.5f;
 	
-	//float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
-	output.Diffuse = envColor * Material.Color;
+	if (Material.ID_DiffuseMap == 999U) {
+		output.Diffuse = envColor * Material.Color;
+	} else {
+		float4 diffuseColor = Textures[Material.ID_DiffuseMap].Sample(Sampler, input_.TexCoord);
+		output.Diffuse = (diffuseColor + envColor) * Material.Color;
+	}
 	const float3 normal = normalize(input_.Normal.xyz);
 	output.Normal = float4(normal * 0.5f + 0.5f, 1.0f);
 	// * Bleeding

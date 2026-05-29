@@ -146,7 +146,7 @@ namespace Game::Scene::Impl {
 		// アップデートでマテリアルをいじったりするのであれば下記のように書くとよろし
 		// マテリアルデータを更新
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 0;
+		Material0_.ID_DiffuseMap = 999;
 
 		// マテリアルデータをCBVと紐づけてあるバッファに格納
 		// --- パラメータ ---
