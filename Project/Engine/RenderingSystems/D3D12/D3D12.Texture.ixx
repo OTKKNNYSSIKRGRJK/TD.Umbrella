@@ -206,6 +206,8 @@ export namespace Lumina::D3D12 {
 
 		STATUS Status_{ STATUS::READY_TO_UPLOAD };
 		Intermediate* IntermediateData_{ nullptr };
+	public:
+		mutable D3D12_RESOURCE_STATES State_{ D3D12_RESOURCE_STATE_COPY_DEST };
 	};
 
 	//////	//////	//////	//////	//////	//////
@@ -882,7 +884,10 @@ namespace Lumina::D3D12 {
 					}
 					CommandList_.Reset(CommandAllocator_);
 
-					for (auto* tex : BatchedTextures_) { tex->Status_ = ImageTexture::STATUS::READY_TO_USE; }
+					for (auto* tex : BatchedTextures_) {
+						tex->Status_ = ImageTexture::STATUS::READY_TO_USE;
+						tex->State_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+					}
 				}
 
 				// Releases intermediate data of the batched textures after the copy commands are finished.

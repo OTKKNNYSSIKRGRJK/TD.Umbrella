@@ -12,7 +12,7 @@
         "scaleZ": 0.6
     },
     "visual": {
-        "meshPath": "Assets\\cube.obj",
+        "meshPath": "Assets\\Enemy\\FlowerLotus\\Lotus_Bullet.gltf",
         "materialIndex": 0
     },
     "movement": {

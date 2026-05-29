@@ -104,6 +104,33 @@
                 "y": 154.1712646484375
             },
             "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": true,
+            "position": {
+                "x": 485.9546813964844,
+                "y": 329.90386962890625
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerLotus",
+            "facingRight": true,
+            "position": {
+                "x": 790.84765625,
+                "y": 339.69293212890625
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 640.0,
+                "y": 360.0
+            },
+            "sizeCategory": 1
         }
     ],
     "goalPosition": {

@@ -12,7 +12,7 @@
         "scaleZ": 0.5
     },
     "visual": {
-        "meshPath": "Assets\\cube.obj",
+        "meshPath": "Assets\\Enemy\\FlowerSunward\\Sunward_Bullet.gltf",
         "materialIndex": 0
     },
     "movement": {
