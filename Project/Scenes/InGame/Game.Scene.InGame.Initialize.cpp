@@ -1037,7 +1037,7 @@ namespace Game::Scene::Impl {
 
 		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
 			[this] (Event::InGame::OnPlayerMove& event_) {
-				this->Update_<"OnPlayerMove">(event_);
+				this->Update_<"プレイヤー移動">(event_);
 			}
 		);
 		eventMngr.AddEventListener<Event::InGame::OnPlayerJump>(

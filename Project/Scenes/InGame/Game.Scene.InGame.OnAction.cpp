@@ -9,7 +9,7 @@ import Lumina.Core.Math;
 
 namespace Game::Scene::Impl {
 	template<>
-	void InGame::Update_<"OnPlayerMove">(Event::InGame::OnPlayerMove& event_) {
+	void InGame::Update_<"プレイヤー移動">(Event::InGame::OnPlayerMove& event_) {
 		Effect::PlayerMoveEffectEmitFrameCount = 6;
 		Effect::PlayerVelocity = event_.Velocity;
 	}
@@ -20,7 +20,8 @@ namespace Game::Scene::Impl {
 	) {
 		Effect::PlayerJumpEffectEmitFrameCount = 12;
 
-		//this->Update_<"SE.PlayerJump">(0.75f);
+		float a = 0.75f;
+		this->Update_<"SE.PlayerJump">(float{ a });
 	}
 
 	template<>
