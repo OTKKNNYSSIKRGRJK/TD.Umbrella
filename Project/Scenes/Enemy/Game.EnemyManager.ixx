@@ -18,6 +18,7 @@ export namespace Game {
 	struct EnemyInstance;
 	class EnemyBehavior;
 	class KingSlimeBehavior;
+	class BossBehavior;
 	std::unique_ptr<EnemyBehavior> CreateEnemyBehavior(const Editor::EnemyData& data);
 
 	class EnemyBehavior {
@@ -63,6 +64,32 @@ export namespace Game {
 		// Jump cooldown: accumulates time across all states, triggers jumpReady flag
 		float jumpCooldownTimer_ = 0.0f;
 		float jumpCooldownInterval_ = 6.0f; // seconds of combat before jump-above is ready
+	};
+
+	class BossBehavior final : public EnemyBehavior {
+	public:
+		~BossBehavior() override = default;
+		void OnSpawn(EnemyInstance& enemy) override;
+		void Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) override;
+	private:
+		// Phase management
+		bool phase2Active_ = false;
+		float phaseShiftTimer_ = 0.0f;
+		float phaseShiftDuration_ = 1.5f; // seconds for phase shift animation
+
+		// Air dive cooldown (Phase 2)
+		enum class AirDivePhase { None, Rising, Tracking, Diving };
+		AirDivePhase airDivePhase_ = AirDivePhase::None;
+		float airDiveTimer_ = 0.0f;
+		float airDiveCooldown_ = 8.0f; // seconds between air dives
+		float airDiveCooldownTimer_ = 0.0f;
+		float hoverHeight_ = 6.0f;
+		float riseDuration_ = 0.5f;
+		float riseTimer_ = 0.0f;
+		float trackDuration_ = 1.0f;
+		Lumina::Math::F32x3 riseStartPos_{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 riseTargetPos_{ 0.0f, 0.0f, 0.0f };
+		float lastTrackedX_ = 0.0f;
 	};
 
 	/// <summary>

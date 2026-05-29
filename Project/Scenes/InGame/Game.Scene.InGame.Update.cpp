@@ -160,11 +160,8 @@ namespace Game::Scene::Impl {
 			// エリア遷移時に現在アクティブなチュートリアルを中断
 			TutorialManager_->Skip();
 
-			if (areaIndex == 0) {
-				TutorialManager_->TryStartSequence("BasicControls");
-			} else if (areaIndex == 2) {
-				TutorialManager_->TryStartSequence("Parachute");
-			}
+			// エリア番号に対応するイベントを発火
+			TutorialManager_->FireEvent("area_enter_" + std::to_string(areaIndex));
 		}
 
 		if (!spawnedAtConnection) {
@@ -244,6 +241,7 @@ namespace Game::Scene::Impl {
 		Game::EnemyManager::GetInstance()->ClearInstances();
 		Game::ProjectileManager::GetInstance()->ClearAll();
 		Game::ExpOrbManager::GetInstance()->Clear();
+		EnemySkinnedInstances_.clear();
 
 		int placementIndex = 0;
 		for (auto& ep : playState_.CurrentArea.enemies) {
@@ -1337,6 +1335,7 @@ namespace Game::Scene::Impl {
 
 			// HPを少し減らす (落下ペナルティ)
 			Player_->GetStatusComponent().TakeDamage(10.0f);
+			playState_.PrevPlayerHp = Player_->GetStatusComponent().GetHp();
 
 			// リスポーン地点へ戻す
 			Player_->SetPosition(Event::RespawnPos);
@@ -1525,9 +1524,10 @@ namespace Game::Scene::Impl {
 						Player_->ChangeActionState(Player_->normalSheathedState_.get());
 						Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
 						Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
+						playState_.PrevPlayerHp = -1.0f;
 					}
 					if (TutorialManager_) {
-						TutorialManager_->CompletedSequences_.clear();
+						TutorialManager_->ResetProgress();
 					}
 					playState_.VisitedAreas.clear();
 					playState_.DefeatedEnemies.clear();
@@ -1594,8 +1594,12 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		// M キーでミニマップ拡大表示トグル（ポーズ中は無効）
-		if (!playState_.IsPaused && keyboard.IsJustPressed(KEY::M)) {
+		// M キーまたはゲームパッドの BACK ボタンでミニマップ拡大表示トグル（ポーズ中は無効）
+		bool padBackNow = pad.IsHold(0x0020); // 0x0020 = BACK ボタン
+		bool padBackJust = padBackNow && !Event::PrevPadBack;
+		Event::PrevPadBack = padBackNow;
+
+		if (!playState_.IsPaused && (keyboard.IsJustPressed(KEY::M) || padBackJust)) {
 			minimapExpanded_ = !minimapExpanded_;
 		}
 
@@ -1656,12 +1660,32 @@ namespace Game::Scene::Impl {
 				Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
 				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+
+				// プレイヤーの位置に基づいて地点イベントトリガーを判定
+				if (Player_ && TutorialManager_) {
+					TutorialManager_->UpdateLocationTriggers(playState_.CurrentArea.index, Player_->GetPosition());
+				}
 				
 				Update_<"Enemies-1">(1.0f / 60.0f);
 				
 				Update_<"Collision">(); // 地形との当たり判定のため実行
 				
 				Update_<"Enemies-2">();
+
+				// プレイヤーが敵や弾からダメージを受けた（HPが減少した）ことを検知し、チュートリアルイベントを発火
+				if (Player_) {
+					float currentHp = Player_->GetStatusComponent().GetHp();
+					if (playState_.PrevPlayerHp < 0.0f) {
+						playState_.PrevPlayerHp = currentHp;
+					} else if (currentHp < playState_.PrevPlayerHp) {
+						if (TutorialManager_) {
+							TutorialManager_->FireEvent("first_damage_taken");
+						}
+						playState_.PrevPlayerHp = currentHp;
+					} else {
+						playState_.PrevPlayerHp = currentHp;
+					}
+				}
 			}
 			
 			Update_<"[Debug] Area">();
@@ -1673,7 +1697,7 @@ namespace Game::Scene::Impl {
 		// プレイヤー入力処理を終えた後でチュートリアルを進行させる
 		// ポーズ中やボス登場演出中はチュートリアルも進めない
 		if (tutorialActive && !playState_.IsPaused && !playState_.IsBossPresentationActive) {
-			TutorialManager_->Update(1.0f / 60.0f);
+			TutorialManager_->Update(1.0f / 60.0f, playState_.CurrentArea.index);
 		}
 
 /// dev-Takanaga-temporary

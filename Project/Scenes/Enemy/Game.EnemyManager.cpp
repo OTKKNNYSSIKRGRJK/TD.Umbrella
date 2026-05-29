@@ -496,6 +496,22 @@ namespace {
 					Game::ProjectileManager::GetInstance()->Fire(enemy.position, target, enemy.baseData.projectile, enemy.id);
 				}
 			}
+			else if (!fb.empty() && fb == "fireHorizontal") {
+				// 波動攻撃: 左右両方向に真横に弾を飛ばす（上方向に広がる3発）
+				Lumina::Math::F32x3 spawnPos = enemy.position;
+				spawnPos.Y -= 1.5f; // コリジョン下端付近から発射
+				float offsets[] = { 0.0f, 0.4f, 0.8f }; // 上に広がる
+				float dirs[] = { -1.0f, 1.0f }; // 左右両方
+				for (float d : dirs) {
+					for (float yOff : offsets) {
+						Lumina::Math::F32x3 target;
+						target.X = spawnPos.X + d * 15.0f;
+						target.Y = spawnPos.Y + yOff;
+						target.Z = 0.0f;
+						Game::ProjectileManager::GetInstance()->Fire(spawnPos, target, enemy.baseData.projectile, enemy.id);
+					}
+				}
+			}
 			else if (!fb.empty() && fb == "fireDown") {
 				// Fire 4 slow LotusPetals downwards!
 				float baseAngle = -3.14159265f / 2.0f; // Straight down
@@ -641,6 +657,9 @@ namespace Game {
 		if (data.name == "KingSlime") {
 			return std::make_unique<KingSlimeBehavior>();
 		}
+		if (data.name == "Boss") {
+			return std::make_unique<BossBehavior>();
+		}
 		return std::make_unique<EnemyBehavior>();
 	}
 
@@ -775,6 +794,123 @@ namespace Game {
 
 	int KingSlimeBehavior::GetActiveNodeIndex() const {
 		return -1;
+	}
+
+	// ============================
+	//  BossBehavior
+	// ============================
+
+	void BossBehavior::OnSpawn(EnemyInstance& enemy) {
+		enemy.currentAction = "Idle";
+		phase2Active_ = false;
+		phaseShiftTimer_ = 0.0f;
+		airDivePhase_ = AirDivePhase::None;
+		airDiveCooldownTimer_ = 0.0f;
+	}
+
+	void BossBehavior::Update(EnemyInstance& enemy, float deltaTime, const Lumina::Math::F32x3& playerPosition) {
+		// --- Phase 1 → Phase 2 transition: trigger when HP drops below 50% ---
+		if (!phase2Active_) {
+			float hpRatio = (enemy.baseData.hp > 0)
+				? static_cast<float>(enemy.currentHP) / static_cast<float>(enemy.baseData.hp)
+				: 1.0f;
+			if (hpRatio <= 0.5f) {
+				enemy.runtimeBoolFlags["phaseShiftReady"] = true;
+				phase2Active_ = true;
+				phaseShiftTimer_ = 0.0f;
+			}
+		}
+
+		// --- Phase shift animation timer ---
+		const Editor::Node* currentNode = nullptr;
+		for (const auto& n : enemy.baseData.nodes) {
+			if (n.state == enemy.currentAction) {
+				currentNode = &n;
+				break;
+			}
+		}
+
+		if (currentNode && currentNode->state == "PhaseShift") {
+			phaseShiftTimer_ += deltaTime;
+			if (phaseShiftTimer_ >= phaseShiftDuration_) {
+				enemy.runtimeBoolFlags["phaseShiftDone"] = true;
+				enemy.runtimeBoolFlags["phaseShiftReady"] = false;
+			}
+		}
+
+		// --- Phase 2: Air Dive cooldown ---
+		if (phase2Active_ && enemy.runtimeBoolFlags["phaseShiftDone"]) {
+			if (airDivePhase_ == AirDivePhase::None) {
+				airDiveCooldownTimer_ += deltaTime;
+				if (airDiveCooldownTimer_ >= airDiveCooldown_) {
+					enemy.runtimeBoolFlags["airDiveReady"] = true;
+				}
+			}
+		}
+
+		// --- Air Dive: detect when entering AerialPrepP2 node ---
+		if (currentNode && currentNode->state == "AerialPrepP2" && airDivePhase_ == AirDivePhase::None) {
+			airDivePhase_ = AirDivePhase::Rising;
+			enemy.runtimeBoolFlags["airDiveReady"] = false;
+			enemy.runtimeBoolFlags["airDiveDone"] = false;
+			airDiveCooldownTimer_ = 0.0f;
+			riseStartPos_ = enemy.position;
+			riseTargetPos_ = { playerPosition.X, playerPosition.Y + hoverHeight_, enemy.position.Z };
+			riseTimer_ = 0.0f;
+		}
+
+		// --- Air Dive phase handling ---
+		switch (airDivePhase_) {
+		case AirDivePhase::Rising:
+			riseTargetPos_.X = playerPosition.X;
+			riseTargetPos_.Y = playerPosition.Y + hoverHeight_;
+			riseTimer_ += deltaTime;
+			{
+				float t = (std::min)(riseTimer_ / riseDuration_, 1.0f);
+				enemy.position.X = riseStartPos_.X + (riseTargetPos_.X - riseStartPos_.X) * t;
+				enemy.position.Y = riseStartPos_.Y + (riseTargetPos_.Y - riseStartPos_.Y) * t;
+				enemy.velocity.X = 0.0f;
+				enemy.velocity.Y = 0.0f;
+			}
+			if (riseTimer_ >= riseDuration_) {
+				airDivePhase_ = AirDivePhase::Tracking;
+				airDiveTimer_ = trackDuration_;
+				lastTrackedX_ = playerPosition.X;
+			}
+			break;
+
+		case AirDivePhase::Tracking:
+			lastTrackedX_ = playerPosition.X;
+			enemy.position.X = playerPosition.X;
+			enemy.position.Y = playerPosition.Y + hoverHeight_;
+			enemy.velocity.X = 0.0f;
+			enemy.velocity.Y = 0.0f;
+			airDiveTimer_ -= deltaTime;
+			if (airDiveTimer_ <= 0.0f) {
+				airDivePhase_ = AirDivePhase::Diving;
+				enemy.position.X = lastTrackedX_;
+				enemy.velocity.Y = -22.0f;
+				enemy.velocity.X = 0.0f;
+			}
+			break;
+
+		case AirDivePhase::Diving:
+			{
+				float expectedGroundedVelY = -9.8f * deltaTime;
+				bool isGrounded = (enemy.velocity.Y >= expectedGroundedVelY - 0.5f) && (enemy.velocity.Y <= 0.0f);
+				if (isGrounded && enemy.position.Y < playerPosition.Y + hoverHeight_) {
+					airDivePhase_ = AirDivePhase::None;
+					enemy.runtimeBoolFlags["airDiveDone"] = true;
+					enemy.landingStunTimer = 0.3f;
+					Game::Event::AddHitStop(0.1f);
+				}
+			}
+			break;
+
+		case AirDivePhase::None:
+		default:
+			break;
+		}
 	}
 
 	// ============================
@@ -1409,7 +1545,7 @@ namespace Game {
 			const Game::Editor::Node* currentNodeInfo = nullptr;
 			{
 				// playerBelow 条件の自動算出
-				bool isBelow = (playerPosition.Y < enemy.position.Y && std::abs(dx) < 0.8f);
+				bool isBelow = (playerPosition.Y < enemy.position.Y && std::abs(dx) < 5.0f);
 				enemy.runtimeBoolFlags["playerBelow"] = isBelow;
 
 				int currentNodeId = EvaluateNodeTransitions(enemy, dist);

@@ -1,0 +1,60 @@
+{
+  "defaultTextPosition": [400.0, 470.0],
+  "defaultTextSize": [480.0, 120.0],
+
+  "sequences": {
+    "BasicControls": {
+      "triggerEvent": "area_enter_0",
+      "steps": [
+        {
+          "texture": "Left_Move.png",
+          "trigger": "MoveDuration",
+          "duration": 1.0,
+          "allowedInputs": ["Move"]
+        },
+        {
+          "texture": "A_Jump.png",
+          "trigger": "PadButton",
+          "padButton": 4096,
+          "key": "SPACE",
+          "allowedInputs": ["Move", "Jump"]
+        },
+        {
+          "texture": "Y_Attack.png",
+          "trigger": "PadButton",
+          "padButton": 32768,
+          "key": "J",
+          "allowedInputs": ["Move", "Jump", "Attack"]
+        }
+      ]
+    },
+    "OpenUmbrella": {
+      "triggerEvent": "area_enter_2",
+      "steps": [
+        {
+          "texture": "R2_OpenAnUmbrella.png",
+          "trigger": "GuardDuration",
+          "duration": 2.0,
+          "allowedInputs": ["All"]
+        },
+        {
+          "texture": "R2_Floating.png",
+          "trigger": "AreaExit",
+          "areaIndex": 2,
+          "allowedInputs": ["All"]
+        }
+      ]
+    },
+    "Defense": {
+      "triggerEvent": "first_damage_taken",
+      "steps": [
+        {
+          "texture": "R2_Defense.png",
+          "trigger": "GuardDuration",
+          "duration": 2.0,
+          "allowedInputs": ["All"]
+        }
+      ]
+    }
+  }
+}

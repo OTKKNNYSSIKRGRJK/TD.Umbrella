@@ -104,6 +104,15 @@
                 "y": 154.1712646484375
             },
             "sizeCategory": 1
+        },
+        {
+            "enemyName": "Boss",
+            "facingRight": true,
+            "position": {
+                "x": 640.0,
+                "y": 360.0
+            },
+            "sizeCategory": 1
         }
     ],
     "goalPosition": {
