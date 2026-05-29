@@ -23,7 +23,6 @@ namespace Game::Scene::Impl {
 
 	template<>
 	auto InGame::Update_<"Effect.Ambient.Raindrops">() -> void {
-
 		auto emitRaindrops{
 			[&, this] (Lumina::F32 hueFactor_) -> void {
 				static float effectTimeFactor{ 0.0f };

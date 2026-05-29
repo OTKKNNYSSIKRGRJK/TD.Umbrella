@@ -134,6 +134,14 @@ namespace Lumina {
 			Manager_.Stop(hndl_Stream_);
 		}
 
+		auto SetVolume(XAudio2::AudioStreamPlayer::Handle hndl_Stream_, float volume_) -> void {
+			Manager_.SetVolume(hndl_Stream_, volume_);
+		}
+
+		auto GetVolume(XAudio2::AudioStreamPlayer::Handle hndl_Stream_) const -> float {
+			return Manager_.GetVolume(hndl_Stream_);
+		}
+
 		auto Update() -> void {
 			Manager_.Update();
 		}

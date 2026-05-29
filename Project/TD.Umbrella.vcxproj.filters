@@ -308,6 +308,12 @@
     <ClCompile Include="Game\Terrain\Game.Terrain.Render.Impl.ixx">
       <Filter>Game\Terrain</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Audio.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.OnAction.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

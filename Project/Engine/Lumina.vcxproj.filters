@@ -136,6 +136,9 @@
     <ClCompile Include="Game\Test\ProceduralMap.cpp">
       <Filter>Game\Test</Filter>
     </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.Animation.cpp">
+      <Filter>Game\CG3D</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">
