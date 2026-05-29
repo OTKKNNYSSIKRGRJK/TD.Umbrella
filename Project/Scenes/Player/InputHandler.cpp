@@ -49,6 +49,11 @@ void InputHandler::HandleInput() {
     input.aimingDirectionX = (std::abs(rightStickX) > 0.15f) ? rightStickX : 0.0f;
     input.aimingDirectionY = (std::abs(rightStickY) > 0.15f) ? rightStickY : 0.0f;
 
+    if (keyboard.IsPressed(KEY::W)) { input.aimingDirectionY += 1.0f; }
+    if (keyboard.IsPressed(KEY::S)) { input.aimingDirectionY -= 1.0f; }
+    if (keyboard.IsPressed(KEY::A)) { input.aimingDirectionX -= 1.0f; }
+    if (keyboard.IsPressed(KEY::D)) { input.aimingDirectionX += 1.0f; }
+
     // ==========================
     // 【 アクション入力の取得 】
     // ==========================
@@ -62,11 +67,9 @@ void InputHandler::HandleInput() {
         keyboard.IsPressed(KEY::J) || pad.IsHold(0x8000),
         playerInput.attack
     );
-
-    //input.evasion = ButtonState::None;
-
+    
     input.evasion = UpdateButtonState(
-        keyboard.IsPressed(KEY::J) || pad.IsHold(0x2000),
+        keyboard.IsPressed(KEY::O) || pad.IsHold(0x2000),
         playerInput.attack
     );
 
@@ -118,7 +121,9 @@ void InputHandler::HandleInput() {
     // ================
     // 【 デバッグ用 】
     // ================
-    input.debugRevive = keyboard.IsJustPressed(KEY::ENTER) || pad.IsHold(0x0010);
+#if defined(_DEBUG)
+    input.debugRevive = keyboard.IsJustPressed(KEY::BACKSPACE) || pad.IsHold(0x0010);
+#endif
 
     // Playerに入力情報を渡す！
     player_->SetInputData(input);

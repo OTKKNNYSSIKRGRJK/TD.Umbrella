@@ -713,6 +713,7 @@ void Player::WarpToUmbrella() {
 
 	smashCollider_->ClearVertices();
 	smashCollider_->SetMyType(COL_Player_Attack_SmashWave);
+	smashCollider_->ClearHitHistory();
 	float radius = 3.0f;
 	float jakkanue = 0.7f;
 	smashCollider_->SetVertices({
@@ -833,7 +834,6 @@ void Player::TakeDamage(float damege, const Vector3& pos) {
 
 	if (actualDamage > 0.0f) {
 		externalVelocity_.X = -vector.X * 0.5f * actualDamage;
-		externalVelocity_.Y = 0.05f;
 	}
 }
 
