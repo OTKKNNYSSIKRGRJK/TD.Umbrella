@@ -17,6 +17,7 @@ namespace Game::Scene::Impl {
 		int PlayerMoveEffectEmitFrameCount{ 0 };
 		int PlayerJumpEffectEmitFrameCount{ 0 };
 		int PlayerAttackEffectEmitFrameCount{ 0 };
+		int PlayerWarpEffectEmitFrameCount{ 0 };
 
 		Lumina::Utils::Color::RGB RGB_Gaming{};
 

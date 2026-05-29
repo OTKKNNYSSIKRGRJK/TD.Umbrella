@@ -13,11 +13,11 @@ namespace Game::Scene::Impl {
 		using Lumina::Math::Constant::Pi;
 		using Lumina::Math::Constant::Inv_Pi;
 
-		int PlayerIdleEffectEmitFrameCount{ 0 };
-		int PlayerMoveEffectEmitFrameCount{ 0 };
-		int PlayerJumpEffectEmitFrameCount{ 0 };
-		int PlayerAttackEffectEmitFrameCount{ 0 };
-		int PlayerWarpEffectEmitFrameCount{ 0 };
+		using Effect::PlayerIdleEffectEmitFrameCount;
+		using Effect::PlayerMoveEffectEmitFrameCount;
+		using Effect::PlayerJumpEffectEmitFrameCount;
+		using Effect::PlayerAttackEffectEmitFrameCount;
+		using Effect::PlayerWarpEffectEmitFrameCount;
 
 		Lumina::F32 PlayerEffectTimeFactor{ 0.0f };
 
@@ -526,32 +526,5 @@ namespace Game::Scene::Impl {
 		p_.RenderData.RGBA.W *= 0.97f;
 		
 		p_.Life -= 1.0f;
-	}
-
-	template<>
-	void InGame::Update_<"OnPlayerMove">(Event::InGame::OnPlayerMove& event_) {
-		PlayerMoveEffectEmitFrameCount = 6;
-		Effect::PlayerVelocity = event_.Velocity;
-	}
-
-	template<>
-	void InGame::Update_<"OnPlayerJump">(
-		[[maybe_unused]] Event::InGame::OnPlayerJump& event_
-	) {
-		PlayerJumpEffectEmitFrameCount = 12;
-	}
-
-	template<>
-	void InGame::Update_<"OnPlayerAttack">(
-		[[maybe_unused]] Event::InGame::OnPlayerAttack& event_
-	) {
-		PlayerAttackEffectEmitFrameCount = 2;
-	}
-
-	template<>
-	void InGame::Update_<"OnPlayerWarp">(
-		[[maybe_unused]] Event::InGame::OnPlayerWarp& event_
-	) {
-		PlayerWarpEffectEmitFrameCount = 3;
 	}
 }

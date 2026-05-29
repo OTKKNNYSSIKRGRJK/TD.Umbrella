@@ -44,6 +44,7 @@ import Game.Events.InGame;
 import Lumina.Cylinder;
 import Lumina.Skybox;
 import Lumina.Watercolor;
+import Lumina.ResourceManager;
 
 namespace Game::Scene::Impl {
 	export class InGame {
@@ -171,6 +172,7 @@ namespace Game::Scene::Impl {
 		// エディタ統合
 		enum class EditorTab { None, Motion, ObjMotion, Area, Enemy, EnemyAction, Actor, Terrain, Audio, Play };
 		EditorTab activeEditor_{ EditorTab::Play };
+		
 		Game::Editor::AreaEditor areaEditor_;
 		Game::Editor::EnemyEditor enemyEditor_;
 		Game::Editor::EnemyActionEditor enemyActionEditor_;
@@ -322,5 +324,23 @@ namespace Game::Scene::Impl {
 
 	private:
 		std::unique_ptr<Lumina::Skybox> Skybox_;
+
+		// * 音声
+
+	private:
+		enum class AUDIO_STREAM_ID {
+			BGM,
+			PLAYER_ATTACK,
+			PLAYER_JUMP,
+			// などなど
+		};
+
+	private:
+		Lumina::ResourceManager const* ResourceManager_;
+		// * 音声データハンドル（ファイルから読み込んだやつ）
+		std::vector<Lumina::AudioStreamHandle> AudioStreamHandles_;
+		// * 音声プレイヤーハンドル
+		// * BGMを止めたりするかもだから一応そのハンドルを置いとく
+		Lumina::AudioStreamPlayerHandle BGMPlayerHandle_;
 	};
 }

@@ -74,6 +74,9 @@ namespace Lumina::XAudio2 {
 		void Pause(AudioStreamPlayer::Handle hndl_StreamPlayer_);
 		void Stop(AudioStreamPlayer::Handle hndl_StreamPlayer_);
 
+		void SetVolume(AudioStreamPlayer::Handle hndl_StreamPlayer_, float volume_);
+		float GetVolume(AudioStreamPlayer::Handle hndl_StreamPlayer_) const;
+
 	public:
 		void Update();
 
@@ -251,6 +254,20 @@ namespace Lumina::XAudio2 {
 		audioSource->Stop(0U);
 		audioSource->DestroyVoice();
 		audioSource = nullptr;
+	}
+
+	void AudioManager::SetVolume(AudioStreamPlayer::Handle hndl_StreamPlayer_, float volume_) {
+		int32_t const id{ *reinterpret_cast<int32_t*>(&hndl_StreamPlayer_) };
+		IXAudio2SourceVoice* audioSource{ Array_StreamPlayers_[id].Source };
+		audioSource->SetVolume(volume_);
+	}
+
+	float AudioManager::GetVolume(AudioStreamPlayer::Handle hndl_StreamPlayer_) const {
+		int32_t const id{ *reinterpret_cast<int32_t*>(&hndl_StreamPlayer_) };
+		IXAudio2SourceVoice* audioSource{ Array_StreamPlayers_[id].Source };
+		float volume{};
+		audioSource->GetVolume(&volume);
+		return volume;
 	}
 
 	void AudioManager::Update() {

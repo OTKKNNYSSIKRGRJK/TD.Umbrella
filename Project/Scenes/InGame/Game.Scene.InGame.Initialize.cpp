@@ -1153,6 +1153,33 @@ namespace Game::Scene::Impl {
 		}
 	}
 
+	// * 音声読み込み
+
+	template<>
+	auto InGame::Initialize_<"Audio">() -> void {
+		ResourceManager_ = &Lumina::Context::Instance().ResourceContext();
+
+		AudioStreamHandles_.resize(128U);
+
+		auto loadAudioFile{
+			[this] (AUDIO_STREAM_ID audioStreamID_, std::string_view filePath_) -> void {
+				AudioStreamHandles_[static_cast<Lumina::U32>(audioStreamID_)] =
+					ResourceManager_->Audio().LoadFromFile(filePath_);
+			}
+		};
+
+		loadAudioFile(AUDIO_STREAM_ID::BGM, "Assets/Sounds/BGM.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
+
+		// * 最初からBGMを流す
+		BGMPlayerHandle_ = ResourceManager_->Audio().Play(
+			AudioStreamHandles_[static_cast<Lumina::U32>(AUDIO_STREAM_ID::BGM)],
+			true,
+			0.75f
+		);
+	}
+
 	void InGame::Initialize() {
 		auto& context{ Lumina::Context::Instance() };
 		auto const& d3d12Context{ context.D3D12Context() };
@@ -1171,6 +1198,9 @@ namespace Game::Scene::Impl {
 		Initialize_<"Particles">(d3d12Context, d3d12Device);
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
+
+		//Initialize_<"Audio">();
+
 		Initialize_<"Events">();
 
 		Initialize_<"Skybox">(d3d12Context, d3d12Device);

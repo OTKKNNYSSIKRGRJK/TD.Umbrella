@@ -79,6 +79,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Game\CG3D\CG3D.Animation.cpp" />
     <ClCompile Include="Game\CG3D\CG3D.Animation.ixx" />
     <ClCompile Include="Game\CG3D\CG3D.ASSIMP.ixx" />
     <ClCompile Include="Game\CG3D\CG3D.ixx" />
