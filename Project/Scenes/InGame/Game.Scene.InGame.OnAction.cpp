@@ -20,8 +20,8 @@ namespace Game::Scene::Impl {
 	) {
 		Effect::PlayerJumpEffectEmitFrameCount = 12;
 
-		float a = 0.75f;
-		this->Update_<"SE.PlayerJump">(float{ a });
+		//float a = 0.75f;
+		//this->Update_<"SE.PlayerJump">(float{ a });
 	}
 
 	template<>
