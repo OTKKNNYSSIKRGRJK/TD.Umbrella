@@ -49,7 +49,7 @@ namespace PlayerStates::Movement {
 		// ※ 関数でまとめておく
 
 		// Y軸の速度
-		player_->externalVelocity_.Y -= 9.8f * deltaTime * 2.0f; // 通常の重力
+		player_->externalVelocity_.Y -= 9.8f * deltaTime * 4.5f; // 通常の重力
 
 		// ジャンプ
 		player_->Jump();

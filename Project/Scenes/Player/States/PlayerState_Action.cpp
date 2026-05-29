@@ -89,9 +89,18 @@ namespace PlayerStates::Action {
 			
 		}
 
-		if (input.shoot == ButtonState::Pressed) {
-			if (umbrellaForm == UmbrellaForm::Flying) {
-				//player_->WarpToUmbrella();
+		if (input.guard == ButtonState::Pressed) {
+			if ((umbrellaForm != UmbrellaForm::Flying) && (umbrellaForm != UmbrellaForm::AirStop)) {
+
+				// 状態を抜刀状態に変化
+				player_->SetWeaponStance(WeaponStance::Drawn);
+
+				// UmbrellaのJointを背中に移す
+				player_->UmbrellaAttachRHand();
+
+				// 傘を開くStateに遷移する。-> ガードを押していたらガードStateに遷移する。
+				player_->ChangeActionState(player_->umbrellaOpenState_.get());
+				return;
 			}
 		}
 	}
@@ -477,6 +486,10 @@ namespace PlayerStates::Action {
 		else {
 			player_->GetUmbrella().top_->GetManaComponent().AddMana(chargeSpeed);
 
+			if (player_->GetUmbrella().top_->GetManaComponent().GetCurrentMana() >= player_->GetUmbrella().top_->GetManaComponent().GetMaxMana()) {
+				player_->GetStatusComponent().Heal(chargeSpeed * 0.1f); // マナが満タンの間は体力も少し回復する
+			}
+
 			// ※ここで傘のモデルを少し膨張させたり、水のエフェクトを濃くする
 			player_->GetSmashCollider()->ClearVertices();
 			player_->GetSmashCollider()->SetVertices({
@@ -525,6 +538,8 @@ namespace PlayerStates::Action {
 		player_->PlayAnimation("ReverseChargeAttack", false);
 
 		player_->GetSmashCollider()->SetMyType(COL_Player_Attack_Smash);
+
+		player_->GetSmashCollider()->ClearHitHistory();
 
 		player_->ChangeMovementState(player_->restrictedState_.get());
 	}
