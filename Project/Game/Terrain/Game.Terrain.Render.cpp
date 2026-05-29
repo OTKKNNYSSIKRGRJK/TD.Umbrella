@@ -25,9 +25,13 @@ namespace Game::Impl {
 		auto const& polygons{ shapeCollection_.PolygonsData() };
 		for (auto const& polygon : polygons) {
 			if (polygon.Vertices.size() > 2LLU) {
+				Lumina::U32 const base_vertex = static_cast<Lumina::U32>(mesh_Nonground.Positions.size());
 
 				mesh_Nonground.Normals.emplace_back(Lumina::Math::F32x3{ 0.0f, 0.0f, -1.0f });
+				Lumina::U32 const normal_offset = static_cast<Lumina::U32>(mesh_Nonground.Normals.size()) - 1U;
+
 				mesh_Nonground.Tangents.emplace_back(Lumina::Math::F32x3{ 0.0f, -1.0f, 0.0f });
+				Lumina::U32 const tangent_offset = static_cast<Lumina::U32>(mesh_Nonground.Tangents.size()) - 1U;
 
 				// * XY
 
@@ -47,9 +51,9 @@ namespace Game::Impl {
 				}
 
 				for (Lumina::U32 i{ 2U }; i < static_cast<Lumina::U32>(polygon.Vertices.size()); ++i) {
-					mesh_Nonground.Vertices.emplace_back(0, 0, 0, 0);
-					mesh_Nonground.Vertices.emplace_back(i - 1, i - 1, 0, 0);
-					mesh_Nonground.Vertices.emplace_back(i, i, 0, 0);
+					mesh_Nonground.Vertices.emplace_back(base_vertex + 0U, base_vertex + 0U, normal_offset, tangent_offset);
+					mesh_Nonground.Vertices.emplace_back(base_vertex + i - 1U, base_vertex + i - 1U, normal_offset, tangent_offset);
+					mesh_Nonground.Vertices.emplace_back(base_vertex + i, base_vertex + i, normal_offset, tangent_offset);
 				}
 
 				// * Z
@@ -83,8 +87,10 @@ namespace Game::Impl {
 						0.0f
 					);
 				}
+				Lumina::U32 const normal_offset_z = static_cast<Lumina::U32>(mesh_Nonground.Normals.size()) - num_Verts;
 
 				mesh_Nonground.Tangents.emplace_back(Lumina::Math::F32x3{ 0.0f, 0.0f, 1.0f });
+				Lumina::U32 const tangent_offset_z = static_cast<Lumina::U32>(mesh_Nonground.Tangents.size()) - 1U;
 
 				for (Lumina::U32 i{ 0U }; i < static_cast<Lumina::U32>(polygon.Vertices.size()); ++i) {
 					Lumina::U32 const indices[6]{
@@ -96,40 +102,40 @@ namespace Game::Impl {
 						i + 1,
 					};
 					mesh_Nonground.Vertices.emplace_back(
-						indices[0],
-						indices[0],
-						i + 1,
-						1
+						base_vertex + indices[0],
+						base_vertex + indices[0],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 					mesh_Nonground.Vertices.emplace_back(
-						indices[1],
-						indices[1],
-						i + 1,
-						1
+						base_vertex + indices[1],
+						base_vertex + indices[1],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 					mesh_Nonground.Vertices.emplace_back(
-						indices[2],
-						indices[2],
-						i + 1,
-						1
+						base_vertex + indices[2],
+						base_vertex + indices[2],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 					mesh_Nonground.Vertices.emplace_back(
-						indices[3],
-						indices[3],
-						i + 1,
-						1
+						base_vertex + indices[3],
+						base_vertex + indices[3],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 					mesh_Nonground.Vertices.emplace_back(
-						indices[4],
-						indices[4],
-						i + 1,
-						1
+						base_vertex + indices[4],
+						base_vertex + indices[4],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 					mesh_Nonground.Vertices.emplace_back(
-						indices[5],
-						indices[5],
-						i + 1,
-						1
+						base_vertex + indices[5],
+						base_vertex + indices[5],
+						normal_offset_z + i,
+						tangent_offset_z
 					);
 				}
 			}
