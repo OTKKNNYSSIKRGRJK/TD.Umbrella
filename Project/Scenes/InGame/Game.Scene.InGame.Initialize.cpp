@@ -1031,11 +1031,25 @@ namespace Game::Scene::Impl {
 		auto& context{ Lumina::Context::Instance() };
 		auto& eventMngr{ context.EventContext() };
 
+		// ここで作成したイベントを登録する - ① -> ②へ
 		eventMngr.RegisterType<Event::InGame::OnPlayerMove>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerJump>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerAttack>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerWarp>();
 
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo1>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo2>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo3>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackRot>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackJump>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerFlying>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerCharge>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerChargeAttack>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerThrowUmbrella>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerGainXp>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerLevelUp>();
+
+		// ここで作成したイベントを登録する - ② -> したのほうにあるAudioへ音を登録する
 		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
 			[this] (Event::InGame::OnPlayerMove& event_) {
 				this->Update_<"プレイヤー移動">(event_);
@@ -1056,6 +1070,73 @@ namespace Game::Scene::Impl {
 			this->Update_<"OnPlayerWarp">(event_);
 		}
 		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo1>(
+			[this](Event::InGame::OnPlayerAttackCombo1& event_) {
+				this->Update_<"OnPlayerAttackCombo1">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo2>(
+			[this](Event::InGame::OnPlayerAttackCombo2& event_) {
+				this->Update_<"OnPlayerAttackCombo2">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo3>(
+			[this](Event::InGame::OnPlayerAttackCombo3& event_) {
+				this->Update_<"OnPlayerAttackCombo3">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackRot>(
+			[this](Event::InGame::OnPlayerAttackRot& event_) {
+				this->Update_<"OnPlayerAttackRot">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackJump>(
+			[this](Event::InGame::OnPlayerAttackJump& event_) {
+				this->Update_<"OnPlayerAttackJump">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerFlying>(
+			[this](Event::InGame::OnPlayerFlying& event_) {
+				this->Update_<"OnPlayerFlying">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerCharge>(
+			[this](Event::InGame::OnPlayerCharge& event_) {
+				this->Update_<"OnPlayerCharge">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerChargeAttack>(
+			[this](Event::InGame::OnPlayerChargeAttack& event_) {
+				this->Update_<"OnPlayerChargeAttack">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerThrowUmbrella>(
+			[this](Event::InGame::OnPlayerThrowUmbrella& event_) {
+				this->Update_<"OnPlayerThrowUmbrella">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerGainXp>(
+			[this](Event::InGame::OnPlayerGainXp& event_) {
+				this->Update_<"OnPlayerGainXp">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerLevelUp>(
+			[this](Event::InGame::OnPlayerLevelUp& event_) {
+				this->Update_<"OnPlayerLevelUp">(event_);
+			}
+		);
+
 	}
 
 	template<>
@@ -1169,16 +1250,31 @@ namespace Game::Scene::Impl {
 			}
 		};
 
-		loadAudioFile(AUDIO_STREAM_ID::BGM, "Assets/Sounds/BGM.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
+		// 使用する音声ファイルの読み込み(Game.Scene.InGame.Implで列挙体の登録) -> InGame.Audio.cppへ移動
 
-		// * 最初からBGMを流す
-		BGMPlayerHandle_ = ResourceManager_->Audio().Play(
-			AudioStreamHandles_[static_cast<Lumina::U32>(AUDIO_STREAM_ID::BGM)],
-			true,
-			0.75f
-		);
+		//loadAudioFile(AUDIO_STREAM_ID::BGM, "Assets/Sounds/BGM.mp3");
+		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
+		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
+
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO1, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO2, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO3, "Assets/Sounds/Cut04-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKROT, "Assets/Sounds/SNES-Fighting06-09(Swing).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKJUMP, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_FLYING, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGE, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGEATTACK, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_WARP, "Assets/Sounds/Onoma-Sigh03-3(Delay-Fast).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_THROWUMBRELLA, "Assets/Sounds/wind-blowing-2.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_GAINXP, "Assets/Sounds/Onoma-Pop04-2(Mid-Dry).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_LEVELUP, "Assets/Sounds/hp-recovery-magic-1.mp3");
+
+		//// * 最初からBGMを流す
+		//BGMPlayerHandle_ = ResourceManager_->Audio().Play(
+		//	AudioStreamHandles_[static_cast<Lumina::U32>(AUDIO_STREAM_ID::BGM)],
+		//	true,
+		//	0.75f
+		//);
 	}
 
 	void InGame::Initialize() {
@@ -1203,7 +1299,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
 
-		//Initialize_<"Audio">();
+		Initialize_<"Audio">();
 
 		Initialize_<"Events">();
 

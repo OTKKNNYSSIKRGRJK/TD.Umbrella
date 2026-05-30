@@ -6,6 +6,8 @@ import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
 import Game.Events;
+import Game.Events.InGame;
+import Lumina.Main;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -280,6 +282,27 @@ namespace PlayerStates::Action {
 		player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::NormalAttack());
 
 		player_->GetUmbrella().top_->GetCollider()->ClearHitHistory();
+
+		if (currentAttackData_.animationName == "AtkX1") {
+			Game::Event::InGame::OnPlayerAttackCombo1 event_OnPlayerAttackCombo1{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerAttackCombo1));
+		}
+		else if (currentAttackData_.animationName == "AtkX2") {
+			Game::Event::InGame::OnPlayerAttackCombo2 event_OnPlayerAttackCombo2{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerAttackCombo2));
+		}
+		else if (currentAttackData_.animationName == "AtkX3") {
+			Game::Event::InGame::OnPlayerAttackCombo3 event_OnPlayerAttackCombo3{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerAttackCombo3));
+		}
+		else if (currentAttackData_.animationName == "AtkRot") {
+			Game::Event::InGame::OnPlayerAttackRot event_OnPlayerAttackRot{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerAttackRot));
+		}
+		else if (currentAttackData_.animationName == "AirDiveAttack") {
+			Game::Event::InGame::OnPlayerAttackJump event_OnPlayerAttackJump{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerAttackJump));
+		}
 	}
 
 	void Attack::Update(float deltaTime) {
@@ -440,6 +463,9 @@ namespace PlayerStates::Action {
 	////////////////////////////
 	void ThrowUmbrella::Enter() {
 		// アニメーション再生
+
+		Game::Event::InGame::OnPlayerThrowUmbrella event_OnPlayerThrowUmbrella{};
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerThrowUmbrella));
 	}
 
 	void ThrowUmbrella::Update([[maybe_unused]] float deltaTime) {
@@ -465,6 +491,8 @@ namespace PlayerStates::Action {
 	////////////////////////////
 	void ReverseCharge::Enter() {
 
+		Game::Event::InGame::OnPlayerCharge event_OnPlayerCharge{};
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerCharge));
 	}
 
 	void ReverseCharge::Update(float deltaTime) {
@@ -542,6 +570,9 @@ namespace PlayerStates::Action {
 		player_->GetSmashCollider()->ClearHitHistory();
 
 		player_->ChangeMovementState(player_->restrictedState_.get());
+
+		Game::Event::InGame::OnPlayerChargeAttack event_OnPlayerChargeAttack{};
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerChargeAttack));
 	}
 
 	void ReverseAttack::Update([[maybe_unused]] float deltaTime) {

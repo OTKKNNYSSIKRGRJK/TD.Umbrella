@@ -6,6 +6,8 @@ import Game.Umbrella;
 import Lumina.Core.Math;
 import Game.MathUtils;
 import Game.Events;
+import Game.Events.InGame;
+import Lumina.Main;
 
 namespace {
 	using Vector3 = Lumina::Math::F32x3;
@@ -59,9 +61,12 @@ namespace PlayerStates::Movement {
 	//  Airborne
 	// 
 	////////////////////////////
-	/*void Airborne::Enter() {
-
-	}*/
+	void Airborne::Enter() {
+		if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+			Game::Event::InGame::OnPlayerFlying event_OnPlayerFlying{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerFlying));
+		}
+	}
 
 	void Airborne::Update(float deltaTime) {
 		float gravity = 40.0f; // 重力加速度
