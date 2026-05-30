@@ -121,7 +121,7 @@ namespace Game::Scene::Impl {
 		// * `GeometryPass_.Begin(cmdList);`と`GeometryPass_.End();`の間に書かないとダメ
 		Render_<"Grassland">();
 		// * `GeometryPass_.Begin(cmdList);`と`GeometryPass_.End();`の間に書かないとダメ
-		Render_<"SceneParticles">();
+		//Render_<"SceneParticles">();
 
 		GeometryPass_.End();
 

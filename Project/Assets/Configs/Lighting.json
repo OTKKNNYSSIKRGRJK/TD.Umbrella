@@ -73,7 +73,7 @@
       {
         "Name": "Array: Tex2D.G-Buffer",
         "RangeType": "SRV",
-        "NumDescriptors": 4,
+        "NumDescriptors": 8,
         "BaseShaderRegister": 0,
         "RegisterSpace": 16,
         "OffsetInDescriptorsFromTableStart": 0

@@ -133,37 +133,11 @@ namespace Lumina {
 		CylinderProperties_ = props;
 		return props;
 	}
-	
+
 	void Cylinder::Render(
 		D3D12::CommandList const& cmdList_,
-		D3D12::RootSignature const& rs_,
-		D3D12::GraphicsPSO const& graphicsPSO_,
-		Math::F32x4x4<> const& localToWorld_,
-		Math::F32x4x4<> const& worldToProjective_,
 		U32 num_Instances_
-	) {
-		Time_ += 0.0166667f;
-
-		UB_Constants_.Store(
-			&localToWorld_,
-			sizeof(Math::F32x4x4<>),
-			0LLU
-		);
-		UB_Constants_.Store(
-			&worldToProjective_,
-			sizeof(Math::F32x4x4<>),
-			sizeof(Math::F32x4x4<>)
-		);
-		UB_Constants_.Store(
-			&Time_,
-			sizeof(F32),
-			sizeof(Math::F32x4x4<>) * 2LLU
-		);
-
-		cmdList_->SetGraphicsRootSignature(rs_.Get());
-		cmdList_->SetGraphicsRootDescriptorTable(0U, CBV_Constants_.GPUHandle(0U));
-		cmdList_->SetGraphicsRootDescriptorTable(1U, SRV_Textures_.GPUHandle(0U));
-		cmdList_->SetPipelineState(graphicsPSO_.Get());
+	) const {
 		cmdList_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		cmdList_->IASetVertexBuffers(0U, 1U, &VBV_);
 		cmdList_->IASetIndexBuffer(&IBV_);
@@ -177,42 +151,14 @@ namespace Lumina {
 	}
 
 	void Cylinder::Initialize(
-		D3D12::Context const& dxContext_,
-		D3D12::GraphicsDevice const& device_,
-		std::string_view filePath_
+		D3D12::GraphicsDevice const& d3d12Device_
 	) {
-		auto& context{ Lumina::Context::Instance() };
-		auto& resMngr{ context.ResourceContext() };
-
-		SRV_Textures_ = dxContext_.GlobalDescriptorHeap().Allocate(1U);
-		std::vector<uint32_t> texIDs{};
-		resMngr.Graphics().LoadImageTextures(
-			texIDs,
-			{
-				{ filePath_.data(), filePath_.data() },
-			}
-		);
-		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
-			device_->CopyDescriptorsSimple(
-				1U,
-				SRV_Textures_.CPUHandle(idx),
-				resMngr.Graphics().CPUHandle(texIDs.at(idx)),
-				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
-			);
-		}
-
-		VertexBuffer_.Initialize(device_, sizeof(Vertex) * NUM_Division_MAX * 4U);
-		IndexBuffer_.Initialize(device_, sizeof(uint32_t) * NUM_Division_MAX * 6U);
+		VertexBuffer_.Initialize(d3d12Device_, sizeof(Vertex) * NUM_Division_MAX * 4U);
+		IndexBuffer_.Initialize(d3d12Device_, sizeof(uint32_t) * NUM_Division_MAX * 6U);
 
 		auto vbv{ D3D12::VBV::Create<Vertex>(VertexBuffer_) };
 		VBV_ = *static_cast<D3D12_VERTEX_BUFFER_VIEW*>(reinterpret_cast<void*>(&vbv));
 		auto ibv{ D3D12::IBV::Create(IndexBuffer_) };
 		IBV_ = *static_cast<D3D12_INDEX_BUFFER_VIEW*>(reinterpret_cast<void*>(&ibv));
-
-		UB_Constants_.Initialize(device_, 256LLU);
-		CBV_Constants_ = dxContext_.GlobalDescriptorHeap().Allocate(1U);
-		D3D12::CBV::Create(device_, CBV_Constants_.CPUHandle(0U), UB_Constants_);
-
-		Time_ = 0.0f;
 	}
 }

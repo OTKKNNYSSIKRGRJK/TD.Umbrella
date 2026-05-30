@@ -119,7 +119,7 @@ namespace Game::Scene::Impl {
 			auto rgb = Lumina::Utils::Color::Convert(
 				Lumina::Utils::Color::HSV{
 					RNDEngine() * Inv_0xFFFFFFFF * 45.0f,
-					RNDEngine() * Inv_0xFFFFFFFF * 0.5f + 0.5f,
+					RNDEngine() * Inv_0xFFFFFFFF * 0.3f + 0.2f,
 					0.5f
 				}
 			);
@@ -136,6 +136,72 @@ namespace Game::Scene::Impl {
 			AmbientSparkles_->Emit(std::move(sparkle));
 		}
 		++sparkeTimeFactor2;
+	}
+
+	template<>
+	auto InGame::Update_<"Effect.Ambient.Portals">() -> void {
+		auto emitParticles{
+			[this] (Lumina::F32x2&& pos_, int type_) -> void {
+				Lumina::F32 const rnd{ RNDEngine() * Inv_0xFFFFFFFF };
+				Lumina::F32 const theta{ rnd * 2.0f * Pi };
+				Lumina::F32 const cos_Theta{ std::cos(theta) };
+				Lumina::F32 const sin_Theta{ std::sin(theta) };
+
+				Lumina::Particle p{};
+				{
+					p.Velocity.X = cos_Theta * (-0.05f);
+					p.Velocity.Y = sin_Theta * (-0.05f);
+
+					p.Translate.X = pos_.X + cos_Theta * 2.5f;
+					p.Translate.Y = pos_.Y + sin_Theta * 2.5f;
+
+					if (type_ == 0) {
+						p.Scale.X = 5.0f;
+						p.Scale.Y = 0.5f;
+
+						p.Velocity.Z = 0.0f;
+					}
+					else {
+						p.Scale.X = 0.5f;
+						p.Scale.Y = 0.5f;
+
+						p.Velocity.Z = (type_ > 0) ? (0.001f) : (-0.001f);
+					}
+
+					p.Rotate.Z = theta;
+
+					p.Life = 36.0f;
+
+					Lumina::F32 const saturation{
+						(type_ == 0) ?
+						(RNDEngine() * Inv_0xFFFFFFFF * 0.2f + 0.1f) :
+						(RNDEngine() * Inv_0xFFFFFFFF * 0.5f + 0.4f)
+					};
+					auto const rgb = Lumina::Utils::Color::Convert(
+						Lumina::Utils::Color::HSV{
+							RNDEngine() * Inv_0xFFFFFFFF * 25.0f + rnd * 360.0f,
+							saturation,
+							0.75f
+						}
+					);
+					p.RenderData.RGBA = {
+						rgb.R,
+						rgb.G,
+						rgb.B,
+						0.0f
+					};
+					p.RenderData.DiffuseID = 1U;
+					p.RenderData.DiffuseAtlasID = 5U;
+					PortalSparkles_->Emit(std::move(p));
+				}
+			}
+		};
+
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			emitParticles({ conn.position.x, conn.position.y }, 0);
+			emitParticles({ conn.position.x, conn.position.y }, 1);
+			emitParticles({ conn.position.x, conn.position.y }, -1);
+		}
 	}
 
 	template<>
@@ -165,8 +231,8 @@ namespace Game::Scene::Impl {
 			factor * 0.25f +
 			std::sin(p_.Life * 0.375f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f) * 0.15f;
 
-		p_.Scale.X = factor * 1.5f;
-		p_.Scale.Y = factor * 1.5f;
+		p_.Scale.X = factor * 0.5f;
+		p_.Scale.Y = factor * 0.5f;
 
 		Lumina::Math::F32x2 const d{
 			Player_->GetPosition().X - p_.Translate.X,
@@ -174,5 +240,38 @@ namespace Game::Scene::Impl {
 		};
 		if (d.Dot(d) > 400.0f) { p_.Life -= 1.25f; }
 		else { p_.Life -= 0.125f; }
+	}
+
+	template<>
+	auto InGame::Update_<"PortalSparkleParticle">(Lumina::Particle& p_) -> void {
+		static Lumina::F32 const delta{ 0.02f };
+		static Lumina::F32 const cos_Delta{ std::cos(delta) };
+		static Lumina::F32 const sin_Delta{ std::sin(delta) };
+
+		if (p_.Velocity.Z != 0.0f) {
+			Lumina::F32x2 vel{ p_.Velocity.X, p_.Velocity.Y };
+			if (p_.Velocity.Z > 0.0f) {
+				p_.Velocity.X = vel.X * cos_Delta + vel.Y * (-sin_Delta);
+				p_.Velocity.Y = vel.X * sin_Delta + vel.Y * cos_Delta;
+
+				p_.Rotate.Z += delta;
+			}
+			else {
+				p_.Velocity.X = vel.X * cos_Delta + vel.Y * sin_Delta;
+				p_.Velocity.Y = vel.X * (-sin_Delta) + vel.Y * cos_Delta;
+
+				p_.Rotate.Z -= delta;
+			}
+		}
+
+		p_.Translate.X += p_.Velocity.X;
+		p_.Translate.Y += p_.Velocity.Y;
+		
+		p_.Scale.X *= 0.93f;
+		p_.Scale.Y *= 0.93f;
+
+		p_.RenderData.RGBA.W += 0.015f;
+
+		p_.Life -= 1.0f;
 	}
 }

@@ -602,13 +602,18 @@ namespace Game::Scene::Impl {
 	auto InGame::Initialize_<"Resource, View">(
 		Lumina::D3D12::GraphicsDevice const& d3d12Device_
 	) -> void {
-		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
-		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		UB_WorldToHomogeneous_.Initialize(d3d12Device_, 256LLU);
+		UB_ScreenToWorld_.Initialize(d3d12Device_, 256LLU);
+
 		LocalHeap_Scene_.Initialize(d3d12Device_, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
 		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToHomogeneous_);
+		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_Scene_.CPUHandle(1U), UB_ScreenToWorld_);
 
+		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
+		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
 		UB_WorldToHomogeneous_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+
+		ScreenToWorld_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 	}
 	
 	template<>
@@ -799,6 +804,11 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_CanvasTexture_.CPUHandle(1U),
 			Canvas_GeometryPass_.RenderTexture(1U)
 		);
+		Lumina::D3D12::SRV<void>::Create<DXGI_FORMAT_R24_UNORM_X8_TYPELESS>(
+			d3d12Device,
+			GlobalTable_SRV_CanvasTexture_.CPUHandle(3U),
+			Canvas_GeometryPass_.DepthTexture()
+		);
 	}
 
 	template<>
@@ -922,6 +932,13 @@ namespace Game::Scene::Impl {
 
 		List_PointLight_.Initialize(2048U);
 		List_LocalToWorld_LightSphere_.Initialize(2048U);
+
+		GlobalTable_SRV_LightingResultTexture_ = d3d12Context_.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::SRV<void>::Create(
+			d3d12Context_.Device(),
+			GlobalTable_SRV_LightingResultTexture_.CPUHandle(0U),
+			DeferredLighting_->RenderTexture()
+		);
 	}
 
 	template<>
@@ -985,16 +1002,16 @@ namespace Game::Scene::Impl {
 				.CullMode{ D3D12_CULL_MODE_NONE },
 			},
 			Lumina::D3D12::DepthStencilState{
-				.DepthEnable{ true },
-				.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
-				.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+				.DepthEnable{ false },
+				//.DepthEnable{ true },
+				//.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+				//.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
 				.StencilEnable{ false },
 			},
 			inputLayout_Particle,
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
 			{
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-				DXGI_FORMAT_R8G8B8A8_UNORM,
 				DXGI_FORMAT_R8G8B8A8_UNORM,
 			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
@@ -1012,6 +1029,8 @@ namespace Game::Scene::Impl {
 		AmbientSparkles_->Initialize(d3d12Context_, 384U);
 		Raindrops_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		Raindrops_->Initialize(d3d12Context_, 1024U);
+		PortalSparkles_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		PortalSparkles_->Initialize(d3d12Context_, 256U);
 
 		PlayerEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		PlayerEffects_->Initialize(d3d12Context_, 1024U);
@@ -1148,13 +1167,14 @@ namespace Game::Scene::Impl {
 		);
 
 		PlayerChargeCylinder_ = std::make_unique<Lumina::Cylinder>();
-		PlayerChargeCylinder_->Initialize(d3d12Context, d3d12Device);
+		PlayerChargeCylinder_->Initialize(d3d12Device);
 		PlayerChargeCylinder_->Reset({ 12U, 0.0f, 1.5f, 1.0f });
 	}
 
 	template<>
 	auto InGame::Initialize_<"Portals">() -> void {
 		auto& context{ Lumina::Context::Instance() };
+		auto& resMngr{ context.ResourceContext() };
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
 
@@ -1194,9 +1214,10 @@ namespace Game::Scene::Impl {
 			.CullMode{ D3D12_CULL_MODE_NONE },
 		};
 		Lumina::D3D12::DepthStencilState depthStencilState{
-			.DepthEnable{ true },
-			.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
-			.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+			.DepthEnable{ false },
+			//.DepthEnable{ true },
+			//.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+			//.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
 		};
 		Lumina::D3D12::GraphicsPipelineState::InputLayout inputLayout{};
 		inputLayout.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
@@ -1216,6 +1237,7 @@ namespace Game::Scene::Impl {
 			D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE <<
 			rtvFormats <<
 			Lumina::D3D12::GraphicsPipelineState::DefaultDSVFormat;
+
 		PSO_Portal_.Initialize(
 			d3d12Device,
 			graphicsPSOSetup,
@@ -1224,8 +1246,46 @@ namespace Game::Scene::Impl {
 
 		for (auto& portal : Portals_) {
 			portal = std::make_unique<Lumina::Cylinder>();
-			portal->Initialize(d3d12Context, d3d12Device);
-			portal->Reset({ 24U, 0.0f, 3.0f, 1.0f });
+			portal->Initialize(d3d12Device);
+			portal->Reset({ 24U, 0.5f, 2.75f, 0.75f });
+		}
+
+		SRV_PortalTextures_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		std::vector<uint32_t> texIDs{};
+		resMngr.Graphics().LoadImageTextures(
+			texIDs,
+			{
+				{ "Portal", "Assets/Img/gradationLine.png"},
+			}
+		);
+		for (uint32_t idx{ 0U }; idx < static_cast<uint32_t>(texIDs.size()); ++idx) {
+			d3d12Device->CopyDescriptorsSimple(
+				1U,
+				SRV_PortalTextures_.CPUHandle(idx),
+				resMngr.Graphics().CPUHandle(texIDs.at(idx)),
+				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
+			);
+		}
+
+		UB_PortalConstants_.Initialize(d3d12Device, 256LLU);
+		CBV_PortalConstants_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::CBV::Create(
+			d3d12Device,
+			CBV_PortalConstants_.CPUHandle(0U),
+			UB_PortalConstants_
+		);
+
+		SRV_PortalLocalToWorlds_ = d3d12Context.GlobalDescriptorHeap().Allocate(8U);
+		for (uint32_t idx{ 0U }; idx < 8U; ++idx) {
+			UB_PortalLocalToWorlds_[idx].Initialize(
+				d3d12Device,
+				sizeof(Lumina::Math::F32x4x4<>) * 3U
+			);
+			Lumina::D3D12::SRV<Lumina::Math::F32x4x4<>>::Create(
+				d3d12Device,
+				SRV_PortalLocalToWorlds_.CPUHandle(idx),
+				UB_PortalLocalToWorlds_[idx]
+			);
 		}
 	}
 

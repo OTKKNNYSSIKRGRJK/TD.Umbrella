@@ -325,8 +325,15 @@ namespace Lumina::CG3D {
 			skinCluster_.MappedPalette[jointID].SkeletonSpace =
 				skinCluster_.ARR_INV_BindPose[jointID] *
 				skeleton_.ARR_Joint[jointID].SkeletonSpace;
+
+			auto const& skeletonSpace{
+				reinterpret_cast<Math::SE3 const&>(
+					skinCluster_.MappedPalette[jointID].SkeletonSpace
+				)
+			};
+			auto&& inv_SkeletonSpace{ skeletonSpace.Inverse() };
 			skinCluster_.MappedPalette[jointID].TR_INV_SkeletonSpace =
-				skinCluster_.MappedPalette[jointID].SkeletonSpace.Inverse().Transpose();
+				static_cast<Math::F32x4x4<> const&>(inv_SkeletonSpace).Transpose();
 		}
 	}
 
@@ -336,6 +343,8 @@ namespace Lumina::CG3D {
 		MyAnimation const& anim_,
 		F32 time_
 	) {
+		anim_;
+		time_;
 		ApplyAnimation(skeleton_, anim_, time_);
 		Update(skeleton_);
 		Update(skinCluster_, skeleton_);

@@ -25,6 +25,9 @@ cbuffer Paramaters_Space0Slot0 : register(b0, space0) {
 	float Scale_MaterialElevation;
 }
 
+static const float Scale_Bary = 125.0f;
+static const float Offset_Elevation = -0.25f;
+
 struct Material {
 	uint ID_Albedo;
 	uint ID_Normal;
@@ -69,39 +72,40 @@ float GetMaterialElevation(in float2 uv_) {
 [domain("tri")]
 DSOutput main(
 	TessellationPatch tessPatch_,
-	float3 barycentricCoords_ : SV_DomainLocation,
+	float3 bary_ : SV_DomainLocation,
 	const OutputPatch<VSOutput, 3> hsPatch_
 ) {
 	DSOutput output;
 	
 	float3 pos =
-		barycentricCoords_.x * hsPatch_[0].Position +
-		barycentricCoords_.y * hsPatch_[1].Position +
-		barycentricCoords_.z * hsPatch_[2].Position;
+		bary_.x * hsPatch_[0].Position +
+		bary_.y * hsPatch_[1].Position +
+		bary_.z * hsPatch_[2].Position;
 	const float2 uv =
-		barycentricCoords_.x * hsPatch_[0].UV +
-		barycentricCoords_.y * hsPatch_[1].UV +
-		barycentricCoords_.z * hsPatch_[2].UV;
+		bary_.x * hsPatch_[0].UV +
+		bary_.y * hsPatch_[1].UV +
+		bary_.z * hsPatch_[2].UV;
 	const float3 normal = normalize(
-		barycentricCoords_.x * hsPatch_[0].Normal +
-		barycentricCoords_.y * hsPatch_[1].Normal +
-		barycentricCoords_.z * hsPatch_[2].Normal
+		bary_.x * hsPatch_[0].Normal +
+		bary_.y * hsPatch_[1].Normal +
+		bary_.z * hsPatch_[2].Normal
 	);
 	const float3 tangent = normalize(
-		barycentricCoords_.x * hsPatch_[0].Tangent +
-		barycentricCoords_.y * hsPatch_[1].Tangent +
-		barycentricCoords_.z * hsPatch_[2].Tangent
+		bary_.x * hsPatch_[0].Tangent +
+		bary_.y * hsPatch_[1].Tangent +
+		bary_.z * hsPatch_[2].Tangent
 	);
 	const float3 bitangent = normalize(
-		barycentricCoords_.x * hsPatch_[0].Bitangent +
-		barycentricCoords_.y * hsPatch_[1].Bitangent +
-		barycentricCoords_.z * hsPatch_[2].Bitangent
+		bary_.x * hsPatch_[0].Bitangent +
+		bary_.y * hsPatch_[1].Bitangent +
+		bary_.z * hsPatch_[2].Bitangent
 	);
 	
 	const float elevation_Surface = Surface::BlendAndElevation.Sample(BilinearWrap, uv).a;
 	const float elevation_Material = GetMaterialElevation(uv);
 	
-	pos += normal * (elevation_Surface * Scale_SurfaceElevation + elevation_Material * Scale_MaterialElevation) * 0.1f;
+	const float factor_Bary = bary_.x * bary_.y * bary_.z * Scale_Bary;
+	pos += normal * (elevation_Surface * Scale_SurfaceElevation + elevation_Material * Scale_MaterialElevation + Offset_Elevation) * factor_Bary;
 	
 	output.Position = mul(float4(pos, 1.0f), Matrix_WorldToProjective);
 	output.UV = uv;

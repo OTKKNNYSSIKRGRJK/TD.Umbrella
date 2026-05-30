@@ -152,7 +152,7 @@ namespace Lumina::Math {
 		//----	------	------	------	------	----//
 	
 	public:
-		SE3 Inv() noexcept;
+		SE3 Inverse() const noexcept;
 
 		//----	------	------	------	------	----//
 
@@ -264,17 +264,17 @@ namespace Lumina::Math {
 		}
 	}
 
-	/*SE3 SE3::Inv() noexcept {
-		SE3 ret{ *this };
-		ret.Rows_[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	SE3 SE3::Inverse() const noexcept {
+		F32x4x4<> ret{ *this };
+		ret[3] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		ret = ret.Transpose();
-		F32x4 t{ F32x4{ Entries_[3] } * ret };
-		ret[3][0] = -t.X;
-		ret[3][1] = -t.Y;
-		ret[3][2] = -t.Z;
+		
+		F32x4 const row_3_New{ Wrapped_[3] * ret };
+		ret[3] = -row_3_New;
+		ret[3].W(1.0f);
 
-		return ret;
-	}*/
+		return *reinterpret_cast<SE3*>(&ret);
+	}
 
 	SE3::SE3(AxisAngle const& r_) noexcept {
 		QuaternionToMatrix(Wrapped_, Versor{ r_ });

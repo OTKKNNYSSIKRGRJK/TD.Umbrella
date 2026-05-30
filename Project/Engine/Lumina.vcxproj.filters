@@ -139,6 +139,9 @@
     <ClCompile Include="Game\CG3D\CG3D.Animation.cpp">
       <Filter>Game\CG3D</Filter>
     </ClCompile>
+    <ClCompile Include="Game\Test\ProceduralTree.ixx">
+      <Filter>Game\Test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Game">

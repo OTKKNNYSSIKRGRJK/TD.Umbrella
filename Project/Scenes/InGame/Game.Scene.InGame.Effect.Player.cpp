@@ -28,6 +28,7 @@ namespace Game::Scene::Impl {
 
 		Lumina::Math::F32x3 WorldPos_UmbrellaRoot{};
 		Lumina::Math::F32x3 WorldPos_UmbrellaTip{};
+		Lumina::F32 TimeFactor_UmbrellaEffect{};
 
 		using Effect::RGB_Gaming;
 		using Effect::RNDEngine;
@@ -36,7 +37,7 @@ namespace Game::Scene::Impl {
 
 namespace Game::Scene::Impl {
 	template<>
-	auto InGame::Update_<"PlayerEffect.Common">() -> void {
+	auto InGame::Update_<"Effect.Common">() -> void {
 		static auto const& animatedModel{ Player_->GetAnimatedModel() };
 		static auto const& skeleton{ animatedModel.second.Skeleton_ };
 
@@ -75,7 +76,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Perpetual">() -> void {
+	auto InGame::Update_<"Effect.Player.Perpetual">() -> void {
 		//auto const& playerPos{ Player_->GetPosition() };
 
 		// * Hands
@@ -119,7 +120,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Move">() -> void {
+	auto InGame::Update_<"Effect.Player.Move">() -> void {
 		if (PlayerMoveEffectEmitFrameCount <= 0) { return; }
 
 		// * Feet
@@ -156,7 +157,7 @@ namespace Game::Scene::Impl {
 					0.75f
 				};
 				p_Move.RenderData.DiffuseID = 1U;
-				p_Move.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (0U) : (3U);
+				p_Move.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
 				PlayerEffects_->Emit(std::move(p_Move));
 			}
 		}
@@ -165,7 +166,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Jump">() -> void {
+	auto InGame::Update_<"Effect.Player.Jump">() -> void {
 		if (PlayerJumpEffectEmitFrameCount <= 0) { return; }
 
 		auto& rndEngine{ Lumina::Math::Random::Generator() };
@@ -204,7 +205,7 @@ namespace Game::Scene::Impl {
 					0.75f
 				};
 				p_Move.RenderData.DiffuseID = 1U;
-				p_Move.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (0U) : (3U);
+				p_Move.RenderData.DiffuseAtlasID = (rndEngine() & 3) ? (3U) : (4U);
 				PlayerEffects_->Emit(std::move(p_Move));
 			}
 		}
@@ -213,7 +214,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Warp.0">() -> void {
+	auto InGame::Update_<"Effect.Player.Warp.0">() -> void {
 		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
 
 		static float effectTimeFactor{ 0.0f };
@@ -259,13 +260,13 @@ namespace Game::Scene::Impl {
 					0.25f
 				};
 				p.RenderData.DiffuseID = 1U;
-				p.RenderData.DiffuseAtlasID = 5U;
+				p.RenderData.DiffuseAtlasID = 4U;
 				PlayerEffects_->Emit(std::move(p));
 			}
 		}
 	}
 	template<>
-	auto InGame::Update_<"PlayerEffect.Warp.1">() -> void {
+	auto InGame::Update_<"Effect.Player.Warp.1">() -> void {
 		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
 
 		static float effectTimeFactor{ 0.0f };
@@ -316,7 +317,7 @@ namespace Game::Scene::Impl {
 		}
 	}
 	template<>
-	auto InGame::Update_<"PlayerEffect.Warp.2">() -> void {
+	auto InGame::Update_<"Effect.Player.Warp.2">() -> void {
 		if (PlayerWarpEffectEmitFrameCount <= 0) { return; }
 
 		static float effectTimeFactor{ 0.0f };
@@ -362,20 +363,20 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Warp">() -> void {
-		Update_<"PlayerEffect.Warp.0">();
-		Update_<"PlayerEffect.Warp.1">();
-		Update_<"PlayerEffect.Warp.2">();
+	auto InGame::Update_<"Effect.Player.Warp">() -> void {
+		Update_<"Effect.Player.Warp.0">();
+		Update_<"Effect.Player.Warp.1">();
+		Update_<"Effect.Player.Warp.2">();
 
 		--PlayerWarpEffectEmitFrameCount;
 	}
 
 	template<>
-	auto InGame::Update_<"PlayerEffect.Charge.Cylinder">() -> void {
+	auto InGame::Update_<"Effect.Player.Charge.Cylinder">() -> void {
 		
 	}
 	template<>
-	auto InGame::Update_<"PlayerEffect.Charge.Spring">() -> void {
+	auto InGame::Update_<"Effect.Player.Charge.Spring">() -> void {
 		
 	}
 }
@@ -395,9 +396,18 @@ namespace Game::Scene::Impl {
 
 namespace Game::Scene::Impl {
 	template<>
-	auto InGame::Update_<"UmbrellaEffect.Perpetual">() -> void {
+	auto InGame::Update_<"Effect.Umbrella.Perpetual">() -> void {
+		TimeFactor_UmbrellaEffect += 0.1f;
+
+		Lumina::F32 const t{ 
+			std::abs(
+				Lumina::Math::SIN(TimeFactor_UmbrellaEffect * 0.5f)
+			) * 1.1f
+		};
+		auto worldPos{ Lumina::Math::LERP{ WorldPos_UmbrellaRoot, WorldPos_UmbrellaTip }(t) };
+
 		auto tipEffect{
-			[&, this](Lumina::I32 i_) {
+			[&, this]() {
 				Lumina::Particle2 p{};
 				{
 					std::memcpy(
@@ -406,49 +416,50 @@ namespace Game::Scene::Impl {
 						sizeof(Lumina::Math::F32x4x4<>)
 					);
 
-					p.World[3][0] = std::cos(PlayerEffectTimeFactor * 0.14f + i_ * 2.4f) * 0.15f;
+					/*p.World[3][0] = std::cos(PlayerEffectTimeFactor * 0.14f + i_ * 2.4f) * 0.15f;
 					p.World[3][1] = std::sin(PlayerEffectTimeFactor * 0.13f - i_ * 3.6f) * 0.15f;
-					p.World[3][2] = std::sin(PlayerEffectTimeFactor * 0.12f - i_ * 1.2f) * 0.15f;
+					p.World[3][2] = std::sin(PlayerEffectTimeFactor * 0.12f - i_ * 1.2f) * 0.15f;*/
 
-					p.Velocity.X = p.World[3][0] * (-0.05f);
+					/*p.Velocity.X = p.World[3][0] * (-0.05f);
 					p.Velocity.Y = p.World[3][1] * (-0.05f);
-					p.Velocity.Z = p.World[3][2] * (-0.05f);
+					p.Velocity.Z = p.World[3][2] * (-0.05f);*/
 
-					p.World[3][0] += WorldPos_UmbrellaTip.X;
-					p.World[3][1] += WorldPos_UmbrellaTip.Y;
-					p.World[3][2] += WorldPos_UmbrellaTip.Z;
+					p.World[3][0] += worldPos.X;
+					p.World[3][1] += worldPos.Y;
+					p.World[3][2] += worldPos.Z;
 
-					Lumina::F32 const rotZ{ RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f };
+					/*Lumina::F32 const rotZ{ RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f };
 					Lumina::F32 const cos_RotZ{ std::cos(rotZ) };
 					Lumina::F32 const sin_RotZ{ std::sin(rotZ) };
 
 					p.World[0][0] = cos_RotZ * 0.75f;
 					p.World[0][1] = sin_RotZ * 0.75f;
 					p.World[1][0] = -sin_RotZ * 0.75f;
-					p.World[1][1] = cos_RotZ * 0.75f;
+					p.World[1][1] = cos_RotZ * 0.75f;*/
 
-					p.Life = 48.0f;
+					p.World[0][0] = 0.3f;
+					p.World[1][1] = 0.3f;
+
+					p.Life = 12.0f;
 
 					p.RenderData.RGBA = {
 						RGB_Gaming.R * 0.3f + 0.8f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 						RGB_Gaming.G * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
 						RGB_Gaming.B * 0.2f + 0.3f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-						0.125f
+						0.25f
 					};
 					p.RenderData.DiffuseID = 1U;
-					p.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
+					p.RenderData.DiffuseAtlasID = 5U;
 					UmbrellaEffects_->Emit(std::move(p));
 				}
 			}
 		};
 
-		for (int i{ 0 }; i < 2; ++i) {
-			tipEffect(i);
-		}
+		tipEffect();
 	}
 
 	template<>
-	auto InGame::Update_<"UmbrellaEffect.Attack">() -> void {
+	auto InGame::Update_<"Effect.Umbrella.Attack">() -> void {
 		if (PlayerAttackEffectEmitFrameCount <= 0) { return; }
 
 		auto const worldPos{ (WorldPos_UmbrellaRoot + WorldPos_UmbrellaTip) * 0.5f };

@@ -1,3 +1,7 @@
+module;
+
+#include<d3d12.h>
+
 export module Lumina.DeferredLighting;
 
 import <cstdint>;

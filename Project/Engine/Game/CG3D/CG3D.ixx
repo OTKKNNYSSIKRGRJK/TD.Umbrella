@@ -117,7 +117,8 @@ namespace Lumina::CG3D {
 						{ -translate.x, translate.y, translate.z }
 					)
 				};
-				jointWeightData.INV_BindPose = bonePoseMat_OUT.Inverse();
+				jointWeightData.INV_BindPose =
+					reinterpret_cast<Math::SE3 const&>(bonePoseMat_OUT).Inverse();
 				for (
 					ASSIMP::VertexWeight const& vertexWeight :
 					std::span{ bone_IN->mWeights, bone_IN->mNumWeights }

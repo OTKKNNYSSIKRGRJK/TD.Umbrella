@@ -314,6 +314,9 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.OnAction.cpp">
       <Filter>Scenes\InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Lighting.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

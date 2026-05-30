@@ -6,6 +6,7 @@ import <cmath>;
 import <algorithm>;
 import <string>;
 
+import Lumina.Core.Math;
 import Lumina.Main;
 import Lumina.D3D12;
 import Lumina.MeshManager;
@@ -16,216 +17,39 @@ import Game.TutorialManager;
 import Game.UIMenu;
 import Game.Events;
 
+namespace {
+	constexpr D3D12_VIEWPORT DefaultViewport{
+		.TopLeftX{ 0.0f },
+		.TopLeftY{ 0.0f },
+		.Width{ 1280.0f },
+		.Height{ 720.0f },
+		.MinDepth{ 0.0f },
+		.MaxDepth{ 1.0f },
+	};
+
+	constexpr D3D12_RECT DefaultScissorRect{
+		.left{ 0 },
+		.top{ 0 },
+		.right{ 1280 },
+		.bottom{ 720 },
+	};
+}
+
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+//////	Deferred.Geometry										//////
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+
 namespace Game::Scene::Impl {
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	Deferred.Geometry.PreDraw								:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+
 	template<>
-	void InGame::Render_<"Skybox">(
+	auto InGame::Render_<"Deferred.Geometry.PreDraw.ResourceBarrier">(
 		Lumina::D3D12::CommandList const& cmdList_
-	) {
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList_->OMSetRenderTargets(1U, &rtv, false, &dsv);
-		Skybox_->Render(cmdList_, LocalHeap_Scene_.CPUHandle(0U));
-	}
-
-	template<>
-	void InGame::Render_<"Portal">(
-		Lumina::D3D12::CommandList const& cmdList_,
-		Lumina::I32&& idx_,
-		Lumina::F32x2&& worldPos_
-	) {
-		static Lumina::Math::F32x4x4<> world{
-			1.0f, 0.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 1.0f, 0.0f,
-			0.0f, 1.0f, 0.0f, 0.0f,
-			0.0f, 0.0f, 0.0f, 1.0f,
-		};
-		world[3] = { worldPos_.X, worldPos_.Y, 0.0f, 1.0f };
-		Portals_[idx_]->Render(cmdList_, RS_Portal_, PSO_Portal_, world, *WorldToHomogeneous_, 2U);
-	}
-	template<>
-	void InGame::Render_<"Portals">(
-		Lumina::D3D12::CommandList const& cmdList_
-	) {
-		auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-		auto dsv{ Canvas_GeometryPass_.DSV() };
-		cmdList_->OMSetRenderTargets(1U, &rtv, false, &dsv);
-
-		int idx_Portal{ 0 };
-		for (const auto& conn : playState_.CurrentArea.connections) {
-			float cx = conn.position.x;
-			float cy = conn.position.y;
-
-			Render_<"Portal">(cmdList_, int{ idx_Portal }, Lumina::F32x2{ cx, cy });
-			++idx_Portal;
-		}
-	}
-
-	template<>
-	auto InGame::Render_<"PrepareParticle">() -> void {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-
-		PlayerEffects_->Update(
-			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle& p_, void const*) -> bool {
-				this->Update_<"PlayerEffectParticle">(p_);
-				return (p_.Life > 0.0f);
-			}
-		);
-		UmbrellaEffects_->Update(
-			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle2& p_, void const*) -> bool {
-				this->Update_<"UmbrellaEffectParticle">(p_);
-				return (p_.Life > 0.0f);
-			}
-		);
-		Raindrops_->Update(
-			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle& p_, void const*) -> bool {
-				this->Update_<"RaindropParticle">(p_);
-				return (p_.Life > 0.0f);
-			}
-		);
-		AmbientSparkles_->Update(
-			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this] (Lumina::Particle& p_, void const*) -> bool {
-				this->Update_<"AmbientSparkleParticle">(p_);
-				return (p_.Life > 0.0f);
-			}
-		);
-	}
-
-	template<>
-	auto InGame::Render_<"Characters">() -> void {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-
-		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
-		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
-		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		if (Player_) {
-			auto const& playerModel{ Player_->GetAnimatedModel() };
-			cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
-			cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
-			cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
-			cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
-			cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
-			auto const& cameraPos{ Camera_Player_->WorldPosition() };
-			cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
-
-			D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
-				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
-				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.second.SkinCluster_.InfluenceBufferView)
-			};
-			cmdList->IASetVertexBuffers(0, 2, vbvs);
-			cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&playerModel.first.IBV_));
-			cmdList->DrawIndexedInstanced(
-				static_cast<Lumina::U32>(playerModel.first.Collection_.Meshes[0].Indices.size()),
-				1U, 0U, 0U, 0U
-			);
-		}
-
-		for (const auto& e : playState_.Enemies) {
-			if (e.IsDead) continue;
-			
-			if (EnemySkinnedModels_.contains(e.BaseData.name) && EnemySkinnedInstances_.contains(e.Id)) {
-				auto& model = EnemySkinnedModels_[e.BaseData.name];
-				auto& inst = EnemySkinnedInstances_[e.Id];
-				
-				Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
-				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
-				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
-				
-				if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
-					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
-					if (spawnT < 0.0f) spawnT = 0.0f;
-					else if (spawnT > 1.0f) spawnT = 1.0f;
-
-					float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
-					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
-					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
-					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
-
-					renderPos.Y -= (1.0f - riseEase) * (2.8f * e.Scale);
-					renderPos.Y += overshoot * (0.95f * e.Scale);
-					renderPos.X += shake * (0.16f * e.Scale);
-
-					scale.X *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
-					scale.Y *= 0.06f + 0.94f * riseEase + overshoot * 0.42f;
-					scale.Z *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
-
-					rot.Z += twist * 0.28f;
-					rot.X += std::abs(twist) * 0.12f;
-				}
-				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
-					float hurtRatio = e.HurtTimer / 0.2f;
-					if (hurtRatio > 1.0f) hurtRatio = 1.0f;
-
-					float const pulse = 0.5f + 0.5f * std::sin(hurtRatio * 18.0f);
-					float const stretch = 1.0f + hurtRatio * 0.18f;
-					float const squash = 1.0f - hurtRatio * 0.12f;
-					float const shakeDir = e.FacingRight ? -1.0f : 1.0f;
-
-					renderPos.X += shakeDir * pulse * 0.18f;
-					renderPos.Y += hurtRatio * 0.08f;
-					scale.X *= stretch;
-					scale.Y *= squash;
-					scale.Z *= stretch;
-				}
-
-				rot.Y = e.RenderFacingYaw;
-				rot.X += e.RenderPitch;
-				
-				// Optional visual offset applied via behavior (like jump anticipation)
-				if (e.VisualOffset.X != 0.0f || e.VisualOffset.Y != 0.0f || e.VisualOffset.Z != 0.0f) {
-					renderPos.X += e.VisualOffset.X;
-					renderPos.Y += e.VisualOffset.Y;
-					renderPos.Z += e.VisualOffset.Z;
-				}
-				rot.Y += e.VisualYaw;
-				
-				Lumina::Math::F32x4x4<> meshWorld = Game::MathUtils::SRT(scale, rot, renderPos);
-				Lumina::Math::F32x4x4<> tr_INV_MeshWorld = meshWorld.Inverse().Transpose();
-				Lumina::Math::F32x4x4<> wvp = meshWorld * (*WorldToHomogeneous_);
-				
-				inst->TransformsBuffer_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
-				inst->TransformsBuffer_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
-				inst->TransformsBuffer_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
-
-				uint32_t materialIdx = 0U;
-				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
-					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
-				}
-				
-				cmdList->SetGraphicsRootDescriptorTable(0U, inst->CBV_SceneTable_.GPUHandle(0U));
-				cmdList->SetGraphicsRootDescriptorTable(1U, inst->SkinCluster_.PaletteSRVHandle.second);
-				cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(materialIdx));
-				cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
-
-				D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
-					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(model->VBV_),
-					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(inst->SkinCluster_.InfluenceBufferView)
-				};
-				cmdList->IASetVertexBuffers(0, 2, vbvs);
-				cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&model->IBV_));
-				cmdList->DrawIndexedInstanced(
-					static_cast<Lumina::U32>(model->Collection_.Meshes[0].Indices.size()),
-					1U, 0U, 0U, 0U
-				);
-			}
-		}
-	}
-
-	void InGame::Render_Geometry() {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
-
-		meshMngr.Begin(cmdList);
-
-		D3D12_RESOURCE_BARRIER const barriers_PreGeometryPass[]{
+	) -> void {
+		std::vector<D3D12_RESOURCE_BARRIER> const barriers_PrePass{
 			 Lumina::D3D12::Barrier::Transition(
 				 Canvas_GeometryPass_.RenderTexture(0U),
 				 D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
@@ -247,18 +71,17 @@ namespace Game::Scene::Impl {
 				 D3D12_RESOURCE_STATE_DEPTH_WRITE
 			 ),
 		};
-		cmdList->ResourceBarrier(4U, barriers_PreGeometryPass);
-
-		cmdList->RSSetViewports(
-			Canvas_GeometryPass_.Num_RenderTargets(),
-			Canvas_GeometryPass_.Viewports().data()
+		cmdList_->ResourceBarrier(
+			static_cast<Lumina::U32>(barriers_PrePass.size()),
+			barriers_PrePass.data()
 		);
-		cmdList->RSSetScissorRects(
-			Canvas_GeometryPass_.Num_RenderTargets(),
-			Canvas_GeometryPass_.ScissorRects().data()
-		);
+	}
 
-		meshMngr.BatchBegin();
+	template<>
+	auto InGame::Render_<"Deferred.Geometry.PreDraw.MeshBatch">(
+		Lumina::MeshManager& meshMngr_
+	) -> void {
+		meshMngr_.BatchBegin();
 
 		// メッシュバッチはmeshMngr.BatchBegin()とmeshMngr.BatchEnd()の間に書かないといけない
 		// メッシュを描画バッチに追加するテンプレート
@@ -278,24 +101,25 @@ namespace Game::Scene::Impl {
 
 			if (EnemyMeshIndices_.contains(e.BaseData.name)) {
 				const auto& range = EnemyMeshIndices_.at(e.BaseData.name);
-				
+
 				uint32_t materialIdx = 0U;
 				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
 					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
 				}
 
-             Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
+				Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
 				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
-               Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
-             if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
+				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+				if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
 					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
 					if (spawnT < 0.0f) {
 						spawnT = 0.0f;
-					} else if (spawnT > 1.0f) {
+					}
+					else if (spawnT > 1.0f) {
 						spawnT = 1.0f;
 					}
 
-                   float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
+					float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
 					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
 					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
 					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
@@ -329,15 +153,15 @@ namespace Game::Scene::Impl {
 					scale.Z *= stretch;
 				}
 
-               rot.Y = e.RenderFacingYaw;
-			   rot.X += e.RenderPitch; // ピッチを適用
-             auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
-				
+				rot.Y = e.RenderFacingYaw;
+				rot.X += e.RenderPitch; // ピッチを適用
+				auto worldMat = Game::MathUtils::SRT(scale, rot, renderPos);
+
 				// マルチメッシュ対応: 全サブメッシュを描画
 				for (size_t i = 0; i < range.count; ++i) {
 					size_t idx = range.startIndex + i;
 					if (idx < MeshShaderAssets_.size()) {
-						meshMngr.Batch(
+						meshMngr_.Batch(
 							MeshShaderAssets_[idx],
 							1U,
 							LocalHeap_Materials_.CPUHandle(materialIdx),
@@ -377,7 +201,7 @@ namespace Game::Scene::Impl {
 				float ox = proj.actorData.transform.posX;
 				float oy = proj.actorData.transform.posY;
 				float oz = proj.actorData.transform.posZ;
-				
+
 				float rx = proj.actorData.transform.rotX * 3.14159265f / 180.0f;
 				float ry = proj.actorData.transform.rotY * 3.14159265f / 180.0f;
 				float rz = proj.actorData.transform.rotZ * 3.14159265f / 180.0f;
@@ -399,7 +223,7 @@ namespace Game::Scene::Impl {
 				for (size_t i = 0; i < meshCount; ++i) {
 					size_t idx = meshIdx + i;
 					if (idx < MeshShaderAssets_.size()) {
-						meshMngr.Batch(
+						meshMngr_.Batch(
 							MeshShaderAssets_[idx],
 							1U,
 							LocalHeap_Materials_.CPUHandle(0U),
@@ -410,10 +234,160 @@ namespace Game::Scene::Impl {
 			}
 		}
 
-		meshMngr.BatchEnd();
+		meshMngr_.BatchEnd();
+	}
 
-		GeometryPass_.Begin(cmdList);
-		meshMngr.Render(
+	template<>
+	auto InGame::Render_<"Deferred.Geometry.PreDraw">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::MeshManager& meshMngr_
+	) -> void {
+		Render_<"Deferred.Geometry.PreDraw.ResourceBarrier">(cmdList_);
+		Render_<"Deferred.Geometry.PreDraw.MeshBatch">(meshMngr_);
+	}
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	Deferred.Geometry.Draw									:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+
+	template<>
+	auto InGame::Render_<"Characters">() -> void {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		cmdList->SetGraphicsRootSignature(RS_Skinning_.Get());
+		cmdList->SetPipelineState(GraphicsPSO_SkinnedMeshDeferredGeometry_.Get());
+		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		if (Player_) {
+			auto const& playerModel{ Player_->GetAnimatedModel() };
+			cmdList->SetGraphicsRootDescriptorTable(0U, GlobalTable_CBV_Scene_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(1U, playerModel.second.SkinCluster_.PaletteSRVHandle.second);
+			cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+			cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
+			auto const& cameraPos{ Camera_Player_->WorldPosition() };
+			cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
+
+			D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
+				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.first.VBV_),
+				reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(playerModel.second.SkinCluster_.InfluenceBufferView)
+			};
+			cmdList->IASetVertexBuffers(0, 2, vbvs);
+			cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&playerModel.first.IBV_));
+			cmdList->DrawIndexedInstanced(
+				static_cast<Lumina::U32>(playerModel.first.Collection_.Meshes[0].Indices.size()),
+				1U, 0U, 0U, 0U
+			);
+		}
+
+		for (const auto& e : playState_.Enemies) {
+			if (e.IsDead) continue;
+
+			if (EnemySkinnedModels_.contains(e.BaseData.name) && EnemySkinnedInstances_.contains(e.Id)) {
+				auto& model = EnemySkinnedModels_[e.BaseData.name];
+				auto& inst = EnemySkinnedInstances_[e.Id];
+
+				Lumina::Math::F32x3 renderPos{ e.Position.X, e.Position.Y, e.Position.Z };
+				Lumina::Math::F32x3 scale{ e.Scale, e.Scale, e.Scale };
+				Lumina::Math::F32x3 rot{ 0.0f, 0.0f, 0.0f };
+
+				if (e.SpawnTimer > 0.0f && e.SpawnDuration > 0.0f) {
+					float spawnT = 1.0f - (e.SpawnTimer / e.SpawnDuration);
+					if (spawnT < 0.0f) spawnT = 0.0f;
+					else if (spawnT > 1.0f) spawnT = 1.0f;
+
+					float const riseEase = 1.0f - std::pow(1.0f - spawnT, 4.0f);
+					float const overshoot = std::sin(spawnT * 3.14159265f) * (1.0f - spawnT);
+					float const shake = std::sin(spawnT * 28.0f + static_cast<float>(e.Id) * 0.31f) * (1.0f - spawnT);
+					float const twist = std::sin(spawnT * 15.0f + static_cast<float>(e.Id) * 0.17f) * (1.0f - spawnT);
+
+					renderPos.Y -= (1.0f - riseEase) * (2.8f * e.Scale);
+					renderPos.Y += overshoot * (0.95f * e.Scale);
+					renderPos.X += shake * (0.16f * e.Scale);
+
+					scale.X *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+					scale.Y *= 0.06f + 0.94f * riseEase + overshoot * 0.42f;
+					scale.Z *= 0.38f + 0.62f * riseEase + overshoot * 0.18f;
+
+					rot.Z += twist * 0.28f;
+					rot.X += std::abs(twist) * 0.12f;
+				}
+				if (e.HurtTimer > 0.0f && e.CurrentHP > 0 && e.CurrentHP < e.BaseData.hp) {
+					float hurtRatio = e.HurtTimer / 0.2f;
+					if (hurtRatio > 1.0f) hurtRatio = 1.0f;
+
+					float const pulse = 0.5f + 0.5f * std::sin(hurtRatio * 18.0f);
+					float const stretch = 1.0f + hurtRatio * 0.18f;
+					float const squash = 1.0f - hurtRatio * 0.12f;
+					float const shakeDir = e.FacingRight ? -1.0f : 1.0f;
+
+					renderPos.X += shakeDir * pulse * 0.18f;
+					renderPos.Y += hurtRatio * 0.08f;
+					scale.X *= stretch;
+					scale.Y *= squash;
+					scale.Z *= stretch;
+				}
+
+				rot.Y = e.RenderFacingYaw;
+				rot.X += e.RenderPitch;
+
+				// Optional visual offset applied via behavior (like jump anticipation)
+				if (e.VisualOffset.X != 0.0f || e.VisualOffset.Y != 0.0f || e.VisualOffset.Z != 0.0f) {
+					renderPos.X += e.VisualOffset.X;
+					renderPos.Y += e.VisualOffset.Y;
+					renderPos.Z += e.VisualOffset.Z;
+				}
+				rot.Y += e.VisualYaw;
+
+				Lumina::Math::F32x4x4<> meshWorld = Game::MathUtils::SRT(scale, rot, renderPos);
+				Lumina::Math::F32x4x4<> tr_INV_MeshWorld = meshWorld.Inverse().Transpose();
+				Lumina::Math::F32x4x4<> wvp = meshWorld * (*WorldToHomogeneous_);
+
+				inst->TransformsBuffer_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+				inst->TransformsBuffer_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
+				inst->TransformsBuffer_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
+
+				uint32_t materialIdx = 0U;
+				if (EnemyMaterialIndices_.contains(e.BaseData.name)) {
+					materialIdx = static_cast<uint32_t>(EnemyMaterialIndices_.at(e.BaseData.name));
+				}
+
+				cmdList->SetGraphicsRootDescriptorTable(0U, inst->CBV_SceneTable_.GPUHandle(0U));
+				cmdList->SetGraphicsRootDescriptorTable(1U, inst->SkinCluster_.PaletteSRVHandle.second);
+				cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(materialIdx));
+				cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+
+				D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
+					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(model->VBV_),
+					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(inst->SkinCluster_.InfluenceBufferView)
+				};
+				cmdList->IASetVertexBuffers(0, 2, vbvs);
+				cmdList->IASetIndexBuffer(reinterpret_cast<D3D12_INDEX_BUFFER_VIEW const*>(&model->IBV_));
+				cmdList->DrawIndexedInstanced(
+					static_cast<Lumina::U32>(model->Collection_.Meshes[0].Indices.size()),
+					1U, 0U, 0U, 0U
+				);
+			}
+		}
+	}
+
+	template<>
+	auto InGame::Render_<"Deferred.Geometry.Draw">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::MeshManager& meshMngr_
+	) -> void {
+		GeometryPass_.Begin(cmdList_);
+
+		cmdList_->RSSetViewports(
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.Viewports().data()
+		);
+		cmdList_->RSSetScissorRects(
+			Canvas_GeometryPass_.Num_RenderTargets(),
+			Canvas_GeometryPass_.ScissorRects().data()
+		);
+
+		meshMngr_.Render(
 			GraphicsPSO_MeshDeferredGeometry_,
 			GlobalTable_SRV_ImageTexture_.GPUHandle(0U),
 			LocalHeap_Scene_.CPUHandle(0U)
@@ -421,73 +395,22 @@ namespace Game::Scene::Impl {
 		Render_<"Characters">();
 		GeometryPass_.End();
 
-		Render_<"Skybox">(cmdList);
-
-		{
-			auto rtv{ Canvas_GeometryPass_.RTV(0U) };
-			auto dsv{ Canvas_GeometryPass_.DSV() };
-			cmdList->OMSetRenderTargets(1U, &rtv, false, &dsv);
-
-			EnemyEffects_->Render(
-				cmdList,
-				RS_ParticleSystem_,
-				GraphicsPSO_BasicParticle_AdditiveMode_,
-				LocalHeap_Scene_.CPUHandle(0U),
-				LocalHeap_Scene_.CPUHandle(0U),
-				GlobalTable_SRV_ImageTexture_,
-				GlobalTable_SRV_ImageTexture_
-			);
-
-			PlayerEffects_->Render(
-				cmdList,
-				RS_ParticleSystem_,
-				GraphicsPSO_BasicParticle_AdditiveMode_,
-				LocalHeap_Scene_.CPUHandle(0U),
-				LocalHeap_Scene_.CPUHandle(0U),
-				GlobalTable_SRV_ImageTexture_,
-				GlobalTable_SRV_ImageTexture_
-			);
-			UmbrellaEffects_->Render(
-				cmdList,
-				RS_ParticleSystem_,
-				GraphicsPSO_BasicParticle_AdditiveMode_,
-				LocalHeap_Scene_.CPUHandle(0U),
-				LocalHeap_Scene_.CPUHandle(0U),
-				GlobalTable_SRV_ImageTexture_,
-				GlobalTable_SRV_ImageTexture_
-			);
-			Raindrops_->Render(
-				cmdList,
-				RS_ParticleSystem_,
-				GraphicsPSO_BasicParticle_AdditiveMode_,
-				LocalHeap_Scene_.CPUHandle(0U),
-				LocalHeap_Scene_.CPUHandle(0U),
-				GlobalTable_SRV_ImageTexture_,
-				GlobalTable_SRV_ImageTexture_
-			);
-			AmbientSparkles_->Render(
-				cmdList,
-				RS_ParticleSystem_,
-				GraphicsPSO_BasicParticle_AdditiveMode_,
-				LocalHeap_Scene_.CPUHandle(0U),
-				LocalHeap_Scene_.CPUHandle(0U),
-				GlobalTable_SRV_ImageTexture_,
-				GlobalTable_SRV_ImageTexture_
-			);
-		}
-
 		TerrainRenderer_->Render(
 			static_cast<Lumina::D3D12::Canvas const&>(Canvas_GeometryPass_),
 			Camera_Player_->WorldPosition(),
 			static_cast<Lumina::Math::F32x4x4<> const&>(*WorldToHomogeneous_)
 		);
+	}
 
-		Render_<"Portals">(cmdList);
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	Deferred.Geometry.PostDraw								:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
 
-		//TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
-		//TerrainRenderer_->DebugRenderColliders(GlobalTable_SRV_ImageTexture_, *WorldToHomogeneous_);
-
-		D3D12_RESOURCE_BARRIER const barriers_PostGeometryPass[]{
+	template<>
+	auto InGame::Render_<"Deferred.Geometry.PostDraw.ResourceBarrier">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		std::vector<D3D12_RESOURCE_BARRIER> const barriers_PostPass{
 			Lumina::D3D12::Barrier::Transition(
 				Canvas_GeometryPass_.RenderTexture(0U),
 				D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -509,75 +432,395 @@ namespace Game::Scene::Impl {
 				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
 			),
 		};
-		cmdList->ResourceBarrier(4U, barriers_PostGeometryPass);
+		cmdList_->ResourceBarrier(
+			static_cast<Lumina::U32>(barriers_PostPass.size()),
+			barriers_PostPass.data()
+		);
+	}
+
+	template<>
+	auto InGame::Render_<"Deferred.Geometry.PostDraw">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		Render_<"Deferred.Geometry.PostDraw.ResourceBarrier">(cmdList_);
+	}
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+
+	template<>
+	auto InGame::Render_<"Deferred.Geometry">() -> void {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		auto& meshMngr{ Lumina::Context::Instance().MeshContext() };
+
+		meshMngr.Begin(cmdList);
+
+		Render_<"Deferred.Geometry.PreDraw">(cmdList, meshMngr);
+		Render_<"Deferred.Geometry.Draw">(cmdList, meshMngr);
+
+		Render_<"Deferred.Geometry.PostDraw">(cmdList);
 
 		meshMngr.End();
 	}
+}
 
-	void InGame::Render_Merge() {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+//////	Deferred.Lighting										//////
+//////	//////	//////	//////	//////	//////	//////	//////	//////
 
-		cmdList->RSSetViewports(
-			Canvas_GeometryPass_.Num_RenderTargets(),
-			Canvas_GeometryPass_.Viewports().data()
+namespace Game::Scene::Impl {
+	template<>
+	auto InGame::Render_<"Deferred.Lighting">(
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_,
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		DeferredLighting_->Render(
+			d3d12Device_,
+			cmdList_,
+			GlobalTable_SRV_CanvasTexture_,
+			// * WorldToProjective
+			LocalHeap_Scene_.CPUHandle(0U),
+			// * ScreenToWorld
+			LocalHeap_Scene_.CPUHandle(1U)
 		);
-		cmdList->RSSetScissorRects(
-			Canvas_GeometryPass_.Num_RenderTargets(),
-			Canvas_GeometryPass_.ScissorRects().data()
+	}
+}
+
+
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+//////	IlluminatingObjects										//////
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+
+namespace Game::Scene::Impl {
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	PortalCylinders											:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+
+	namespace {
+		Lumina::F32 PortalTimeFactor{ 0.0f };
+	}
+
+	template<>
+	void InGame::Render_<"PortalCylinder">(
+		Lumina::D3D12::CommandList const& cmdList_,
+		Lumina::U32&& idx_,
+		Lumina::F32x2&& worldPos_
+	) {
+		using Lumina::Math::Constant::Pi;
+		constexpr Lumina::U32 num_Instances{ 2U };
+		Lumina::Math::F32x4x4<> worlds[num_Instances]{
+			Game::MathUtils::SRT(
+				{ -1.0f, 1.0f, 1.0f },
+				{
+					Pi * 0.5f,
+					std::cos(PortalTimeFactor * 1.25f) * 0.75f,
+					std::sin(PortalTimeFactor * 1.75f) * 0.75f
+				},
+				{ worldPos_.X, worldPos_.Y, 0.0f }
+			),
+			Game::MathUtils::SRT(
+				{ 1.25f, 1.25f, 1.25f },
+				{
+					Pi * 0.5f,
+					std::cos(PortalTimeFactor * 1.75f) * 0.75f,
+					std::sin(PortalTimeFactor * 1.25f) * 0.75f
+				},
+				{ worldPos_.X, worldPos_.Y, 0.0f }
+			),
+		};
+		UB_PortalLocalToWorlds_[idx_].Store(
+			worlds,
+			sizeof(Lumina::Math::F32x4x4<>) * num_Instances,
+			0LLU
 		);
 
-		PrimitiveManager_->Begin(cmdList);
+		cmdList_->SetGraphicsRootSignature(RS_Portal_.Get());
+		cmdList_->SetGraphicsRootDescriptorTable(0U, CBV_PortalConstants_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(1U, SRV_PortalLocalToWorlds_.GPUHandle(idx_));
+		cmdList_->SetGraphicsRootDescriptorTable(2U, SRV_PortalTextures_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_CanvasTexture_.GPUHandle(0U));
+		cmdList_->SetPipelineState(PSO_Portal_.Get());
+		Portals_[idx_]->Render(cmdList_, 2U);
+	}
+
+	template<>
+	void InGame::Render_<"PortalCylinders">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) {
+		UB_PortalConstants_.Store(
+			WorldToHomogeneous_.get(),
+			sizeof(Lumina::Math::F32x4x4<>),
+			0LLU
+		);
+		UB_PortalConstants_.Store(
+			&PortalTimeFactor,
+			sizeof(Lumina::F32),
+			sizeof(Lumina::Math::F32x4x4<>)
+		);
+
+		PortalTimeFactor += 0.0166667f;
+
+		Lumina::U32 idx_Portal{ 0 };
+		for (const auto& conn : playState_.CurrentArea.connections) {
+			Render_<"PortalCylinder">(
+				cmdList_,
+				Lumina::U32{ idx_Portal },
+				Lumina::F32x2{ conn.position.x, conn.position.y }
+			);
+			++idx_Portal;
+		}
+	}
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	ParticleEffects											:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+
+	template<>
+	auto InGame::Render_<"ParticleEffects">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		EnemyEffects_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+
+		PlayerEffects_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+		UmbrellaEffects_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+
+		Raindrops_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+		AmbientSparkles_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+		PortalSparkles_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
+	}
+	
+
+	template<>
+	auto InGame::Render_<"IlluminatingObjects">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+		auto rtv{ swapChain.BackBufferRTVCPUHandle() };
+		cmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
+
+		Render_<"PortalCylinders">(cmdList_);
+		Render_<"ParticleEffects">(cmdList_);
+	}
+}
+
+namespace Game::Scene::Impl {
+	template<>
+	void InGame::Render_<"Skybox">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) {
+		auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+		auto rtv{ swapChain.BackBufferRTVCPUHandle() };
+		cmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
+		Skybox_->Render(cmdList_, LocalHeap_Scene_.CPUHandle(0U));
+	}
+}
+
+namespace Game::Scene::Impl {
+	template<>
+	auto InGame::Render_<"Merge">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		cmdList_->RSSetViewports(1U, &DefaultViewport);
+		cmdList_->RSSetScissorRects(1U, &DefaultScissorRect);
+
+		PrimitiveManager_->Begin(cmdList_);
 		PrimitiveManager_->BatchTriangle(
 			{ { -1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f }, 0U },
-			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
-			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
+			{ { 3.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 2.0f, 0.0f }, 0U },
+			{ { -1.0f, -3.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 2.0f }, 0U }
 		);
-		PrimitiveManager_->BatchTriangle(
-			{ { 1.0f, 1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 0.0f }, 0U },
-			{ { 1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 1.0f, 1.0f }, 0U },
-			{ { -1.0f, -1.0f, 0.0f, 1.0f }, { 1.0f, 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f }, 0U }
-		);
-		PrimitiveManager_->End(cmdList);
+		PrimitiveManager_->End(cmdList_);
 
 		auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
 		MergePass_.RenderTarget(0).View() = swapChain.BackBufferRTVCPUHandle();
 		MergePass_.DepthStencil().View() = swapChain.DSVCPUHandle();
-		MergePass_.Begin(cmdList);
-		PrimitiveManager_->Render(cmdList, GlobalTable_SRV_CanvasTexture_, Lumina::Math::F32x4x4<>::Identity, 1);
+		MergePass_.Begin(cmdList_);
+		PrimitiveManager_->Render(
+			cmdList_,
+			GlobalTable_SRV_LightingResultTexture_,
+			Lumina::Math::F32x4x4<>::Identity,
+			1
+		);
 		MergePass_.End();
 
 		//auto rtv = swapChain.BackBufferRTVCPUHandle();
 		//auto dsv = swapChain.DSVCPUHandle();
 		//cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
 	}
+}
 
-	void InGame::Render() {
-		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
-		ID3D12DescriptorHeap* descriptorHeaps[]{
-			Lumina::Context::Instance().D3D12Context().GlobalDescriptorHeap().Get(),
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+//////	PrepareData												//////
+//////	//////	//////	//////	//////	//////	//////	//////	//////
+
+namespace Game::Scene::Impl {
+	template<>
+	auto InGame::Render_<"PrepareData.PlayerSkinning">() -> void {
+		auto const& playerModel{ Player_->GetAnimatedModel() };
+
+		Lumina::Math::F32x4x4<> meshWorld{
+			Game::MathUtils::SRT(
+				playerModel.second.MeshScale_,
+				playerModel.second.MeshRotate_,
+				playerModel.second.MeshTranslate_
+			)
 		};
-		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
+		Lumina::Math::F32x4x4<> tr_INV_MeshWorld{
+			meshWorld.Inverse().Transpose()
+		};
+		Lumina::Math::F32x4x4<> wvp{
+			meshWorld * (*WorldToHomogeneous_)
+		};
 
+		UB_Transforms_.Store(
+			&wvp,
+			sizeof(Lumina::Math::F32x4x4<>),
+			0LLU
+		);
+		UB_Transforms_.Store(
+			&meshWorld,
+			sizeof(Lumina::Math::F32x4x4<>),
+			sizeof(Lumina::Math::F32x4x4<>)
+		);
+		UB_Transforms_.Store(
+			&tr_INV_MeshWorld,
+			sizeof(Lumina::Math::F32x4x4<>),
+			sizeof(Lumina::Math::F32x4x4<>) * 2
+		);
+	}
+
+	template<>
+	auto InGame::Render_<"PrepareData.Particle">() -> void {
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+
+		PlayerEffects_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this](Lumina::Particle& p_, void const*) -> bool {
+			this->Update_<"PlayerEffectParticle">(p_);
+			return (p_.Life > 0.0f);
+		}
+		);
+		UmbrellaEffects_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this](Lumina::Particle2& p_, void const*) -> bool {
+			this->Update_<"UmbrellaEffectParticle">(p_);
+			return (p_.Life > 0.0f);
+		}
+		);
+		Raindrops_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this](Lumina::Particle& p_, void const*) -> bool {
+			this->Update_<"RaindropParticle">(p_);
+			return (p_.Life > 0.0f);
+		}
+		);
+		AmbientSparkles_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this](Lumina::Particle& p_, void const*) -> bool {
+			this->Update_<"AmbientSparkleParticle">(p_);
+			return (p_.Life > 0.0f);
+		}
+		);
+		PortalSparkles_->Update(
+			cmdList,
+			Lumina::Math::F32x4x4<>::Identity,
+			[this](Lumina::Particle& p_, void const*) -> bool {
+			this->Update_<"PortalSparkleParticle">(p_);
+			return (p_.Life > 0.0f);
+		}
+		);
+	}
+
+	template<>
+	auto InGame::Render_<"PrepareData">() -> void {
 		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
-		auto const& playerModel{ Player_->GetAnimatedModel() };
-		Lumina::Math::F32x4x4<> meshWorld{ Game::MathUtils::SRT(playerModel.second.MeshScale_, playerModel.second.MeshRotate_, playerModel.second.MeshTranslate_) };
-		Lumina::Math::F32x4x4<> tr_INV_MeshWorld{ meshWorld.Inverse().Transpose() };
-		Lumina::Math::F32x4x4<> wvp{ meshWorld * (*WorldToHomogeneous_) };
-		UB_Transforms_.Store(&wvp, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
-		UB_Transforms_.Store(&meshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>));
-		UB_Transforms_.Store(&tr_INV_MeshWorld, sizeof(Lumina::Math::F32x4x4<>), sizeof(Lumina::Math::F32x4x4<>) * 2);
+		Render_<"PrepareData.PlayerSkinning">();
+		Render_<"PrepareData.Particle">();
+	}
+}
 
-		Render_<"PrepareParticle">();
-		Render_Geometry();
-		Render_Merge();
+namespace Game::Scene::Impl {
+	void InGame::Render() {
+		auto const& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+		auto const& cmdList{ context.MainCommandList() };
+
+		ID3D12DescriptorHeap* descriptorHeaps[]{ d3d12Context.GlobalDescriptorHeap().Get(), };
+		cmdList->SetDescriptorHeaps(1U, descriptorHeaps);
+
+		Render_<"PrepareData">();
+
+		Render_<"Deferred.Geometry">();
+		Render_<"Deferred.Lighting">(d3d12Device, cmdList);
+
+		//TerrainRenderer_->DebugRenderCollidersBatch(*Terrain_);
+		//TerrainRenderer_->DebugRenderColliders(GlobalTable_SRV_ImageTexture_, *WorldToHomogeneous_);
+
+		//Render_<"Skybox">(cmdList);
+
+		Render_<"Merge">(cmdList);
+		Render_<"IlluminatingObjects">(cmdList);
 
 			// オーバーレイ描画（プレイヤーHPバー、敵HPバー、チュートリアル等）
 		if (PrimitiveManager_Tutorial_) {
 			bool drawTutorial = (TutorialManager_ && TutorialManager_->IsActive());
 			// プレイ中、またはチュートリアル等があれば描画パスを回す
 			if (drawTutorial || !playState_.Enemies.empty() || playState_.IsPlaying) {
-				auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
+				auto const& swapChain{ d3d12Context.SwapChain() };
 				auto rtv = swapChain.BackBufferRTVCPUHandle();
 				cmdList->OMSetRenderTargets(1U, &rtv, false, nullptr);
 

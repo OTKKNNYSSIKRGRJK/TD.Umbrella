@@ -7,9 +7,19 @@
         "TableName": "Constants"
       },
       {
+        "ShaderVisibility": "Vertex",
+        "ParameterType": "DescriptorTable",
+        "TableName": "LocalToWorlds"
+      },
+      {
         "ShaderVisibility": "Pixel",
         "ParameterType": "DescriptorTable",
         "TableName": "Texture"
+      },
+      {
+        "ShaderVisibility": "Pixel",
+        "ParameterType": "DescriptorTable",
+        "TableName": "Textures2"
       }
     ],
 
@@ -23,12 +33,31 @@
       }
     ],
 
+    "LocalToWorlds": [
+      {
+        "RangeType": "SRV",
+        "NumDescriptors": 1,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+
     "Texture": [
       {
         "RangeType": "SRV",
         "NumDescriptors": 1,
         "BaseShaderRegister": 0,
         "RegisterSpace": 0,
+        "OffsetInDescriptorsFromTableStart": -1
+      }
+    ],
+    "Textures2": [
+      {
+        "RangeType": "SRV",
+        "NumDescriptors": 8,
+        "BaseShaderRegister": 0,
+        "RegisterSpace": 2,
         "OffsetInDescriptorsFromTableStart": -1
       }
     ],

@@ -32,7 +32,7 @@ namespace Lumina::Math {
 
 	inline auto OBB::WorldToLocal() const noexcept -> SE3 {
 		SE3 se3{ Rotation };
-		se3 = se3.Inv();
+		se3 = se3.Inverse();
 		return se3;
 	}
 }

@@ -1,6 +1,6 @@
 struct PatchTessellation {
 	float EdgeTess[3] : SV_TessFactor;
-	float InsideTess[1] : SV_InsideTessFactor;
+	float InsideTess : SV_InsideTessFactor;
 };
 
 struct VSOutput {
@@ -28,7 +28,7 @@ float CalculateTessellationFactor(in float3 worldPos_) {
  //   // * [Distance_MIN, Distance_MAX] -> [Tessellation_MAX, Tessellation_MIN]
 	//const float t = saturate((dist - Distance_MIN) / (Distance_MAX - Distance_MIN));
 	//return pow(2.0f, lerp(Tessellation_MAX, Tessellation_MIN, t));
-	return 4096.0f;
+	return 64.0f;
 }
 
 PatchTessellation CalculatePatchConstant(
@@ -46,7 +46,7 @@ PatchTessellation CalculatePatchConstant(
 	ret.EdgeTess[0] = CalculateTessellationFactor(edge_0);
 	ret.EdgeTess[1] = CalculateTessellationFactor(edge_1);
 	ret.EdgeTess[2] = CalculateTessellationFactor(edge_2);
-	ret.InsideTess[0] = CalculateTessellationFactor(center);
+	ret.InsideTess = CalculateTessellationFactor(center);
 
 	return ret;
 }

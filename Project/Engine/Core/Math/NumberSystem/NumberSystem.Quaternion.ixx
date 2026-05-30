@@ -284,7 +284,7 @@ namespace Lumina::Math {
 	_LUMINA_INLINE_ auto [[nodiscard]] Quaternion::Unit() const noexcept -> Quaternion {
 		using SIMD::Flag::CMP;
 
-		SIMD::F32x4 const sq_Norm{ SIMD::Dot<0x1U, 0xFU>(XYZW_, XYZW_) };
+		SIMD::F32x4 const sq_Norm{ SIMD::Dot<0xFU, 0xFU>(XYZW_, XYZW_) };
 		SIMD::F32x4 const norm{ SIMD::SQRT(sq_Norm) };
 		SIMD::F32x4 const zeroMask{ SIMD::Compare<CMP::NEQ_OQ>(SIMD::Zero(), norm) };
 
@@ -301,10 +301,10 @@ namespace Lumina::Math {
 		using SIMD::Flag::CMP;
 
 		SIMD::F32x4 const conj{ SIMD::XOR(XYZW_, SIMD::Mask::Sign<1, 1, 1, 0>) };
-		SIMD::F32x4 const sq_Norm{ SIMD::Dot<0x1U, 0xFU>(XYZW_, XYZW_) };
+		SIMD::F32x4 const sq_Norm{ SIMD::Dot<0xFU, 0xFU>(XYZW_, XYZW_) };
 		SIMD::F32x4 const zeroMask{ SIMD::Compare<CMP::NEQ_OQ>(SIMD::Zero(), sq_Norm) };
 
-		SIMD::F32x4 recip{SIMD::DIV(conj, sq_Norm) };
+		SIMD::F32x4 recip{ SIMD::DIV(conj, sq_Norm) };
 		recip = SIMD::AND(recip, zeroMask);
 		return recip;
 	}

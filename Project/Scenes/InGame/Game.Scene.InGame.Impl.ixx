@@ -61,13 +61,8 @@ namespace Game::Scene::Impl {
 	private:
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
 		auto Update_(_ARGs&&...args_) -> void;
-
-	private:
 		template<Lumina::StringLiteral _Name, typename..._ARGs>
 		auto Render_(_ARGs&&...args_) -> void;
-
-		void Render_Geometry();
-		void Render_Merge();
 
 	public:
 		void Update();
@@ -135,6 +130,7 @@ namespace Game::Scene::Impl {
 		std::vector<std::unique_ptr<Lumina::D3D12::UploadBuffer>> UB_Materials_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Materials_;
 		Lumina::D3D12::UploadBuffer UB_WorldToHomogeneous_;
+		Lumina::D3D12::UploadBuffer UB_ScreenToWorld_;
 
 		std::map<std::string, MeshRange> EnemyMeshIndices_;
 		std::map<std::string, size_t> EnemyMaterialIndices_;
@@ -146,7 +142,6 @@ namespace Game::Scene::Impl {
 
 		std::vector<std::pair<std::string, std::string>> AdditionalTextures_;
 
-
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_ImageTexture_;
 		Lumina::D3D12::DescriptorTable GlobalTable_SRV_CanvasTexture_;
 		Lumina::D3D12::DescriptorHeap LocalHeap_Scene_;
@@ -154,6 +149,7 @@ namespace Game::Scene::Impl {
 		std::unique_ptr<Lumina::Utils::Camera> Camera_;
 		std::unique_ptr<Lumina::Utils::Camera> Camera_Player_;
 		std::unique_ptr<Lumina::Math::F32x4x4<>> WorldToHomogeneous_;
+		std::unique_ptr<Lumina::Math::F32x4x4<>> ScreenToWorld_;
 
 		#if defined(_DEBUG)
 		std::unique_ptr<TerrainEditor> TerrainEditor_;
@@ -280,6 +276,7 @@ namespace Game::Scene::Impl {
 		Lumina::List<Lumina::PointLight> List_PointLight_;
 		Lumina::List<Lumina::Math::F32x4x4<>> List_LocalToWorld_LightSphere_;
 		std::vector<Lumina::U32> Arr_Index_ActivePointLight_;
+		Lumina::D3D12::DescriptorTable GlobalTable_SRV_LightingResultTexture_;
 
 		Lumina::D3D12::RootSignature RS_ParticleSystem_;
 		Lumina::D3D12::Shader VS_BasicParticle_;
@@ -294,6 +291,8 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> AmbientSparkles_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> Raindrops_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PortalSparkles_;
+
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle2>> UmbrellaEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
@@ -327,6 +326,12 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::Shader PS_Portal_;
 		Lumina::D3D12::GraphicsPSO PSO_Portal_;
 		std::unique_ptr<Lumina::Cylinder> Portals_[8];
+
+		Lumina::D3D12::UploadBuffer UB_PortalConstants_;
+		Lumina::D3D12::UploadBuffer UB_PortalLocalToWorlds_[8];
+		Lumina::D3D12::DescriptorTable CBV_PortalConstants_;
+		Lumina::D3D12::DescriptorTable SRV_PortalLocalToWorlds_;
+		Lumina::D3D12::DescriptorTable SRV_PortalTextures_;
 
 		// * Skybox
 

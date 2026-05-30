@@ -1,7 +1,5 @@
 #pragma once
 
-#define _LUMINA_INTRINSICS_UNUSED_
-
 #if defined(NDEBUG) || defined(_LUMINA_DEBUG_INTRINSICS_)
 //--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--#-	-#--//
 

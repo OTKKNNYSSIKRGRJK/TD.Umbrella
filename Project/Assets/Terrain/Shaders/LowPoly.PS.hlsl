@@ -188,7 +188,7 @@ float3 CalculateSurfaceMaterialNormal(
 	return normalize(normal_Transfromed);
 }
 
-PSOutput main(in PSInput input_) {
+PSOutput main(in PSInput input_, uint id : SV_PrimitiveID) {
 	float4 albedo_Material;
 	float3 normal_Material;
 	BlendMaterial(
@@ -212,6 +212,8 @@ PSOutput main(in PSInput input_) {
 	// * [-1, 1] -> [0, 1]
 	output.Normal.rgb = (normal + 1.0f) * 0.5f;
 	output.Normal.a = 1.0f;
+	
+	//output.Albedo.rgb = (input_.Normal + 1.0f) * 0.5f;
 	
 	//const float4 blendAndElevation = Surface::BlendAndElevation.Sample(BilinearWrap, input_.UV);
 	//const float2 blendGradient = blendAndElevation.rg;

@@ -17,12 +17,14 @@ cbuffer Constants : register(b0) {
 	float Time;
 }
 
-VSOutput main(VSInput input_) {
+VSOutput main(VSInput input_, uint instID_ : SV_InstanceID) {
 	VSOutput output;
-	output.Position = mul(input_.Position, LocalToWorld);
+	output.Position = input_.Position;
+	output.Position.xyz *= 1.0f + instID_ * 1.2f;
+	output.Position = mul(output.Position, LocalToWorld);
 	output.Position = mul(output.Position, WorldToProjective);
 	output.TexCoord = input_.TexCoord;
-	output.TexCoord.x += Time * 0.1f;
+	output.TexCoord.x += Time * 0.1f + instID_ * 1.2f;
 	output.TexCoord.y += cos(Time * 7.0f + input_.Normal.x * 5.0f) * 0.1f + 0.1f;
 	output.Normal = mul(input_.Normal, (float3x3) WorldToProjective);
 	output.LocalNormal = input_.Normal;

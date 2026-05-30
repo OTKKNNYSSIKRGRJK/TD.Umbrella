@@ -9,7 +9,7 @@ struct PSOutput {
 
 Texture2D<float4> SRV_GBuffer_Albedo : register(t0, space16);
 Texture2D<float4> SRV_GBuffer_Normal : register(t1, space16);
-Texture2D<float> SRV_GBuffer_Depth : register(t2, space16);
+Texture2D<float> SRV_GBuffer_Depth : register(t3, space16);
 
 SamplerState Sampler_Default : register(s0);
 

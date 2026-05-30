@@ -32,17 +32,11 @@ namespace Lumina {
 	public:
 		void Render(
 			D3D12::CommandList const& cmdList_,
-			D3D12::RootSignature const& rs_,
-			D3D12::GraphicsPSO const& graphicsPSO_,
-			Math::F32x4x4<> const& localToWorld_,
-			Math::F32x4x4<> const& worldToProjective_,
 			U32 num_Instances_ = 1U
-		);
+		) const;
 
 		void Initialize(
-			D3D12::Context const& dxContext_,
-			D3D12::GraphicsDevice const& device_,
-			std::string_view filePath_ = "Assets/Img/gradationLine.png"
+			D3D12::GraphicsDevice const& d3d12Device_
 		);
 
 	private:
@@ -60,16 +54,11 @@ namespace Lumina {
 		D3D12_VERTEX_BUFFER_VIEW VBV_;
 		D3D12_INDEX_BUFFER_VIEW IBV_;
 
-		D3D12::UploadBuffer UB_Constants_;
-		D3D12::DescriptorTable CBV_Constants_;
-		D3D12::DescriptorTable SRV_Textures_;
-
 	public:
 		constexpr static uint32_t NUM_Division_MIN{ 3U };
 		constexpr static uint32_t NUM_Division_MAX{ 128U };
 
 	private:
 		Properties CylinderProperties_;
-		F32 Time_;
 	};
 }
