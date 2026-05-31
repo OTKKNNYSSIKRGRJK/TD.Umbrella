@@ -18,6 +18,8 @@ import Game.Player;
 import Lumina.CG3D;
 import Lumina.CG3D.Animation;
 
+import Game.MathUtils;
+
 namespace Game::Scene::Impl {
 	template<>
 	auto Title::Initialize_<"Meshes">() -> void {
@@ -25,67 +27,50 @@ namespace Game::Scene::Impl {
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
 
-		// assimpを使っての読み込み
-		// メッシュはLumina::CG3D::Collectionの中のMeshesに入ってる
-		Collection_ = Lumina::CG3D::Import("Neki.gltf", "Assets/Neki");
-		// メッシュの頂点バッファ
-		VertexBuffer_.Initialize(
-			d3d12Device,
-			// バッファサイズ＝頂点サイズ×メッシュの頂点数
-			sizeof(Lumina::CG3D::Mesh::Vertex) *
-			Collection_.Meshes[0].Vertices.size()
-		);
-		// 頂点バッファに頂点データを入れる
-		VertexBuffer_.Store(
-			// データ
-			Collection_.Meshes[0].Vertices.data(),
-			// データサイズ
-			sizeof(Lumina::CG3D::Mesh::Vertex) *
-			Collection_.Meshes[0].Vertices.size(),
-			// メモリオフセット　気にせんでええ
-			0LLU
-		);
-		// 頂点バッファを使ってビューを作成
-		// テンプレートに頂点の変数型を入れる
-		VBV_ = Lumina::D3D12::VBV::Create<Lumina::CG3D::Mesh::Vertex>(VertexBuffer_);
+		auto&& umbrellaHandle{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaHandle.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
 
-		IndexBuffer_.Initialize(
-			d3d12Device,
-			sizeof(Lumina::U32) *
-			Collection_.Meshes[0].Indices.size()
-		);
-		IndexBuffer_.Store(
-			Collection_.Meshes[0].Indices.data(),
-			sizeof(Lumina::U32) *
-			Collection_.Meshes[0].Indices.size(),
-			0LLU
-		);
-		IBV_ = Lumina::D3D12::IBV::Create(IndexBuffer_);
-	}
+		auto&& umbrellaOpenTop{
+			Lumina::Utils::Mesh::Load(
+				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
+					"UmbrellaTop.obj", "Assets/Hamada/Umbrella"
+				)
+			)
+		};
 
-	template<>
-	auto Title::Initialize_<"Animation">() -> void {
-		[[maybe_unused]] auto& context{ Lumina::Context::Instance() };
-		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
-		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
+		using MeshCollection = std::vector<Lumina::Utils::Mesh>;
 
-		auto animations{ Lumina::CG3D::LoadAnimationFile("animation.gltf", "Assets/Neki") };
-		Animation_ = animations[0];
-		Skeleton_ = Lumina::CG3D::CreateSkeleton(Collection_.Root);
-		Lumina::CG3D::CreateSkinCluster(
-			SkinCluster_,
-			d3d12Device,
-			d3d12Context.GlobalDescriptorHeap(),
-			Skeleton_,
-			// メッシュ
-			Collection_.Meshes[0]
-		);
+		// アップロード用vector
+		MeshCollection meshesToBeUploaded{};
 
-		AnimationTimer_ = 0.0f;
+		// メッシュvectorをアップロードリストに追加
+		// 可読性向上させるべくラムダ式に
+		auto addMeshesToBeUploaded{
+			[&](MeshCollection const& meshCollection_) -> void {
+				meshesToBeUploaded.insert(
+					meshesToBeUploaded.cend(),
+					meshCollection_.cbegin(),
+					meshCollection_.cend()
+				);
+			}
+		};
 
-		MeshScale_ = { 1.0f, 1.0f, 1.0f };
-		MeshRotate_ = { 0.0f, 0.0f, 0.0f };
-		MeshTranslate_ = { 0.0f, 0.0f, 0.0f };
+		addMeshesToBeUploaded(umbrellaHandle);
+		addMeshesToBeUploaded(umbrellaOpenTop);
+
+		// メッシュデータをGPU側にアップロードするやつ
+		Lumina::MeshUploader meshUploader{};
+		meshUploader.Initialize(d3d12Context);
+		meshUploader.Begin();
+		for (auto const& mesh : meshesToBeUploaded) {
+			meshUploader.Batch(mesh);
+		}
+		meshUploader.End(MeshShaderAssets_);
 	}
 
 	template<>
@@ -102,8 +87,12 @@ namespace Game::Scene::Impl {
 		std::vector<uint32_t> texIDs{};
 		resMngr.Graphics().LoadImageTextures(
 			texIDs,
-			{				
+			{
 				{ "Particles", "Assets/Img/Particles.png" },
+				{ "Title.Blank", "Assets/Img/White16x16.png" },
+				{ "Title.UI.Caption", "Assets/Img/Particles.png" },
+				{ "Title.UI.Start", "Assets/Img/Particles.png" },
+				{ "Title.UI.Exit", "Assets/Img/Particles.png" },
 			}
 		);
 
@@ -127,32 +116,20 @@ namespace Game::Scene::Impl {
 		auto const& d3d12Context{ context.D3D12Context() };
 		auto const& d3d12Device{ d3d12Context.Device() };
 
-		// とりあえず64個分のアップロードバッファを確保する
 		UB_Materials_.resize(64U);
 		for (auto& ub : UB_Materials_) {
 			ub = std::make_unique<Lumina::D3D12::UploadBuffer>();
 			ub->Initialize(d3d12Device, 256LLU);
 		}
 
-		GlobalTable_Materials_ = d3d12Context.GlobalDescriptorHeap().Allocate(32U);
+		// マテリアル用ディスクリプタヒープ（64個分）
+		// シェーダー側には見えないけど、メッシュバッチとともにメッシュマネージャになんとかしてもらう
+		LocalHeap_Materials_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64U, false);
 
 		// CBV作成
-		// --- パラメータ ---
-		// GraphicsDevice const& device_ : D3D12デバイス
-		// D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle_ : マテリアル用ディスクリプタのCPUハンドル
-		// BufferType const& buffer_ : マテリアル用バッファ
-		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_Materials_.CPUHandle(0U), *UB_Materials_[0]);
-
-		// アップデートでマテリアルをいじったりするのであれば下記のように書くとよろし
-		// マテリアルデータを更新
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 999;
-
-		// マテリアルデータをCBVと紐づけてあるバッファに格納
-		// --- パラメータ ---
-		// void const* src_ : 格納されるデータへのポインター。ボイドポインター最強
-		// uint64_t sizeInBytes_ : 格納されるサイズ。ここは構造体のサイズで大丈夫
-		// uint64_t offsetInBytes_: バッファ先頭からのオフセット。ここは0で大丈夫
+		Material0_.ID_DiffuseMap = 1U;
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 	}
 
@@ -162,23 +139,19 @@ namespace Game::Scene::Impl {
 		[[maybe_unused]] auto const& d3d12Context{ context.D3D12Context() };
 		[[maybe_unused]] auto const& d3d12Device{ d3d12Context.Device() };
 
-		auto config{ Lumina::Utils::LoadFromFile<nlohmann::json>("Assets/Configs/SkinnedMesh.json") };
-		auto&& rsSetup{ Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(config.at("RS")) };
-		RS_Skinning_.Initialize(d3d12Device, rsSetup);
-
 		d3d12Context.Compile(
-			VS_SkinnedMeshDeferredGeometry_,
-			L"Assets/Shaders/MeshSkinning.VS.hlsl",
+			VS_MeshDeferredGeometry_,
+			L"Assets/Shaders/MeshCommon.VS.hlsl",
 			L"vs_6_6",
 			L"main",
-			"SkinnedMesh.DeferredGeometry.VS"
+			"Mesh.DeferredGeometry.VS"
 		);
 		d3d12Context.Compile(
-			PS_SkinnedMeshDeferredGeometry_,
-			L"Assets/Shaders/MeshSkinning.PS.hlsl",
+			PS_MeshDeferredGeometry_,
+			L"Assets/Shaders/MeshCommon.PS.hlsl",
 			L"ps_6_6",
 			L"main",
-			"SkinnedMesh.DeferredGeometry.PS"
+			"Mesh.DeferredGeometry.PS"
 		);
 
 		Lumina::D3D12::BlendState blendState_None{};
@@ -188,17 +161,16 @@ namespace Game::Scene::Impl {
 		blendState_None.RenderTarget[1].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
 		Lumina::D3D12::GraphicsPSO::InputLayout inputLayout_Mesh{};
-		inputLayout_Mesh.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
-		inputLayout_Mesh.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
-		inputLayout_Mesh.Append("NORMAL", 0U, DXGI_FORMAT_R32G32B32_FLOAT);
-		inputLayout_Mesh.Append("WEIGHT", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT, 1U);
-		inputLayout_Mesh.Append("PALETTE", 0U, DXGI_FORMAT_R32G32B32A32_SINT, 1U);
+		inputLayout_Mesh.Append("IDX_POSITION", 0U, DXGI_FORMAT_R32_UINT);
+		inputLayout_Mesh.Append("IDX_TEXCOORD", 0U, DXGI_FORMAT_R32_UINT);
+		inputLayout_Mesh.Append("IDX_NORMAL", 0U, DXGI_FORMAT_R32_UINT);
+		inputLayout_Mesh.Append("IDX_TANGENT", 0U, DXGI_FORMAT_R32_UINT);
 
-		GraphicsPSO_SkinnedMeshDeferredGeometry_.Initialize(
+		GraphicsPSO_MeshDeferredGeometry_.Initialize(
 			d3d12Device,
-			RS_Skinning_,
-			VS_SkinnedMeshDeferredGeometry_,
-			PS_SkinnedMeshDeferredGeometry_,
+			Lumina::Context::Instance().MeshContext().RootSignature(),
+			VS_MeshDeferredGeometry_,
+			PS_MeshDeferredGeometry_,
 			blendState_None,
 			Lumina::D3D12::RasterizerState{
 				.FillMode{ D3D12_FILL_MODE_SOLID },
@@ -220,13 +192,12 @@ namespace Game::Scene::Impl {
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
 
-		Canvas_.AllocateTextures(2U, true);
-		Canvas_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
-		Canvas_.RenderTexture(1U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM);
-		Canvas_.DepthTexture().Initialize(d3d12Device, 1280U, 720U);
-		Canvas_.TransitionResourceStates(d3d12Device, d3d12Context.DirectQueue());
-		Canvas_.CreateViews(d3d12Device);
-		Canvas_.Viewport(0U) = D3D12_VIEWPORT{
+		Canvas_Merge_.AllocateTextures(1U, false);
+		Canvas_Merge_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+		//Canvas_Merge_.DepthTexture().Initialize(d3d12Device, 1280U, 720U);
+		Canvas_Merge_.TransitionResourceStates(d3d12Device, d3d12Context.DirectQueue());
+		Canvas_Merge_.CreateViews(d3d12Device);
+		Canvas_Merge_.Viewport(0U) = D3D12_VIEWPORT{
 			.TopLeftX{ 0.0f },
 			.TopLeftY{ 0.0f },
 			.Width{ 1280.0f },
@@ -234,23 +205,9 @@ namespace Game::Scene::Impl {
 			.MinDepth{ 0.0f },
 			.MaxDepth{ 1.0f },
 		};
-		Canvas_.ScissorRect(0U) = D3D12_RECT{
+		Canvas_Merge_.ScissorRect(0U) = D3D12_RECT{
 			.left{ 0 },
 			.top{ 0 },
-			.right{ 1280 },
-			.bottom{ 720 },
-		};
-		Canvas_.Viewport(1U) = D3D12_VIEWPORT{
-			.TopLeftX{ 0.0f },
-			.TopLeftY{ 0.0f },
-			.Width{ 0.0f },
-			.Height{ 0.0f },
-			.MinDepth{ 0.0f },
-			.MaxDepth{ 1.0f },
-		};
-		Canvas_.ScissorRect(1U) = D3D12_RECT{
-			.left{ 640 },
-			.top{ 360 },
 			.right{ 1280 },
 			.bottom{ 720 },
 		};
@@ -327,12 +284,25 @@ namespace Game::Scene::Impl {
 			clearColor
 		);
 		MergePass_.RenderTarget(0).EndingEvent().Preserve();
+		MergePass_.DepthStencil().DepthBeginningEvent().ClearTarget(
+			DXGI_FORMAT_D24_UNORM_S8_UINT,
+			{ .Depth{ 1.0f }, }
+		);
 		MergePass_.DepthStencil().DepthEndingEvent().Preserve();
 		MergePass_.DepthStencil().StencilBeginningEvent().NoAccess();
 		MergePass_.DepthStencil().StencilEndingEvent().NoAccess();
+		MergePass_.RenderTarget(0).View() = Canvas_Merge_.RTV(0);
 
 		PrimitiveManager_ = std::make_unique<Lumina::PrimitiveManager>();
 		PrimitiveManager_->Initialize(d3d12Context);
+		PrimitiveManager2_ = std::make_unique<Lumina::PrimitiveManager>();
+		PrimitiveManager2_->Initialize(d3d12Context,
+			L"Assets/Shaders/Primitive.VS.hlsl",
+			L"Assets/Shaders/Primitive.PS.hlsl",
+			false,
+			true,
+			16
+		);
 
 		GlobalTable_SRV_CanvasTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(8U);
 		Lumina::D3D12::SRV<void>::Create(
@@ -345,12 +315,24 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_CanvasTexture_.CPUHandle(1U),
 			Canvas_GeometryPass_.RenderTexture(1U)
 		);
+		Lumina::D3D12::SRV<void>::Create<DXGI_FORMAT_R24_UNORM_X8_TYPELESS>(
+			d3d12Device,
+			GlobalTable_SRV_CanvasTexture_.CPUHandle(3U),
+			Canvas_GeometryPass_.DepthTexture()
+		);
+
+		GlobalTable_SRV_MergeTexture_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::SRV<void>::Create(
+			d3d12Device,
+			GlobalTable_SRV_MergeTexture_.CPUHandle(0U),
+			Canvas_Merge_.RenderTexture(0U)
+		);
 
 		GlobalTable_SRV_GBufferForWaterColor_ = d3d12Context.GlobalDescriptorHeap().Allocate(3U);
 		Lumina::D3D12::SRV<void>::Create(
 			d3d12Device,
 			GlobalTable_SRV_GBufferForWaterColor_.CPUHandle(0U),
-			Canvas_GeometryPass_.RenderTexture(0U)
+			Canvas_Merge_.RenderTexture(0U)
 		);
 		Lumina::D3D12::SRV<void>::Create(
 			d3d12Device,
@@ -361,6 +343,24 @@ namespace Game::Scene::Impl {
 			d3d12Device,
 			GlobalTable_SRV_GBufferForWaterColor_.CPUHandle(2U),
 			Canvas_GeometryPass_.DepthTexture()
+		);
+
+		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
+		std::vector<D3D12_RESOURCE_BARRIER> const barriers{
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_GeometryPass_.RenderTexture(1U),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
+			),
+			Lumina::D3D12::Barrier::Transition(
+				Canvas_Merge_.RenderTexture(0U),
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+				D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE
+			),
+		};
+		cmdList->ResourceBarrier(
+			static_cast<Lumina::U32>(barriers.size()),
+			barriers.data()
 		);
 	}
 
@@ -379,6 +379,7 @@ namespace Game::Scene::Impl {
 
 		WorldToHomogeneous_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		*WorldToHomogeneous_ = Camera_->View() * Camera_->Projection();
+		ScreenToWorld_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 		UB_Transforms_.Initialize(d3d12Device, 256LLU);
 		GlobalTable_CBV_Scene_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
 		Lumina::D3D12::CBV::Create(d3d12Device, GlobalTable_CBV_Scene_.CPUHandle(0U), UB_Transforms_);
@@ -404,34 +405,62 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto Title::Initialize_<"Particles">() -> void {
-		auto& context{ Lumina::Context::Instance() };
-		auto const& d3d12Context{ context.D3D12Context() };
-		auto const& d3d12Device{ d3d12Context.Device() };
+	auto Title::Initialize_<"Lighting">(
+		Lumina::D3D12::Context const& d3d12Context_,
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_
+	) -> void {
+		DeferredLighting_ = std::make_unique<Lumina::DeferredLighting>();
+		DeferredLighting_->Initialize(d3d12Context_, 1280U, 720U);
+
+		List_PointLight_.Initialize(1024U);
+		List_LocalToWorld_LightSphere_.Initialize(1024U);
+
+		GlobalTable_SRV_LightingResultTexture_ = d3d12Context_.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::SRV<void>::Create(
+			d3d12Context_.Device(),
+			GlobalTable_SRV_LightingResultTexture_.CPUHandle(0U),
+			DeferredLighting_->RenderTexture()
+		);
+
+		// * 定数バッファ初期化
+
+		UB_WorldToProjective_.Initialize(d3d12Device_, 256LLU);
+		UB_ScreenToWorld_.Initialize(d3d12Device_, 256LLU);
+
+		LocalHeap_Scene_.Initialize(d3d12Device_, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 16U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_Scene_.CPUHandle(0U), UB_WorldToProjective_);
+		Lumina::D3D12::CBV::Create(d3d12Device_, LocalHeap_Scene_.CPUHandle(1U), UB_ScreenToWorld_);
+	}
+
+	template<>
+	auto Title::Initialize_<"Particles">(
+		Lumina::D3D12::Context const& d3d12Context_,
+		Lumina::D3D12::GraphicsDevice const& d3d12Device_
+	) -> void {
 
 		// * パイプライン初期化
 
 		auto config_ParticleSystem{
-				Lumina::Utils::LoadFromFile<nlohmann::json>(
-					"Assets/Configs/ParticleSystem.json"
-				)
+			Lumina::Utils::LoadFromFile<nlohmann::json>(
+				"Assets/Configs/ParticleSystem.json"
+			)
 		};
 		RS_ParticleSystem_.Initialize(
-			d3d12Device,
+			d3d12Device_,
 			Lumina::D3D12::LoadSetup<Lumina::D3D12::RootSignature>(
 				config_ParticleSystem.at("Common RS")
 			)
 		);
 
-		d3d12Context.Compile(
-			VS_Particle_,
+		d3d12Context_.Compile(
+			VS_BasicParticle_,
 			L"Assets/Shaders/Particle2.VS.hlsl",
 			L"vs_6_6",
 			L"main",
 			"Particle2.VS"
 		);
-		d3d12Context.Compile(
-			PS_Particle_,
+		d3d12Context_.Compile(
+			PS_BasicParticle_,
 			L"Assets/Shaders/Particle2.PS.hlsl",
 			L"ps_6_6",
 			L"main",
@@ -454,19 +483,20 @@ namespace Game::Scene::Impl {
 		inputLayout_Particle.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
 		inputLayout_Particle.Append("TEXCOORD", 0U, DXGI_FORMAT_R32G32_FLOAT);
 		GraphicsPSO_BasicParticle_AdditiveMode_.Initialize(
-			d3d12Device,
+			d3d12Device_,
 			RS_ParticleSystem_,
-			VS_Particle_,
-			PS_Particle_,
+			VS_BasicParticle_,
+			PS_BasicParticle_,
 			blendState_AdditiveMode,
 			Lumina::D3D12::RasterizerState{
 				.FillMode{ D3D12_FILL_MODE_SOLID },
 				.CullMode{ D3D12_CULL_MODE_NONE },
 			},
 			Lumina::D3D12::DepthStencilState{
-				.DepthEnable{ true },
-				.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
-				.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+				.DepthEnable{ false },
+				//.DepthEnable{ true },
+				//.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
+				//.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
 				.StencilEnable{ false },
 			},
 			inputLayout_Particle,
@@ -474,21 +504,19 @@ namespace Game::Scene::Impl {
 			{
 				DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
 				DXGI_FORMAT_R8G8B8A8_UNORM,
-				DXGI_FORMAT_R8G8B8A8_UNORM,
 			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
 		);
 
-		// * 定数バッファ初期化
+		// * レンダラ
 
-		UB_WorldToProjective_.Initialize(d3d12Device, 256LLU);
-		LocalHeap_CBV_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 32U, false);
-		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_CBV_.CPUHandle(0U), UB_WorldToProjective_);
-
-		// * パーティクルレンダラ（？）
+		AmbientSparkles_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		AmbientSparkles_->Initialize(d3d12Context_, 384U);
 		Raindrops_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		// * 2048個まで出せる（多分合計10万まででも大丈夫）
-		Raindrops_->Initialize(d3d12Context, 2048U);
+		Raindrops_->Initialize(d3d12Context_, 1024U);
+
+		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
 	}
 
 	template<>
@@ -501,9 +529,110 @@ namespace Game::Scene::Impl {
 		Skybox_->Initialize(d3d12Context, d3d12Device, "Assets/Img/Skybox.dds");
 	}
 
+	template<>
+	auto Title::Initialize_<"UI">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		SpriteRenderer_.reset(new Lumina::SpriteRenderer{});
+		SpriteRenderer_->Initialize(d3d12Context, 128U);
+
+		// * Pipeline
+		{
+			d3d12Context.Compile(
+				VS_SpriteUI_,
+				L"Assets/Shaders/Sprite2.VS.hlsl",
+				L"vs_6_6",
+				L"main",
+				"SpriteUI.VS"
+			);
+			d3d12Context.Compile(
+				PS_SpriteUI_,
+				L"Assets/Shaders/SpriteUI.PS.hlsl",
+				L"ps_6_6",
+				L"main",
+				"SpriteUI.PS"
+			);
+
+			Lumina::D3D12::BlendState spriteBlendState{};
+			spriteBlendState.RenderTarget[0] = D3D12_RENDER_TARGET_BLEND_DESC{
+				.BlendEnable{ true },
+				.LogicOpEnable{ false },
+				.SrcBlend{ D3D12_BLEND_SRC_ALPHA },
+				.DestBlend{ D3D12_BLEND_INV_SRC_ALPHA },
+				.BlendOp{ D3D12_BLEND_OP_ADD },
+				.SrcBlendAlpha{ D3D12_BLEND_SRC_ALPHA },
+				.DestBlendAlpha{ D3D12_BLEND_ONE },
+				.BlendOpAlpha{ D3D12_BLEND_OP_ADD },
+				.LogicOp{ D3D12_LOGIC_OP_NOOP },
+				.RenderTargetWriteMask{ D3D12_COLOR_WRITE_ENABLE_ALL },
+			};
+			Lumina::D3D12::GraphicsPSO::InputLayout spriteInputLayout{};
+			spriteInputLayout.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
+			PSO_SpriteUI_.Initialize(
+				d3d12Device,
+				SpriteRenderer_->RootSignature(),
+				VS_SpriteUI_,
+				PS_SpriteUI_,
+				spriteBlendState,
+				Lumina::D3D12::RasterizerState{
+					.FillMode{ D3D12_FILL_MODE_SOLID },
+					.CullMode{ D3D12_CULL_MODE_NONE },
+				},
+				Lumina::D3D12::DepthStencilState{
+					.DepthEnable{ false },
+					.StencilEnable{ false },
+				},
+				spriteInputLayout,
+				D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE,
+				{ DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, },
+				Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
+			);
+		}
+
+		// * Caption
+		{
+			TitleCaption_.Translate = { 50.0f, 50.0f };
+			TitleCaption_.Scale = { 768.0f * 0.5f, 512.0f * 0.5f };
+			TitleCaption_.AnchorPoint = { 0.0f, 0.0f };
+			TitleCaption_.TextureID = 2U;
+			TitleCaption_.RGBA = { 0.95f, 0.95f, 0.95f, 0.0f };
+		}
+		// * Start Button
+		{
+			UI_StartButton_.Translate = { 1400.0f, 535.0f };
+			UI_StartButton_.Scale = { 360.0f, 90.0f };
+			UI_StartButton_.AnchorPoint = { 1.0f, 0.5f };
+			UI_StartButton_.TextureID = 3U;
+			UI_StartButton_.RGBA ={ 0.99f, 0.98f, 0.97f, 0.0f };
+		}
+		// * Exit Button
+		{
+			UI_ExitButton_.Translate = { 1400.0f, 610.0f };
+			UI_ExitButton_.Scale = { 360.0f, 90.0f };
+			UI_ExitButton_.AnchorPoint = { 1.0f, 0.5f };
+			UI_ExitButton_.TextureID = 4U;
+			UI_ExitButton_.RGBA = { 0.99f, 0.98f, 0.97f, 0.0f };
+		}
+
+		SelectedButton_ = 0;
+		auto const ortho{ Game::MathUtils::Orthographic(0.0f, 1280.0f, 0.0f, 720.0f, 0.0f, 1.0f) };
+		UB_OrthoProj_.Initialize(d3d12Device, 256LLU, "OrthoProj");
+		UB_OrthoProj_.Store(&ortho, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+		LocalHeap_OrthoProj_.Initialize(d3d12Device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1U, false);
+		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_OrthoProj_.CPUHandle(0U), UB_OrthoProj_);
+		
+		UITimer_ = 0;
+		UITimer2_ = 0;
+	}
+
 	void Title::Initialize() {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
 		Initialize_<"Meshes">();
-		Initialize_<"Animation">();
 		Initialize_<"ImageTextures">();
 		Initialize_<"MeshMaterials">();
 		Initialize_<"RenderPipeline">();
@@ -511,8 +640,16 @@ namespace Game::Scene::Impl {
 		Initialize_<"Resource, View">();
 		Initialize_<"Watercolor">();
 		Initialize_<"Grassland">();
-		Initialize_<"Particles">();
 		Initialize_<"Skybox">();
+
+		Initialize_<"Lighting">(d3d12Context, d3d12Device);
+		Initialize_<"Particles">(d3d12Context, d3d12Device);
+		Initialize_<"UI">();
+
+		RootWorldPos_ = { 0.0f, 2.0f, 0.0f };
+		UmbrellaRotation_ = { 0.0f, 0.0f, 0.0f };
+		UmbrellaRootWorld_ = std::make_unique<Lumina::Math::F32x4x4<>>();
+		UmbrellaTipWorld_ = std::make_unique<Lumina::Math::F32x4x4<>>();
 	}
 
 	Title::Title() = default;

@@ -96,9 +96,13 @@
     <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.ixx" />
     <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Render.cpp" />
     <ClCompile Include="Scenes\Title-InGame\Game.Scene.Title-InGame.Update.cpp" />
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Ambient.cpp" />
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.ixx" />
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Umbrella.cpp" />
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Impl.ixx" />
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Initialize.cpp" />
     <ClCompile Include="Scenes\Title\Game.Scene.Title.ixx" />
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Lighting.cpp" />
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Render.cpp" />
     <ClCompile Include="Scenes\Title\Game.Scene.Title.Update.cpp" />
     <ClCompile Include="TerrainEditor\Game.TerrainEditor.cpp" />

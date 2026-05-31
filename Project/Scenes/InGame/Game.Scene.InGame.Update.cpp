@@ -43,7 +43,7 @@ namespace {
 	constexpr float BossPresentationCameraZoom{ 6.0f };
 	constexpr char BossEnemyName[]{ "Boss" };
 
-	static Lumina::Math::F32x4x4<> INV_Viewport{
+	static Lumina::Math::F32x4x4<> const INV_Viewport{
 		1.0f / 640.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, -1.0f / 360.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,

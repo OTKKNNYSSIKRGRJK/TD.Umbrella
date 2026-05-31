@@ -3,7 +3,6 @@ module Game.Scene.InGame;
 import : Impl;
 import : Impl.Effect;
 
-import Game.Events.InGame;
 import Lumina.Utils.Color;
 import Lumina.Core.Math;
 

@@ -19,7 +19,8 @@ namespace Lumina {
 			D3D12::Shader const& vs_,
 			D3D12::Shader const& ps_,
 			bool isAdditive_,
-			bool depthEnabled_
+			bool depthEnabled_,
+			int capacity_
 		) {
 			PSO_.Initialize(
 				device_,
@@ -57,7 +58,8 @@ namespace Lumina {
 			);
 
 			//DB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (MaxNum_ * 2U));
-			UB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (MaxNum_ * 2U));
+			uint32_t const num{ (capacity_ > 0) ? (static_cast<uint32_t>(capacity_)) : (MaxNum_) };
+			UB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (num * 2U));
 			VBV_ = D3D12::VBV::Create<PrimitiveVertex>(UB_Vertices_);
 		}
 
@@ -112,7 +114,8 @@ namespace Lumina {
 			D3D12::Shader const& vs_,
 			D3D12::Shader const& ps_,
 			bool isAdditive_,
-			bool depthEnabled_
+			bool depthEnabled_,
+			int capacity_
 		) {
 			PSO_.Initialize(
 				device_,
@@ -150,7 +153,8 @@ namespace Lumina {
 			);
 
 			//DB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (MaxNum_ * 3U));
-			UB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (MaxNum_ * 3U));
+			uint32_t const num{ (capacity_ > 0) ? (static_cast<uint32_t>(capacity_)) : (MaxNum_) };
+			UB_Vertices_.Initialize(device_, sizeof(PrimitiveVertex) * (num * 3U));
 			VBV_ = D3D12::VBV::Create<PrimitiveVertex>(UB_Vertices_);
 		}
 
@@ -205,7 +209,8 @@ namespace Lumina {
 		WStringView filePath_VS_,
 		WStringView filePath_PS_,
 		bool isAdditive_,
-		bool depthEnabled_
+		bool depthEnabled_,
+		int capacity_
 	) {
 		auto config{ Utils::LoadFromFile<nlohmann::json>("Engine/Assets/Configs/Primitive.json") };
 		auto&& rsSetup{ D3D12::LoadSetup<D3D12::RootSignature>(config.at("CommonRS")) };
@@ -226,10 +231,10 @@ namespace Lumina {
 		);
 		
 		LineManager_ = std::make_unique<LineManager>();
-		LineManager_->Initialize(d3d12Context_.Device(), config, RS_, VS_, PS_, isAdditive_, depthEnabled_);
+		LineManager_->Initialize(d3d12Context_.Device(), config, RS_, VS_, PS_, isAdditive_, depthEnabled_, capacity_);
 
 		TriangleManager_ = std::make_unique<TriangleManager>();
-		TriangleManager_->Initialize(d3d12Context_.Device(), config, RS_, VS_, PS_, isAdditive_, depthEnabled_);
+		TriangleManager_->Initialize(d3d12Context_.Device(), config, RS_, VS_, PS_, isAdditive_, depthEnabled_, capacity_);
 
 		UB_VP_.Initialize(d3d12Context_.Device(), (sizeof(Math::F32x4x4<>) + 0xFFU) & ~0xFFU);
 	}

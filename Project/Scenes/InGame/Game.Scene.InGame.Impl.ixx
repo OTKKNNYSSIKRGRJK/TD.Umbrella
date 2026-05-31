@@ -273,7 +273,7 @@ namespace Game::Scene::Impl {
 		// ゲームオーバー用UIメニュー
 		Game::UIMenu GameOverMenu_;
 
-		/// パーティクル・ライティング
+		// * パーティクル・ライティング
 	private:
 		std::unique_ptr<Lumina::DeferredLighting> DeferredLighting_;
 		Lumina::List<Lumina::PointLight> List_PointLight_;

@@ -317,6 +317,18 @@
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Lighting.cpp">
       <Filter>Scenes\InGame</Filter>
     </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Ambient.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.ixx">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Umbrella.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Lighting.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include=".editorconfig" />

@@ -193,7 +193,7 @@ namespace Lumina {
 		);
 
 		Material material{
-			.RGBA{ sprite_.RGBA[0], sprite_.RGBA[1], sprite_.RGBA[2], sprite_.RGBA[3], },
+			.RGBA{ sprite_.RGBA.X, sprite_.RGBA.Y, sprite_.RGBA.Z, sprite_.RGBA.W, },
 			.TextureID{ sprite_.TextureID },
 		};
 		UB_Materials_.Store(

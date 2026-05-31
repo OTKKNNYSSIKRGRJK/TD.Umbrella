@@ -31,7 +31,8 @@ namespace Lumina {
 			WStringView filePath_VS_ = L"Assets/Shaders/Primitive.VS.hlsl",
 			WStringView filePath_PS_ = L"Assets/Shaders/Primitive.PS.hlsl",
 			bool isAdditive_ = false,
-			bool depthEnabled_ = true
+			bool depthEnabled_ = true,
+			int capacity_ = 0
 		);
 
 		void Begin(

@@ -597,7 +597,6 @@ namespace Game::Scene::Impl {
 		}
 	}
 
-
 	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
 	//::::	ChargeCylinder											:::://
 	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
@@ -894,7 +893,7 @@ namespace Game::Scene::Impl {
 
 	template<>
 	auto InGame::Render_<"PrepareData">() -> void {
-		UB_WorldToHomogeneous_.Store(*WorldToHomogeneous_, sizeof(Lumina::Math::F32x4x4<>), 0LLU);
+		UB_WorldToHomogeneous_.Store(WorldToHomogeneous_.get(), sizeof(Lumina::Math::F32x4x4<>), 0LLU);
 
 		Render_<"PrepareData.PlayerSkinning">();
 		Render_<"PrepareData.Particle">();

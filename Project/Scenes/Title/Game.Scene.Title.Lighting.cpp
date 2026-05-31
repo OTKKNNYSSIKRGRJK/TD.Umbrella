@@ -1,4 +1,4 @@
-module Game.Scene.InGame;
+module Game.Scene.Title;
 
 import : Impl;
 import : Impl.Effect;
@@ -27,13 +27,13 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"Lighting.PointLight.PreBatch">() -> void {
+	auto Title::Update_<"Lighting.PointLight.PreBatch">() -> void {
 		List_PointLight_.Clear();
 		List_LocalToWorld_LightSphere_.Clear();
 	}
 
 	template<>
-	auto InGame::Update_<"Lighting.PointLight.Batch.BasedOnParticle">() -> void {
+	auto Title::Update_<"Lighting.PointLight.Batch.BasedOnParticle">() -> void {
 		auto makePointLightBasedOnParticle{
 			[this] (
 				Lumina::Particle const& particle_,
@@ -106,7 +106,7 @@ namespace Game::Scene::Impl {
 		);*/
 
 		PreparePointLights(
-			*PlayerEffects_,
+			*UmbrellaEffects_,
 			[&, this] (Lumina::Particle const& particle_) {
 				if (
 					!List_PointLight_.IsFull() &&
@@ -137,23 +137,6 @@ namespace Game::Scene::Impl {
 					};
 					makeLightSphereTransform(
 						pointLight, 512.0f, 0.5f, 1.0f, 1.0f, 0.5f
-					);
-				}
-			}
-		);
-
-		PreparePointLights(
-			*PortalSparkles_,
-			[&, this] (Lumina::Particle const& particle_) {
-				if (!List_PointLight_.IsFull() && particle_.Scale.Z != 0.0f) {
-					auto& pointLight{
-						makePointLightBasedOnParticle(
-							particle_,
-							particle_.RenderData.RGBA.W * 100.0f
-						)
-					};
-					makeLightSphereTransform(
-						pointLight, 128.0f, 0.5f, 1.0f, 1.0f, 0.5f
 					);
 				}
 			}
@@ -198,7 +181,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"Lighting.PointLight.PostBatch">() -> void {
+	auto Title::Update_<"Lighting.PointLight.PostBatch">() -> void {
 		Arr_Index_ActivePointLight_.clear();
 		Lumina::List<Lumina::PointLight>::Iterator it_Light{ List_PointLight_ };
 		for (it_Light.Begin(); !it_Light.End(); it_Light.Next()) {
@@ -213,7 +196,7 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	auto InGame::Update_<"Lighting">() -> void {
+	auto Title::Update_<"Lighting">() -> void {
 		Update_<"Lighting.PointLight.PreBatch">();
 		Update_<"Lighting.PointLight.Batch.BasedOnParticle">();
 		Update_<"Lighting.PointLight.PostBatch">();
