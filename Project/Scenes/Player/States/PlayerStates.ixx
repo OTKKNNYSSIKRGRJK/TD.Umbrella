@@ -35,6 +35,8 @@ namespace PlayerStates {
 			void Enter() override;
 			void Exit() override{}
 			void Update(float deltaTime) override;
+		private:
+			float seTimer_ = 0.0f;
 		};
 
 		// 子ステート
@@ -119,6 +121,8 @@ namespace PlayerStates {
 			void Exit() override;
 		private:
 			MotionController motion_;
+		private:
+			float seTimer_ = 0.0f;
 		};
 		class ReverseAttack : public Base {
 		public:

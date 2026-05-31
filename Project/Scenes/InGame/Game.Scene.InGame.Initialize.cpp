@@ -1449,14 +1449,14 @@ namespace Game::Scene::Impl {
 		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
 		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
 
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO1, "Assets/Sounds/ripping-paper-1.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO2, "Assets/Sounds/ripping-paper-1.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO3, "Assets/Sounds/Cut04-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO1, "Assets/Sounds/atk1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO2, "Assets/Sounds/atk2.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO3, "Assets/Sounds/atk3.mp3");
 		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKROT, "Assets/Sounds/SNES-Fighting06-09(Swing).mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKJUMP, "Assets/Sounds/ripping-paper-1.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_FLYING, "Assets/Sounds/ripping-paper-1.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGE, "Assets/Sounds/ripping-paper-1.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGEATTACK, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKJUMP, "Assets/Sounds/atkJump.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_FLYING, "Assets/Sounds/flying.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGE, "Assets/Sounds/charge.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGEATTACK, "Assets/Sounds/atkCharge.mp3");
 		loadAudioFile(AUDIO_STREAM_ID::PLAYER_WARP, "Assets/Sounds/Onoma-Sigh03-3(Delay-Fast).mp3");
 		loadAudioFile(AUDIO_STREAM_ID::PLAYER_THROWUMBRELLA, "Assets/Sounds/wind-blowing-2.mp3");
 		loadAudioFile(AUDIO_STREAM_ID::PLAYER_GAINXP, "Assets/Sounds/Onoma-Pop04-2(Mid-Dry).mp3");

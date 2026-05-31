@@ -491,13 +491,21 @@ namespace PlayerStates::Action {
 	////////////////////////////
 	void ReverseCharge::Enter() {
 
-		Game::Event::InGame::OnPlayerCharge event_OnPlayerCharge{};
-		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerCharge));
+		
 	}
 
 	void ReverseCharge::Update(float deltaTime) {
 		if (player_->GetCurrentAnimationName() != "ReverseCharge") {
 			player_->PlayAnimation("ReverseCharge", true);
+		}
+
+		if (seTimer_ <= 0.0f) {
+			Game::Event::InGame::OnPlayerCharge event_OnPlayerCharge{};
+			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerCharge));
+			seTimer_ = 1.1f;
+		}
+		else {
+			seTimer_ -= deltaTime;
 		}
 
 		// 1秒間に溜まるマナの量

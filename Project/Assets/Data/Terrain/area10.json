@@ -107,6 +107,178 @@
                     ]
                 }
             ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        416.3266296386719,
+                        446.938720703125
+                    ]
+                },
+                {
+                    "Pos": [
+                        544.8978881835938,
+                        448.97955322265625
+                    ]
+                },
+                {
+                    "Pos": [
+                        414.28582763671875,
+                        479.591796875
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        1095.9183349609375,
+                        448.97955322265625
+                    ]
+                },
+                {
+                    "Pos": [
+                        953.0613403320313,
+                        451.0203857421875
+                    ]
+                },
+                {
+                    "Pos": [
+                        1095.9183349609375,
+                        483.6734313964844
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        616.3265380859375,
+                        324.48974609375
+                    ]
+                },
+                {
+                    "Pos": [
+                        616.3265380859375,
+                        359.1836242675781
+                    ]
+                },
+                {
+                    "Pos": [
+                        891.836669921875,
+                        361.22442626953125
+                    ]
+                },
+                {
+                    "Pos": [
+                        889.7958984375,
+                        328.5713806152344
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        408.16326904296875,
+                        326.5306091308594
+                    ]
+                },
+                {
+                    "Pos": [
+                        506.1224365234375,
+                        326.5306091308594
+                    ]
+                },
+                {
+                    "Pos": [
+                        408.16326904296875,
+                        353.06121826171875
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        1100.0,
+                        326.5306091308594
+                    ]
+                },
+                {
+                    "Pos": [
+                        1018.3673095703125,
+                        326.5306091308594
+                    ]
+                },
+                {
+                    "Pos": [
+                        1104.0816650390625,
+                        361.2244873046875
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        257.1428527832031,
+                        0.0
+                    ]
+                },
+                {
+                    "Pos": [
+                        263.2652893066406,
+                        136.7346954345703
+                    ]
+                },
+                {
+                    "Pos": [
+                        1279.591796875,
+                        155.10203552246094
+                    ]
+                },
+                {
+                    "Pos": [
+                        1273.4693603515625,
+                        4.081632614135742
+                    ]
+                }
+            ]
+        },
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        1095.9183349609375,
+                        153.06121826171875
+                    ]
+                },
+                {
+                    "Pos": [
+                        1100.0,
+                        220.4081573486328
+                    ]
+                },
+                {
+                    "Pos": [
+                        1275.5101318359375,
+                        220.4081573486328
+                    ]
+                },
+                {
+                    "Pos": [
+                        1279.591796875,
+                        153.06121826171875
+                    ]
+                }
+            ]
         }
     ],
     "backgroundMusic": "",
@@ -129,19 +301,154 @@
             "enemyName": "KingSlime",
             "facingRight": true,
             "position": {
-                "x": 910.19189453125,
-                "y": 196.4629364013672
+                "x": 864.2315673828125,
+                "y": 405.9881896972656
             },
             "sizeCategory": 2
         },
         {
             "enemyName": "Boss",
-            "facingRight": true,
+            "facingRight": false,
             "position": {
-                "x": 748.3790283203125,
-                "y": 192.50521850585938
+                "x": 806.5055541992188,
+                "y": 188.44985961914063
             },
             "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 440.97442626953125,
+                "y": 405.92901611328125
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 440.21466064453125,
+                "y": 279.2444152832031
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": false,
+            "position": {
+                "x": 1077.9754638671875,
+                "y": 400.55328369140625
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": false,
+            "position": {
+                "x": 1073.9200439453125,
+                "y": 276.1899108886719
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 802.2131958007813,
+                "y": 405.96038818359375
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 764.3634033203125,
+                "y": 407.3121643066406
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 730.5690307617188,
+                "y": 405.96038818359375
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": true,
+            "position": {
+                "x": 489.95294189453125,
+                "y": 189.67626953125
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": false,
+            "position": {
+                "x": 1018.4973754882813,
+                "y": 189.67626953125
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": true,
+            "position": {
+                "x": 523.7473754882813,
+                "y": 188.32449340820313
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": true,
+            "position": {
+                "x": 542.6722412109375,
+                "y": 185.62094116210938
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": false,
+            "position": {
+                "x": 1002.27587890625,
+                "y": 189.67626953125
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerClover",
+            "facingRight": false,
+            "position": {
+                "x": 986.0545654296875,
+                "y": 188.32449340820313
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 519.6920166015625,
+                "y": 278.8934631347656
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": false,
+            "position": {
+                "x": 986.0545654296875,
+                "y": 274.838134765625
+            },
+            "sizeCategory": 0
         }
     ],
     "goalPosition": {

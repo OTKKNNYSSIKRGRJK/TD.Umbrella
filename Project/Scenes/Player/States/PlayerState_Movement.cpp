@@ -62,14 +62,23 @@ namespace PlayerStates::Movement {
 	// 
 	////////////////////////////
 	void Airborne::Enter() {
-		if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
-			Game::Event::InGame::OnPlayerFlying event_OnPlayerFlying{};
-			Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerFlying));
-		}
+		
 	}
 
 	void Airborne::Update(float deltaTime) {
 		float gravity = 40.0f; // 重力加速度
+
+
+		if (seTimer_ <= 0.0f) {
+			if (player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+				//Game::Event::InGame::OnPlayerFlying event_OnPlayerFlying{};
+				//Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerFlying));
+				seTimer_ = 4.0f;
+			}
+		}
+		else {
+			seTimer_ -= deltaTime;
+		}
 
 		// --------------------------------------------------------
 		// 1. 空中制御のパラメータ

@@ -228,8 +228,8 @@
     "connections": [
         {
             "position": {
-                "x": 1249.2386474609375,
-                "y": 450.2816467285156
+                "x": 1260.5318603515625,
+                "y": 461.57489013671875
             },
             "targetAreaIndex": 4
         },
@@ -245,7 +245,80 @@
         "x": -489.367431640625,
         "y": 93.49359130859375
     },
-    "enemies": [],
+    "enemies": [
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 862.1511840820313,
+                "y": 450.345703125
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 920.8757934570313,
+                "y": 450.345703125
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 1456.174072265625,
+                "y": 274.17156982421875
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 629.5109252929688,
+                "y": 274.17156982421875
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 832.7888793945313,
+                "y": 199.63638305664063
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": false,
+            "position": {
+                "x": 1280.0,
+                "y": 190.601806640625
+            },
+            "sizeCategory": 1
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 254.5763702392578,
+                "y": 405.1727600097656
+            },
+            "sizeCategory": 2
+        },
+        {
+            "enemyName": "FlowerSunward",
+            "facingRight": true,
+            "position": {
+                "x": 356.2152404785156,
+                "y": 405.1728515625
+            },
+            "sizeCategory": 0
+        }
+    ],
     "goalPosition": {
         "x": 640.0,
         "y": 360.0

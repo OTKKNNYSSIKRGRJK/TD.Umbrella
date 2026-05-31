@@ -79,23 +79,64 @@
             720.0
         ]
     },
-    "Polygons": [],
+    "Polygons": [
+        {
+            "Vertices": [
+                {
+                    "Pos": [
+                        906.383056640625,
+                        285.10638427734375
+                    ]
+                },
+                {
+                    "Pos": [
+                        1034.0423583984375,
+                        285.1063537597656
+                    ]
+                },
+                {
+                    "Pos": [
+                        1085.106689453125,
+                        285.1064453125
+                    ]
+                },
+                {
+                    "Pos": [
+                        1036.170166015625,
+                        344.6808776855469
+                    ]
+                },
+                {
+                    "Pos": [
+                        906.38330078125,
+                        344.6809387207031
+                    ]
+                },
+                {
+                    "Pos": [
+                        855.3190307617188,
+                        287.23406982421875
+                    ]
+                }
+            ]
+        }
+    ],
     "backgroundMusic": "",
     "collisionGroups": [],
     "connections": [
-        {
-            "position": {
-                "x": 1255.770263671875,
-                "y": 280.30267333984375
-            },
-            "targetAreaIndex": 2
-        },
         {
             "position": {
                 "x": 50.18359375,
                 "y": 147.9058074951172
             },
             "targetAreaIndex": 0
+        },
+        {
+            "position": {
+                "x": 1255.770263671875,
+                "y": 280.30267333984375
+            },
+            "targetAreaIndex": 2
         }
     ],
     "editorPos": {
@@ -120,6 +161,42 @@
                 "y": 289.26885986328125
             },
             "sizeCategory": 1
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 919.478515625,
+                "y": 439.8509826660156
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 953.015625,
+                "y": 436.65692138671875
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 994.5382690429688,
+                "y": 435.0599060058594
+            },
+            "sizeCategory": 0
+        },
+        {
+            "enemyName": "Slime",
+            "facingRight": true,
+            "position": {
+                "x": 1042.4488525390625,
+                "y": 436.65692138671875
+            },
+            "sizeCategory": 2
         }
     ],
     "goalPosition": {

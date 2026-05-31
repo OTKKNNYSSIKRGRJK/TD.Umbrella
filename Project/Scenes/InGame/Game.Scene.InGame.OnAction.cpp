@@ -88,7 +88,7 @@ namespace Game::Scene::Impl {
 	void InGame::Update_<"OnPlayerAttackJump">(
 		[[maybe_unused]] Event::InGame::OnPlayerAttackJump& event_
 	) {
-		this->Update_<"SE.PlayerAttackJump">(0.75f);
+		this->Update_<"SE.PlayerAttackJump">(0.25f);
 	}
 
 	template<>
