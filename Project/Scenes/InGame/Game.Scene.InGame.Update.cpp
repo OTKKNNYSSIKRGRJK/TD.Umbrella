@@ -93,7 +93,7 @@ namespace Game::Scene::Impl {
 		Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 20);
 	}
 
-	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex) {
+	void InGame::CheckAndLoadArea(int areaIndex, int previousAreaIndex, bool triggerBGM) {
 		std::string filename = "area" + std::to_string(areaIndex) + ".json";
 		areaEditor_.LoadArea(playState_.CurrentArea, filename);
 		playState_.VisitedAreas.insert(areaIndex);
@@ -305,6 +305,15 @@ namespace Game::Scene::Impl {
 		}
 
 		playState_.IsGoalReached = false;
+
+		// エリアに応じたBGM切り替え（BGMが同じなら更新しない）
+		if (triggerBGM) {
+			if (areaIndex == 10) {
+				Game::BGMManager::GetInstance()->PlaySceneBGM("Boss");
+			} else {
+				Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
+			}
+		}
 
 		// ゲームフェーズをリセット
 		Event::CurrentPhase = Event::GamePhase::InBattle;
@@ -568,12 +577,7 @@ namespace Game::Scene::Impl {
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
 							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
-							// エリアに応じたBGM切り替え（BGMが変わるときだけ更新される）
-							if (conn.targetAreaIndex != 10) {
-								Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
-							} else {
-								Game::BGMManager::GetInstance()->PlaySceneBGM("Boss");
-							}
+
 							break;
 						}
 					}
@@ -1027,6 +1031,7 @@ namespace Game::Scene::Impl {
 			Event::IsPaused = false;
 			Event::ResetPhase();
 			playState_.IsPlaying = false;
+			Game::BGMManager::GetInstance()->PlaySceneBGM("Title");
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
 			sceneMngr.Deactivate("InGame");
 			sceneMngr.Load<"Title">();
@@ -1108,11 +1113,8 @@ namespace Game::Scene::Impl {
 
 			// 初回のみメニューを表示
 			if (!GameOverMenu_.IsVisible()) {
-				// ゲームBGMを止めて死亡SEを鳴らす
-				Game::BGMManager::GetInstance()->StopCurrentBGM();
-				Game::BGMManager::GetInstance()->PlayOneShot(
-					"Assets/Sounds/nc42872_【効果音】チーン_一回_高音ver.【仏具：お鈴】.mp3", 0.8f
-				);
+				// ゲームBGMを止めて敗北BGMを流す
+				Game::BGMManager::GetInstance()->PlaySceneBGM("GameOver");
 
 				GameOverMenu_.Setup(
 					{
@@ -1272,6 +1274,7 @@ namespace Game::Scene::Impl {
 				playState_.ScreenFadeAlpha = 1.0f; // Ensure it starts fully black
 
 				if (action == 2) { // Title
+					Game::BGMManager::GetInstance()->PlaySceneBGM("Title");
 					auto& sceneMngr{ Lumina::SceneManager::Instance() };
 					sceneMngr.Deactivate("InGame");
 					sceneMngr.Load<"Title">();

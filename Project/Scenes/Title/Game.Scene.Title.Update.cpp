@@ -125,6 +125,7 @@ namespace Game::Scene::Impl {
         if (keyboard.IsJustPressed(KEY::SPACE) || inputMngr.Pad().IsPressed(0x1000)) {
 			Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Deactivate("Title");
 			sceneMngr.Unload("Title->InGame");
 			sceneMngr.Load<"Title->InGame">();
 			sceneMngr.Activate("Title->InGame");

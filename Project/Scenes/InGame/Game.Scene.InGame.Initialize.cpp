@@ -955,7 +955,7 @@ namespace Game::Scene::Impl {
 		areaEditor_.Initialize();
 
 		playState_.IsPlaying = true;
-		CheckAndLoadArea(0);
+		CheckAndLoadArea(0, -1, false);
 	}
 
 	template<>

@@ -268,7 +268,7 @@ namespace Game::Scene::Impl {
 			bool ThrowTutorialFired = false;
 		} playState_;
 
-		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
+		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1, bool triggerBGM = true);
 		void DrawGamePhaseUI();
 		void HandleFallDeath();
 #if defined(_DEBUG)

@@ -16,7 +16,13 @@
         "Boss": {
             "filePath": "Assets/Sounds/Thunderbolt.mp3",
             "isLoop": true,
-            "volume": 0.5,
+            "volume": 0.2,
+            "loopDelay": 0.0
+        },
+        "GameOver": {
+            "filePath": "Assets/Sounds/露草.mp3",
+            "isLoop": true,
+            "volume": 0.2,
             "loopDelay": 0.0
         }
     }
