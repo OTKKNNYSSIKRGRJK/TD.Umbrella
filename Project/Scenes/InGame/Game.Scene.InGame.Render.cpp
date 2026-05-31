@@ -52,6 +52,12 @@ namespace Game::Scene::Impl {
 
 		int idx_Portal{ 0 };
 		for (const auto& conn : playState_.CurrentArea.connections) {
+			// 0→0 のスタート地点ゲートは描画しない
+			if (playState_.CurrentArea.index == 0 && conn.targetAreaIndex == 0) {
+				++idx_Portal;
+				continue;
+			}
+
 			float cx = conn.position.x;
 			float cy = conn.position.y;
 

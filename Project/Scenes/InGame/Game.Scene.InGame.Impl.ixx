@@ -263,6 +263,10 @@ namespace Game::Scene::Impl {
 
 			// チュートリアル用: 前フレームのプレイヤーHP（ダメージ検知用）
 			float PrevPlayerHp = -1.0f;
+			// チュートリアル用: 初回ポータル接触フラグ
+			bool FirstPortalTouched = false;
+			// チュートリアル用: 初回空中フラグ
+			bool FirstAirborneFired = false;
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);

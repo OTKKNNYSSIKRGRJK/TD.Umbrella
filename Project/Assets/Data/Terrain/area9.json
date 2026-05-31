@@ -200,17 +200,17 @@
     "connections": [
         {
             "position": {
-                "x": 62.400142669677734,
-                "y": 416.0000305175781
-            },
-            "targetAreaIndex": 8
-        },
-        {
-            "position": {
                 "x": 1215.9710693359375,
                 "y": 1241.842529296875
             },
             "targetAreaIndex": 10
+        },
+        {
+            "position": {
+                "x": 62.400142669677734,
+                "y": 416.0000305175781
+            },
+            "targetAreaIndex": 8
         }
     ],
     "editorPos": {

@@ -55,6 +55,60 @@
           "allowedInputs": ["All"]
         }
       ]
+    },
+    "WarpAndReturn": {
+      "triggerEvent": "area_enter_7",
+      "steps": [
+        {
+          "texture": "R2_Warp.png",
+          "trigger": "GuardDuration",
+          "duration": 1.5,
+          "allowedInputs": ["All"]
+        },
+        {
+          "texture": "X_Back.png",
+          "trigger": "PadButton",
+          "padButton": 16384,
+          "key": "ENTER",
+          "allowedInputs": ["All"]
+        }
+      ]
+    },
+    "PortalWarp": {
+      "triggerEvent": "first_portal_touch",
+      "steps": [
+        {
+          "texture": "Cross_AreaWarp.png",
+          "trigger": "PadButton",
+          "padButton": 1,
+          "key": "W",
+          "allowedInputs": ["All"]
+        }
+      ]
+    },
+    "UmbrellaReverse": {
+      "triggerEvent": "area_enter_8",
+      "steps": [
+        {
+          "texture": "B_Reverse.png",
+          "trigger": "PadButton",
+          "padButton": 8192,
+          "key": "O",
+          "allowedInputs": ["All"]
+        }
+      ]
+    },
+    "SkyAttack": {
+      "triggerEvent": "first_airborne",
+      "steps": [
+        {
+          "texture": "Y_SkyAttack.png",
+          "trigger": "PadButton",
+          "padButton": 32768,
+          "key": "J",
+          "allowedInputs": ["All"]
+        }
+      ]
     }
   }
 }

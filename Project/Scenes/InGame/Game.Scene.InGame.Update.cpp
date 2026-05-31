@@ -212,7 +212,13 @@ namespace Game::Scene::Impl {
 				auto connWPos = ScreenToWorld(conn.position.x, playState_.CurrentArea.height - conn.position.y);
 				conn.position.x = connWPos.first;
 				conn.position.y = connWPos.second;
-				
+
+				// 0→0 のスタート地点ゲートはポータルとして扱わない
+				if (playState_.CurrentArea.index == 0 && conn.targetAreaIndex == 0) {
+					playState_.PortalColliders.push_back(nullptr); // インデックスを合わせるためnull
+					continue;
+				}
+
 				float wSizeX = 1.5f;
 				float wSizeY = 1.5f;
 				auto col = std::make_shared<ConvexCollider>();
@@ -548,8 +554,17 @@ namespace Game::Scene::Impl {
 				using Lumina::OS::Windows::KEY;
 
 				for (const auto& conn : playState_.CurrentArea.connections) {
+					// 0→0 のスタート地点ゲートはワープ判定しない
+					if (playState_.CurrentArea.index == 0 && conn.targetAreaIndex == 0) continue;
+
 					if (std::abs(pos.X - conn.position.x) <= 2.5f &&
 						std::abs(pos.Y - conn.position.y) <= 3.0f) {
+
+						// 初回ポータル接触チュートリアル
+						if (!playState_.FirstPortalTouched && TutorialManager_) {
+							playState_.FirstPortalTouched = true;
+							TutorialManager_->FireEvent("first_portal_touch");
+						}
 
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
@@ -1660,6 +1675,14 @@ namespace Game::Scene::Impl {
 				Game::ProjectileManager::GetInstance()->RemoveDeadProjectiles();
 
 				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
+
+				// 初回空中チュートリアル: プレイヤーが空中に入ったら発火
+				if (Player_ && TutorialManager_ && !playState_.FirstAirborneFired) {
+					if (Player_->GetCurrentMovementState() == Player_->airborneState_.get()) {
+						playState_.FirstAirborneFired = true;
+						TutorialManager_->FireEvent("first_airborne");
+					}
+				}
 
 				// プレイヤーの位置に基づいて地点イベントトリガーを判定
 				if (Player_ && TutorialManager_) {
