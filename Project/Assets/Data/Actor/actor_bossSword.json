@@ -2,20 +2,20 @@
     "collider": {
         "collisionVertices": [
             {
-                "x": -0.6000000238418579,
-                "y": 2.5
+                "x": -0.1111111119389534,
+                "y": 0.5555555820465088
             },
             {
-                "x": 0.6000000238418579,
-                "y": 2.5
+                "x": -0.011111111380159855,
+                "y": 4.0333333015441895
             },
             {
-                "x": 0.6000000238418579,
-                "y": -2.5
+                "x": 0.1111111119389534,
+                "y": 0.5444444417953491
             },
             {
-                "x": -0.6000000238418579,
-                "y": -2.5
+                "x": -0.011111111380159855,
+                "y": -0.5888888835906982
             }
         ],
         "sizeX": 1.0,
@@ -31,7 +31,7 @@
     },
     "lifecycle": {
         "autoDestroyOffscreen": false,
-        "lifetime": 0.3499999940395355,
+        "lifetime": 1.5,
         "spawnEventID": "",
         "spawnTrigger": 0,
         "spawnValue": 0.0
@@ -42,24 +42,11 @@
         "dirZ": 0.0,
         "easing": 0,
         "loopSpline": false,
-        "nodeTimings": [
-            {
-                "arrivalTime": 0.0,
-                "easing": 0
-            },
-            {
-                "arrivalTime": 0.15000000596046448,
-                "easing": 1
-            },
-            {
-                "arrivalTime": 0.3499999940395355,
-                "easing": 0
-            }
-        ],
+        "nodeTimings": [],
         "range": 0.0,
         "speed": 1.0,
         "splineMotionName": "boss_slash.json",
-        "totalDuration": 0.3499999940395355,
+        "totalDuration": 1.5,
         "type": 3
     },
     "name": "bosssword",
@@ -70,12 +57,12 @@
         "rotX": 0.0,
         "rotY": 0.0,
         "rotZ": 0.0,
-        "scaleX": 0.6600000262260437,
-        "scaleY": 2.490000009536743,
-        "scaleZ": 0.6600000262260437
+        "scaleX": 0.2199999988079071,
+        "scaleY": 1.899999976158142,
+        "scaleZ": 0.15000000596046448
     },
     "visual": {
         "materialIndex": 0,
-        "meshPath": "Assets\\Enemy\\Boss\\Sword.gltf"
+        "meshPath": "Assets\\Enemy\\Boss\\Sword.obj"
     }
 }
