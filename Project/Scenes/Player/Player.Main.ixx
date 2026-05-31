@@ -130,7 +130,7 @@ public:
 	void Update(float deltaTime);
 	void Draw();
 
-	void InitializeData();
+	void InitializeData(bool xpFlag = false);
 
 	//////////////////////////
 	/// 
