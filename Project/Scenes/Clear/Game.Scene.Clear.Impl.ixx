@@ -82,7 +82,7 @@ namespace Game::Scene::Impl {
 		void Initialize(typename ArgTypes const&...args_);
 
 	public:
-		constexpr ~Clear() noexcept;
+		~Clear() noexcept;
 
 	private:
 		Lumina::Math::F32x4x4<> WorldToNDC_{};

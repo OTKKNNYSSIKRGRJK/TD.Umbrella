@@ -12,7 +12,9 @@ Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
 	auto& sceneMngr{ Lumina::SceneManager::Instance() };
 	sceneMngr.Load<"Title">();
 	sceneMngr.Load<"InGame">();
+	sceneMngr.Load<"Clear">();
 	sceneMngr.Activate("Title");
+	//sceneMngr.Activate("Clear");
 
 	while (context.Run());
 
