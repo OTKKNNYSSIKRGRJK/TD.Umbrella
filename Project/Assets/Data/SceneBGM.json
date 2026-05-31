@@ -1,0 +1,17 @@
+{
+    "name": "SceneBGM",
+    "bgmMap": {
+        "Title": {
+            "filePath": "Assets/Sounds/神秘への扉.mp3",
+            "isLoop": true,
+            "volume": 0.2,
+            "loopDelay": 1.0
+        },
+        "InGame": {
+            "filePath": "Assets/Sounds/仄青く眠る、海底遺跡.mp3",
+            "isLoop": true,
+            "volume": 0.5,
+            "loopDelay": 1.5
+        }
+    }
+}

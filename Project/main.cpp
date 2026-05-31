@@ -4,6 +4,7 @@
 import Lumina;
 import Game.Scene.Title;
 import Game.Scene.InGame;
+import Game.BGMManager;
 
 Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
 	auto& context{ Lumina::Context::Instance() };
@@ -14,7 +15,9 @@ Lumina::I32 WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, Lumina::I32) {
 	sceneMngr.Load<"InGame">();
 	sceneMngr.Activate("Title");
 
-	while (context.Run());
+	while (context.Run()) {
+		Game::BGMManager::GetInstance()->Update(1.0f / 60.0f);
+	}
 
 	context.Finalize();
 

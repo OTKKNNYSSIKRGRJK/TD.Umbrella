@@ -29,6 +29,8 @@ import Lumina.Scene;
 import Lumina.CG3D;
 import Lumina.CG3D.Animation;
 
+import Game.BGMManager;
+
 #if defined(_DEBUG)
 namespace {
 	constexpr ImU32 MakeCol32(int r, int g, int b, int a) {
@@ -566,6 +568,12 @@ namespace Game::Scene::Impl {
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
 							int prevAreaIndex = playState_.CurrentArea.index;
 							CheckAndLoadArea(conn.targetAreaIndex, prevAreaIndex);
+							// エリアに応じたBGM切り替え（BGMが変わるときだけ更新される）
+							if (conn.targetAreaIndex != 10) {
+								Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
+							} else {
+								Game::BGMManager::GetInstance()->StopCurrentBGM();
+							}
 							break;
 						}
 					}
@@ -1243,6 +1251,7 @@ namespace Game::Scene::Impl {
 					playState_.ThrowTutorialFired = false;
 					playState_.Area7Timer = 0.0f;
 					CheckAndLoadArea(0);
+					Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
 				}
 				
 				int action = playState_.ScreenFadeNextAction;

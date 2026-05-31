@@ -17,6 +17,7 @@ import Lumina.Utils.ImGui;
 import Lumina.Utils.Color;
 
 import Game.MathUtils;
+import Game.BGMManager;
 
 namespace {
 	constexpr Lumina::F32 INV_60{ 1.0f / 60.0f };
@@ -122,6 +123,7 @@ namespace Game::Scene::Impl {
         // タイトル画面でスペースキーまたはXBOXのAボタンが押されたらゲーム開始
 		// XBOX Aボタンは GamePad のボタンマスク 0x1000（GamePadButton::A）を使用
         if (keyboard.IsJustPressed(KEY::SPACE) || inputMngr.Pad().IsPressed(0x1000)) {
+			Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
 			sceneMngr.Unload("Title->InGame");
 			sceneMngr.Load<"Title->InGame">();

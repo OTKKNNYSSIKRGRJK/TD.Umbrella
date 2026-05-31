@@ -12,6 +12,7 @@ export namespace Game::Editor {
 		std::string filePath = "";
 		bool isLoop = true;
 		float volume = 1.0f;
+		float loopDelay = 0.0f;
 	};
 
 	struct AudioData {

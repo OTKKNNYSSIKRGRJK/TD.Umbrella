@@ -14,6 +14,7 @@ import : Impl;
 
 import Game.MotionManager;
 import Game.Player;
+import Game.BGMManager;
 
 import Lumina.CG3D;
 import Lumina.CG3D.Animation;
@@ -513,6 +514,8 @@ namespace Game::Scene::Impl {
 		Initialize_<"Grassland">();
 		Initialize_<"Particles">();
 		Initialize_<"Skybox">();
+
+		Game::BGMManager::GetInstance()->PlaySceneBGM("Title");
 	}
 
 	Title::Title() = default;

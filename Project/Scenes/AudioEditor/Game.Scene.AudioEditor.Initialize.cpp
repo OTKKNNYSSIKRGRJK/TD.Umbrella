@@ -17,7 +17,8 @@ namespace Game::Editor {
 		j = json{
 			{"filePath", s.filePath},
 			{"isLoop", s.isLoop},
-			{"volume", s.volume}
+			{"volume", s.volume},
+			{"loopDelay", s.loopDelay}
 		};
 	}
 
@@ -25,6 +26,7 @@ namespace Game::Editor {
 		if (j.contains("filePath")) j.at("filePath").get_to(s.filePath);
 		if (j.contains("isLoop")) j.at("isLoop").get_to(s.isLoop);
 		if (j.contains("volume")) j.at("volume").get_to(s.volume);
+		if (j.contains("loopDelay")) j.at("loopDelay").get_to(s.loopDelay);
 	}
 
 	void to_json(json& j, const AudioData& a) {

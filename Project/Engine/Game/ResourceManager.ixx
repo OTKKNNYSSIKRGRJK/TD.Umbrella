@@ -142,6 +142,10 @@ namespace Lumina {
 			return Manager_.GetVolume(hndl_Stream_);
 		}
 
+		auto IsPlaying(XAudio2::AudioStreamPlayer::Handle hndl_Stream_) const -> bool {
+			return Manager_.IsPlaying(hndl_Stream_);
+		}
+
 		auto Update() -> void {
 			Manager_.Update();
 		}

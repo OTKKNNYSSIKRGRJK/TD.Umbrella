@@ -17,6 +17,9 @@ export namespace Game {
 		// 現在鳴っているBGMを停止します
 		void StopCurrentBGM();
 
+		// BGMの遅延ループなどを更新します
+		void Update(float deltaTime);
+
 	private:
 		BGMManager() = default;
 		~BGMManager() = default;

@@ -18,6 +18,11 @@ namespace Game {
 	
 	static std::optional<Lumina::AudioStreamPlayerHandle> s_currentBGMHandle;
 
+	// 追加の遅延ループ制御用ステート
+	static std::string s_currentSceneName = "";
+	static bool s_isWaitingForLoop = false;
+	static float s_loopTimer = 0.0f;
+
 	void BGMManager::PlaySceneBGM(const std::string& sceneName) {
 		// 初回呼び出し時のみJSONを1回だけ読み込む
 		if (!s_isLoaded) {
@@ -26,8 +31,15 @@ namespace Game {
 			s_isLoaded = true;
 		}
 
+		// 同じBGMが既に再生中（または遅延待ち中）ならリスタートしない
+		if (s_currentSceneName == sceneName) return;
+
 		// 今鳴っているBGMがあれば止める
 		StopCurrentBGM();
+
+		s_currentSceneName = sceneName;
+		s_isWaitingForLoop = false;
+		s_loopTimer = 0.0f;
 
 		// JSON内に該当のシーンデータがあれば再生を開始
 		if (s_bgmData.bgmMap.contains(sceneName)) {
@@ -46,7 +58,9 @@ namespace Game {
 				s_streamCache[config.filePath] = stream;
 			}
 			
-			s_currentBGMHandle = audioContext.Play(stream, config.isLoop, config.volume);
+			// loopDelay が 0 のときはギャップレスのために XAudio2 のハードウェアループを使用
+			bool useNativeLoop = config.isLoop && (config.loopDelay <= 0.0f);
+			s_currentBGMHandle = audioContext.Play(stream, useNativeLoop, config.volume);
 		}
 	}
 
@@ -55,6 +69,43 @@ namespace Game {
 			auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
 			audioContext.Stop(s_currentBGMHandle.value());
 			s_currentBGMHandle.reset();
+		}
+		s_currentSceneName = "";
+		s_isWaitingForLoop = false;
+		s_loopTimer = 0.0f;
+	}
+
+	void BGMManager::Update(float deltaTime) {
+		if (s_currentSceneName.empty()) return;
+		if (!s_bgmData.bgmMap.contains(s_currentSceneName)) return;
+
+		const auto& config = s_bgmData.bgmMap[s_currentSceneName];
+		
+		// ループ指定がないか、または loopDelay が 0（ネイティブループ）の場合は更新処理不要
+		if (!config.isLoop || config.loopDelay <= 0.0f) return;
+
+		auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
+
+		if (s_isWaitingForLoop) {
+			s_loopTimer += deltaTime;
+			if (s_loopTimer >= config.loopDelay) {
+				s_isWaitingForLoop = false;
+				s_loopTimer = 0.0f;
+
+				if (s_streamCache.contains(config.filePath)) {
+					auto stream = s_streamCache[config.filePath];
+					s_currentBGMHandle = audioContext.Play(stream, false, config.volume);
+				}
+			}
+		} else {
+			if (s_currentBGMHandle.has_value()) {
+				// 曲が終了した（再生中でなくなった）かをチェック
+				if (!audioContext.IsPlaying(s_currentBGMHandle.value())) {
+					s_isWaitingForLoop = true;
+					s_loopTimer = 0.0f;
+					s_currentBGMHandle.reset();
+				}
+			}
 		}
 	}
 }
