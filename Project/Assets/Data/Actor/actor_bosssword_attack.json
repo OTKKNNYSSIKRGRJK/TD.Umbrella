@@ -76,6 +76,6 @@
     },
     "visual": {
         "materialIndex": 0,
-        "meshPath": "Assets\\Enemy\\Boss\\Sword.gltf"
+        "meshPath": "Assets\\Enemy\\Boss\\Sword.obj"
     }
 }

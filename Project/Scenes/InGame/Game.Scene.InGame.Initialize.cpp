@@ -521,6 +521,40 @@ namespace Game::Scene::Impl {
 							addMeshesToBeUploaded(validMeshes);
 						}
 					}
+					else if (ext == ".gltf" || ext == ".glb") {
+						fs::path gPath = meshPath;
+						std::string parentPath = gPath.parent_path().string();
+						std::replace(parentPath.begin(), parentPath.end(), '\\', '/');
+						
+						auto collection = Lumina::CG3D::Import(gPath.filename().string(), parentPath);
+						if (!collection.Meshes.empty()) {
+							Lumina::Utils::Mesh actorMesh;
+							actorMesh.Name = collection.Meshes[0].Name;
+
+							for (const auto& v : collection.Meshes[0].Vertices) {
+								actorMesh.Positions.push_back(v.Position);
+								actorMesh.TexCoords.push_back(v.TexCoord);
+								actorMesh.Normals.push_back(v.Normal);
+								actorMesh.Tangents.push_back({ 0.0f, 0.0f, 1.0f });
+							}
+
+							for (auto idx : collection.Meshes[0].Indices) {
+								actorMesh.Vertices.push_back({
+									static_cast<Lumina::U32>(idx),
+									static_cast<Lumina::U32>(idx),
+									static_cast<Lumina::U32>(idx),
+									static_cast<Lumina::U32>(idx)
+								});
+							}
+
+							using MeshCollection = std::vector<Lumina::Utils::Mesh>;
+							MeshCollection validMeshes;
+							validMeshes.push_back(std::move(actorMesh));
+
+							ActorMeshIndices_[actorName] = { meshesToBeUploaded.size(), validMeshes.size() };
+							addMeshesToBeUploaded(validMeshes);
+						}
+					}
 				} catch (...) {
 					// Actor メッシュ読み込み失敗時はスキップ
 				}

@@ -51,5 +51,7 @@ namespace Lumina {
 		D3D12::UploadBuffer IndexBuffer_;
 		D3D12_VERTEX_BUFFER_VIEW VBV_;
 		D3D12_INDEX_BUFFER_VIEW IBV_;
+
+		D3D12::ImageTexture const* Texture_{ nullptr };
 	};
 }

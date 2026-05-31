@@ -1,8 +1,54 @@
 {
+    "collider": {
+        "collisionVertices": [
+            {
+                "x": -0.31111112236976624,
+                "y": 1.8888888359069824
+            },
+            {
+                "x": 0.07777778059244156,
+                "y": 1.4666666984558105
+            },
+            {
+                "x": 0.3888888955116272,
+                "y": 1.4777777194976807
+            }
+        ],
+        "sizeX": 0.20000000298023224,
+        "sizeY": 0.20000000298023224,
+        "sizeZ": 0.20000000298023224,
+        "type": 3
+    },
+    "interaction": {
+        "activationTriggerID": "",
+        "damageValue": 15.0,
+        "pushForce": 5.0,
+        "type": 0
+    },
+    "lifecycle": {
+        "autoDestroyOffscreen": true,
+        "lifetime": 4.0,
+        "spawnEventID": "",
+        "spawnTrigger": 0,
+        "spawnValue": 0.0
+    },
+    "movement": {
+        "dirX": 1.0,
+        "dirY": 0.0,
+        "dirZ": 0.0,
+        "easing": 0,
+        "loopSpline": false,
+        "nodeTimings": [],
+        "range": 5.0,
+        "speed": 8.0,
+        "splineMotionName": "",
+        "totalDuration": 3.0,
+        "type": 0
+    },
     "name": "FlowerBullet",
     "transform": {
         "posX": 0.0,
-        "posY": 1.6,
+        "posY": 1.600000023841858,
         "posZ": 0.0,
         "rotX": 0.0,
         "rotY": 0.0,
@@ -12,40 +58,7 @@
         "scaleZ": 0.5
     },
     "visual": {
-        "meshPath": "Assets\\cube.obj",
-        "materialIndex": 0
-    },
-    "movement": {
-        "type": 0,
-        "speed": 8.0,
-        "dirX": 1.0,
-        "dirY": 0.0,
-        "dirZ": 0.0,
-        "range": 5.0,
-        "easing": 0,
-        "splineMotionName": "",
-        "totalDuration": 3.0,
-        "loopSpline": false,
-        "nodeTimings": []
-    },
-    "interaction": {
-        "type": 0,
-        "damageValue": 15.0,
-        "pushForce": 5.0,
-        "activationTriggerID": ""
-    },
-    "collider": {
-        "type": 0,
-        "sizeX": 0.2,
-        "sizeY": 0.2,
-        "sizeZ": 0.2,
-        "collisionVertices": []
-    },
-    "lifecycle": {
-        "spawnTrigger": 0,
-        "spawnValue": 0.0,
-        "spawnEventID": "",
-        "lifetime": 4.0,
-        "autoDestroyOffscreen": true
+        "materialIndex": 0,
+        "meshPath": "Assets\\Enemy\\FlowerSunward\\Sunward_Bullet.gltf"
     }
 }

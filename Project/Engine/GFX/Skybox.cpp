@@ -20,6 +20,15 @@ namespace Lumina {
 		D3D12::CommandList const& cmdList_,
 		D3D12_CPU_DESCRIPTOR_HANDLE cbv_WorldToProjective_
 	) {
+		if (Texture_ && Texture_->State_ == D3D12_RESOURCE_STATE_COPY_DEST) {
+			cmdList_.TransitionResourceState(
+				Texture_->Get(),
+				D3D12_RESOURCE_STATE_COPY_DEST,
+				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+			);
+			Texture_->State_ = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+		}
+
 		Lumina::Context::Instance().D3D12Context().Device()->CopyDescriptorsSimple(
 			1U,
 			CBV_.CPUHandle(0U),
@@ -124,6 +133,8 @@ namespace Lumina {
 				D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV
 			);
 		}
+
+		Texture_ = static_cast<D3D12::ImageTexture const*>(resMngr.Graphics().GetResource(texFilePath_));
 
 		auto settings{ Utils::LoadFromFile<nlohmann::json>("Skybox.json", "Assets/Configs") };
 		auto rsSetup{ D3D12::LoadSetup<D3D12::RootSignature>(settings.at("RS"))};
