@@ -1365,9 +1365,10 @@ namespace Game::Scene::Impl {
 
 				Update_<"Player">(); // プレイヤーはチュートリアル中も更新（内部で入力マスクあり）
 
-				// 初回空中チュートリアル: プレイヤーが空中に入ったら発火
+				// 初回空中チュートリアル: プレイヤーが空中に入ったら発火（area0では表示しない）
 				if (Player_ && TutorialManager_ && !playState_.FirstAirborneFired) {
-					if (Player_->GetCurrentMovementState() == Player_->airborneState_.get()) {
+					if (playState_.CurrentArea.index != 0 &&
+						Player_->GetCurrentMovementState() == Player_->airborneState_.get()) {
 						playState_.FirstAirborneFired = true;
 						TutorialManager_->FireEvent("first_airborne");
 					}
