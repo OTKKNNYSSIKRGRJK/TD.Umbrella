@@ -339,6 +339,18 @@ void Player::Initialize() {
 	WorldMatrix_ = std::make_unique<Matrix4x4>();
 }
 
+void Player::InitializeData() {
+	// プレイヤーの初期化
+	ChangeActionState(normalSheathedState_.get());
+	ChangeMovementState(idleState_.get());	
+	
+	status_->InitializeData(100.0f, 20.0f, 1.0f);
+	experience_->Initialize();
+	// 傘の初期化
+	umbrella_->InitializeData();
+	umbrella_->handle_->GetBaseJoint()->AttachTo(GetBackJoint());
+}
+
 void Player::Update(float deltaTime) {
 
 	// 死ぬ
@@ -490,6 +502,10 @@ void Player::Update(float deltaTime) {
 
 	if (ImGui::Button("Take Damage")) {
 		this->status_->TakeDamage(10.0f);
+	}
+
+	if (ImGui::Button("InitializeData")) {
+		InitializeData();
 	}
 
 	if (ImGui::Button("Take Experience")) {

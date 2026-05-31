@@ -12,6 +12,13 @@ public:
     ~StatusComponent() = default;
 public:
 
+    void InitializeData(float maxHp, float attack, float defense) {
+        maxHp_ = maxHp;
+        currentHp_ = maxHp;
+        attack_ = attack;
+        defense_ = defense;
+    }
+
     ///////////////////////////////////
     //   アクション（ダメージ・回復）
     ///////////////////////////////////

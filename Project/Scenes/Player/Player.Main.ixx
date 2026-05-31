@@ -130,6 +130,8 @@ public:
 	void Update(float deltaTime);
 	void Draw();
 
+	void InitializeData();
+
 	//////////////////////////
 	/// 
 	///   State関係

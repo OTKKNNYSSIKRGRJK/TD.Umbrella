@@ -235,6 +235,8 @@ namespace Umbrella {
         // 描画処理
         void Draw();
 
+        void InitializeData();
+
     public:
 
         //////////////////////

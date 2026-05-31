@@ -266,6 +266,12 @@ namespace Umbrella {
 		top_->ChangeState(new UmbrellaStates::Attached());
 	}
 
+	void Main::InitializeData() {
+		top_->GetRootJoint()->AttachTo(handle_->GetTipJoint());
+		top_->ChangeState(new UmbrellaStates::Attached());
+		top_->ChangeForm(UmbrellaForm::Closed);
+	}
+
 	void Main::Update(float deltaTime) {
 		handle_->Update(deltaTime);
 		top_->Update(deltaTime);
