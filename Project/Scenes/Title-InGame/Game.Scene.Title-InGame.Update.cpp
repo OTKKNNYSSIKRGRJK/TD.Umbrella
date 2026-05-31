@@ -13,7 +13,7 @@ namespace Game::Scene::Impl {
 
 		static int cnt = 0;
 
-		if (cnt > 3) {
+		if (cnt > 1) {
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
 			sceneMngr.Deactivate("Title");
 			sceneMngr.Deactivate("Title->InGame");
