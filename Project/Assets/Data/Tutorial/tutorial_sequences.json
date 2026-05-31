@@ -56,24 +56,6 @@
         }
       ]
     },
-    "WarpAndReturn": {
-      "triggerEvent": "area_enter_7",
-      "steps": [
-        {
-          "texture": "R2_Warp.png",
-          "trigger": "GuardDuration",
-          "duration": 1.5,
-          "allowedInputs": ["All"]
-        },
-        {
-          "texture": "X_Back.png",
-          "trigger": "PadButton",
-          "padButton": 16384,
-          "key": "ENTER",
-          "allowedInputs": ["All"]
-        }
-      ]
-    },
     "PortalWarp": {
       "triggerEvent": "first_portal_touch",
       "steps": [
@@ -121,6 +103,13 @@
         },
         {
           "texture": "R2_Shoot.png",
+          "trigger": "PadButton",
+          "padButton": 128,
+          "key": "L",
+          "allowedInputs": ["All"]
+        },
+        {
+          "texture": "R2_Warp.png",
           "trigger": "PadButton",
           "padButton": 128,
           "key": "L",
