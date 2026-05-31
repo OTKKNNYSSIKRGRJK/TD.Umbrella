@@ -106,6 +106,7 @@ export namespace Game {
 			, behavior(std::move(other.behavior))
 			, id(other.id)
 			, position(other.position)
+			, spawnPosition(other.spawnPosition)
 			, rootMotionOffset(other.rootMotionOffset)
 			, velocity(other.velocity)
 			, currentHP(other.currentHP)
@@ -137,6 +138,7 @@ export namespace Game {
 				behavior = std::move(other.behavior);
 				id = other.id;
 				position = other.position;
+				spawnPosition = other.spawnPosition;
 				rootMotionOffset = other.rootMotionOffset;
 				velocity = other.velocity;
 				currentHP = other.currentHP;
@@ -170,6 +172,7 @@ export namespace Game {
 			, behavior(CreateEnemyBehavior(other.baseData))
 			, id(other.id)
 			, position(other.position)
+			, spawnPosition(other.spawnPosition)
 			, rootMotionOffset(other.rootMotionOffset)
 			, velocity(other.velocity)
 			, currentHP(other.currentHP)
@@ -202,6 +205,7 @@ export namespace Game {
 				behavior = CreateEnemyBehavior(other.baseData);
 				id = other.id;
 				position = other.position;
+				spawnPosition = other.spawnPosition;
 				rootMotionOffset = other.rootMotionOffset;
 				velocity = other.velocity;
 				currentHP = other.currentHP;
@@ -237,6 +241,7 @@ export namespace Game {
 		uint32_t id = 0;                              // ユニークID
 		int placementIndex = -1;
 		Lumina::Math::F32x3 position{ 0.0f, 0.0f, 0.0f };
+		Lumina::Math::F32x3 spawnPosition{ 0.0f, 0.0f, 0.0f }; // スポーン時の位置（リセット用）
 		Lumina::Math::F32x3 rootMotionOffset{ 0.0f, 0.0f, 0.0f }; // ルートボーンから抽出されたアニメーションオフセット
 		Lumina::Math::F32x3 velocity{ 0.0f, 0.0f, 0.0f };
 		int currentHP = 0;
@@ -416,6 +421,11 @@ export namespace Game {
 		/// 死亡済みインスタンスの除去
 		/// </summary>
 		void RemoveDeadInstances();
+
+		/// <summary>
+		/// 全インスタンスを初期状態にリセット（HP・AI・位置をスポーン時に復元）
+		/// </summary>
+		void ResetAllInstances();
 
 		// ============================
 		//  更新

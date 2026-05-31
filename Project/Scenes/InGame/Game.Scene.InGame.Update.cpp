@@ -1236,6 +1236,11 @@ namespace Game::Scene::Impl {
 					}
 					playState_.VisitedAreas.clear();
 					playState_.DefeatedEnemies.clear();
+					// チュートリアル用フラグをリセット
+					playState_.FirstPortalTouched = false;
+					playState_.FirstAirborneFired = false;
+					playState_.ThrowTutorialFired = false;
+					playState_.Area7Timer = 0.0f;
 					CheckAndLoadArea(0);
 				}
 				

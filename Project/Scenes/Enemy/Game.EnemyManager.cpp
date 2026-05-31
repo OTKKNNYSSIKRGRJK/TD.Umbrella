@@ -1376,6 +1376,7 @@ namespace Game {
 		inst.baseData.hp = GetScaledEnemyHp(inst.baseData.hp);
 		inst.id = GenerateId();
 		inst.position = position;
+		inst.spawnPosition = position;
 		inst.facingRight = facingRight;
        inst.renderFacingYaw = facingRight ? 0.0f : kTurnedFacingYaw;
 		inst.sizeTier = sizeTier;
@@ -1464,6 +1465,31 @@ namespace Game {
 				[](const EnemyInstance& inst) { return inst.isDead; }),
 			instances_.end()
 		);
+	}
+
+	void EnemyManager::ResetAllInstances() {
+		for (auto& enemy : instances_) {
+			// 位置をスポーン時に戻す
+			enemy.position = enemy.spawnPosition;
+			enemy.rootMotionOffset = { 0.0f, 0.0f, 0.0f };
+			enemy.velocity = { 0.0f, 0.0f, 0.0f };
+
+			// ランタイム状態をリセット
+			enemy.InitFromBase();
+			enemy.recentlyDamagedThisFrame = false;
+			enemy.isGrounded = false;
+			enemy.renderPitch = 0.0f;
+			enemy.renderFacingYaw = enemy.facingRight ? 0.0f : 3.14159265f;
+
+			// Behaviorを再生成
+			enemy.behavior = CreateEnemyBehavior(enemy.baseData);
+			if (enemy.behavior) {
+				enemy.behavior->OnSpawn(enemy);
+			}
+
+			// コライダーを再初期化
+			enemy.InitCollider();
+		}
 	}
 
 	// ============================
