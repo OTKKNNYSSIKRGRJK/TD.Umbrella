@@ -1226,8 +1226,14 @@ namespace Game::Scene::Impl {
 					if (Player_) {
 						Player_->GetStatusComponent().Heal(Player_->GetStatusComponent().GetMaxHp());
 						// 死亡ステートから復帰させる
-						Player_->ChangeMovementState(Player_->idleState_.get());
-						Player_->ChangeActionState(Player_->normalSheathedState_.get());
+						/*Player_->ChangeMovementState(Player_->idleState_.get());
+						Player_->ChangeActionState(Player_->normalSheathedState_.get());*/
+						if (playState_.ScreenFadeNextAction == 1) {
+							Player_->InitializeData();
+						}
+						else if (playState_.ScreenFadeNextAction == 2) {
+							Player_->InitializeData(true);
+						}
 						Player_->externalVelocity_ = { 0.0f, 0.0f, 0.0f };
 						Player_->myVelocity_ = { 0.0f, 0.0f, 0.0f };
 						playState_.PrevPlayerHp = -1.0f;
