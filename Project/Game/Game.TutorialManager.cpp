@@ -61,6 +61,7 @@ namespace Game {
 		if (str == "Auto")          return TutorialStep::Trigger::Auto;
 		if (str == "MoveDuration")  return TutorialStep::Trigger::MoveDuration;
 		if (str == "GuardDuration") return TutorialStep::Trigger::GuardDuration;
+		if (str == "AimDuration")   return TutorialStep::Trigger::AimDuration;
 		if (str == "AreaExit")      return TutorialStep::Trigger::AreaExit;
 		return TutorialStep::Trigger::AnyInput; // デフォルト
 	}
@@ -357,6 +358,19 @@ namespace Game {
 				using Lumina::OS::Windows::KEY;
 				bool isGuarding = (pad.GetRightTrigger() > 10) || keyboard.IsPressed(KEY::I);
 				if (isGuarding) {
+					Timer_ += deltaTime;
+				}
+				if (Timer_ >= step.AutoDuration) {
+					shouldAdvance = true;
+				}
+			}
+			break;
+
+		case TutorialStep::Trigger::AimDuration:
+			{
+				using Lumina::OS::Windows::KEY;
+				bool isAiming = (pad.GetLeftTrigger() > 10) || keyboard.IsPressed(KEY::K);
+				if (isAiming) {
 					Timer_ += deltaTime;
 				}
 				if (Timer_ >= step.AutoDuration) {

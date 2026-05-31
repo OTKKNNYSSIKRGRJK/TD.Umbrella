@@ -263,6 +263,9 @@ namespace Game::Scene::Impl {
 			bool FirstPortalTouched = false;
 			// チュートリアル用: 初回空中フラグ
 			bool FirstAirborneFired = false;
+			// チュートリアル用: 傘投げチュートリアル（area7で30秒経過＋傘Opened時に発火）
+			float Area7Timer = 0.0f;
+			bool ThrowTutorialFired = false;
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);

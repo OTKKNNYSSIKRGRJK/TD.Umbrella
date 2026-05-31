@@ -34,6 +34,7 @@ namespace Game {
 			Auto,          // 一定時間後に自動進行
 			MoveDuration,  // 一定時間移動入力をし続けたら進行
 			GuardDuration, // 傘開き（R2 / Iキー）を一定時間続けたら進行
+			AimDuration,   // 照準（L2 / Kキー）を一定時間続けたら進行
 			AreaExit,      // 特定のエリアから退出したら進行
 		} trigger{ Trigger::AnyInput };
 

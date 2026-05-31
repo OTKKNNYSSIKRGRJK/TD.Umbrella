@@ -1374,6 +1374,20 @@ namespace Game::Scene::Impl {
 					}
 				}
 
+				// 傘投げチュートリアル: area7で30秒経過 かつ 傘がOpened状態なら発火
+				if (Player_ && TutorialManager_ && !playState_.ThrowTutorialFired) {
+					if (playState_.CurrentArea.index == 7) {
+						playState_.Area7Timer += 1.0f / 60.0f;
+						if (playState_.Area7Timer >= 30.0f &&
+							Player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
+							playState_.ThrowTutorialFired = true;
+							TutorialManager_->FireEvent("umbrella_throw_ready");
+						}
+					} else {
+						playState_.Area7Timer = 0.0f;
+					}
+				}
+
 				// プレイヤーの位置に基づいて地点イベントトリガーを判定
 				if (Player_ && TutorialManager_) {
 					TutorialManager_->UpdateLocationTriggers(playState_.CurrentArea.index, Player_->GetPosition());

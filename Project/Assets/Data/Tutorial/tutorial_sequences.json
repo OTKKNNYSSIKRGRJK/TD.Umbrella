@@ -109,6 +109,24 @@
           "allowedInputs": ["All"]
         }
       ]
+    },
+    "ThrowUmbrella": {
+      "triggerEvent": "umbrella_throw_ready",
+      "steps": [
+        {
+          "texture": "L2_Aim.png",
+          "trigger": "AimDuration",
+          "duration": 2.0,
+          "allowedInputs": ["All"]
+        },
+        {
+          "texture": "R2_Shoot.png",
+          "trigger": "PadButton",
+          "padButton": 128,
+          "key": "L",
+          "allowedInputs": ["All"]
+        }
+      ]
     }
   }
 }
