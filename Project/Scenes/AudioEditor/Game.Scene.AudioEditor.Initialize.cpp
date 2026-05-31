@@ -5,6 +5,8 @@ import <filesystem>;
 import <string>;
 
 import nlohmann.json;
+import Lumina.Main;
+import Lumina.ResourceManager;
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -40,8 +42,16 @@ namespace Game::Editor {
 	void AudioEditor::Initialize() {
 	}
 
+	AudioEditor::~AudioEditor() {
+		if (isPreviewPlaying_) {
+			auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
+			audioContext.Stop(previewPlayerHandle_);
+			isPreviewPlaying_ = false;
+		}
+	}
+
 	void AudioEditor::SaveAudio(const AudioData& audio) {
-		std::string filename = audio.name + ".json";
+		std::string filename = "Assets/Data/" + audio.name + ".json";
 		std::ofstream file(filename);
 		if (file.is_open()) {
 			json j = audio;
@@ -50,7 +60,11 @@ namespace Game::Editor {
 	}
 
 	void AudioEditor::LoadAudio(AudioData& audio, const std::string& filename) {
-		std::ifstream file(filename);
+		std::string realPath = filename;
+		if (realPath.find("Assets/Data/") == std::string::npos) {
+			realPath = "Assets/Data/" + realPath;
+		}
+		std::ifstream file(realPath);
 		if (file.is_open()) {
 			try {
 				json j;

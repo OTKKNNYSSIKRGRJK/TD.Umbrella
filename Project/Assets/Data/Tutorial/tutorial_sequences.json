@@ -108,22 +108,27 @@
       "triggerEvent": "umbrella_throw_ready",
       "steps": [
         {
+          "texture": "R2_OpenAnUmbrella.png",
+          "trigger": "Auto",
+          "duration": 999.0,
+          "allowedInputs": ["All"]
+        },
+        {
           "texture": "L2_Aim.png",
           "trigger": "AimDuration",
-          "duration": 2.0,
+          "duration": 0.5,
           "allowedInputs": ["All"]
         },
         {
           "texture": "R2_Shoot.png",
-          "trigger": "PadButton",
-          "padButton": 128,
-          "key": "L",
+          "trigger": "Auto",
+          "duration": 999.0,
           "allowedInputs": ["All"]
         },
         {
           "texture": "R2_Warp.png",
-          "trigger": "GuardDuration",
-          "duration": 0.5,
+          "trigger": "Auto",
+          "duration": 999.0,
           "allowedInputs": ["All"]
         }
       ]

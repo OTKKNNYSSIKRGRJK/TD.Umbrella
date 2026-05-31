@@ -29,19 +29,14 @@ namespace Game::Editor {
 			// スペースキーでプレビューの再生/停止トグル
 			if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && ImGui::IsKeyPressed(ImGuiKey_Space) && !previewSceneName_.empty()) {
 				if (isPreviewPlaying_) {
-					if (previewPlayerHandle_ != nullptr) {
-						Lumina::Context::Instance().ResourceContext().Audio().Stop(*previewPlayerHandle_);
-						delete previewPlayerHandle_;
-						previewPlayerHandle_ = nullptr;
-					}
+					Lumina::Context::Instance().ResourceContext().Audio().Stop(previewPlayerHandle_);
 					isPreviewPlaying_ = false;
 				} else {
 					auto& config = editingAudio_.bgmMap[previewSceneName_];
 					if (!config.filePath.empty()) {
 						auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
 						auto stream = audioContext.LoadFromFile(config.filePath);
-						if (previewPlayerHandle_ == nullptr) previewPlayerHandle_ = new Lumina::AudioStreamPlayerHandle();
-						*previewPlayerHandle_ = audioContext.Play(stream, config.isLoop, config.volume);
+						previewPlayerHandle_ = audioContext.Play(stream, config.isLoop, config.volume);
 						isPreviewPlaying_ = true;
 					}
 				}
@@ -60,11 +55,7 @@ namespace Game::Editor {
 					previewSceneName_ = sceneName;
 					// 別のシーンを選択した場合はプレビューを一旦止める
 					if (isPreviewPlaying_) {
-						if (previewPlayerHandle_ != nullptr) {
-							Lumina::Context::Instance().ResourceContext().Audio().Stop(*previewPlayerHandle_);
-							delete previewPlayerHandle_;
-							previewPlayerHandle_ = nullptr;
-						}
+						Lumina::Context::Instance().ResourceContext().Audio().Stop(previewPlayerHandle_);
 						isPreviewPlaying_ = false;
 					}
 				}
@@ -87,14 +78,11 @@ namespace Game::Editor {
 				if (ImGui::SliderFloat("Volume", &bgmData.volume, 0.0f, 2.0f)) {
 					// 音量変更中で、現在このシーンがプレビュー中なら再生ましにして音量変更を即時反映(簡易的)
 					if (isSelected && isPreviewPlaying_) {
-						if (previewPlayerHandle_ != nullptr) {
-							Lumina::Context::Instance().ResourceContext().Audio().Stop(*previewPlayerHandle_);
-						}
+						Lumina::Context::Instance().ResourceContext().Audio().Stop(previewPlayerHandle_);
 						if (!bgmData.filePath.empty()) {
 							auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
 							auto stream = audioContext.LoadFromFile(bgmData.filePath);
-							if (previewPlayerHandle_ == nullptr) previewPlayerHandle_ = new Lumina::AudioStreamPlayerHandle();
-							*previewPlayerHandle_ = audioContext.Play(stream, bgmData.isLoop, bgmData.volume);
+							previewPlayerHandle_ = audioContext.Play(stream, bgmData.isLoop, bgmData.volume);
 						}
 					}
 				}
@@ -119,10 +107,8 @@ namespace Game::Editor {
 				editingAudio_.bgmMap.erase(keyToDelete);
 				if (previewSceneName_ == keyToDelete) {
 					previewSceneName_ = "";
-					if (isPreviewPlaying_ && previewPlayerHandle_ != nullptr) {
-						Lumina::Context::Instance().ResourceContext().Audio().Stop(*previewPlayerHandle_);
-						delete previewPlayerHandle_;
-						previewPlayerHandle_ = nullptr;
+					if (isPreviewPlaying_) {
+						Lumina::Context::Instance().ResourceContext().Audio().Stop(previewPlayerHandle_);
 					}
 					isPreviewPlaying_ = false;
 				}

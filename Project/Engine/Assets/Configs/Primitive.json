@@ -24,7 +24,7 @@
     "Textures": [
       {
         "RangeType": "SRV",
-        "NumDescriptors": 32,
+        "NumDescriptors": 128,
         "BaseShaderRegister": 0,
         "RegisterSpace": 1,
         "OffsetInDescriptorsFromTableStart": -1

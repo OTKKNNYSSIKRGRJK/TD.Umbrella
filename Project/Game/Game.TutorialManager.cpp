@@ -63,6 +63,7 @@ namespace Game {
 		if (str == "GuardDuration") return TutorialStep::Trigger::GuardDuration;
 		if (str == "AimDuration")   return TutorialStep::Trigger::AimDuration;
 		if (str == "AreaExit")      return TutorialStep::Trigger::AreaExit;
+		if (str == "ShootDuration") return TutorialStep::Trigger::ShootDuration;
 		return TutorialStep::Trigger::AnyInput; // デフォルト
 	}
 
@@ -273,12 +274,70 @@ namespace Game {
 		ActiveSequenceId_.clear();
 	}
 
-	bool TutorialManager::TryStartSequence(const std::string& sequenceId) {
-		if (CompletedSequences_.find(sequenceId) == CompletedSequences_.end()) {
-			StartSequence(sequenceId);
-			return true;
+	void TutorialManager::AdvanceStep() {
+		if (!Active_ || CurrentStep_ < 0 || CurrentStep_ >= static_cast<int>(Steps_.size())) {
+			return;
 		}
-		return false;
+
+		CurrentStep_++;
+		Timer_ = 0.0f;
+
+		if (CurrentStep_ >= static_cast<int>(Steps_.size())) {
+			// チュートリアル完了
+			if (!ActiveSequenceId_.empty()) {
+				CompletedSequences_.insert(ActiveSequenceId_);
+			}
+			Active_ = false;
+			ActiveSequenceId_.clear();
+		}
+	}
+
+	bool TutorialManager::TryStartSequence(const std::string& sequenceId) {
+		if (CompletedSequences_.find(sequenceId) != CompletedSequences_.end()) {
+			return false;
+		}
+
+		// 1. 新しいシーケンスの優先度（高か低か）を判定
+		bool isNewHighPriority = false;
+		std::string triggerEvent;
+		for (auto const& [evt, seq] : EventToSequence_) {
+			if (seq == sequenceId) {
+				triggerEvent = evt;
+				break;
+			}
+		}
+		if (triggerEvent.rfind("area_enter_", 0) == 0 || triggerEvent == "umbrella_throw_ready") {
+			isNewHighPriority = true;
+		}
+
+		// 2. 現在アクティブなシーケンスがある場合
+		if (Active_) {
+			// 現在表示中のシーケンスの優先度を判定
+			bool isActiveHighPriority = false;
+			std::string activeTriggerEvent;
+			for (auto const& [evt, seq] : EventToSequence_) {
+				if (seq == ActiveSequenceId_) {
+					activeTriggerEvent = evt;
+					break;
+				}
+			}
+			if (activeTriggerEvent.rfind("area_enter_", 0) == 0 || activeTriggerEvent == "umbrella_throw_ready") {
+				isActiveHighPriority = true;
+			}
+
+			// 新しいのが「高」で、今表示中なのが「低」なら、上書き（強制割り込み）を許可
+			if (isNewHighPriority && !isActiveHighPriority) {
+				StartSequence(sequenceId);
+				return true;
+			}
+
+			// それ以外の組み合わせ（高対高、低対高、低対低）は割り込み却下
+			return false;
+		}
+
+		// 再生中のものがなければそのまま開始！
+		StartSequence(sequenceId);
+		return true;
 	}
 
 	void TutorialManager::Update(float deltaTime, int currentAreaIndex) {
@@ -382,6 +441,20 @@ namespace Game {
 		case TutorialStep::Trigger::AreaExit:
 			if (currentAreaIndex != -1 && currentAreaIndex != step.RequiredAreaIndex) {
 				shouldAdvance = true;
+			}
+			break;
+
+		case TutorialStep::Trigger::ShootDuration:
+			{
+				using Lumina::OS::Windows::KEY;
+				// pad.GetRightTrigger() > 100 or L key
+				bool isShooting = (pad.GetRightTrigger() > 100) || keyboard.IsPressed(KEY::L);
+				if (isShooting) {
+					Timer_ += deltaTime;
+				}
+				if (Timer_ >= step.AutoDuration) {
+					shouldAdvance = true;
+				}
 			}
 			break;
 		}

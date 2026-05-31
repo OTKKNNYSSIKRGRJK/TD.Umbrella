@@ -3,8 +3,9 @@ module Game.BGMManager;
 import Game.Editor.AudioEditor;
 import Lumina.Main;
 import Lumina.ResourceManager;
-
-
+import <optional>;
+import <map>;
+import <string>;
 
 namespace Game {
 
@@ -12,13 +13,16 @@ namespace Game {
 	static Game::Editor::AudioData s_bgmData;
 	static bool s_isLoaded = false;
 	
-	static Lumina::AudioStreamPlayerHandle* s_currentBGMHandle = nullptr;
+	// キャッシュしたストリーム群 (filePath -> stream)
+	static std::map<std::string, Lumina::AudioStreamHandle> s_streamCache;
+	
+	static std::optional<Lumina::AudioStreamPlayerHandle> s_currentBGMHandle;
 
 	void BGMManager::PlaySceneBGM(const std::string& sceneName) {
 		// 初回呼び出し時のみJSONを1回だけ読み込む
 		if (!s_isLoaded) {
 			Game::Editor::AudioEditor editor;
-			editor.LoadAudio(s_bgmData, "SceneBGM.json");
+			editor.LoadAudio(s_bgmData, "Assets/Data/SceneBGM.json");
 			s_isLoaded = true;
 		}
 
@@ -32,20 +36,25 @@ namespace Game {
 			if (config.filePath.empty()) return;
 
 			auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
-			auto stream = audioContext.LoadFromFile(config.filePath);
-			if (s_currentBGMHandle == nullptr) {
-				s_currentBGMHandle = new Lumina::AudioStreamPlayerHandle();
+			
+			// キャッシュからロード、存在しなければ新規ロード
+			Lumina::AudioStreamHandle stream;
+			if (s_streamCache.contains(config.filePath)) {
+				stream = s_streamCache[config.filePath];
+			} else {
+				stream = audioContext.LoadFromFile(config.filePath);
+				s_streamCache[config.filePath] = stream;
 			}
-			*s_currentBGMHandle = audioContext.Play(stream, config.isLoop, config.volume);
+			
+			s_currentBGMHandle = audioContext.Play(stream, config.isLoop, config.volume);
 		}
 	}
 
 	void BGMManager::StopCurrentBGM() {
-		if (s_currentBGMHandle != nullptr) {
+		if (s_currentBGMHandle.has_value()) {
 			auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
-			audioContext.Stop(*s_currentBGMHandle);
-			delete s_currentBGMHandle;
-			s_currentBGMHandle = nullptr;
+			audioContext.Stop(s_currentBGMHandle.value());
+			s_currentBGMHandle.reset();
 		}
 	}
 }

@@ -36,6 +36,7 @@ namespace Game {
 			GuardDuration, // 傘開き（R2 / Iキー）を一定時間続けたら進行
 			AimDuration,   // 照準（L2 / Kキー）を一定時間続けたら進行
 			AreaExit,      // 特定のエリアから退出したら進行
+			ShootDuration, // 射出（R2 / Lキー）を一定時間続けたら進行
 		} trigger{ Trigger::AnyInput };
 
 		uint16_t RequiredPadButton{ 0U };   // Trigger::PadButton の場合
@@ -110,6 +111,18 @@ namespace Game {
 
 		/// アクティブかどうか
 		bool IsActive() const noexcept { return Active_; }
+
+		/// 手動で現在のステップを進める
+		void AdvanceStep();
+
+		/// 現在のステップを取得
+		int GetCurrentStep() const noexcept { return CurrentStep_; }
+
+		/// 現在アクティブなシーケンスIDを取得
+		const std::string& GetActiveSequenceId() const noexcept { return ActiveSequenceId_; }
+
+		/// 現在のステップの経過時間を取得
+		float GetTimer() const noexcept { return Timer_; }
 
 		/// 完了済みかどうか
 		bool IsCompleted() const noexcept { return Completed_; }

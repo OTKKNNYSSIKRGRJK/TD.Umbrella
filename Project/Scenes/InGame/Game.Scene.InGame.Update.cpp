@@ -558,8 +558,9 @@ namespace Game::Scene::Impl {
 
 						// 初回ポータル接触チュートリアル
 						if (!playState_.FirstPortalTouched && TutorialManager_) {
-							playState_.FirstPortalTouched = true;
-							TutorialManager_->FireEvent("first_portal_touch");
+							if (TutorialManager_->FireEvent("first_portal_touch")) {
+								playState_.FirstPortalTouched = true;
+							}
 						}
 
 						if (keyboard.IsJustPressed(KEY::W) || inputMngr.Pad().IsHold(0x0001)) {
@@ -1374,22 +1375,60 @@ namespace Game::Scene::Impl {
 				if (Player_ && TutorialManager_ && !playState_.FirstAirborneFired) {
 					if (playState_.CurrentArea.index != 0 &&
 						Player_->GetCurrentMovementState() == Player_->airborneState_.get()) {
-						playState_.FirstAirborneFired = true;
-						TutorialManager_->FireEvent("first_airborne");
+						if (TutorialManager_->FireEvent("first_airborne")) {
+							playState_.FirstAirborneFired = true;
+						}
 					}
 				}
 
-				// 傘投げチュートリアル: area7で30秒経過 かつ 傘がOpened状態なら発火
+				// 傘投げチュートリアル: area7で0.5秒経過したときに無条件で発火（高優先度）
 				if (Player_ && TutorialManager_ && !playState_.ThrowTutorialFired) {
 					if (playState_.CurrentArea.index == 7) {
 						playState_.Area7Timer += 1.0f / 60.0f;
-						if (playState_.Area7Timer >= 30.0f &&
-							Player_->GetUmbrella().top_->GetUmbrellaForm() == UmbrellaForm::Opened) {
-							playState_.ThrowTutorialFired = true;
-							TutorialManager_->FireEvent("umbrella_throw_ready");
+						if (playState_.Area7Timer >= 0.5f) {
+							if (TutorialManager_->FireEvent("umbrella_throw_ready")) {
+								playState_.ThrowTutorialFired = true;
+								// エリアロード時に傘がどこかへ飛んでしまっていた場合のみ、強制手元回収リセット
+								auto const form = Player_->GetUmbrella().top_->GetUmbrellaForm();
+								if (form == UmbrellaForm::Flying || form == UmbrellaForm::AirStop) {
+									Player_->GetUmbrella().top_->ChangeState(new UmbrellaStates::Attached());
+								}
+							}
 						}
 					} else {
 						playState_.Area7Timer = 0.0f;
+					}
+				}
+
+				// 傘投げチュートリアルの進行を「傘の実体状態」で監視する
+				if (Player_ && TutorialManager_ && TutorialManager_->IsActive()) {
+					if (TutorialManager_->GetActiveSequenceId() == "ThrowUmbrella") {
+						int const currentStep = TutorialManager_->GetCurrentStep();
+						auto const umbrellaForm = Player_->GetUmbrella().top_->GetUmbrellaForm();
+
+						if (currentStep == 0) {
+							// 傘を開くチュートリアル（R2_OpenAnUmbrella.png）表示中
+							// プレイヤーが傘を開いたら（Opened）、照準チュートリアル（L2_Aim.png）に進む
+							if (umbrellaForm == UmbrellaForm::Opened) {
+								TutorialManager_->AdvanceStep();
+							}
+						}
+						else if (currentStep == 2) { // ※ step 1 (L2_Aim.png) はマネージャ側で自動進行
+							// 射出チュートリアル（R2_Shoot.png）表示中
+							// 画像が一瞬で切り替わらないよう「最低0.5秒表示」した上で、傘が実際に投げられて Flying/AirStop になったら進む
+							if (TutorialManager_->GetTimer() >= 0.5f) {
+								if (umbrellaForm == UmbrellaForm::Flying || umbrellaForm == UmbrellaForm::AirStop) {
+									TutorialManager_->AdvanceStep();
+								}
+							}
+						}
+						else if (currentStep == 3) {
+							// ワープチュートリアル（R2_Warp.png）表示中
+							// プレイヤーがワープを実行し、傘が Flying/AirStop 以外の状態（＝アタッチ状態等）に戻ったら完了
+							if (umbrellaForm != UmbrellaForm::Flying && umbrellaForm != UmbrellaForm::AirStop) {
+								TutorialManager_->AdvanceStep();
+							}
+						}
 					}
 				}
 

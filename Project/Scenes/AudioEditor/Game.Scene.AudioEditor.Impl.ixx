@@ -29,6 +29,7 @@ export namespace Game::Editor {
 		void Initialize();
 		void Update();
 		void LoadAudio(AudioData& audio, const std::string& filename);
+		~AudioEditor();
 
 	private:
 		void DrawEditorUI();
@@ -38,7 +39,7 @@ export namespace Game::Editor {
 		AudioData editingAudio_{};
 		
 		std::string previewSceneName_ = "";
-		Lumina::AudioStreamPlayerHandle* previewPlayerHandle_ = nullptr;
+		Lumina::AudioStreamPlayerHandle previewPlayerHandle_{};
 		bool isPreviewPlaying_ = false;
 	};
 }
