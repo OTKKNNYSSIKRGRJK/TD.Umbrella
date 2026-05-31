@@ -1824,6 +1824,30 @@ namespace Game::Scene::Impl {
 					);
 				}
 
+				// --- Objective Image (Gamemokuhyou.png) ---
+				if (playState_.IsPlaying && !minimapExpanded_ && !playState_.IsPaused && Event::CurrentPhase != Event::GamePhase::Lose && !GameOverMenu_.IsVisible()) {
+					// Gamemokuhyou.png is 1280x360, scaled down to 320x90, texture index = 15U
+					float gW = (320.0f / 1280.0f) * 2.0f; // NDC width
+					float gH = (90.0f / 720.0f) * 2.0f;  // NDC height
+
+					float gRight  = 0.95f;
+					float gLeft   = gRight - gW;
+					float gTop    = 0.95f;
+					float gBottom = gTop - gH;
+
+					Lumina::F32x4 gCol{ 1.0f, 1.0f, 1.0f, 1.0f }; // Solid opacity
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { gLeft,  gTop, 0.0f, 1.0f }, gCol, {0.0f, 0.0f}, 15U },
+						{ { gRight, gTop, 0.0f, 1.0f }, gCol, {1.0f, 0.0f}, 15U },
+						{ { gLeft,  gBottom, 0.0f, 1.0f }, gCol, {0.0f, 1.0f}, 15U }
+					);
+					PrimitiveManager_Tutorial_->BatchTriangle(
+						{ { gRight, gTop, 0.0f, 1.0f }, gCol, {1.0f, 0.0f}, 15U },
+						{ { gRight, gBottom, 0.0f, 1.0f }, gCol, {1.0f, 1.0f}, 15U },
+						{ { gLeft,  gBottom, 0.0f, 1.0f }, gCol, {0.0f, 1.0f}, 15U }
+					);
+				}
+
 				// --- Screen Fade Overlay (Iris Effect) ---
 				if (playState_.ScreenFadeState != 0 || playState_.ScreenFadeAlpha > 0.0f) {
 					float targetNdcX = 0.0f;

@@ -45,6 +45,7 @@ namespace Game::Scene::Impl {
 			{ "pause_UI", "Assets/Img/UI/pause_UI.png" },
 			{ "playerHead", "Assets/Img/UI/playerHead.png" },
 			{ "reticle", "Assets/Img/UI/Umbrella_Reticle.png" },
+			{ "gamemokuhyou", "Assets/Img/Tutorial/Gamemokuhyou.png" },
 		};
 
 		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
