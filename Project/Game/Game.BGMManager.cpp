@@ -75,6 +75,22 @@ namespace Game {
 		s_loopTimer = 0.0f;
 	}
 
+	void BGMManager::PlayOneShot(const std::string& filePath, float volume) {
+		if (filePath.empty()) return;
+
+		auto& audioContext = Lumina::Context::Instance().ResourceContext().Audio();
+
+		Lumina::AudioStreamHandle stream;
+		if (s_streamCache.contains(filePath)) {
+			stream = s_streamCache[filePath];
+		} else {
+			stream = audioContext.LoadFromFile(filePath);
+			s_streamCache[filePath] = stream;
+		}
+
+		audioContext.Play(stream, false, volume);
+	}
+
 	void BGMManager::Update(float deltaTime) {
 		if (s_currentSceneName.empty()) return;
 		if (!s_bgmData.bgmMap.contains(s_currentSceneName)) return;

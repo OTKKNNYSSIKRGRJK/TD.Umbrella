@@ -572,7 +572,7 @@ namespace Game::Scene::Impl {
 							if (conn.targetAreaIndex != 10) {
 								Game::BGMManager::GetInstance()->PlaySceneBGM("InGame");
 							} else {
-								Game::BGMManager::GetInstance()->StopCurrentBGM();
+								Game::BGMManager::GetInstance()->PlaySceneBGM("Boss");
 							}
 							break;
 						}
@@ -1108,6 +1108,12 @@ namespace Game::Scene::Impl {
 
 			// 初回のみメニューを表示
 			if (!GameOverMenu_.IsVisible()) {
+				// ゲームBGMを止めて死亡SEを鳴らす
+				Game::BGMManager::GetInstance()->StopCurrentBGM();
+				Game::BGMManager::GetInstance()->PlayOneShot(
+					"Assets/Sounds/nc42872_【効果音】チーン_一回_高音ver.【仏具：お鈴】.mp3", 0.8f
+				);
+
 				GameOverMenu_.Setup(
 					{
 						// Retry (緑系)

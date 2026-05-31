@@ -17,6 +17,9 @@ export namespace Game {
 		// 現在鳴っているBGMを停止します
 		void StopCurrentBGM();
 
+		// 指定した音声ファイルを1回だけ再生します（SE用）
+		void PlayOneShot(const std::string& filePath, float volume = 1.0f);
+
 		// BGMの遅延ループなどを更新します
 		void Update(float deltaTime);
 

@@ -12,6 +12,12 @@
             "isLoop": true,
             "volume": 0.5,
             "loopDelay": 1.5
+        },
+        "Boss": {
+            "filePath": "Assets/Sounds/Thunderbolt.mp3",
+            "isLoop": true,
+            "volume": 0.5,
+            "loopDelay": 0.0
         }
     }
 }
