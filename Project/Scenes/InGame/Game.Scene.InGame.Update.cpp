@@ -1117,6 +1117,8 @@ namespace Game::Scene::Impl {
 		}
 		case Event::GamePhase::Win:
 		{
+			auto& sceneMngr{ Lumina::SceneManager::Instance() };
+			sceneMngr.Activate("Clear");
 			Event::PhaseTimer += dt;
 			// Area Clear ImGui removed
 			break;

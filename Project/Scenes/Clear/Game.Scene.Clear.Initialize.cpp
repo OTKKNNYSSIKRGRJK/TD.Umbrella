@@ -45,8 +45,8 @@ namespace Game::Scene::Impl {
 			resMngr.Graphics().LoadImageTextures(
 				texIDs,
 				{
-					{ "Clear.UI.StageClear", "Assets/Img/UI/Label.StageClear.png" },
-					{ "Clear.UI.PressSpaceKey", "Assets/Img/UI/Label.PressSpaceKey.png" },
+					{ "Clear.UI.StageClear", "Assets/Img/UI/Title.png" },
+					{ "Clear.UI.PressSpaceKey", "Assets/Img/UI/returntotitle.png" },
 					{ "Particles", "Assets/Img/Particles.png" },
 				}
 				);

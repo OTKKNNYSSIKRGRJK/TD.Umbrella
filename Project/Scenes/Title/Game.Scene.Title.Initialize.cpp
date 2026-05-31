@@ -91,9 +91,9 @@ namespace Game::Scene::Impl {
 			{
 				{ "Particles", "Assets/Img/Particles.png" },
 				{ "Title.Blank", "Assets/Img/White16x16.png" },
-				{ "Title.UI.Caption", "Assets/Img/Particles.png" },
-				{ "Title.UI.Start", "Assets/Img/Particles.png" },
-				{ "Title.UI.Exit", "Assets/Img/Particles.png" },
+				{ "Title.UI.Caption", "Assets/Img/UI/Title.png" },
+				{ "Title.UI.Start", "Assets/Img/UI/Start.png" },
+				{ "Title.UI.Exit", "Assets/Img/UI/EXIT.png" },
 			}
 		);
 
@@ -595,7 +595,7 @@ namespace Game::Scene::Impl {
 		// * Caption
 		{
 			TitleCaption_.Translate = { 50.0f, 50.0f };
-			TitleCaption_.Scale = { 768.0f * 0.5f, 512.0f * 0.5f };
+			TitleCaption_.Scale = { 1280.0f * 0.6f, 430.0f * 0.6f };
 			TitleCaption_.AnchorPoint = { 0.0f, 0.0f };
 			TitleCaption_.TextureID = 2U;
 			TitleCaption_.RGBA = { 0.95f, 0.95f, 0.95f, 0.0f };
@@ -603,7 +603,7 @@ namespace Game::Scene::Impl {
 		// * Start Button
 		{
 			UI_StartButton_.Translate = { 1400.0f, 535.0f };
-			UI_StartButton_.Scale = { 360.0f, 90.0f };
+			UI_StartButton_.Scale = { 1280.0f * 0.2f, 450.0f * 0.2f };
 			UI_StartButton_.AnchorPoint = { 1.0f, 0.5f };
 			UI_StartButton_.TextureID = 3U;
 			UI_StartButton_.RGBA ={ 0.99f, 0.98f, 0.97f, 0.0f };
@@ -611,7 +611,7 @@ namespace Game::Scene::Impl {
 		// * Exit Button
 		{
 			UI_ExitButton_.Translate = { 1400.0f, 610.0f };
-			UI_ExitButton_.Scale = { 360.0f, 90.0f };
+			UI_ExitButton_.Scale = { 1280.0f * 0.2f, 450.0f * 0.2f };
 			UI_ExitButton_.AnchorPoint = { 1.0f, 0.5f };
 			UI_ExitButton_.TextureID = 4U;
 			UI_ExitButton_.RGBA = { 0.99f, 0.98f, 0.97f, 0.0f };
