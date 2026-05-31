@@ -1084,14 +1084,28 @@ namespace Game::Scene::Impl {
 		{
 			Event::ElapsedBattleTime += dt;
 
-			// 全敵撃破で勝利
-			int aliveCount = 0;
-			for (const auto& e : playState_.Enemies) {
-				if (!e.IsDead) ++aliveCount;
+			// ボス撃破で勝利（ボスがいないエリアでは勝利しない）
+			bool isWon = false;
+			if (HasBossEncounterInCurrentArea()) {
+				bool bossFound = false;
+				bool bossDead = false;
+				for (const auto& e : playState_.Enemies) {
+					if (e.BaseData.name == BossEnemyName) {
+						bossFound = true;
+						if (e.IsDead) {
+							bossDead = true;
+						}
+					}
+				}
+				if (bossFound && bossDead) {
+					isWon = true;
+				}
 			}
-			if (!playState_.Enemies.empty() && aliveCount == 0) {
+
+			if (isWon) {
 				Event::CurrentPhase = Event::GamePhase::Win;
 				Event::PhaseTimer = 0.0f;
+				Game::BGMManager::GetInstance()->PlaySceneBGM("Win");
 			}
 
 			// プレイヤー死亡で敗北

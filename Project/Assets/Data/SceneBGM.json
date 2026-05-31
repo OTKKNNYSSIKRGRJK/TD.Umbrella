@@ -24,6 +24,12 @@
             "isLoop": true,
             "volume": 0.2,
             "loopDelay": 0.0
+        },
+        "Win": {
+            "filePath": "Assets/Sounds/日々と泉.mp3",
+            "isLoop": true,
+            "volume": 0.4,
+            "loopDelay": 1.0
         }
     }
 }
