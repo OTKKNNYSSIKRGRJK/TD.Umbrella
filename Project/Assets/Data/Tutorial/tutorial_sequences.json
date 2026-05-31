@@ -92,6 +92,18 @@
         }
       ]
     },
+    "RecallUmbrella": {
+      "triggerEvent": "area_enter_3",
+      "steps": [
+        {
+          "texture": "X_Back.png",
+          "trigger": "PadButton",
+          "padButton": 16384,
+          "key": "ENTER",
+          "allowedInputs": ["All"]
+        }
+      ]
+    },
     "ThrowUmbrella": {
       "triggerEvent": "umbrella_throw_ready",
       "steps": [
@@ -110,9 +122,8 @@
         },
         {
           "texture": "R2_Warp.png",
-          "trigger": "PadButton",
-          "padButton": 128,
-          "key": "L",
+          "trigger": "GuardDuration",
+          "duration": 0.5,
           "allowedInputs": ["All"]
         }
       ]
