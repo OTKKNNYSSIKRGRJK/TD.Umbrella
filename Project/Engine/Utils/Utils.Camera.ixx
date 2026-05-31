@@ -17,6 +17,8 @@ namespace Lumina::Utils {
 
 		constexpr auto WorldPosition()
 			const noexcept -> Math::F32x3 const& { return WorldPosition_; }
+		constexpr auto TargetWorldPosition()
+			const noexcept -> Math::F32x3 const& { return TargetWorldPosition_; }
 
 		inline auto ViewInverse()
 			const noexcept -> Math::F32x4x4<>;
@@ -66,6 +68,7 @@ namespace Lumina::Utils {
 		Math::F32x4x4<> Projection_;
 
 		Math::F32x3 WorldPosition_;
+		Math::F32x3 TargetWorldPosition_;
 
 		enum class PROJECTION_MODE {
 			PERSPECTIVE,
@@ -110,6 +113,7 @@ namespace Lumina::Utils {
 		};
 
 		WorldPosition_ = eye_;
+		TargetWorldPosition_ = center_;
 	}
 
 	auto Camera::RT(

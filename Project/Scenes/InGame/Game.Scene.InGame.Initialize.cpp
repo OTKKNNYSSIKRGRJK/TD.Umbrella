@@ -1052,6 +1052,8 @@ namespace Game::Scene::Impl {
 		eventMngr.RegisterType<Event::InGame::OnPlayerMove>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerJump>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerAttack>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerReverseCharge>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerReverseChargeAttack>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerWarp>();
 
 		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
@@ -1069,10 +1071,20 @@ namespace Game::Scene::Impl {
 				this->Update_<"OnPlayerAttack">(event_);
 			}
 		);
+		eventMngr.AddEventListener<Event::InGame::OnPlayerReverseCharge>(
+			[this] (Event::InGame::OnPlayerReverseCharge& event_) {
+				this->Update_<"プレイヤーチャージ中">(event_);
+			}
+		);
+		eventMngr.AddEventListener<Event::InGame::OnPlayerReverseChargeAttack>(
+			[this] (Event::InGame::OnPlayerReverseChargeAttack& event_) {
+				this->Update_<"プレイヤーチャージ完了">(event_);
+			}
+		);
 		eventMngr.AddEventListener<Event::InGame::OnPlayerWarp>(
 			[this](Event::InGame::OnPlayerWarp& event_) {
-			this->Update_<"OnPlayerWarp">(event_);
-		}
+				this->Update_<"OnPlayerWarp">(event_);
+			}
 		);
 	}
 
@@ -1137,9 +1149,7 @@ namespace Game::Scene::Impl {
 			.CullMode{ D3D12_CULL_MODE_NONE },
 		};
 		Lumina::D3D12::DepthStencilState depthStencilState{
-			.DepthEnable{ true },
-			.DepthWriteMask{ D3D12_DEPTH_WRITE_MASK_ZERO },
-			.DepthFunc{ D3D12_COMPARISON_FUNC_LESS_EQUAL },
+			.DepthEnable{ false },
 		};
 		Lumina::D3D12::GraphicsPipelineState::InputLayout inputLayout{};
 		inputLayout.Append("POSITION", 0U, DXGI_FORMAT_R32G32B32A32_FLOAT);
@@ -1168,7 +1178,40 @@ namespace Game::Scene::Impl {
 
 		PlayerChargeCylinder_ = std::make_unique<Lumina::Cylinder>();
 		PlayerChargeCylinder_->Initialize(d3d12Device);
-		PlayerChargeCylinder_->Reset({ 12U, 0.0f, 1.5f, 1.0f });
+		PlayerChargeCylinder_->Reset({ 24U, 4.5f, 1.05f, 1.0f });
+
+		UB_PlayerChargeCylinderConstants_.Initialize(d3d12Device, 256LLU);
+		CBV_PlayerChargeCylinderConstants_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::CBV::Create(
+			d3d12Device,
+			CBV_PlayerChargeCylinderConstants_.CPUHandle(0U),
+			UB_PlayerChargeCylinderConstants_
+		);
+
+		SRV_PlayerChargeCylinderLocalToWorlds_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		UB_PlayerChargeCylinderLocalToWorlds_.Initialize(
+			d3d12Device,
+			sizeof(Lumina::Math::F32x4x4<>) * 3U
+		);
+		Lumina::D3D12::SRV<Lumina::Math::F32x4x4<>>::Create(
+			d3d12Device,
+			SRV_PlayerChargeCylinderLocalToWorlds_.CPUHandle(0U),
+			UB_PlayerChargeCylinderLocalToWorlds_
+		);
+
+		UB_PlayerChargeCylinderBaseColors_.Initialize(d3d12Device, sizeof(Lumina::F32x3) * 3U);
+		SRV_PlayerChargeCylinderBaseColors_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::SRV<Lumina::F32x3>::Create(
+			d3d12Device,
+			SRV_PlayerChargeCylinderBaseColors_.CPUHandle(0U),
+			UB_PlayerChargeCylinderBaseColors_
+		);
+		constexpr std::array<Lumina::F32x3, 3U> baseColors{
+			Lumina::F32x3{ 0.25f, 0.65f, 0.65f },
+			Lumina::F32x3{ 0.2f, 0.45f, 0.7f },
+			Lumina::F32x3{ 0.15f, 0.25f, 0.8f },
+		};
+		UB_PlayerChargeCylinderBaseColors_.Store(baseColors.data(), sizeof(Lumina::F32x3) * 3U, 0LLU);
 	}
 
 	template<>
@@ -1287,6 +1330,20 @@ namespace Game::Scene::Impl {
 				UB_PortalLocalToWorlds_[idx]
 			);
 		}
+		
+		UB_PortalBaseColors_.Initialize(d3d12Device, sizeof(Lumina::F32x3) * 3U);
+		SRV_PortalBaseColors_ = d3d12Context.GlobalDescriptorHeap().Allocate(1U);
+		Lumina::D3D12::SRV<Lumina::F32x3>::Create(
+			d3d12Device,
+			SRV_PortalBaseColors_.CPUHandle(0U),
+			UB_PortalBaseColors_
+		);
+		constexpr std::array<Lumina::F32x3, 3U> baseColors{
+			Lumina::F32x3{ 0.05f, 0.3f, 0.7f },
+			Lumina::F32x3{ 0.35f, 0.25f, 0.5f },
+			Lumina::F32x3{ 0.65f, 0.2f, 0.3f },
+		};
+		UB_PortalBaseColors_.Store(baseColors.data(), sizeof(Lumina::F32x3) * 3U, 0LLU);
 	}
 
 	// * 音声読み込み

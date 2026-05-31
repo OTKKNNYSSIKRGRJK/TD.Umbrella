@@ -56,6 +56,8 @@ cbuffer Constants : register(b0) {
 	float Time;
 }
 
+StructuredBuffer<float3> BaseColors : register(t0, space1);
+
 Texture2D<float4> Texture : register(t0);
 
 Texture2D<float4> GBuffer_Albedo : register(t0, space2);
@@ -63,11 +65,6 @@ Texture2D<float4> GBuffer_Normal : register(t0, space2);
 Texture2D<float> GBuffer_Depth : register(t3, space2);
 
 SamplerState Sampler : register(s0);
-
-static const float3 BaseColors[2] = {
-	{ 0.05f, 0.2f, 0.4f },
-	{ 0.75f, 0.25f, 0.35f },
-};
 
 PSOutput main(VSOutput input_) {
 	PSOutput output;
@@ -81,7 +78,7 @@ PSOutput main(VSOutput input_) {
 		0.25f
 	};
 	const float3 rgb = HSVToRGB(hsv);
-	output.Diffuse.rgb *= rgb * 0.65f + BaseColors[input_.InstanceID] * 0.35f;
+	output.Diffuse.rgb *= rgb * 0.65f + BaseColors[input_.InstanceID].rgb * 0.35f;
 	
 	const float depth = GBuffer_Depth.Load(int3(input_.Position.xy, 0.0f));
 	output.Diffuse.a = depth < input_.Position.z ? output.Diffuse.a * 0.1f : output.Diffuse.a;

@@ -116,7 +116,24 @@ namespace Game::Scene::Impl {
 					auto& pointLight{
 						makePointLightBasedOnParticle(
 							particle_,
-							particle_.RenderData.RGBA.W * 50.0f
+							particle_.RenderData.RGBA.W * 25.0f
+						)
+					};
+					makeLightSphereTransform(
+						pointLight, 128.0f, 0.5f, 1.0f, 1.0f, 0.5f
+					);
+				}
+			}
+		);
+
+		PreparePointLights(
+			*AmbientSparkles_,
+			[&, this] (Lumina::Particle const& particle_) {
+				if (!List_PointLight_.IsFull()) {
+					auto& pointLight{
+						makePointLightBasedOnParticle(
+							particle_,
+							particle_.RenderData.RGBA.W * 100.0f
 						)
 					};
 					makeLightSphereTransform(
@@ -124,6 +141,23 @@ namespace Game::Scene::Impl {
 					);
 				}
 			}
+		);
+
+		PreparePointLights(
+			*PortalSparkles_,
+			[&, this] (Lumina::Particle const& particle_) {
+			if (!List_PointLight_.IsFull() && particle_.Scale.Z != 0.0f) {
+				auto& pointLight{
+					makePointLightBasedOnParticle(
+						particle_,
+						particle_.RenderData.RGBA.W * 100.0f
+					)
+				};
+				makeLightSphereTransform(
+					pointLight, 128.0f, 0.5f, 1.0f, 1.0f, 0.5f
+				);
+			}
+		}
 		);
 		
 		/*PreparePointLights(

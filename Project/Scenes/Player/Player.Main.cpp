@@ -545,10 +545,24 @@ void Player::Update(float deltaTime) {
 			std::move(Game::Event::InGame::OnPlayerWarp{})
 		);
 	}*/
+
 	if (currentActionState_ == attackState_.get()) {
 		Lumina::Context::Instance().EventContext().TriggerEvent(
 			std::move(Game::Event::InGame::OnPlayerAttack{})
 		);
+	}
+	else if (currentActionState_ == reverseChargeState_.get()) {
+		Game::Event::InGame::OnPlayerReverseCharge evt{};
+		auto const& colliderVerts{ smashCollider_->GetVertices() };
+		if(colliderVerts.size() > 1) {
+			evt.Radius = smashCollider_->GetVertices()[1].X;
+		}
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(evt));
+	}
+	else if (currentActionState_ == reverseAttackState_.get()) {
+		Game::Event::InGame::OnPlayerReverseChargeAttack evt{};
+		evt.Power = umbrella_->top_->GetStatusComponent().GetAttack();
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(evt));
 	}
 }
 

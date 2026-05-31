@@ -39,7 +39,7 @@ namespace Game::Impl {
 					mesh_Nonground.Positions.emplace_back(
 						vert.Pos.X,
 						vert.Pos.Y,
-						vert.Pos.Z - 2.5f
+						-5.0f
 					);
 				}
 
@@ -64,7 +64,7 @@ namespace Game::Impl {
 					mesh_Nonground.Positions.emplace_back(
 						vert.Pos.X,
 						vert.Pos.Y,
-						vert.Pos.Z + 2.5f
+						25.0f
 					);
 				}
 
@@ -151,7 +151,7 @@ namespace Game::Impl {
 			auto const& verts{ collider->GetVertices() };
 
 			for (auto const& vert : verts) {
-				mesh_Ground.Positions.emplace_back(vert.X, vert.Y, vert.Z - 2.5f);
+				mesh_Ground.Positions.emplace_back(vert.X, vert.Y, -5.0f);
 				mesh_Ground.TexCoords.emplace_back(
 					vert.X * 0.03125f,
 					vert.Y * 0.03125f
@@ -172,8 +172,8 @@ namespace Game::Impl {
 		for (auto const& collider : ground.Colliders) {
 			auto const& verts{ collider->GetVertices() };
 
-			mesh_Ground.Positions.emplace_back(verts[0].X, verts[0].Y, verts[0].Z + 2.5f);
-			mesh_Ground.Positions.emplace_back(verts[1].X, verts[1].Y, verts[1].Z + 2.5f);
+			mesh_Ground.Positions.emplace_back(verts[0].X, verts[0].Y, 25.0f);
+			mesh_Ground.Positions.emplace_back(verts[1].X, verts[1].Y, 25.0f);
 			mesh_Ground.TexCoords.emplace_back(
 				verts[0].X * 0.03125f + 0.25f,
 				verts[0].Y * 0.03125f + 0.25f

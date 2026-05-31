@@ -3,6 +3,7 @@ struct VSOutput {
 	float2 TexCoord : TEXCOORD0;
 	float3 Normal : NORMAL0;
 	float3 LocalNormal : NORMAL1;
+	nointerpolation uint InstanceID : ID0;
 };
 
 struct PSOutput {
@@ -55,20 +56,31 @@ cbuffer Constants : register(b0) {
 	float Time;
 }
 
+StructuredBuffer<float3> BaseColors : register(t0, space1);
+
 Texture2D<float4> Texture : register(t0);
+
+Texture2D<float4> GBuffer_Albedo : register(t0, space2);
+Texture2D<float4> GBuffer_Normal : register(t0, space2);
+Texture2D<float> GBuffer_Depth : register(t3, space2);
+
 SamplerState Sampler : register(s0);
 
 PSOutput main(VSOutput input_) {
 	PSOutput output;
 	const float4 texColor = Texture.Sample(Sampler, input_.TexCoord);
 	output.Diffuse = texColor;
-	const float3 normal = normalize(input_.Normal);
-	const float3 localNormal = normalize(input_.LocalNormal);
-	HSV hsv = {
-		localNormal.z * 0.5f + Time,
-		0.5f,
-		0.5f - 0.5f * normalize(input_.Normal).z
+	
+	const HSV hsv = {
+		input_.TexCoord.x,
+		0.7f,
+		0.25f
 	};
-	output.Diffuse.rgb *= HSVToRGB(hsv);
+	const float3 rgb = HSVToRGB(hsv);
+	output.Diffuse.rgb *= rgb * 0.5f + BaseColors[input_.InstanceID].rgb * 0.5f;
+	
+	const float depth = GBuffer_Depth.Load(int3(input_.Position.xy, 0.0f));
+	output.Diffuse.a = depth < input_.Position.z ? output.Diffuse.a * 0.1f : output.Diffuse.a;
+	
 	return output;
 }

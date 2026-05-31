@@ -560,26 +560,55 @@ namespace Game::Scene::Impl {
 		}
 	}
 
+	namespace {
+		bool IsUsingDebugCamera{ false };
+	}
+
 	template<>
-	void InGame::Update_<"Camera">() {
+	auto InGame::Update_<"Camera.Debug">() -> void {
 		#if defined(_DEBUG)
 		ImGui::Begin("Camera");
-		static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
-		static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
-		static bool isUsingDebugCamera = false;
-		ImGui::Checkbox("Use Debug Camera", &isUsingDebugCamera);
-		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
-		[[maybe_unused]] auto const& mouse{ inputMngr.Mouse() };
-		ImGui::DragFloat3("Eye", &eye.X, 0.1f);
-		ImGui::DragFloat3("Target", &target.X, 0.1f);
-		Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
+		{
+			static Lumina::Math::F32x3 eye{ 0.0f, 5.0f, -30.0f };
+			static Lumina::Math::F32x3 target{ 0.0f, 5.0f, 0.0f };
+			ImGui::Checkbox("Use Debug Camera", &IsUsingDebugCamera);
+
+			auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+			[[maybe_unused]] auto const& mouse{ inputMngr.Mouse() };
+
+			ImGui::DragFloat3("Eye", &eye.X, 0.1f);
+			ImGui::DragFloat3("Target", &target.X, 0.1f);
+			Camera_->LookAt(eye, target, { 0.0f, 1.0f, 0.0f });
+		}
 		ImGui::End();
 		#endif
+	}
 
+	template<>
+	auto InGame::Update_<"Camera.NonDebug.Shake">(
+		Lumina::Math::F32x3& newCameraPos_
+	) -> void {
+		auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
+		angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
+
+		float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
+		Lumina::Math::F32x2 const dir{
+			Lumina::Math::COS(angleInRad),
+			Lumina::Math::SIN(angleInRad)
+		};
+		float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
+		newCameraPos_ += { dir.X* mag, dir.Y* mag, 0.0f };
+
+		--Event::CameraShakingTimer;
+	}
+
+	template<>
+	auto InGame::Update_<"Camera.NonDebug">() -> void {
 		if (!playState_.IsPaused) {
-			Lumina::Math::F32x3 cameraPos = Camera_Player_->WorldPosition();
-			auto const& playerPos = Player_->GetPosition();
 			Lumina::Math::F32x3 newCameraPos{};
+			Lumina::Math::F32x3 cameraPos{ Camera_Player_->WorldPosition() };
+			auto const& playerPos = Player_->GetPosition();
+
 			if (playState_.IsBossPresentationActive && playState_.BossPresentationDuration > 0.0f) {
 				float const progress = 1.0f - playState_.BossPresentationTimer / playState_.BossPresentationDuration;
 				float const bossFocusWeight = std::sin(progress * std::numbers::pi_v<float>);
@@ -588,29 +617,58 @@ namespace Game::Scene::Impl {
 					playerPos.Y + ((playState_.BossPresentationFocusPosition.Y + 2.0f) - playerPos.Y) * bossFocusWeight,
 					-30.0f + BossPresentationCameraZoom * bossFocusWeight
 				};
-				Event::CameraShakingTimer = (std::max)(Event::CameraShakingTimer, 2);
+				Event::CameraShakingTimer = std::max<int>(Event::CameraShakingTimer, 2);
 			}
 			else {
+				Lumina::F32 const dX_PlayerDirection{
+					Player_->eyesDirection_.X > 0.0f ?
+					1.0f :
+					-1.0f
+				};
+				
+				Lumina::Math::F32x3 const d{ cameraPos - playerPos };
+				Lumina::F32 const dZ{
+					std::max<Lumina::F32>(
+						(d.X * d.X + d.Y + d.Y) * (-0.25f) + (-35.0f),
+						-40.0f
+					)
+				};
+
 				newCameraPos = {
-					cameraPos.X * 0.95f + playerPos.X * 0.05f + (Player_->eyesDirection_.X > 0.0f ? 1.0f : -1.0f) * 0.1f,
-					cameraPos.Y * 0.95f + playerPos.Y * 0.05f,
-					-30.0f
+					cameraPos.X * 0.97f + (playerPos.X + dX_PlayerDirection) * 0.03f,
+					cameraPos.Y * 0.98f + (playerPos.Y + 5.0f) * 0.02f,
+					cameraPos.Z * 0.95f + (playerPos.Z + dZ) * 0.05f,
 				};
 			}
+
 			if (Event::CameraShakingTimer > 0) {
-				auto angleInDeg = Lumina::Math::Random::Generator()() % 3;
-				angleInDeg += (Lumina::Math::Random::Generator()() & 1) * 180;
-				float const angleInRad = Lumina::Math::DegToRad(static_cast<float>(angleInDeg));
-				Lumina::Math::F32x2 const dir = { Lumina::Math::COS(angleInRad), Lumina::Math::SIN(angleInRad) };
-				float const mag = std::exp(static_cast<float>(Event::CameraShakingTimer) / 15.0f) * 0.1f;
-				newCameraPos += { dir.X * mag, dir.Y * mag, 0.0f };
-				--Event::CameraShakingTimer;
+				Update_<"Camera.NonDebug.Shake">(newCameraPos);
 			}
-			Camera_Player_->LookAt(newCameraPos + Lumina::Math::F32x3{ 0.0f, 0.1f, 0.0f }, { newCameraPos.X, newCameraPos.Y, 0.0f }, { 0.0f, 1.0f, 0.0f });
+
+			Lumina::Math::F32x3 const& cameraTarget{ Camera_Player_->TargetWorldPosition() };
+			Lumina::Math::F32x3 newCameraTarget{
+				cameraTarget.X * 0.8f + playerPos.X * 0.2f,
+				cameraTarget.Y * 0.94f + playerPos.Y * 0.06f,
+				cameraTarget.Z * 0.95f + playerPos.Z * 0.05f,
+			};
+
+			Camera_Player_->LookAt(
+				newCameraPos,
+				newCameraTarget,
+				{ 0.0f, 1.0f, 0.0f }
+			);
 		}
+	}
+
+	template<>
+	void InGame::Update_<"Camera">() {
+		#if defined(_DEBUG)
+		Update_<"Camera.Debug">();
+		#endif
+		Update_<"Camera.NonDebug">();
 
 		#if defined(_DEBUG)
-		if (!isUsingDebugCamera) {
+		if (!IsUsingDebugCamera) {
 			*WorldToHomogeneous_ = Camera_Player_->View() * Camera_Player_->Projection();
 		}
 		else {

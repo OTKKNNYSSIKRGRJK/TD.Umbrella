@@ -32,6 +32,20 @@ namespace Game::Scene::Impl {
 
 		//this->Update_<"SE.PlayerAttack">(0.75f);
 	}
+	template<>
+	void InGame::Update_<"プレイヤーチャージ中">(
+		[[maybe_unused]] Event::InGame::OnPlayerReverseCharge& event_
+	) {
+		Effect::ChargeRadius = event_.Radius;
+	}
+	template<>
+	void InGame::Update_<"プレイヤーチャージ完了">(
+		[[maybe_unused]] Event::InGame::OnPlayerReverseChargeAttack& event_
+	) {
+		Effect::ChargeAttackPower = event_.Power;
+		Effect::ChargeAttackEffectTimer = 5;
+		Effect::ChargeRadius = 0.0f;
+	}
 
 	template<>
 	void InGame::Update_<"OnPlayerWarp">(

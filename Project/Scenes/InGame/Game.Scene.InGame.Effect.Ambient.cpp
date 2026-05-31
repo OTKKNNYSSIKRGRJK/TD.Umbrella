@@ -144,31 +144,39 @@ namespace Game::Scene::Impl {
 			[this] (Lumina::F32x2&& pos_, int type_) -> void {
 				Lumina::F32 const rnd{ RNDEngine() * Inv_0xFFFFFFFF };
 				Lumina::F32 const theta{ rnd * 2.0f * Pi };
+				Lumina::F32 const rho{ RNDEngine() * Inv_0xFFFFFFFF * 0.5f * Pi };
 				Lumina::F32 const cos_Theta{ std::cos(theta) };
 				Lumina::F32 const sin_Theta{ std::sin(theta) };
+				Lumina::F32 const cos_Rho{ std::cos(rho) };
+				Lumina::F32 const sin_Rho{ std::sin(rho) };
 
 				Lumina::Particle p{};
 				{
-					p.Velocity.X = cos_Theta * (-0.05f);
-					p.Velocity.Y = sin_Theta * (-0.05f);
+					p.Velocity.X = cos_Theta * cos_Rho * (-0.05f);
+					p.Velocity.Y = sin_Theta * cos_Rho * (-0.05f);
+					p.Velocity.Z = sin_Rho * (-0.05f);
 
-					p.Translate.X = pos_.X + cos_Theta * 2.5f;
-					p.Translate.Y = pos_.Y + sin_Theta * 2.5f;
+					p.Translate.X = pos_.X + cos_Theta * cos_Rho * 2.5f;
+					p.Translate.Y = pos_.Y + sin_Theta * cos_Rho * 2.5f;
+					p.Translate.Z = sin_Rho * 2.5f;
 
 					if (type_ == 0) {
 						p.Scale.X = 5.0f;
 						p.Scale.Y = 0.5f;
 
-						p.Velocity.Z = 0.0f;
+						p.Scale.Z = 0.0f;
+
+						p.Rotate.Y = rho * (-1.0f);
+						p.Rotate.Z = theta;
 					}
 					else {
-						p.Scale.X = 0.5f;
-						p.Scale.Y = 0.5f;
+						p.Scale.X = 0.75f;
+						p.Scale.Y = 0.75f;
 
-						p.Velocity.Z = (type_ > 0) ? (0.001f) : (-0.001f);
+						p.Scale.Z = (type_ > 0) ? (0.001f) : (-0.001f);
+
+						p.Rotate.Z = theta;
 					}
-
-					p.Rotate.Z = theta;
 
 					p.Life = 36.0f;
 
@@ -244,13 +252,13 @@ namespace Game::Scene::Impl {
 
 	template<>
 	auto InGame::Update_<"PortalSparkleParticle">(Lumina::Particle& p_) -> void {
-		static Lumina::F32 const delta{ 0.02f };
+		static Lumina::F32 const delta{ 0.01f };
 		static Lumina::F32 const cos_Delta{ std::cos(delta) };
 		static Lumina::F32 const sin_Delta{ std::sin(delta) };
 
-		if (p_.Velocity.Z != 0.0f) {
+		if (p_.Scale.Z != 0.0f) {
 			Lumina::F32x2 vel{ p_.Velocity.X, p_.Velocity.Y };
-			if (p_.Velocity.Z > 0.0f) {
+			if (p_.Scale.Z > 0.0f) {
 				p_.Velocity.X = vel.X * cos_Delta + vel.Y * (-sin_Delta);
 				p_.Velocity.Y = vel.X * sin_Delta + vel.Y * cos_Delta;
 
@@ -270,7 +278,7 @@ namespace Game::Scene::Impl {
 		p_.Scale.X *= 0.93f;
 		p_.Scale.Y *= 0.93f;
 
-		p_.RenderData.RGBA.W += 0.015f;
+		p_.RenderData.RGBA.W += 0.02f;
 
 		p_.Life -= 1.0f;
 	}

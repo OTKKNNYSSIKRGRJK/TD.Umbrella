@@ -120,6 +120,47 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Update_<"Effect.Enemy.Perpetual">() -> void {
+
+		for (int i{ 0 }; i < 2; ++i) {
+			Lumina::Particle p{};
+			{
+				p.Translate = {
+					std::cos(PlayerEffectTimeFactor * 0.3f + i * 2.4f) * 0.1f,
+					std::sin(PlayerEffectTimeFactor * 0.4f + i * 3.6f) * 0.1f,
+					std::sin(PlayerEffectTimeFactor * 0.5f - i * 1.2f) * 0.1f
+				};
+
+				p.Velocity.X = p.Translate.Y * (-0.25f);
+				p.Velocity.Y = p.Translate.Z * (-0.25f);
+				p.Velocity.Z = p.Translate.X * (-0.25f);
+
+				auto const& worldPos_Hand{ World_Hands[i][3] };
+				p.Translate.X += worldPos_Hand.X();
+				p.Translate.Y += worldPos_Hand.Y();
+				p.Translate.Z += worldPos_Hand.Z();
+
+				p.Scale.X = 0.75f;
+				p.Scale.Y = 0.75f;
+
+				p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
+
+				p.Life = 36.0f;
+
+				p.RenderData.RGBA = {
+					RGB_Gaming.R * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+					RGB_Gaming.G * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+					RGB_Gaming.B * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
+					0.375f
+				};
+				p.RenderData.DiffuseID = 1U;
+				p.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
+				PlayerEffects_->Emit(std::move(p));
+			}
+		}
+	}
+
+	template<>
 	auto InGame::Update_<"Effect.Player.Move">() -> void {
 		if (PlayerMoveEffectEmitFrameCount <= 0) { return; }
 
@@ -373,7 +414,7 @@ namespace Game::Scene::Impl {
 
 	template<>
 	auto InGame::Update_<"Effect.Player.Charge.Cylinder">() -> void {
-		
+		//Effect::ChargeRadius
 	}
 	template<>
 	auto InGame::Update_<"Effect.Player.Charge.Spring">() -> void {

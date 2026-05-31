@@ -1,7 +1,9 @@
 module Game.Scene.InGame;
 
 import : Impl;
+import : Impl.Effect;
 
+import <cstddef>;
 import <cmath>;
 import <algorithm>;
 import <string>;
@@ -501,20 +503,20 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
-	void InGame::Render_<"PortalCylinder">(
+	auto InGame::Render_<"PortalCylinder">(
 		Lumina::D3D12::CommandList const& cmdList_,
 		Lumina::U32&& idx_,
 		Lumina::F32x2&& worldPos_
-	) {
+	) -> void {
 		using Lumina::Math::Constant::Pi;
-		constexpr Lumina::U32 num_Instances{ 2U };
-		Lumina::Math::F32x4x4<> worlds[num_Instances]{
+		constexpr Lumina::U32 num_Instances{ 3U };
+		Lumina::Math::F32x4x4<> const worlds[num_Instances]{
 			Game::MathUtils::SRT(
-				{ -1.0f, 1.0f, 1.0f },
+				{ 1.0f, 1.0f, 1.0f },
 				{
 					Pi * 0.5f,
-					std::cos(PortalTimeFactor * 1.25f) * 0.75f,
-					std::sin(PortalTimeFactor * 1.75f) * 0.75f
+					std::cos(PortalTimeFactor * 1.25f) * 0.7f,
+					std::sin(PortalTimeFactor * 1.75f) * 0.7f
 				},
 				{ worldPos_.X, worldPos_.Y, 0.0f }
 			),
@@ -523,7 +525,16 @@ namespace Game::Scene::Impl {
 				{
 					Pi * 0.5f,
 					std::cos(PortalTimeFactor * 1.75f) * 0.75f,
-					std::sin(PortalTimeFactor * 1.25f) * 0.75f
+					std::sin(PortalTimeFactor * (-1.25f)) * 0.75f
+				},
+				{ worldPos_.X, worldPos_.Y, 0.0f }
+			),
+			Game::MathUtils::SRT(
+				{ 1.5f, 1.5f, 1.5f },
+				{
+					Pi * 0.5f,
+					std::cos(PortalTimeFactor * 1.5f) * 0.8f,
+					std::sin(PortalTimeFactor * 1.5f) * 0.8f
 				},
 				{ worldPos_.X, worldPos_.Y, 0.0f }
 			),
@@ -537,25 +548,37 @@ namespace Game::Scene::Impl {
 		cmdList_->SetGraphicsRootSignature(RS_Portal_.Get());
 		cmdList_->SetGraphicsRootDescriptorTable(0U, CBV_PortalConstants_.GPUHandle(0U));
 		cmdList_->SetGraphicsRootDescriptorTable(1U, SRV_PortalLocalToWorlds_.GPUHandle(idx_));
-		cmdList_->SetGraphicsRootDescriptorTable(2U, SRV_PortalTextures_.GPUHandle(0U));
-		cmdList_->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_CanvasTexture_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(2U, SRV_PortalBaseColors_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(3U, SRV_PortalTextures_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(4U, GlobalTable_SRV_CanvasTexture_.GPUHandle(0U));
 		cmdList_->SetPipelineState(PSO_Portal_.Get());
-		Portals_[idx_]->Render(cmdList_, 2U);
+		Portals_[idx_]->Render(cmdList_, num_Instances);
 	}
 
 	template<>
-	void InGame::Render_<"PortalCylinders">(
+	auto InGame::Render_<"PortalCylinders">(
 		Lumina::D3D12::CommandList const& cmdList_
-	) {
+	) -> void {
+		struct PortalConstants {
+			Lumina::F32 WorldToProjective[4][4];
+			Lumina::F32 Time;
+		};
+		constexpr std::size_t memOffset_WorldToProjective{
+			offsetof(PortalConstants, PortalConstants::WorldToProjective)
+		};
+		constexpr std::size_t memOffset_Time{
+			offsetof(PortalConstants, PortalConstants::Time)
+		};
+		
 		UB_PortalConstants_.Store(
 			WorldToHomogeneous_.get(),
 			sizeof(Lumina::Math::F32x4x4<>),
-			0LLU
+			memOffset_WorldToProjective
 		);
 		UB_PortalConstants_.Store(
 			&PortalTimeFactor,
 			sizeof(Lumina::F32),
-			sizeof(Lumina::Math::F32x4x4<>)
+			memOffset_Time
 		);
 
 		PortalTimeFactor += 0.0166667f;
@@ -569,6 +592,88 @@ namespace Game::Scene::Impl {
 			);
 			++idx_Portal;
 		}
+	}
+
+
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	//::::	ChargeCylinder											:::://
+	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
+	
+	template<>
+	auto InGame::Render_<"ChargeCylinder">(
+		Lumina::D3D12::CommandList const& cmdList_
+	) -> void {
+		if (Effect::ChargeRadius <= 0.0f) { return; }
+
+		struct Constants {
+			Lumina::F32 WorldToProjective[4][4];
+			Lumina::F32 Time;
+		};
+		constexpr std::size_t memOffset_WorldToProjective{
+			offsetof(Constants, Constants::WorldToProjective)
+		};
+		constexpr std::size_t memOffset_Time{
+			offsetof(Constants, Constants::Time)
+		};
+
+		UB_PlayerChargeCylinderConstants_.Store(
+			WorldToHomogeneous_.get(),
+			sizeof(Lumina::Math::F32x4x4<>),
+			memOffset_WorldToProjective
+		);
+		UB_PlayerChargeCylinderConstants_.Store(
+			&PortalTimeFactor,
+			sizeof(Lumina::F32),
+			memOffset_Time
+		);
+
+		auto const& playerPos{ Player_->GetPosition() };
+
+		using Lumina::Math::Constant::Pi;
+		constexpr Lumina::U32 num_Instances{ 3U };
+		Lumina::Math::F32x4x4<> worlds[num_Instances]{
+			Game::MathUtils::SRT(
+				{ 0.8f * Effect::ChargeRadius, 0.5f, 0.8f * Effect::ChargeRadius },
+				{
+					0.0f,
+					PortalTimeFactor * 0.75f,
+					0.0f
+				},
+				playerPos
+			),
+			Game::MathUtils::SRT(
+				{ 0.9f * Effect::ChargeRadius, 0.75f, 0.9f * Effect::ChargeRadius },
+				{
+					0.0f,
+					PortalTimeFactor * 1.25f,
+					0.0f
+				},
+				playerPos
+			),
+			Game::MathUtils::SRT(
+				{ 1.0f * Effect::ChargeRadius, 1.0f, 1.0f * Effect::ChargeRadius },
+				{
+					0.0f,
+					PortalTimeFactor * 1.75f,
+					0.0f
+				},
+				playerPos
+			),
+		};
+		UB_PlayerChargeCylinderLocalToWorlds_.Store(
+			worlds,
+			sizeof(Lumina::Math::F32x4x4<>) * num_Instances,
+			0LLU
+		);
+
+		cmdList_->SetGraphicsRootSignature(RS_PlayerChargeCylinder_.Get());
+		cmdList_->SetGraphicsRootDescriptorTable(0U, CBV_PlayerChargeCylinderConstants_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(1U, SRV_PlayerChargeCylinderLocalToWorlds_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(2U, SRV_PlayerChargeCylinderBaseColors_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(3U, SRV_PortalTextures_.GPUHandle(0U));
+		cmdList_->SetGraphicsRootDescriptorTable(4U, GlobalTable_SRV_CanvasTexture_.GPUHandle(0U));
+		cmdList_->SetPipelineState(PSO_PlayerChargeCylinder_.Get());
+		PlayerChargeCylinder_->Render(cmdList_, 3U);
 	}
 
 	//::::	::::::	::::::	::::::	::::::	::::::	::::::	::::::	:::://
@@ -647,15 +752,16 @@ namespace Game::Scene::Impl {
 		cmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);
 
 		Render_<"PortalCylinders">(cmdList_);
+		Render_<"ChargeCylinder">(cmdList_);
 		Render_<"ParticleEffects">(cmdList_);
 	}
 }
 
 namespace Game::Scene::Impl {
 	template<>
-	void InGame::Render_<"Skybox">(
+	auto InGame::Render_<"Skybox">(
 		Lumina::D3D12::CommandList const& cmdList_
-	) {
+	) -> void {
 		auto const& swapChain{ Lumina::Context::Instance().D3D12Context().SwapChain() };
 		auto rtv{ swapChain.BackBufferRTVCPUHandle() };
 		cmdList_->OMSetRenderTargets(1U, &rtv, false, nullptr);

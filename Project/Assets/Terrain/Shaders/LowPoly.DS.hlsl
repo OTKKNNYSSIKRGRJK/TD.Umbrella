@@ -107,6 +107,8 @@ DSOutput main(
 	const float factor_Bary = bary_.x * bary_.y * bary_.z * Scale_Bary;
 	pos += normal * (elevation_Surface * Scale_SurfaceElevation + elevation_Material * Scale_MaterialElevation + Offset_Elevation) * factor_Bary;
 	
+	//pos.y += pos.z * 0.1f;
+	
 	output.Position = mul(float4(pos, 1.0f), Matrix_WorldToProjective);
 	output.UV = uv;
 	output.Normal = normal;

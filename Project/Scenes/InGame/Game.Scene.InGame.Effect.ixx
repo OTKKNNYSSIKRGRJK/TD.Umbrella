@@ -25,6 +25,10 @@ namespace Game::Scene::Impl {
 
 		float TimeFactor{ 0.0f };
 
+		float ChargeRadius{ 0.0f };
+		float ChargeAttackPower{ 0.0f };
+		int ChargeAttackEffectTimer{ 0 };
+
 		Lumina::Math::F32x4x4 ViewToWorld{};
 
 		Lumina::Math::F32x3 PlayerVelocity{};

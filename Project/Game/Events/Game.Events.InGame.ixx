@@ -17,7 +17,14 @@ namespace Game::Event::InGame {
 
 	export struct OnPlayerAttack : public Lumina::EventInterface {
 	};
-
+	export struct OnPlayerReverseCharge : public Lumina::EventInterface {
+		float Radius;
+	};
+	export struct OnPlayerReverseChargeAttack : public Lumina::EventInterface {
+		float Power;
+	};
+	export struct OnPlayerThrowUmbrella : public Lumina::EventInterface {
+	};
 	export struct OnPlayerWarp : public Lumina::EventInterface {
 	};
 }

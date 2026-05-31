@@ -246,7 +246,7 @@ namespace Game::Scene::Impl {
 			
 			float TransitionCooldownTimer = 0.0f;
 			std::vector<std::shared_ptr<ConvexCollider>> PortalColliders;
-           bool IsBossPresentationActive = false;
+			bool IsBossPresentationActive = false;
 			float BossPresentationTimer = 0.0f;
 			float BossPresentationDuration = 0.0f;
 			Lumina::Math::F32x3 BossPresentationFocusPosition{ 0.0f, 0.0f, 0.0f };
@@ -305,6 +305,13 @@ namespace Game::Scene::Impl {
 		Lumina::D3D12::GraphicsPSO PSO_PlayerChargeCylinder_;
 		std::unique_ptr<Lumina::Cylinder> PlayerChargeCylinder_;
 
+		Lumina::D3D12::UploadBuffer UB_PlayerChargeCylinderConstants_;
+		Lumina::D3D12::UploadBuffer UB_PlayerChargeCylinderLocalToWorlds_;
+		Lumina::D3D12::UploadBuffer UB_PlayerChargeCylinderBaseColors_;
+		Lumina::D3D12::DescriptorTable CBV_PlayerChargeCylinderConstants_;
+		Lumina::D3D12::DescriptorTable SRV_PlayerChargeCylinderLocalToWorlds_;
+		Lumina::D3D12::DescriptorTable SRV_PlayerChargeCylinderBaseColors_;
+
 	private:
 		Lumina::D3D12::RootSignature RS_Skinning_;
 		Lumina::D3D12::Shader VS_SkinnedMeshDeferredGeometry_;
@@ -329,8 +336,10 @@ namespace Game::Scene::Impl {
 
 		Lumina::D3D12::UploadBuffer UB_PortalConstants_;
 		Lumina::D3D12::UploadBuffer UB_PortalLocalToWorlds_[8];
+		Lumina::D3D12::UploadBuffer UB_PortalBaseColors_;
 		Lumina::D3D12::DescriptorTable CBV_PortalConstants_;
 		Lumina::D3D12::DescriptorTable SRV_PortalLocalToWorlds_;
+		Lumina::D3D12::DescriptorTable SRV_PortalBaseColors_;
 		Lumina::D3D12::DescriptorTable SRV_PortalTextures_;
 
 		// * Skybox
