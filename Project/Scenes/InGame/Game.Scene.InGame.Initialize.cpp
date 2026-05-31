@@ -29,6 +29,24 @@ import Lumina.Cylinder;
 
 namespace Game::Scene::Impl {
 	namespace {
+		const std::vector<std::pair<std::string, std::string>> BaseTextures = {
+			{ "uvChecker", "Assets/Img/uvChecker.png" },
+			{ "Particles", "Assets/Img/Particles.png" },
+			{ "pause", "Assets/Img/UI/pause.png" },
+			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
+			{ "pause_restart", "Assets/Img/UI/pause_restart.png" },
+			{ "pause_title", "Assets/Img/UI/pause_title.png" },
+			{ "gameover_retry", "Assets/Img/UI/Retry.png" },
+			{ "gameover_returntotitle", "Assets/Img/UI/returntotitle.png" },
+			{ "gameover", "Assets/Img/UI/gameover.png" },
+			{ "White16x16", "Assets/Img/White16x16.png" },
+			{ "minimap_ui", "Assets/Img/Tutorial/minimap.png" },
+			{ "minimap_close_ui", "Assets/Img/Tutorial/minimap_close.png" },
+			{ "pause_UI", "Assets/Img/UI/pause_UI.png" },
+			{ "playerHead", "Assets/Img/UI/playerHead.png" },
+			{ "reticle", "Assets/Img/UI/Umbrella_Reticle.png" },
+		};
+
 		void PopulateRandomEnemiesIfEmpty(Game::Editor::AreaData& area, const std::vector<std::string>& enemyNames) {
 			if (!area.enemies.empty() || enemyNames.empty()) return;
 
@@ -67,37 +85,20 @@ namespace Game::Scene::Impl {
 		auto const& d3d12Device{ d3d12Context.Device() };
 
 		std::vector<uint32_t> texIDs{};
-		std::vector<std::pair<std::string, std::string>> texturesToLoad = {
-			{ "uvChecker", "Assets/Img/uvChecker.png" },
-			{ "Particles", "Assets/Img/Particles.png" },
-			{ "pause", "Assets/Img/UI/pause.png" },
-			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
-			{ "pause_restart", "Assets/Img/UI/pause_restart.png" },
-			{ "pause_title", "Assets/Img/UI/pause_title.png" },
-			{ "gameover_retry", "Assets/Img/UI/Retry.png" },
-			{ "gameover_returntotitle", "Assets/Img/UI/returntotitle.png" },
-			{ "gameover", "Assets/Img/UI/gameover.png" },
-			{ "White16x16", "Assets/Img/White16x16.png" },
-			{ "minimap_ui", "Assets/Img/Tutorial/minimap.png" },
-			{ "minimap_close_ui", "Assets/Img/Tutorial/minimap_close.png" },
-			{ "pause_UI", "Assets/Img/UI/pause_UI.png" },
-			{ "playerHead", "Assets/Img/UI/playerHead.png" },
-		};
+		std::vector<std::pair<std::string, std::string>> texturesToLoad = BaseTextures;
 		// 追加のテクスチャ（敵など）をマージ。チュートリアルの前に登録してインデックスのズレを防ぐ
 		for (const auto& addTex : AdditionalTextures_) {
 			texturesToLoad.push_back(addTex);
 		}
 
-		// チュートリアル用テクスチャ
-		std::vector<std::pair<std::string, std::string>> tutorialTextures = {
-			{ "tut_step1_move",   "Assets/Img/Tutorial/step1_move.png" },
-			{ "tut_step2_jump",   "Assets/Img/Tutorial/step2_jump.png" },
-			{ "tut_step3_attack", "Assets/Img/Tutorial/step3_attack.png" },
-			{ "tut_step_rakkasan", "Assets/Img/Tutorial/rakkasan.png" },
-		};
-		for (const auto& tutTex : tutorialTextures) {
-			if (std::filesystem::exists(tutTex.second)) {
-				texturesToLoad.push_back(tutTex);
+		// チュートリアル用テクスチャ（TutorialManagerのJSONから動的に取得）
+		if (TutorialManager_) {
+			TutorialManager_->LoadFromJSON("Assets/Data/Tutorial/tutorial_sequences.json");
+			for (const auto& texFile : TutorialManager_->GetTextureFiles()) {
+				std::string path = "Assets/Img/Tutorial/" + texFile;
+				if (std::filesystem::exists(path)) {
+					texturesToLoad.push_back({ "tut_" + texFile, path });
+				}
 			}
 		}
 
@@ -361,7 +362,7 @@ namespace Game::Scene::Impl {
 									gltfCache_Skinned[ed.gltfPath] = skinnedModel;
 									
 									if (!diffuseTexName.empty()) {
-										uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
+										uint32_t newTexIdx = static_cast<uint32_t>(BaseTextures.size() + AdditionalTextures_.size());
 										EnemyTextureIndices_[ed.name] = newTexIdx;
 										AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 										texNameToIndex[diffuseTexName] = newTexIdx;
@@ -452,8 +453,8 @@ namespace Game::Scene::Impl {
 								EnemyMeshIndices_[ed.name] = { meshesToBeUploaded.size(), validMeshes.size() };
 								gltfCache_Static[ed.gltfPath] = EnemyMeshIndices_[ed.name];
 								if (!diffuseTexName.empty()) {
-									// 既存の基本テクスチャ12枚の後に登録される前提でインデックスを計算
-									uint32_t newTexIdx = static_cast<uint32_t>(14 + AdditionalTextures_.size());
+									// 既存の基本テクスチャの後に登録される前提でインデックスを計算
+									uint32_t newTexIdx = static_cast<uint32_t>(BaseTextures.size() + AdditionalTextures_.size());
 									EnemyTextureIndices_[ed.name] = newTexIdx;
 									AdditionalTextures_.push_back({ diffuseTexName, diffuseTexPath });
 									texNameToIndex[diffuseTexName] = newTexIdx;
@@ -561,7 +562,7 @@ namespace Game::Scene::Impl {
 		// CBV作成
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 0;
+		Material0_.ID_DiffuseMap = 999;
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 
 		// 敵用のマテリアルを設定
@@ -1049,6 +1050,7 @@ namespace Game::Scene::Impl {
 		auto& context{ Lumina::Context::Instance() };
 		auto& eventMngr{ context.EventContext() };
 
+		// ここで作成したイベントを登録する - ① -> ②へ
 		eventMngr.RegisterType<Event::InGame::OnPlayerMove>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerJump>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerAttack>();
@@ -1056,6 +1058,19 @@ namespace Game::Scene::Impl {
 		eventMngr.RegisterType<Event::InGame::OnPlayerReverseChargeAttack>();
 		eventMngr.RegisterType<Event::InGame::OnPlayerWarp>();
 
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo1>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo2>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackCombo3>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackRot>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerAttackJump>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerFlying>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerCharge>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerChargeAttack>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerThrowUmbrella>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerGainXp>();
+		eventMngr.RegisterType<Event::InGame::OnPlayerLevelUp>();
+
+		// ここで作成したイベントを登録する - ② -> したのほうにあるAudioへ音を登録する
 		eventMngr.AddEventListener<Event::InGame::OnPlayerMove>(
 			[this] (Event::InGame::OnPlayerMove& event_) {
 				this->Update_<"プレイヤー移動">(event_);
@@ -1086,6 +1101,73 @@ namespace Game::Scene::Impl {
 				this->Update_<"OnPlayerWarp">(event_);
 			}
 		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo1>(
+			[this](Event::InGame::OnPlayerAttackCombo1& event_) {
+				this->Update_<"OnPlayerAttackCombo1">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo2>(
+			[this](Event::InGame::OnPlayerAttackCombo2& event_) {
+				this->Update_<"OnPlayerAttackCombo2">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackCombo3>(
+			[this](Event::InGame::OnPlayerAttackCombo3& event_) {
+				this->Update_<"OnPlayerAttackCombo3">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackRot>(
+			[this](Event::InGame::OnPlayerAttackRot& event_) {
+				this->Update_<"OnPlayerAttackRot">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerAttackJump>(
+			[this](Event::InGame::OnPlayerAttackJump& event_) {
+				this->Update_<"OnPlayerAttackJump">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerFlying>(
+			[this](Event::InGame::OnPlayerFlying& event_) {
+				this->Update_<"OnPlayerFlying">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerCharge>(
+			[this](Event::InGame::OnPlayerCharge& event_) {
+				this->Update_<"OnPlayerCharge">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerChargeAttack>(
+			[this](Event::InGame::OnPlayerChargeAttack& event_) {
+				this->Update_<"OnPlayerChargeAttack">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerThrowUmbrella>(
+			[this](Event::InGame::OnPlayerThrowUmbrella& event_) {
+				this->Update_<"OnPlayerThrowUmbrella">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerGainXp>(
+			[this](Event::InGame::OnPlayerGainXp& event_) {
+				this->Update_<"OnPlayerGainXp">(event_);
+			}
+		);
+
+		eventMngr.AddEventListener<Event::InGame::OnPlayerLevelUp>(
+			[this](Event::InGame::OnPlayerLevelUp& event_) {
+				this->Update_<"OnPlayerLevelUp">(event_);
+			}
+		);
+
 	}
 
 	template<>
@@ -1361,16 +1443,31 @@ namespace Game::Scene::Impl {
 			}
 		};
 
-		loadAudioFile(AUDIO_STREAM_ID::BGM, "Assets/Sounds/BGM.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
-		loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
+		// 使用する音声ファイルの読み込み(Game.Scene.InGame.Implで列挙体の登録) -> InGame.Audio.cppへ移動
 
-		// * 最初からBGMを流す
-		BGMPlayerHandle_ = ResourceManager_->Audio().Play(
-			AudioStreamHandles_[static_cast<Lumina::U32>(AUDIO_STREAM_ID::BGM)],
-			true,
-			0.75f
-		);
+		//loadAudioFile(AUDIO_STREAM_ID::BGM, "Assets/Sounds/BGM.mp3");
+		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACK, "Assets/Sounds/PlayerAttack.mp3");
+		//loadAudioFile(AUDIO_STREAM_ID::PLAYER_JUMP, "Assets/Sounds/PlayerJump.mp3");
+
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO1, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO2, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKCOMBO3, "Assets/Sounds/Cut04-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKROT, "Assets/Sounds/SNES-Fighting06-09(Swing).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_ATTACKJUMP, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_FLYING, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGE, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_CHARGEATTACK, "Assets/Sounds/ripping-paper-1.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_WARP, "Assets/Sounds/Onoma-Sigh03-3(Delay-Fast).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_THROWUMBRELLA, "Assets/Sounds/wind-blowing-2.mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_GAINXP, "Assets/Sounds/Onoma-Pop04-2(Mid-Dry).mp3");
+		loadAudioFile(AUDIO_STREAM_ID::PLAYER_LEVELUP, "Assets/Sounds/hp-recovery-magic-1.mp3");
+
+		//// * 最初からBGMを流す
+		//BGMPlayerHandle_ = ResourceManager_->Audio().Play(
+		//	AudioStreamHandles_[static_cast<Lumina::U32>(AUDIO_STREAM_ID::BGM)],
+		//	true,
+		//	0.75f
+		//);
 	}
 
 	void InGame::Initialize() {
@@ -1379,6 +1476,9 @@ namespace Game::Scene::Impl {
 		auto const& d3d12Device{ d3d12Context.Device() };
 
 		MotionManager::GetInstance()->LoadMotions("Assets/Data/Motion/");
+
+		// チュートリアルマネージャーを先に生成（テクスチャ読み込み時にJSON参照するため）
+		TutorialManager_ = std::make_unique<Game::TutorialManager>();
 
 		Initialize_<"Meshes">();
 		Initialize_<"ImageTextures">();
@@ -1396,7 +1496,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"RenderPipeline">();
 		Initialize_<"Watercolor">();
 
-		//Initialize_<"Audio">();
+		Initialize_<"Audio">();
 
 		Initialize_<"Events">();
 
@@ -1418,13 +1518,20 @@ namespace Game::Scene::Impl {
 
 		Initialize_<"[Debug]">();
 
-		// チュートリアルマネージャー初期化
-		TutorialManager_ = std::make_unique<Game::TutorialManager>();
+		// チュートリアルマネージャー初期化（JSONの読み込みはImageTextures初期化前に実施済み）
 		TutorialManager_->Initialize();
-		TutorialManager_->RegisterSequences();
-		// チュートリアルテクスチャは基本テクスチャ11枚 + 追加テクスチャの直後に配置
-		TutorialManager_->TutorialTextureStartIndex = 14U + static_cast<uint32_t>(AdditionalTextures_.size());
-		TutorialManager_->TutorialTextureCount = 4U;
+		// チュートリアルテクスチャは基本テクスチャ + 追加テクスチャの直後に配置
+		TutorialManager_->TutorialTextureStartIndex = static_cast<uint32_t>(BaseTextures.size() + AdditionalTextures_.size());
+		TutorialManager_->TutorialTextureCount = static_cast<uint32_t>(TutorialManager_->GetTextureFiles().size());
+		// 白テクスチャのインデックスを検索して設定（単色描画の背景などで使用）
+		uint32_t whiteTexIdx = 0U;
+		for (uint32_t i = 0; i < BaseTextures.size(); ++i) {
+			if (BaseTextures[i].first == "White16x16") {
+				whiteTexIdx = i;
+				break;
+			}
+		}
+		TutorialManager_->WhiteTextureIndex = whiteTexIdx;
 
 		// チュートリアル用PrimitiveManager（深度テストなし、オーバーレイ描画用）
 		PrimitiveManager_Tutorial_ = std::make_unique<Lumina::PrimitiveManager>();

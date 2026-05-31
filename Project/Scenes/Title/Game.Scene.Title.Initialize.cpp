@@ -146,7 +146,7 @@ namespace Game::Scene::Impl {
 		// アップデートでマテリアルをいじったりするのであれば下記のように書くとよろし
 		// マテリアルデータを更新
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 0;
+		Material0_.ID_DiffuseMap = 999;
 
 		// マテリアルデータをCBVと紐づけてあるバッファに格納
 		// --- パラメータ ---
@@ -491,6 +491,16 @@ namespace Game::Scene::Impl {
 		Raindrops_->Initialize(d3d12Context, 2048U);
 	}
 
+	template<>
+	auto Title::Initialize_<"Skybox">() -> void {
+		auto& context{ Lumina::Context::Instance() };
+		auto const& d3d12Context{ context.D3D12Context() };
+		auto const& d3d12Device{ d3d12Context.Device() };
+
+		Skybox_ = std::make_unique<Lumina::Skybox>();
+		Skybox_->Initialize(d3d12Context, d3d12Device, "Assets/Img/Skybox.dds");
+	}
+
 	void Title::Initialize() {
 		Initialize_<"Meshes">();
 		Initialize_<"Animation">();
@@ -502,6 +512,7 @@ namespace Game::Scene::Impl {
 		Initialize_<"Watercolor">();
 		Initialize_<"Grassland">();
 		Initialize_<"Particles">();
+		Initialize_<"Skybox">();
 	}
 
 	Title::Title() = default;

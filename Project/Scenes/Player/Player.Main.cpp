@@ -761,6 +761,9 @@ void Player::WarpToUmbrella() {
 	Lumina::Context::Instance().EventContext().TriggerEvent(
 		std::move(Game::Event::InGame::OnPlayerWarp{})
 	);
+
+	Game::Event::InGame::OnPlayerWarp event_OnPlayerWarp{};
+	Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerWarp));
 }
 
 ///////////////////
@@ -820,6 +823,10 @@ void Player::UpdateAnimation() {
 }
 
 void Player::GainXp(uint32_t amount) {
+
+	Game::Event::InGame::OnPlayerGainXp event_OnPlayerGainXp{};
+	Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerGainXp));
+
 	// 1. 経験値を追加して、レベルアップしたか判定
 	if (experience_->AddExperience(amount)) {
 
@@ -831,7 +838,8 @@ void Player::GainXp(uint32_t amount) {
 		status_->ApplyLevelBonus(newLevel);
 
 		// 演出：レベルアップエフェクトやSEを鳴らす！
-		// EffectManager::Spawn("LevelUp", GetPosition());
+		Game::Event::InGame::OnPlayerLevelUp event_OnPlayerLevelUp{};
+		Lumina::Context::Instance().EventContext().TriggerEvent(std::move(event_OnPlayerLevelUp));
 	}
 }
 

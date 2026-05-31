@@ -105,6 +105,9 @@ namespace Game::Scene::Impl {
 		cmdList->SetGraphicsRootDescriptorTable(1U, SkinCluster_.PaletteSRVHandle.second);
 		cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(0U));
 		cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+		cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
+		auto const& cameraPos{ Camera_->WorldPosition() };
+		cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
 
 		cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{

@@ -358,6 +358,9 @@ namespace Game::Scene::Impl {
 				cmdList->SetGraphicsRootDescriptorTable(1U, inst->SkinCluster_.PaletteSRVHandle.second);
 				cmdList->SetGraphicsRootDescriptorTable(2U, GlobalTable_Materials_.GPUHandle(materialIdx));
 				cmdList->SetGraphicsRootDescriptorTable(3U, GlobalTable_SRV_ImageTexture_.GPUHandle(0U));
+				cmdList->SetGraphicsRootDescriptorTable(5U, Skybox_->GlobalTable().GPUHandle(0U));
+				auto const& cameraPos{ Camera_Player_->WorldPosition() };
+				cmdList->SetGraphicsRoot32BitConstants(6U, 3U, &cameraPos, 0U);
 
 				D3D12_VERTEX_BUFFER_VIEW const vbvs[2]{
 					reinterpret_cast<D3D12_VERTEX_BUFFER_VIEW const&>(model->VBV_),
@@ -1036,6 +1039,83 @@ namespace Game::Scene::Impl {
 							{ { base_x + padX + current_width - padX * 2.0f, base_y - height + padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U },
 							{ { base_x + padX, base_y - height + padY, 0.0f, 1.0f }, hpCol, {0.0f, 0.0f}, 0U }
 						);
+					}
+				}
+
+				// ---------------------------------
+				// 傘投げ照準レティクル描画 (48x48)
+				// ---------------------------------
+				if (Player_) {
+					auto const& input = Player_->GetInput();
+					auto umbrellaForm = Player_->GetUmbrella().top_->GetUmbrellaForm();
+					bool canThrow =
+						(Player_->GetCurrentActionState() == Player_->normalDrawnState_.get()) &&
+						(umbrellaForm != UmbrellaForm::Flying && umbrellaForm != UmbrellaForm::AirStop) &&
+						(input.aim == ButtonState::Held);
+
+					if (canThrow) {
+						// 傘の飛行シミュレーションで最終停止位置を予測
+						// 1. 開始位置 = 傘のワールド座標（右手Joint付近）
+						auto startPos = Player_->GetUmbrella().top_->GetRootJoint()->GetWorldPos();
+						// 2. 投げ速度 = (targetPos_ - PlayerPos) * throwSpeed (ThrowUmbrella::Updateと同じ)
+						auto targetPos = Player_->GetTargetPos();
+						auto playerPos = Player_->GetPosition();
+						float throwSpeed = 2.0f;
+						float simVelX = (targetPos.X - playerPos.X) * throwSpeed;
+						float simVelY = (targetPos.Y - playerPos.Y) * throwSpeed;
+						// 3. Flying::Updateと同じ物理でシミュレート
+						float simX = startPos.X;
+						float simY = startPos.Y;
+						constexpr float simDt = 1.0f / 60.0f;
+						constexpr float flyMultiplier = 8.0f;
+						constexpr float deceleration = 5.5f;
+						for (int i = 0; i < 300; ++i) { // 最大5秒分
+							simX += simVelX * simDt * flyMultiplier;
+							simY += simVelY * simDt * flyMultiplier;
+							simVelX = simVelX + (0.0f - simVelX) * deceleration * simDt; // std::lerp equivalent
+							simVelY = simVelY + (0.0f - simVelY) * deceleration * simDt;
+							if (std::abs(simVelX) <= 0.1f && std::abs(simVelY) <= 0.1f) break;
+						}
+						float reticleWorldX = simX;
+						float reticleWorldY = simY;
+						float reticleWorldZ = 0.0f;
+
+						// 3D → NDC変換 (WorldToHomogeneous_を使用)
+						auto const& vp = *WorldToHomogeneous_;
+						Lumina::Math::F32x4 rPos(reticleWorldX, reticleWorldY, reticleWorldZ, 1.0f);
+						Lumina::Math::F32x4 rClip(
+							rPos.X() * vp[0].X() + rPos.Y() * vp[1].X() + rPos.Z() * vp[2].X() + rPos.W() * vp[3].X(),
+							rPos.X() * vp[0].Y() + rPos.Y() * vp[1].Y() + rPos.Z() * vp[2].Y() + rPos.W() * vp[3].Y(),
+							rPos.X() * vp[0].Z() + rPos.Y() * vp[1].Z() + rPos.Z() * vp[2].Z() + rPos.W() * vp[3].Z(),
+							rPos.X() * vp[0].W() + rPos.Y() * vp[1].W() + rPos.Z() * vp[2].W() + rPos.W() * vp[3].W()
+						);
+
+						if (rClip.W() > 0.1f) {
+							float ndcX = rClip.X() / rClip.W();
+							float ndcY = rClip.Y() / rClip.W();
+
+							// 48x48ピクセル → NDC空間サイズ (画面 1280x720)
+							float halfW = (48.0f / 1280.0f);  // NDC半幅
+							float halfH = (48.0f / 720.0f);   // NDC半高
+
+							// 画面内にクランプ（レティクルサイズ分のマージン考慮）
+							ndcX = (std::max)(-1.0f + halfW, (std::min)(1.0f - halfW, ndcX));
+							ndcY = (std::max)(-1.0f + halfH, (std::min)(1.0f - halfH, ndcY));
+
+							Lumina::F32x4 reticleCol{ 1.0f, 1.0f, 1.0f, 1.0f };
+							constexpr uint32_t reticleTexID = 14U; // Umbrella_Reticle.png
+
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { ndcX - halfW, ndcY + halfH, 0.0f, 1.0f }, reticleCol, {0.0f, 0.0f}, reticleTexID },
+								{ { ndcX + halfW, ndcY + halfH, 0.0f, 1.0f }, reticleCol, {1.0f, 0.0f}, reticleTexID },
+								{ { ndcX - halfW, ndcY - halfH, 0.0f, 1.0f }, reticleCol, {0.0f, 1.0f}, reticleTexID }
+							);
+							PrimitiveManager_Tutorial_->BatchTriangle(
+								{ { ndcX + halfW, ndcY + halfH, 0.0f, 1.0f }, reticleCol, {1.0f, 0.0f}, reticleTexID },
+								{ { ndcX + halfW, ndcY - halfH, 0.0f, 1.0f }, reticleCol, {1.0f, 1.0f}, reticleTexID },
+								{ { ndcX - halfW, ndcY - halfH, 0.0f, 1.0f }, reticleCol, {0.0f, 1.0f}, reticleTexID }
+							);
+						}
 					}
 				}
 

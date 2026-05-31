@@ -32,7 +32,7 @@ namespace PlayerStates {
 
 		class Airborne : public Base {
 		public:
-			void Enter() override {}
+			void Enter() override;
 			void Exit() override{}
 			void Update(float deltaTime) override;
 		};

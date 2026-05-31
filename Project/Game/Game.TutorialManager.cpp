@@ -7,6 +7,9 @@ module Game.TutorialManager;
 import <cmath>;
 import <fstream>;
 import <filesystem>;
+import <algorithm>;
+
+import nlohmann.json;
 
 import Lumina.Main;
 import Lumina.OS.Windows.RawInput;
@@ -20,74 +23,231 @@ namespace Game {
 		PulseTimer_ = 0.0f;
 		Active_ = false;
 		Completed_ = false;
+		LocationTriggers_.clear();
 	}
 
-	void TutorialManager::RegisterSequences() {
-		Sequences_.clear();
+	// ==============================
+	//  キー名→KEY列挙値変換
+	// ==============================
+	uint16_t TutorialManager::KeyNameToCode(const std::string& keyName) {
+		using KEY = Lumina::OS::Windows::KEY;
+		// 一文字キー (A-Z, 0-9)
+		if (keyName.size() == 1) {
+			char c = keyName[0];
+			if (c >= 'A' && c <= 'Z') return static_cast<uint16_t>(KEY::A) + (c - 'A');
+			if (c >= 'a' && c <= 'z') return static_cast<uint16_t>(KEY::A) + (c - 'a');
+			if (c >= '0' && c <= '9') return static_cast<uint16_t>(KEY::NUM_0) + (c - '0');
+		}
+		// 特殊キー
+		if (keyName == "SPACE")     return static_cast<uint16_t>(KEY::SPACE);
+		if (keyName == "ENTER")     return static_cast<uint16_t>(KEY::ENTER);
+		if (keyName == "ESC")       return static_cast<uint16_t>(KEY::ESC);
+		if (keyName == "SHIFT")     return static_cast<uint16_t>(KEY::SHIFT);
+		if (keyName == "CTRL")      return static_cast<uint16_t>(KEY::CTRL);
+		if (keyName == "ARROW_UP")  return static_cast<uint16_t>(KEY::ARROW_UP);
+		if (keyName == "ARROW_DOWN") return static_cast<uint16_t>(KEY::ARROW_DOWN);
+		if (keyName == "ARROW_LEFT") return static_cast<uint16_t>(KEY::ARROW_LEFT);
+		if (keyName == "ARROW_RIGHT") return static_cast<uint16_t>(KEY::ARROW_RIGHT);
+		return 0U;
+	}
 
+	// ==============================
+	//  trigger文字列→Trigger列挙値変換
+	// ==============================
+	TutorialStep::Trigger TutorialManager::TriggerFromString(const std::string& str) {
+		if (str == "PadButton")     return TutorialStep::Trigger::PadButton;
+		if (str == "KeyPress")      return TutorialStep::Trigger::KeyPress;
+		if (str == "AnyInput")      return TutorialStep::Trigger::AnyInput;
+		if (str == "Auto")          return TutorialStep::Trigger::Auto;
+		if (str == "MoveDuration")  return TutorialStep::Trigger::MoveDuration;
+		if (str == "GuardDuration") return TutorialStep::Trigger::GuardDuration;
+		if (str == "AreaExit")      return TutorialStep::Trigger::AreaExit;
+		return TutorialStep::Trigger::AnyInput; // デフォルト
+	}
+
+	// ==============================
+	//  allowedInputs文字列→ビットフラグ変換
+	// ==============================
+	uint16_t TutorialManager::AllowedInputsFromStrings(const std::vector<std::string>& inputs) {
 		using AI = TutorialStep::AllowedInput;
-		std::vector<TutorialStep> basicControls;
+		uint16_t flags = 0;
+		for (const auto& s : inputs) {
+			if (s == "All")      return AI::Input_All;
+			if (s == "Move")     flags |= AI::Input_Move;
+			if (s == "Jump")     flags |= AI::Input_Jump;
+			if (s == "Attack")   flags |= AI::Input_Attack;
+			if (s == "Sheathe")  flags |= AI::Input_Sheathe;
+			if (s == "Guard")    flags |= AI::Input_Guard;
+			if (s == "Reverse")  flags |= AI::Input_Reverse;
+			if (s == "Aim")      flags |= AI::Input_Aim;
+			if (s == "Shoot")    flags |= AI::Input_Shoot;
+			if (s == "Repair")   flags |= AI::Input_Repair;
+			if (s == "Mana")     flags |= AI::Input_Mana;
+		}
+		return flags == 0 ? AI::Input_All : flags;
+	}
 
-		// ステップ1: 移動（左スティック）— 移動のみ許可
-		{
-			TutorialStep step;
-			step.TextureIndex = 0U;
-			step.TextPosition = { 400.0f, 530.0f };
-			step.TextSize = { 480.0f, 120.0f };
-			step.trigger = TutorialStep::Trigger::MoveDuration;
-			step.AutoDuration = 2.0f; // 2秒間移動入力したら完了
-			step.HighlightCenter = { 0.0f, 0.0f };
-			step.HighlightSize = { 0.0f, 0.0f };
-			step.AllowedInputs = AI::Input_Move;
-			basicControls.push_back(step);
+	// ==============================
+	//  JSONからチュートリアルデータを読み込み
+	// ==============================
+	void TutorialManager::LoadFromJSON(const std::string& jsonPath) {
+		Sequences_.clear();
+		EventToSequence_.clear();
+		LocationTriggers_.clear();
+		TextureFiles_.clear();
+		TextureNameToIndex_.clear();
+
+		if (!std::filesystem::exists(jsonPath)) {
+			return; // ファイルなしの場合は空状態で安全に動作
 		}
 
-		// ステップ2: ジャンプ（Aボタン / SPACE）— 移動＋ジャンプのみ許可
-		{
-			TutorialStep step;
-			step.TextureIndex = 1U;
-			step.TextPosition = { 400.0f, 530.0f };
-			step.TextSize = { 480.0f, 120.0f };
-			step.trigger = TutorialStep::Trigger::PadButton;
-			step.RequiredPadButton = 0x1000; // Aボタン (XINPUT_GAMEPAD_A)
-			step.RequiredKey = static_cast<uint16_t>(Lumina::OS::Windows::KEY::SPACE); // スペースキー
-			step.HighlightCenter = { 0.0f, 0.0f };
-			step.HighlightSize = { 0.0f, 0.0f };
-			step.AllowedInputs = AI::Input_Move | AI::Input_Jump;
-			basicControls.push_back(step);
+		std::ifstream file(jsonPath);
+		if (!file.is_open()) return;
+
+		nlohmann::json root = nlohmann::json::parse(file, nullptr, false);
+		if (root.is_discarded()) return; // パース失敗時も安全に動作
+
+		// デフォルト表示位置・サイズ
+		if (root.contains("defaultTextPosition") && root["defaultTextPosition"].is_array()) {
+			auto& pos = root["defaultTextPosition"];
+			if (pos.size() >= 2) {
+				DefaultTextPosition_ = { pos[0].get<float>(), pos[1].get<float>() };
+			}
+		}
+		if (root.contains("defaultTextSize") && root["defaultTextSize"].is_array()) {
+			auto& sz = root["defaultTextSize"];
+			if (sz.size() >= 2) {
+				DefaultTextSize_ = { sz[0].get<float>(), sz[1].get<float>() };
+			}
 		}
 
-		// ステップ3: 抜刀・攻撃（Yボタン / J）— 移動・ジャンプ・攻撃を許可
-		{
-			TutorialStep step;
-			step.TextureIndex = 2U;
-			step.TextPosition = { 400.0f, 530.0f };
-			step.TextSize = { 480.0f, 120.0f };
-			step.trigger = TutorialStep::Trigger::PadButton;
-			step.RequiredPadButton = 0x8000; // Yボタン
-			step.RequiredKey = static_cast<uint16_t>(Lumina::OS::Windows::KEY::J); // Jキー
-			step.HighlightCenter = { 0.0f, 0.0f };
-			step.HighlightSize = { 0.0f, 0.0f };
-			step.AllowedInputs = AI::Input_Move | AI::Input_Jump | AI::Input_Attack;
-			basicControls.push_back(step);
-		}
-		
-		Sequences_["BasicControls"] = basicControls;
+		if (!root.contains("sequences") || !root["sequences"].is_object()) return;
 
-		std::vector<TutorialStep> parachute;
-		{
-			TutorialStep step;
-			step.TextureIndex = 3U; // rakkasan.png
-			step.TextPosition = { 400.0f, 530.0f };
-			step.TextSize = { 480.0f, 120.0f };
-			step.trigger = TutorialStep::Trigger::GuardDuration;
-			step.AutoDuration = 2.0f; // 2秒間ガードボタン（傘開く）
-			step.HighlightCenter = { 0.0f, 0.0f };
-			step.HighlightSize = { 0.0f, 0.0f };
-			step.AllowedInputs = AI::Input_All; // 制限なし
-			parachute.push_back(step);
+		auto& sequences = root["sequences"];
+		for (auto it = sequences.begin(); it != sequences.end(); ++it) {
+			std::string seqId = it.key();
+			auto& seqData = it.value();
+
+			// イベント→シーケンスマッピング
+			if (seqData.contains("triggerEvent") && seqData["triggerEvent"].is_string()) {
+				std::string eventName = seqData["triggerEvent"].get<std::string>();
+				EventToSequence_[eventName] = seqId;
+			}
+
+			if (!seqData.contains("steps") || !seqData["steps"].is_array()) continue;
+
+			std::vector<TutorialStep> steps;
+
+			for (auto& stepData : seqData["steps"]) {
+				TutorialStep step;
+
+				// テクスチャ
+				if (stepData.contains("texture") && stepData["texture"].is_string()) {
+					std::string texName = stepData["texture"].get<std::string>();
+
+					// テクスチャリストに未登録なら追加
+					if (TextureNameToIndex_.find(texName) == TextureNameToIndex_.end()) {
+						uint32_t idx = static_cast<uint32_t>(TextureFiles_.size());
+						TextureFiles_.push_back(texName);
+						TextureNameToIndex_[texName] = idx;
+					}
+					step.TextureIndex = TextureNameToIndex_[texName];
+				}
+
+				// 表示位置（省略時はデフォルト値）
+				step.TextPosition = DefaultTextPosition_;
+				step.TextSize = DefaultTextSize_;
+
+				if (stepData.contains("textPosition") && stepData["textPosition"].is_array()) {
+					auto& pos = stepData["textPosition"];
+					if (pos.size() >= 2) {
+						step.TextPosition = { pos[0].get<float>(), pos[1].get<float>() };
+					}
+				}
+				if (stepData.contains("textSize") && stepData["textSize"].is_array()) {
+					auto& sz = stepData["textSize"];
+					if (sz.size() >= 2) {
+						step.TextSize = { sz[0].get<float>(), sz[1].get<float>() };
+					}
+				}
+
+				// トリガー
+				if (stepData.contains("trigger") && stepData["trigger"].is_string()) {
+					step.trigger = TriggerFromString(stepData["trigger"].get<std::string>());
+				}
+
+				// パッドボタン
+				if (stepData.contains("padButton")) {
+					step.RequiredPadButton = stepData["padButton"].get<uint16_t>();
+				}
+
+				// キーボードキー
+				if (stepData.contains("key") && stepData["key"].is_string()) {
+					step.RequiredKey = KeyNameToCode(stepData["key"].get<std::string>());
+				}
+
+				// 持続時間
+				if (stepData.contains("duration")) {
+					step.AutoDuration = stepData["duration"].get<float>();
+				}
+
+				// エリアインデックス（AreaExit用）
+				if (stepData.contains("areaIndex")) {
+					step.RequiredAreaIndex = stepData["areaIndex"].get<int>();
+				}
+
+				// 許可入力
+				if (stepData.contains("allowedInputs") && stepData["allowedInputs"].is_array()) {
+					std::vector<std::string> inputStrs;
+					for (auto& v : stepData["allowedInputs"]) {
+						if (v.is_string()) inputStrs.push_back(v.get<std::string>());
+					}
+					step.AllowedInputs = AllowedInputsFromStrings(inputStrs);
+				}
+
+				// ハイライトは固定（なし）
+				step.HighlightCenter = { 0.0f, 0.0f };
+				step.HighlightSize = { 0.0f, 0.0f };
+
+				steps.push_back(step);
+			}
+
+			Sequences_[seqId] = std::move(steps);
 		}
-		Sequences_["Parachute"] = parachute;
+
+		// 地点イベントトリガーの読み込み
+		if (root.contains("locationTriggers") && root["locationTriggers"].is_array()) {
+			for (auto& triggerData : root["locationTriggers"]) {
+				LocationTrigger trigger;
+				if (triggerData.contains("area") && triggerData["area"].is_number()) {
+					trigger.AreaIndex = triggerData["area"].get<int>();
+				}
+				if (triggerData.contains("position") && triggerData["position"].is_array()) {
+					auto& pos = triggerData["position"];
+					if (pos.size() >= 2) {
+						trigger.Position.X = pos[0].get<float>();
+						trigger.Position.Y = pos[1].get<float>();
+						trigger.Position.Z = pos.size() >= 3 ? pos[2].get<float>() : 0.0f;
+					}
+				}
+				if (triggerData.contains("radius") && triggerData["radius"].is_number()) {
+					trigger.Radius = triggerData["radius"].get<float>();
+				}
+				if (triggerData.contains("event") && triggerData["event"].is_string()) {
+					trigger.EventName = triggerData["event"].get<std::string>();
+				}
+				LocationTriggers_.push_back(trigger);
+			}
+		}
+	}
+
+	// ==============================
+	//  イベント発火
+	// ==============================
+	bool TutorialManager::FireEvent(const std::string& eventName) {
+		auto it = EventToSequence_.find(eventName);
+		if (it == EventToSequence_.end()) return false;
+		return TryStartSequence(it->second);
 	}
 
 	void TutorialManager::StartSequence(const std::string& sequenceId) {
@@ -120,7 +280,7 @@ namespace Game {
 		return false;
 	}
 
-	void TutorialManager::Update(float deltaTime) {
+	void TutorialManager::Update(float deltaTime, int currentAreaIndex) {
 		if (!Active_ || CurrentStep_ < 0 || CurrentStep_ >= static_cast<int>(Steps_.size())) {
 			return;
 		}
@@ -204,6 +364,12 @@ namespace Game {
 				}
 			}
 			break;
+
+		case TutorialStep::Trigger::AreaExit:
+			if (currentAreaIndex != -1 && currentAreaIndex != step.RequiredAreaIndex) {
+				shouldAdvance = true;
+			}
+			break;
 		}
 
 		if (shouldAdvance) {
@@ -262,20 +428,7 @@ namespace Game {
 			float const x1 = ((sx + sw) / 640.0f) - 1.0f;
 			float const y1 = 1.0f - ((sy + sh) / 360.0f);
 
-			// テキスト背景（暗い半透明パネル）
-			float const panelAlpha = alpha * 0.85f;
-			Lumina::F32x4 panelColor{ 0.02f, 0.02f, 0.05f, panelAlpha };
 
-			primMngr.BatchTriangle(
-				{ { x0, y0, 0.0f, 1.0f }, panelColor, { 0.0f, 0.0f }, 0U },
-				{ { x1, y0, 0.0f, 1.0f }, panelColor, { 1.0f, 0.0f }, 0U },
-				{ { x0, y1, 0.0f, 1.0f }, panelColor, { 0.0f, 1.0f }, 0U }
-			);
-			primMngr.BatchTriangle(
-				{ { x1, y0, 0.0f, 1.0f }, panelColor, { 1.0f, 0.0f }, 0U },
-				{ { x1, y1, 0.0f, 1.0f }, panelColor, { 1.0f, 1.0f }, 0U },
-				{ { x0, y1, 0.0f, 1.0f }, panelColor, { 0.0f, 1.0f }, 0U }
-			);
 
 			// テキスト画像（テクスチャ付き）
 			uint32_t texID = TutorialTextureStartIndex + step.TextureIndex;
@@ -301,18 +454,24 @@ namespace Game {
 		bool hasHighlight = (step.HighlightSize.X > 0.001f && step.HighlightSize.Y > 0.001f);
 
 		if (!hasHighlight) {
-			// ハイライトなし: 画面上部だけ軽く暗く（テキスト領域のコントラスト用）
-			// 上部のみ薄いオーバーレイ
-			Lumina::F32x4 thinDark{ 0.0f, 0.0f, 0.0f, alpha * 0.3f };
+			// ハイライトなし: テキスト画像と同じ高さの水平ラインだけ黒く（テキスト領域のコントラスト用）
+			float const sy = step.TextPosition.Y;
+			float const sh = step.TextSize.Y;
+
+			// スクリーン座標→NDCのY座標
+			float const y0 = 1.0f - (sy / 360.0f);        // 帯の上端
+			float const y1 = 1.0f - ((sy + sh) / 360.0f); // 帯の下端
+
+			Lumina::F32x4 thinDark{ 0.0f, 0.0f, 0.0f, alpha * 0.95f };
 			primMngr.BatchTriangle(
-				{ { -1.0f,  1.0f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U },
-				{ {  1.0f,  1.0f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U },
-				{ { -1.0f, -0.4f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U }
+				{ { -1.0f,  y0, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ {  1.0f,  y0, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { -1.0f,  y1, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex }
 			);
 			primMngr.BatchTriangle(
-				{ {  1.0f,  1.0f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U },
-				{ {  1.0f, -0.4f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U },
-				{ { -1.0f, -0.4f, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, 0U }
+				{ {  1.0f,  y0, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ {  1.0f,  y1, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { -1.0f,  y1, 0.0f, 1.0f }, thinDark, { 0.0f, 0.0f }, WhiteTextureIndex }
 			);
 			return;
 		}
@@ -330,14 +489,14 @@ namespace Game {
 
 		auto batchQuad = [&](float x0, float y0, float x1, float y1) {
 			primMngr.BatchTriangle(
-				{ { x0, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U },
-				{ { x1, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U },
-				{ { x0, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U }
+				{ { x0, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { x1, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { x0, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 			);
 			primMngr.BatchTriangle(
-				{ { x1, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U },
-				{ { x1, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U },
-				{ { x0, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, 0U }
+				{ { x1, y1, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { x1, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+				{ { x0, y0, 0.0f, 1.0f }, darkColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 			);
 		};
 
@@ -369,20 +528,48 @@ namespace Game {
 
 		// 4辺のライン
 		primMngr.BatchLine(
-			{ { x0, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U },
-			{ { x1, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U }
+			{ { x0, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+			{ { x1, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 		);
 		primMngr.BatchLine(
-			{ { x1, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U },
-			{ { x1, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U }
+			{ { x1, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+			{ { x1, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 		);
 		primMngr.BatchLine(
-			{ { x1, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U },
-			{ { x0, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U }
+			{ { x1, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+			{ { x0, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 		);
 		primMngr.BatchLine(
-			{ { x0, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U },
-			{ { x0, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, 0U }
+			{ { x0, y1, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex },
+			{ { x0, y0, 0.0f, 1.0f }, borderColor, { 0.0f, 0.0f }, WhiteTextureIndex }
 		);
+	}
+
+	void TutorialManager::ResetProgress() {
+		CompletedSequences_.clear();
+		for (auto& trigger : LocationTriggers_) {
+			trigger.Triggered = false;
+		}
+		Active_ = false;
+		Completed_ = false;
+		CurrentStep_ = -1;
+		Steps_.clear();
+		ActiveSequenceId_.clear();
+	}
+
+	void TutorialManager::UpdateLocationTriggers(int currentAreaIndex, const Lumina::Math::F32x3& playerPosition) {
+		for (auto& trigger : LocationTriggers_) {
+			if (trigger.Triggered) continue;
+			if (trigger.AreaIndex != currentAreaIndex) continue;
+
+			// X, Y平面上での距離チェック
+			float dx = trigger.Position.X - playerPosition.X;
+			float dy = trigger.Position.Y - playerPosition.Y;
+			float distanceSq = dx * dx + dy * dy;
+			if (distanceSq <= trigger.Radius * trigger.Radius) {
+				trigger.Triggered = true;
+				FireEvent(trigger.EventName);
+			}
+		}
 	}
 }

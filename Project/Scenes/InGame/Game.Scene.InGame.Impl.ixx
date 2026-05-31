@@ -256,6 +256,9 @@ namespace Game::Scene::Impl {
 			float ScreenFadeAlpha = 1.0f;
 			int ScreenFadeNextAction = 0;
 			float ScreenFadeSpeed = 1.5f;
+
+			// チュートリアル用: 前フレームのプレイヤーHP（ダメージ検知用）
+			float PrevPlayerHp = -1.0f;
 		} playState_;
 
 		void CheckAndLoadArea(int areaIndex, int previousAreaIndex = -1);
@@ -350,10 +353,23 @@ namespace Game::Scene::Impl {
 		// * 音声
 
 	private:
+		// 音声列挙体設定
 		enum class AUDIO_STREAM_ID {
 			BGM,
 			PLAYER_ATTACK,
 			PLAYER_JUMP,
+			PLAYER_ATTACKCOMBO1,
+			PLAYER_ATTACKCOMBO2,
+			PLAYER_ATTACKCOMBO3,
+			PLAYER_ATTACKROT,
+			PLAYER_ATTACKJUMP,
+			PLAYER_FLYING,
+			PLAYER_CHARGE,
+			PLAYER_CHARGEATTACK,
+			PLAYER_WARP,
+			PLAYER_THROWUMBRELLA,
+			PLAYER_GAINXP,
+			PLAYER_LEVELUP,
 			// などなど
 		};
 
