@@ -298,6 +298,7 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle2>> UmbrellaEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> UmbrellaEffects2_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
 

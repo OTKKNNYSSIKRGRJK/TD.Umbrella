@@ -16,7 +16,7 @@ PSOutput main(VSOutput input_) {
 	PSOutput output;
 	float4 texColor = Texture.Sample(Sampler, input_.TexCoord);
 	output.Diffuse = texColor;
-	output.Diffuse.rgb *= 0.01f;
+	output.Diffuse.rgb *= float3(0.02f, 0.04f, 0.05f);
 	//output.Normal = float4(0.0f, 0.0f, 0.0f, 0.0f);
 	return output;
 }

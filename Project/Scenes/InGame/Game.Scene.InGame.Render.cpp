@@ -714,6 +714,15 @@ namespace Game::Scene::Impl {
 			GlobalTable_SRV_ImageTexture_,
 			GlobalTable_SRV_CanvasTexture_
 		);
+		UmbrellaEffects2_->Render(
+			cmdList_,
+			RS_ParticleSystem_,
+			GraphicsPSO_BasicParticle_AdditiveMode_,
+			LocalHeap_Scene_.CPUHandle(0U),
+			LocalHeap_Scene_.CPUHandle(0U),
+			GlobalTable_SRV_ImageTexture_,
+			GlobalTable_SRV_CanvasTexture_
+		);
 
 		Raindrops_->Render(
 			cmdList_,
@@ -849,45 +858,63 @@ namespace Game::Scene::Impl {
 	auto InGame::Render_<"PrepareData.Particle">() -> void {
 		auto const& cmdList{ Lumina::Context::Instance().MainCommandList() };
 
+		auto const viewToWorld{ Camera_Player_->ViewInverse() };
+
 		PlayerEffects_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this](Lumina::Particle& p_, void const*) -> bool {
-			this->Update_<"PlayerEffectParticle">(p_);
-			return (p_.Life > 0.0f);
-		}
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"PlayerEffectParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
 		);
 		UmbrellaEffects_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this](Lumina::Particle2& p_, void const*) -> bool {
-			this->Update_<"UmbrellaEffectParticle">(p_);
-			return (p_.Life > 0.0f);
-		}
+			viewToWorld,
+			[this] (Lumina::Particle2& p_, void const*) -> bool {
+				this->Update_<"UmbrellaEffectParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+		UmbrellaEffects2_->Update(
+			cmdList,
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"UmbrellaEffectParticle2">(p_);
+				return (p_.Life > 0.0f);
+			}
+		);
+		EnemyEffects_->Update(
+			cmdList,
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"EnemyEffectParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
 		);
 		Raindrops_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this](Lumina::Particle& p_, void const*) -> bool {
-			this->Update_<"RaindropParticle">(p_);
-			return (p_.Life > 0.0f);
-		}
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"RaindropParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
 		);
 		AmbientSparkles_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this](Lumina::Particle& p_, void const*) -> bool {
-			this->Update_<"AmbientSparkleParticle">(p_);
-			return (p_.Life > 0.0f);
-		}
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"AmbientSparkleParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
 		);
 		PortalSparkles_->Update(
 			cmdList,
-			Lumina::Math::F32x4x4<>::Identity,
-			[this](Lumina::Particle& p_, void const*) -> bool {
-			this->Update_<"PortalSparkleParticle">(p_);
-			return (p_.Life > 0.0f);
-		}
+			viewToWorld,
+			[this] (Lumina::Particle& p_, void const*) -> bool {
+				this->Update_<"PortalSparkleParticle">(p_);
+				return (p_.Life > 0.0f);
+			}
 		);
 	}
 

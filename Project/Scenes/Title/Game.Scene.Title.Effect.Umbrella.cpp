@@ -80,7 +80,7 @@ namespace Game::Scene::Impl {
 					Lumina::F32 const saturation{
 						(type_ == 0) ?
 						(RNDEngine() * Inv_0xFFFFFFFF * 0.2f + 0.1f) :
-						(RNDEngine() * Inv_0xFFFFFFFF * 0.3f + 0.2f)
+						(RNDEngine() * Inv_0xFFFFFFFF * 0.3f + 0.5f)
 					};
 					auto const rgb_Gaming = Lumina::Utils::Color::Convert(
 						Lumina::Utils::Color::HSV{
@@ -90,7 +90,7 @@ namespace Game::Scene::Impl {
 						}
 					);
 					p.RenderData.RGBA = {
-						rgb_Gaming.R * 0.5f + 0.5f,
+						rgb_Gaming.R * 0.2f + 0.8f,
 						rgb_Gaming.G * 0.8f + 0.2f,
 						rgb_Gaming.B * 0.75f + 0.25f,
 						0.0f

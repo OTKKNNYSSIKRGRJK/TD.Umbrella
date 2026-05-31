@@ -30,7 +30,7 @@ import Lumina.Cylinder;
 namespace Game::Scene::Impl {
 	namespace {
 		const std::vector<std::pair<std::string, std::string>> BaseTextures = {
-			{ "uvChecker", "Assets/Img/uvChecker.png" },
+			{ "OCEAN", "Assets/Img/OCEAN.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
 			{ "pause", "Assets/Img/UI/pause.png" },
 			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
@@ -554,7 +554,7 @@ namespace Game::Scene::Impl {
 		// CBV作成
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 999;
+		Material0_.ID_DiffuseMap = 0;
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 
 		// 敵用のマテリアルを設定
@@ -1029,12 +1029,14 @@ namespace Game::Scene::Impl {
 		PlayerEffects_->Initialize(d3d12Context_, 1024U);
 		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle2>>();
 		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
-
+		UmbrellaEffects2_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		UmbrellaEffects2_->Initialize(d3d12Context_, 512U);
+		
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		KnockEffects_->Initialize(d3d12Context_, 256U);
 
 		EnemyEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		EnemyEffects_->Initialize(d3d12Context_, 512U);
+		EnemyEffects_->Initialize(d3d12Context_, 1024U);
 	}
 
 	template<>

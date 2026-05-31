@@ -126,6 +126,23 @@ namespace Game::Scene::Impl {
 		);
 
 		PreparePointLights(
+			*UmbrellaEffects2_,
+			[&, this] (Lumina::Particle const& particle_) {
+				if (!List_PointLight_.IsFull()) {
+					auto& pointLight{
+						makePointLightBasedOnParticle(
+							particle_,
+							particle_.RenderData.RGBA.W * 5.0f
+						)
+					};
+					makeLightSphereTransform(
+						pointLight, 128.0f, 0.5f, 1.0f, 1.0f, 0.5f
+					);
+				}
+			}
+		);
+
+		PreparePointLights(
 			*AmbientSparkles_,
 			[&, this] (Lumina::Particle const& particle_) {
 				if (!List_PointLight_.IsFull()) {

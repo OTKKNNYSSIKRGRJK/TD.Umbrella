@@ -1194,6 +1194,26 @@ namespace Game::Scene::Impl {
 	}
 #endif
 
+	template<>
+	auto InGame::Update_<"Effects">() -> void {
+		Update_<"EffectVariables">();
+		Update_<"Effect.Common">();
+
+		Update_<"Effect.Player.Perpetual">();
+		Update_<"Effect.Player.Move">();
+		Update_<"Effect.Player.Jump">();
+		Update_<"Effect.Player.Warp">();
+
+		Update_<"Effect.Umbrella.Perpetual">();
+		Update_<"Effect.Umbrella.Perpetual2">();
+		Update_<"Effect.Umbrella.Attack">();
+
+		Update_<"Effect.Ambient.Raindrops">();
+		Update_<"Effect.Ambient.Sparkle">();
+		Update_<"Effect.Ambient.Portals">();
+		Update_<"Effect.Enemies">();
+	}
+
 	void InGame::Update() {
 		float dt = 1.0f / 60.0f;
 
@@ -1404,22 +1424,9 @@ namespace Game::Scene::Impl {
 			DrawGamePhaseUI();
 		}
 
+		Update_<"Effects">();
 		Update_<"Lighting">();
-
-		Update_<"EffectVariables">();
-		Update_<"Effect.Common">();
-
-		Update_<"Effect.Player.Perpetual">();
-		Update_<"Effect.Player.Move">();
-		Update_<"Effect.Player.Jump">();
-		Update_<"Effect.Player.Warp">();
-
-		Update_<"Effect.Umbrella.Perpetual">();
-		Update_<"Effect.Umbrella.Attack">();
-
-		Update_<"Effect.Ambient.Raindrops">();
-		Update_<"Effect.Ambient.Sparkle">();
-		Update_<"Effect.Ambient.Portals">();
+		
 
 		constexpr float deltaTime{ 1.0f / 60.0f };
 		Watercolor_->Update(deltaTime);

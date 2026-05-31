@@ -108,18 +108,15 @@ namespace Game::Scene::Impl {
 		PreparePointLights(
 			*UmbrellaEffects_,
 			[&, this] (Lumina::Particle const& particle_) {
-				if (
-					!List_PointLight_.IsFull() &&
-					(particle_.RenderData.DiffuseAtlasID == 4U)
-				) {
+				if (!List_PointLight_.IsFull()) {
 					auto& pointLight{
 						makePointLightBasedOnParticle(
 							particle_,
-							particle_.RenderData.RGBA.W * 25.0f
+							particle_.RenderData.RGBA.W * 1.0f
 						)
 					};
 					makeLightSphereTransform(
-						pointLight, 128.0f, 0.5f, 1.0f, 1.0f, 0.5f
+						pointLight, 32.0f, 0.5f, 1.0f, 1.0f, 0.5f
 					);
 				}
 			}
