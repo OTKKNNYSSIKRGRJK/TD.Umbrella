@@ -87,7 +87,7 @@
       ]
     },
     "UmbrellaReverse": {
-      "triggerEvent": "area_enter_8",
+      "triggerEvent": "area_enter_5",
       "steps": [
         {
           "texture": "B_Reverse.png",
