@@ -3,7 +3,6 @@ module Game.Scene.InGame;
 import : Impl;
 import : Impl.Effect;
 
-import Game.Events.InGame;
 import Lumina.Utils.Color;
 import Lumina.Core.Math;
 
@@ -80,47 +79,6 @@ namespace Game::Scene::Impl {
 		//auto const& playerPos{ Player_->GetPosition() };
 
 		// * Hands
-
-		for (int i{ 0 }; i < 2; ++i) {
-			Lumina::Particle p{};
-			{
-				p.Translate = {
-					std::cos(PlayerEffectTimeFactor * 0.3f + i * 2.4f) * 0.1f,
-					std::sin(PlayerEffectTimeFactor * 0.4f + i * 3.6f) * 0.1f,
-					std::sin(PlayerEffectTimeFactor * 0.5f - i * 1.2f) * 0.1f
-				};
-
-				p.Velocity.X = p.Translate.Y * (-0.25f);
-				p.Velocity.Y = p.Translate.Z * (-0.25f);
-				p.Velocity.Z = p.Translate.X * (-0.25f);
-
-				auto const& worldPos_Hand{ World_Hands[i][3] };
-				p.Translate.X += worldPos_Hand.X();
-				p.Translate.Y += worldPos_Hand.Y();
-				p.Translate.Z += worldPos_Hand.Z();
-
-				p.Scale.X = 0.75f;
-				p.Scale.Y = 0.75f;
-
-				p.Rotate.Z = RNDEngine() * Inv_0xFFFFFFFF * Pi * 2.0f;
-
-				p.Life = 36.0f;
-
-				p.RenderData.RGBA = {
-					RGB_Gaming.R * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-					RGB_Gaming.G * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-					RGB_Gaming.B * 0.9f + RNDEngine() * Inv_0xFFFFFFFF * 0.05f,
-					0.375f
-				};
-				p.RenderData.DiffuseID = 1U;
-				p.RenderData.DiffuseAtlasID = (RNDEngine() & 3) ? (5U) : (4U);
-				PlayerEffects_->Emit(std::move(p));
-			}
-		}
-	}
-
-	template<>
-	auto InGame::Update_<"Effect.Enemy.Perpetual">() -> void {
 
 		for (int i{ 0 }; i < 2; ++i) {
 			Lumina::Particle p{};
@@ -500,6 +458,68 @@ namespace Game::Scene::Impl {
 	}
 
 	template<>
+	auto InGame::Update_<"Effect.Umbrella.Perpetual2">() -> void {
+		auto emitParticles{
+			[&, this] (int type_) -> void {
+				Lumina::F32 const rnd{ RNDEngine() * Inv_0xFFFFFFFF };
+				Lumina::F32 const theta{ rnd * 2.0f * Pi };
+				Lumina::F32 const rho{ RNDEngine() * Inv_0xFFFFFFFF * 0.5f * Pi };
+				Lumina::F32 const cos_Theta{ std::cos(theta) };
+				Lumina::F32 const sin_Theta{ std::sin(theta) };
+				Lumina::F32 const cos_Rho{ std::cos(rho) };
+				Lumina::F32 const sin_Rho{ std::sin(rho) };
+
+				Lumina::Particle p{};
+				{
+					p.Velocity.X = cos_Theta * cos_Rho * 0.025f;
+					p.Velocity.Y = sin_Theta * cos_Rho * 0.025f;
+					p.Velocity.Z = sin_Rho * 0.025f;
+
+					p.Translate.X = WorldPos_UmbrellaTip.X;
+					p.Translate.Y = WorldPos_UmbrellaTip.Y;
+					p.Translate.Z = WorldPos_UmbrellaTip.Z;
+
+					{
+						p.Scale.X = 1.0f;
+						p.Scale.Y = 1.0f;
+
+						p.Scale.Z = (type_ > 0) ? (0.001f) : (-0.001f);
+					}
+
+					p.Rotate.X = rho * 0.5f;
+					p.Rotate.Y = rho * (-0.5f);
+					p.Rotate.Z = theta;
+
+					p.Life = 36.0f;
+
+					Lumina::F32 const saturation{
+						(RNDEngine() * Inv_0xFFFFFFFF * 0.3f + 0.3f)
+					};
+					auto const rgb_Gaming = Lumina::Utils::Color::Convert(
+						Lumina::Utils::Color::HSV{
+							RNDEngine() * Inv_0xFFFFFFFF * 25.0f + rnd * 360.0f + TimeFactor_UmbrellaEffect,
+							saturation,
+							0.75f
+						}
+					);
+					p.RenderData.RGBA = {
+						rgb_Gaming.R * 0.2f + 0.8f,
+						rgb_Gaming.G * 0.8f + 0.2f,
+						rgb_Gaming.B * 0.75f + 0.25f,
+						0.0f
+					};
+					p.RenderData.DiffuseID = 1U;
+					p.RenderData.DiffuseAtlasID = 5U;
+					UmbrellaEffects2_->Emit(std::move(p));
+				}
+			}
+		};
+
+		emitParticles(1);
+		emitParticles(-1);
+	}
+
+	template<>
 	auto InGame::Update_<"Effect.Umbrella.Attack">() -> void {
 		if (PlayerAttackEffectEmitFrameCount <= 0) { return; }
 
@@ -594,6 +614,39 @@ namespace Game::Scene::Impl {
 
 		p_.RenderData.RGBA.W *= 0.97f;
 		
+		p_.Life -= 1.0f;
+	}
+
+	template<>
+	auto InGame::Update_<"UmbrellaEffectParticle2">(Lumina::Particle& p_) -> void {
+		static Lumina::F32 const delta{ 0.01f };
+		static Lumina::F32 const cos_Delta{ std::cos(delta) };
+		static Lumina::F32 const sin_Delta{ std::sin(delta) };
+
+		if (p_.Scale.Z != 0.0f) {
+			Lumina::F32x2 vel{ p_.Velocity.X, p_.Velocity.Y };
+			if (p_.Scale.Z > 0.0f) {
+				p_.Velocity.X = vel.X * cos_Delta + vel.Y * (-sin_Delta);
+				p_.Velocity.Y = vel.X * sin_Delta + vel.Y * cos_Delta;
+
+				p_.Rotate.Z += delta;
+			}
+			else {
+				p_.Velocity.X = vel.X * cos_Delta + vel.Y * sin_Delta;
+				p_.Velocity.Y = vel.X * (-sin_Delta) + vel.Y * cos_Delta;
+
+				p_.Rotate.Z -= delta;
+			}
+		}
+
+		p_.Translate.X += p_.Velocity.X;
+		p_.Translate.Y += p_.Velocity.Y;
+
+		p_.Scale.X *= 0.93f;
+		p_.Scale.Y *= 0.93f;
+
+		p_.RenderData.RGBA.W += 0.02f;
+
 		p_.Life -= 1.0f;
 	}
 }

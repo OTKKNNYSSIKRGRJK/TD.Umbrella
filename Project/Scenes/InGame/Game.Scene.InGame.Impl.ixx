@@ -280,7 +280,7 @@ namespace Game::Scene::Impl {
 		// ゲームオーバー用UIメニュー
 		Game::UIMenu GameOverMenu_;
 
-		/// パーティクル・ライティング
+		// * パーティクル・ライティング
 	private:
 		std::unique_ptr<Lumina::DeferredLighting> DeferredLighting_;
 		Lumina::List<Lumina::PointLight> List_PointLight_;
@@ -305,6 +305,7 @@ namespace Game::Scene::Impl {
 
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> PlayerEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle2>> UmbrellaEffects_;
+		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> UmbrellaEffects2_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> KnockEffects_;
 		std::unique_ptr<Lumina::ParticleSystem<Lumina::Particle>> EnemyEffects_;
 

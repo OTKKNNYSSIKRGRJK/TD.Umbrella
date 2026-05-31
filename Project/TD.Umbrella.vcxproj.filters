@@ -58,6 +58,9 @@
     <Filter Include="Game\Events">
       <UniqueIdentifier>{4d0c841a-ce82-455a-bb06-be2db1eaf8a4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Scenes\Clear">
+      <UniqueIdentifier>{4e8fe473-4e12-4f85-af1c-de0fde295123}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -316,6 +319,36 @@
     </ClCompile>
     <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Lighting.cpp">
       <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Ambient.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.ixx">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Effect.Umbrella.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Title\Game.Scene.Title.Lighting.cpp">
+      <Filter>Scenes\Title</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\InGame\Game.Scene.InGame.Effect.Enemy.cpp">
+      <Filter>Scenes\InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Clear\Game.Scene.Clear.Impl.ixx">
+      <Filter>Scenes\Clear</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Clear\Game.Scene.Clear.Initialize.cpp">
+      <Filter>Scenes\Clear</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Clear\Game.Scene.Clear.ixx">
+      <Filter>Scenes\Clear</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Clear\Game.Scene.Clear.Render.cpp">
+      <Filter>Scenes\Clear</Filter>
+    </ClCompile>
+    <ClCompile Include="Scenes\Clear\Game.Scene.Clear.Update.cpp">
+      <Filter>Scenes\Clear</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

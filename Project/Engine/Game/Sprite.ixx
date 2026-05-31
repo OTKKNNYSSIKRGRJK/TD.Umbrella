@@ -26,7 +26,7 @@ namespace Lumina {
 		Math::F32x2 AnchorPoint{ 0.0f, 0.0f };
 
 		Math::F32x2 UVs[4]{ { 0.0f, 0.0f }, { 1.0f, 0.0f }, { 0.0f, 1.0f }, { 1.0f, 1.0f } };
-		F32 RGBA[4]{ 1.0f, 1.0f, 1.0f, 1.0f };
+		F32x4 RGBA{ 1.0f, 1.0f, 1.0f, 1.0f };
 		U32 TextureID;
 	};
 

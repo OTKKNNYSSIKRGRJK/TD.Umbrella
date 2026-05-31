@@ -138,9 +138,9 @@ namespace Lumina {
 
 			//----	------	------	------	------	----//
 
-			if (keyboard.IsPressed(Lumina::OS::Windows::KEY::ESC)) {
+			/*if (keyboard.IsPressed(Lumina::OS::Windows::KEY::ESC)) {
 				::SendMessage(WinAppContext_.WindowInstance(L"Main").Handle(), WM_CLOSE, 0, 0);
-			}
+			}*/
 
 			WinAppContext_.Update();
 

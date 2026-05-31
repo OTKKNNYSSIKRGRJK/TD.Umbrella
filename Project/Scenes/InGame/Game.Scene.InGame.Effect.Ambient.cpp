@@ -5,7 +5,6 @@ import : Impl.Effect;
 
 import <cmath>;
 
-import Game.Events.InGame;
 import Lumina.Utils.Color;
 import Lumina.Core.Math;
 
@@ -166,7 +165,8 @@ namespace Game::Scene::Impl {
 
 						p.Scale.Z = 0.0f;
 
-						p.Rotate.Y = rho * (-1.0f);
+						p.Rotate.X = rho * 0.5f;
+						p.Rotate.Y = rho * (-0.5f);
 						p.Rotate.Z = theta;
 					}
 					else {

@@ -7,14 +7,21 @@ import Lumina.OS.Windows.RawInput;
 
 namespace Game::Scene::Impl {
 	void Title2InGame::Update() {
-		auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
-		auto const& keyboard{ inputMngr.Keyboard() };
-		using Lumina::OS::Windows::KEY;
+		//auto const& inputMngr{ Lumina::Context::Instance().RawInputContext() };
+		//auto const& keyboard{ inputMngr.Keyboard() };
+		//using Lumina::OS::Windows::KEY;
 
-		if (keyboard.IsJustPressed(KEY::NUM_0)) {
+		static int cnt = 0;
+
+		if (cnt > 1) {
 			auto& sceneMngr{ Lumina::SceneManager::Instance() };
-			sceneMngr.Unload("Title");
+			sceneMngr.Deactivate("Title");
 			sceneMngr.Deactivate("Title->InGame");
+
+			cnt = 0;
+		}
+		else {
+			++cnt;
 		}
 	}
 }

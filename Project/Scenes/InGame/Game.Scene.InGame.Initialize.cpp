@@ -30,7 +30,7 @@ import Lumina.Cylinder;
 namespace Game::Scene::Impl {
 	namespace {
 		const std::vector<std::pair<std::string, std::string>> BaseTextures = {
-			{ "uvChecker", "Assets/Img/uvChecker.png" },
+			{ "OCEAN", "Assets/Img/OCEAN.png" },
 			{ "Particles", "Assets/Img/Particles.png" },
 			{ "pause", "Assets/Img/UI/pause.png" },
 			{ "pause_resume", "Assets/Img/UI/pause_resume.png" },
@@ -134,13 +134,6 @@ namespace Game::Scene::Impl {
 
 		// マルチメッシュ対応なのでstd::vector<Lumina::Utils::Mesh>形式に
 		// Lumina::Utils::Meshにはメッシュ1個分が入る
-		auto&& teapot{
-			Lumina::Utils::Mesh::Load(
-				Lumina::Utils::LoadFromFile<Lumina::Utils::WavefrontOBJ>(
-					"teapot.obj", "Assets"
-				)
-			)
-		};
 
 		auto&& umbrellaHandle{
 			Lumina::Utils::Mesh::Load(
@@ -191,7 +184,6 @@ namespace Game::Scene::Impl {
 			}
 		};
 
-		addMeshesToBeUploaded(teapot);
 		addMeshesToBeUploaded(umbrellaHandle);
 		addMeshesToBeUploaded(umbrellaCloseTop);
 		addMeshesToBeUploaded(umbrellaOpenTop);
@@ -597,7 +589,7 @@ namespace Game::Scene::Impl {
 		// CBV作成
 		Lumina::D3D12::CBV::Create(d3d12Device, LocalHeap_Materials_.CPUHandle(0U), *UB_Materials_[0]);
 		Material0_.RGBA = { 1.0f, 1.0f, 1.0f, 1.0f };
-		Material0_.ID_DiffuseMap = 999;
+		Material0_.ID_DiffuseMap = 0;
 		UB_Materials_[0]->Store(&Material0_, sizeof(Material0_), 0LLU);
 
 		// 敵用のマテリアルを設定
@@ -709,7 +701,7 @@ namespace Game::Scene::Impl {
 				DXGI_FORMAT_R8G8B8A8_UNORM,
 			},
 			Lumina::D3D12::GraphicsPSO::DefaultDSVFormat
-			);
+		);
 
 		Canvas_.AllocateTextures(2U, true);
 		Canvas_.RenderTexture(0U).Initialize(d3d12Device, 1280U, 720U, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
@@ -928,11 +920,11 @@ namespace Game::Scene::Impl {
 		Player_->SetMesh(MeshShaderAssets_[0]);
 		Player_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
-		Player_->GetUmbrella().handle_->SetMesh(MeshShaderAssets_[1]);
+		Player_->GetUmbrella().handle_->SetMesh(MeshShaderAssets_[0]);
 		Player_->GetUmbrella().handle_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
-		Player_->GetUmbrella().top_->SetMesh(MeshShaderAssets_[2]);
-		Player_->GetUmbrella().top_->SetMeshOpen(MeshShaderAssets_[3]);
+		Player_->GetUmbrella().top_->SetMesh(MeshShaderAssets_[1]);
+		Player_->GetUmbrella().top_->SetMeshOpen(MeshShaderAssets_[2]);
 		Player_->GetUmbrella().top_->SetMeshMaterialCBV(LocalHeap_Materials_.CPUHandle(0U));
 
 		CollisionManager_ = std::make_unique<CollisionManager>();
@@ -1072,12 +1064,14 @@ namespace Game::Scene::Impl {
 		PlayerEffects_->Initialize(d3d12Context_, 1024U);
 		UmbrellaEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle2>>();
 		UmbrellaEffects_->Initialize(d3d12Context_, 512U);
-
+		UmbrellaEffects2_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
+		UmbrellaEffects2_->Initialize(d3d12Context_, 512U);
+		
 		KnockEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
 		KnockEffects_->Initialize(d3d12Context_, 256U);
 
 		EnemyEffects_ = std::make_unique<Lumina::ParticleSystem<Lumina::Particle>>();
-		EnemyEffects_->Initialize(d3d12Context_, 512U);
+		EnemyEffects_->Initialize(d3d12Context_, 1024U);
 	}
 
 	template<>
